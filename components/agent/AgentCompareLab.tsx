@@ -7,6 +7,7 @@ import type {
   AgentCompareLaneProgress,
   AgentCompareLaneTimelineEntry,
   AgentCompareOutputShape,
+  AgentCompareReviewSummaryDetail,
   AgentCompareReviewSummaryTone,
   AgentCompareResponse,
   AgentProviderProfile,
@@ -35,6 +36,7 @@ type AgentCompareLabProps = {
   compareResult: AgentCompareResponse | null;
   compareBaseTargetId: string;
   compareReviewSummaryTone: AgentCompareReviewSummaryTone;
+  compareReviewSummaryDetail: AgentCompareReviewSummaryDetail;
   compareRuntimeByTargetId: Record<string, AgentRuntimeStatus>;
   compareProgressByTargetId: Record<string, AgentCompareLaneProgress>;
   compareBenchmarkUseOutputContract: boolean;
@@ -65,6 +67,7 @@ type AgentCompareLabProps = {
   onRerunLane: (targetId: string) => void;
   onSetBaseLane: (targetId: string) => void;
   onCompareReviewSummaryToneChange: (value: AgentCompareReviewSummaryTone) => void;
+  onCompareReviewSummaryDetailChange: (value: AgentCompareReviewSummaryDetail) => void;
   onSendToBenchmark: () => void;
   onExportMarkdown: () => void;
   onCompareBenchmarkUseOutputContractChange: (value: boolean) => void;
@@ -237,6 +240,7 @@ export function AgentCompareLab({
   compareResult,
   compareBaseTargetId,
   compareReviewSummaryTone,
+  compareReviewSummaryDetail,
   compareRuntimeByTargetId,
   compareProgressByTargetId,
   compareBenchmarkUseOutputContract,
@@ -267,6 +271,7 @@ export function AgentCompareLab({
   onRerunLane,
   onSetBaseLane,
   onCompareReviewSummaryToneChange,
+  onCompareReviewSummaryDetailChange,
   onSendToBenchmark,
   onExportMarkdown,
   onCompareBenchmarkUseOutputContractChange,
@@ -335,6 +340,11 @@ export function AgentCompareLab({
         reviewSummaryToneIssue: "Issue",
         reviewSummaryTonePr: "PR",
         reviewSummaryToneChat: "Chat",
+        reviewSummaryDetail: "Summary depth",
+        reviewSummaryDetailHint: "Use longer templates when you want a stricter review note or a friendlier status update.",
+        reviewSummaryDetailCompact: "Compact",
+        reviewSummaryDetailStrict: "Strict review",
+        reviewSummaryDetailFriendly: "Friendly report",
         latestRun: "Latest run",
         baseLane: "Base lane",
         overlap: "Overlap",
@@ -427,6 +437,11 @@ export function AgentCompareLab({
         reviewSummaryToneIssue: "Issue",
         reviewSummaryTonePr: "PR",
         reviewSummaryToneChat: "Chat",
+        reviewSummaryDetail: "摘要长度",
+        reviewSummaryDetailHint: "需要更正式的评审或更柔和的汇报时，可以切换到更长的模板。",
+        reviewSummaryDetailCompact: "紧凑",
+        reviewSummaryDetailStrict: "严格审阅",
+        reviewSummaryDetailFriendly: "友好汇报",
         latestRun: "最近一次运行",
         baseLane: "基准 lane",
         overlap: "重合度",
@@ -1084,6 +1099,30 @@ export function AgentCompareLab({
                           className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
                             compareReviewSummaryTone === tone
                               ? "bg-cyan-400/15 text-cyan-50"
+                              : "text-slate-300 hover:bg-white/[0.06]"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.reviewSummaryDetail}</p>
+                    <p className="mt-1 text-[11px] leading-5 text-slate-400">{copy.reviewSummaryDetailHint}</p>
+                    <div className="mt-2 inline-flex rounded-full border border-white/10 bg-white/[0.04] p-1">
+                      {([
+                        ["compact", copy.reviewSummaryDetailCompact],
+                        ["strict-review", copy.reviewSummaryDetailStrict],
+                        ["friendly-report", copy.reviewSummaryDetailFriendly]
+                      ] as Array<[AgentCompareReviewSummaryDetail, string]>).map(([detail, label]) => (
+                        <button
+                          key={detail}
+                          type="button"
+                          onClick={() => onCompareReviewSummaryDetailChange(detail)}
+                          className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
+                            compareReviewSummaryDetail === detail
+                              ? "bg-violet-400/15 text-violet-50"
                               : "text-slate-300 hover:bg-white/[0.06]"
                           }`}
                         >

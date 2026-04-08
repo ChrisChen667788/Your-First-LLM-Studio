@@ -100,6 +100,7 @@ type DashboardResponse = {
     id: string;
     generatedAt: string;
     prompt: string;
+    runNote?: string;
     benchmarkMode?: "prompt" | "dataset" | "suite";
     profileBatchScope?: "full-suite" | "comparison-subset";
     promptSetId?: string;
@@ -4816,6 +4817,21 @@ export function AdminDashboard() {
                     <span>{uiText.benchmarkRuns}: {benchmarkData.runs}</span>
                   </div>
                 </div>
+                {benchmarkData.runNote ? (
+                  <details className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 px-4 py-3 text-sm text-cyan-50">
+                    <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                      {locale.startsWith("en") ? "Run note" : "运行备注"}
+                    </summary>
+                    <p className="mt-2 text-[11px] leading-5 text-cyan-100/75">
+                      {locale.startsWith("en")
+                        ? "This note came from the Compare handoff and keeps the benchmark run tied to its original review framing."
+                        : "这段备注来自 Compare handoff，用来把 benchmark 结果和当时的 compare 审阅语境继续绑在一起。"}
+                    </p>
+                    <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 text-[11px] leading-6 text-slate-200">
+                      {benchmarkData.runNote}
+                    </pre>
+                  </details>
+                ) : null}
                 <div className="space-y-4">
                   {benchmarkResultGroups.map((group) => (
                     <section key={`results:${group.execution}`} className="space-y-3">
@@ -5174,6 +5190,21 @@ export function AdminDashboard() {
                         ) : (
                           <p className="text-xs text-slate-500">{uiText.benchmarkPrompt}: {entry.prompt}</p>
                         )}
+                        {entry.runNote ? (
+                          <details className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 px-3 py-3 text-sm text-cyan-50">
+                            <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                              {locale.startsWith("en") ? "Run note" : "运行备注"}
+                            </summary>
+                            <p className="mt-2 text-[11px] leading-5 text-cyan-100/75">
+                              {locale.startsWith("en")
+                                ? "Captured from Compare handoff so this benchmark run keeps its original review context."
+                                : "这段内容来自 Compare handoff，用来保留这轮 benchmark 当时的审阅上下文。"}
+                            </p>
+                            <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 text-[11px] leading-6 text-slate-200">
+                              {entry.runNote}
+                            </pre>
+                          </details>
+                        ) : null}
                         {(() => {
                           const executionGroups = buildExecutionSections(entry.results, {
                             local: dictionary.common.local,

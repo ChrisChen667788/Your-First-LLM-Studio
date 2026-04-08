@@ -20,6 +20,8 @@ export type AgentCompareOutputShape = "freeform" | "bullet-list" | "strict-json"
 
 export type AgentCompareReviewSummaryTone = "issue" | "pr" | "chat";
 
+export type AgentCompareReviewSummaryDetail = "compact" | "strict-review" | "friendly-report";
+
 export type AgentBenchmarkMode = "prompt" | "dataset" | "suite";
 
 export type AgentKnowledgeDocument = {

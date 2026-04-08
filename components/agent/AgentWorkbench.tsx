@@ -19,6 +19,7 @@ import type {
   AgentCompareLaneProgress,
   AgentCompareProgress,
   AgentCompareOutputShape,
+  AgentCompareReviewSummaryDetail,
   AgentCompareReviewSummaryTone,
   AgentCompareResponse,
   AgentConnectionCheckResponse,
@@ -1349,8 +1350,9 @@ function serializeCompareLaneReviewSummary(params: {
   compareBaseTargetId?: string;
   targetId: string;
   tone: AgentCompareReviewSummaryTone;
+  detailMode: AgentCompareReviewSummaryDetail;
 }) {
-  const { compareResult, compareProgressByTargetId, compareBaseTargetId, targetId, tone } = params;
+  const { compareResult, compareProgressByTargetId, compareBaseTargetId, targetId, tone, detailMode } = params;
   const lane = compareResult.results.find((entry) => entry.targetId === targetId);
   const baseLane =
     compareResult.results.find((entry) => entry.targetId === compareBaseTargetId) || compareResult.results[0] || null;
@@ -1372,6 +1374,80 @@ function serializeCompareLaneReviewSummary(params: {
     schemaStatus
   });
   const outputTakeaway = compactText(lane.content || "No output captured.", 220);
+  const baseLabel = baseLane?.targetLabel || "n/a";
+  const overlapLabel = `${(overlapBase * 100).toFixed(0)}%`;
+  const longFormContext = [
+    `- Base lane: ${baseLabel}`,
+    `- Overlap vs base: ${overlapLabel}`,
+    `- Schema vs base: ${schemaLabel}`,
+    `- Recovery: ${recoveryConclusion}`,
+    lane.warning ? `- Warning: ${compactText(lane.warning, 180)}` : "",
+    `- Output takeaway: ${outputTakeaway}`
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  if (detailMode === "strict-review") {
+    if (tone === "chat") {
+      return [
+        `Strict review for ${lane.targetLabel}:`,
+        `Status: ${lane.ok ? "ok" : "failed"}. This lane should be treated as a review artifact rather than a friendly summary.`,
+        `Main delta: ${takeaway}.`,
+        longFormContext,
+        `- Recommendation: ${followUp}`,
+        `- Reviewer note: keep this lane out of benchmark-facing examples until the warning/schema delta is understood.`
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    return [
+      `${tone === "issue" ? "Issue review" : "PR review"} — ${lane.targetLabel}`,
+      `- Status: ${lane.ok ? "ok" : "failed"}`,
+      `- Review stance: strict`,
+      `- Main delta: ${takeaway}`,
+      longFormContext,
+      `- Recommendation: ${followUp}`,
+      `- Risk note: do not treat this lane as interchangeable with the base lane unless the delta is explicitly accepted.`
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  if (detailMode === "friendly-report") {
+    if (tone === "issue") {
+      return [
+        `Issue update — ${lane.targetLabel}`,
+        `- Status: ${lane.ok ? "ok" : "failed"}`,
+        `- Friendly summary: ${takeaway}`,
+        longFormContext,
+        `- Suggested next step: ${followUp}`
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    if (tone === "chat") {
+      return [
+        `Friendly compare update for ${lane.targetLabel}:`,
+        `This lane ${lane.ok ? "completed cleanly" : "did not finish cleanly"}, and the biggest difference versus ${baseLabel} is that ${takeaway}.`,
+        `Here is the context we should keep with it:\n${longFormContext}`,
+        `Suggested next step: ${followUp}.`
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    return [
+      `PR handoff summary — ${lane.targetLabel}`,
+      `- Status: ${lane.ok ? "ok" : "failed"}`,
+      `- Friendly summary: ${takeaway}`,
+      longFormContext,
+      `- Suggested next step: ${followUp}`
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
 
   if (tone === "issue") {
     return [
@@ -1432,6 +1508,9 @@ function buildMarkdownPreviewHtml(locale: string, title: string, markdown: strin
   const renderedLabel = locale.startsWith("en") ? "Rendered preview" : "渲染版预览";
   const rawLabel = locale.startsWith("en") ? "Raw markdown" : "原始 Markdown";
   const eyebrow = locale.startsWith("en") ? "Compare markdown preview" : "Compare Markdown 预览";
+  const copyRenderedLabel = locale.startsWith("en") ? "Copy rendered summary" : "复制渲染摘要";
+  const copiedLabel = locale.startsWith("en") ? "Rendered summary copied." : "已复制渲染摘要。";
+  const copyFailedLabel = locale.startsWith("en") ? "Copy failed. Try again." : "复制失败，请重试。";
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -1447,9 +1526,12 @@ function buildMarkdownPreviewHtml(locale: string, title: string, markdown: strin
       .eyebrow { font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: #67e8f9; }
       h1 { margin: 12px 0 0; font-size: 24px; line-height: 1.2; color: #f8fafc; }
       .header-copy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+      .header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; }
       .tabs { display: inline-flex; gap: 8px; border: 1px solid rgba(148,163,184,0.14); background: rgba(15,23,42,0.55); border-radius: 999px; padding: 6px; }
       .tab-button { border: 0; cursor: pointer; border-radius: 999px; background: transparent; color: #94a3b8; padding: 10px 16px; font: 600 12px/1 ui-sans-serif, system-ui; letter-spacing: 0.06em; text-transform: uppercase; }
       .tab-button.is-active { background: rgba(34,211,238,0.14); color: #ecfeff; }
+      .copy-button { border: 1px solid rgba(148,163,184,0.18); cursor: pointer; border-radius: 999px; background: rgba(34,211,238,0.12); color: #ecfeff; padding: 10px 16px; font: 600 12px/1 ui-sans-serif, system-ui; letter-spacing: 0.06em; text-transform: uppercase; }
+      .copy-status { min-height: 16px; font-size: 11px; color: #94a3b8; text-align: right; }
       .body { padding: 24px; }
       .panel[hidden] { display: none; }
       .markdown { color: #dbe7f3; }
@@ -1476,9 +1558,13 @@ function buildMarkdownPreviewHtml(locale: string, title: string, markdown: strin
               <div class="eyebrow">${escapeHtml(eyebrow)}</div>
               <h1>${escapeHtml(title)}</h1>
             </div>
-            <div class="tabs" role="tablist" aria-label="${escapeHtml(eyebrow)}">
-              <button type="button" class="tab-button is-active" data-tab="rendered">${escapeHtml(renderedLabel)}</button>
-              <button type="button" class="tab-button" data-tab="raw">${escapeHtml(rawLabel)}</button>
+            <div class="header-actions">
+              <div class="copy-status" id="copy-status" role="status" aria-live="polite"></div>
+              <button type="button" class="copy-button" id="copy-rendered">${escapeHtml(copyRenderedLabel)}</button>
+              <div class="tabs" role="tablist" aria-label="${escapeHtml(eyebrow)}">
+                <button type="button" class="tab-button is-active" data-tab="rendered">${escapeHtml(renderedLabel)}</button>
+                <button type="button" class="tab-button" data-tab="raw">${escapeHtml(rawLabel)}</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1495,14 +1581,56 @@ function buildMarkdownPreviewHtml(locale: string, title: string, markdown: strin
     <script>
       const buttons = Array.from(document.querySelectorAll("[data-tab]"));
       const panels = Array.from(document.querySelectorAll("[data-panel]"));
+      const copyStatus = document.getElementById("copy-status");
+      const setCopyStatus = (message) => {
+        if (!copyStatus) return;
+        copyStatus.textContent = message;
+        window.clearTimeout(window.__comparePreviewCopyTimer || 0);
+        window.__comparePreviewCopyTimer = window.setTimeout(() => {
+          if (copyStatus.textContent === message) {
+            copyStatus.textContent = "";
+          }
+        }, 2200);
+      };
       const setView = (view) => {
         buttons.forEach((button) => button.classList.toggle("is-active", button.dataset.tab === view));
         panels.forEach((panel) => {
           panel.hidden = panel.dataset.panel !== view;
         });
       };
+      const fallbackCopy = (text) => {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      };
       buttons.forEach((button) => {
         button.addEventListener("click", () => setView(button.dataset.tab || "rendered"));
+      });
+      document.getElementById("copy-rendered")?.addEventListener("click", async () => {
+        const renderedPanel = document.querySelector('[data-panel="rendered"]');
+        const text = (renderedPanel?.innerText || "").trim();
+        if (!text) return;
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            fallbackCopy(text);
+          }
+          setCopyStatus(${JSON.stringify(copiedLabel)});
+        } catch {
+          try {
+            fallbackCopy(text);
+            setCopyStatus(${JSON.stringify(copiedLabel)});
+          } catch {
+            setCopyStatus(${JSON.stringify(copyFailedLabel)});
+          }
+        }
       });
       setView("rendered");
     </script>
@@ -1647,6 +1775,8 @@ export function AgentWorkbench() {
   const [compareResult, setCompareResult] = useState<AgentCompareResponse | null>(null);
   const [compareBaseTargetId, setCompareBaseTargetId] = useState("");
   const [compareReviewSummaryTone, setCompareReviewSummaryTone] = useState<AgentCompareReviewSummaryTone>("pr");
+  const [compareReviewSummaryDetail, setCompareReviewSummaryDetail] =
+    useState<AgentCompareReviewSummaryDetail>("compact");
   const [compareRequestId, setCompareRequestId] = useState("");
   const [compareRuntimeByTargetId, setCompareRuntimeByTargetId] = useState<Record<string, AgentRuntimeStatus>>({});
   const [compareProgressByTargetId, setCompareProgressByTargetId] = useState<Record<string, AgentCompareLaneProgress>>({});
@@ -2891,6 +3021,7 @@ export function AgentWorkbench() {
             compareTargetIds?: string[];
             compareBaseTargetId?: string;
             compareReviewSummaryTone?: AgentCompareReviewSummaryTone;
+            compareReviewSummaryDetail?: AgentCompareReviewSummaryDetail;
             compareBenchmarkUseOutputContract?: boolean;
             compareBenchmarkPreviewDiffOnly?: boolean;
             compareIntent?: AgentCompareIntent;
@@ -2930,6 +3061,13 @@ export function AgentWorkbench() {
             || parsed.compareReviewSummaryTone === "chat"
           ) {
             setCompareReviewSummaryTone(parsed.compareReviewSummaryTone);
+          }
+          if (
+            parsed.compareReviewSummaryDetail === "compact"
+            || parsed.compareReviewSummaryDetail === "strict-review"
+            || parsed.compareReviewSummaryDetail === "friendly-report"
+          ) {
+            setCompareReviewSummaryDetail(parsed.compareReviewSummaryDetail);
           }
           if (typeof parsed.compareBenchmarkUseOutputContract === "boolean") {
             setCompareBenchmarkUseOutputContract(parsed.compareBenchmarkUseOutputContract);
@@ -3029,6 +3167,7 @@ export function AgentWorkbench() {
         compareTargetIds,
         compareBaseTargetId,
         compareReviewSummaryTone,
+        compareReviewSummaryDetail,
         compareBenchmarkUseOutputContract,
         compareBenchmarkPreviewDiffOnly,
         compareIntent,
@@ -3045,6 +3184,7 @@ export function AgentWorkbench() {
     compareOutputShape,
     compareBaseTargetId,
     compareReviewSummaryTone,
+    compareReviewSummaryDetail,
     compareBenchmarkUseOutputContract,
     compareBenchmarkPreviewDiffOnly,
     compareTargetIds,
@@ -4089,7 +4229,8 @@ export function AgentWorkbench() {
         compareProgressByTargetId,
         compareBaseTargetId,
         targetId,
-        tone: compareReviewSummaryTone
+        tone: compareReviewSummaryTone,
+        detailMode: compareReviewSummaryDetail
       }),
       `compare:lane-summary:${targetId}`
     );
@@ -6484,6 +6625,7 @@ export function AgentWorkbench() {
                   compareResult={compareResult}
                   compareBaseTargetId={compareBaseTargetId}
                   compareReviewSummaryTone={compareReviewSummaryTone}
+                  compareReviewSummaryDetail={compareReviewSummaryDetail}
                   compareRuntimeByTargetId={compareRuntimeByTargetId}
                   compareProgressByTargetId={compareProgressByTargetId}
                   compareBenchmarkUseOutputContract={compareBenchmarkUseOutputContract}
@@ -6514,6 +6656,7 @@ export function AgentWorkbench() {
                   onRerunLane={handleRerunCompareLane}
                   onSetBaseLane={setCompareBaseTargetId}
                   onCompareReviewSummaryToneChange={setCompareReviewSummaryTone}
+                  onCompareReviewSummaryDetailChange={setCompareReviewSummaryDetail}
                   onSendToBenchmark={handleSendCompareToBenchmark}
                   onExportMarkdown={handleExportCompareMarkdown}
                   onCompareBenchmarkUseOutputContractChange={setCompareBenchmarkUseOutputContract}
