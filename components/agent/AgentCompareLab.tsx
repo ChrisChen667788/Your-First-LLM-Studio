@@ -40,6 +40,8 @@ type AgentCompareLabProps = {
   compareBenchmarkPromptDiffPreview: string;
   compareBenchmarkPreviewDiffOnly: boolean;
   compareRecoveryPendingTargetId: string;
+  compareRecoveryConfirmTargetId: string;
+  compareRecoveryCooldownByTargetId: Record<string, number>;
   benchmarkPending: boolean;
   benchmarkError: string;
   benchmarkResult: AgentBenchmarkResponse | null;
@@ -64,6 +66,7 @@ type AgentCompareLabProps = {
   onCompareBenchmarkUseOutputContractChange: (value: boolean) => void;
   onCompareBenchmarkPreviewDiffOnlyChange: (value: boolean) => void;
   onRetryLocalRecovery: (targetId: string) => void;
+  onExportLaneMarkdown: (targetId: string) => void;
   onCopy: (text: string, key: string) => void;
   copyState: string;
 };
@@ -232,6 +235,8 @@ export function AgentCompareLab({
   compareBenchmarkPromptDiffPreview,
   compareBenchmarkPreviewDiffOnly,
   compareRecoveryPendingTargetId,
+  compareRecoveryConfirmTargetId,
+  compareRecoveryCooldownByTargetId,
   benchmarkPending,
   benchmarkError,
   benchmarkResult,
@@ -256,6 +261,7 @@ export function AgentCompareLab({
   onCompareBenchmarkUseOutputContractChange,
   onCompareBenchmarkPreviewDiffOnlyChange,
   onRetryLocalRecovery,
+  onExportLaneMarkdown,
   onCopy,
   copyState
 }: AgentCompareLabProps) {
@@ -336,7 +342,12 @@ export function AgentCompareLab({
         compareRecoveryTimeline: "Recovery timeline",
         compareNoTimeline: "Timeline entries will appear here once compare records loading or recovery milestones.",
         compareManualRecovery: "Retry local recovery",
-        compareManualRecoveryPending: "Retrying local recovery..."
+        compareManualRecoveryPending: "Retrying local recovery...",
+        compareManualRecoveryConfirm: "Click again to confirm",
+        compareManualRecoveryConfirmHint: "Click once more within 5 seconds to restart the local gateway from Compare.",
+        compareManualRecoveryCooldown: "Recovery cooldown",
+        compareManualRecoveryCooldownHint: "A short cooldown is active so we do not spam local restarts.",
+        exportLane: "Export lane"
       }
     : {
         title: "Compare Lab",
@@ -413,7 +424,12 @@ export function AgentCompareLab({
         compareRecoveryTimeline: "恢复动作时间线",
         compareNoTimeline: "当 compare 记录到加载、恢复或完成节点后，这里会显示可读历史。",
         compareManualRecovery: "手动重试本地恢复",
-        compareManualRecoveryPending: "正在手动重试本地恢复..."
+        compareManualRecoveryPending: "正在手动重试本地恢复...",
+        compareManualRecoveryConfirm: "再次点击确认",
+        compareManualRecoveryConfirmHint: "请在 5 秒内再次点击，Compare 才会真正重启本地网关。",
+        compareManualRecoveryCooldown: "恢复冷却中",
+        compareManualRecoveryCooldownHint: "为了避免连续误触，本地恢复会有一个很短的冷却时间。",
+        exportLane: "导出此 lane"
       };
 
   const compareTargets = useMemo(
@@ -729,6 +745,8 @@ export function AgentCompareLab({
                     typeof compareProgress?.recoveryThresholdMs === "number"
                       ? Math.max(1, Math.round(compareProgress.recoveryThresholdMs / 1000))
                       : null;
+                  const recoveryConfirmPending = compareRecoveryConfirmTargetId === target.id;
+                  const recoveryCoolingDown = (compareRecoveryCooldownByTargetId[target.id] || 0) > Date.now();
                   return (
                     <div key={target.id} className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4">
                       <div className="flex items-start justify-between gap-3">
@@ -794,16 +812,32 @@ export function AgentCompareLab({
                         </div>
                       ) : null}
                       {target.execution === "local" ? (
-                        <button
-                          type="button"
-                          onClick={() => onRetryLocalRecovery(target.id)}
-                          disabled={compareRecoveryPendingTargetId === target.id || benchmarkPending}
-                          className="mt-3 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {compareRecoveryPendingTargetId === target.id
-                            ? copy.compareManualRecoveryPending
-                            : copy.compareManualRecovery}
-                        </button>
+                        <div className="mt-3 space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => onRetryLocalRecovery(target.id)}
+                            disabled={compareRecoveryPendingTargetId === target.id || benchmarkPending || recoveryCoolingDown}
+                            className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                              recoveryConfirmPending
+                                ? "border-amber-300/30 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15"
+                                : "border-cyan-400/20 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15"
+                            }`}
+                          >
+                            {compareRecoveryPendingTargetId === target.id
+                              ? copy.compareManualRecoveryPending
+                              : recoveryCoolingDown
+                                ? copy.compareManualRecoveryCooldown
+                                : recoveryConfirmPending
+                                  ? copy.compareManualRecoveryConfirm
+                                  : copy.compareManualRecovery}
+                          </button>
+                          {recoveryConfirmPending ? (
+                            <p className="text-[11px] leading-5 text-amber-100/80">{copy.compareManualRecoveryConfirmHint}</p>
+                          ) : null}
+                          {recoveryCoolingDown ? (
+                            <p className="text-[11px] leading-5 text-slate-400">{copy.compareManualRecoveryCooldownHint}</p>
+                          ) : null}
+                        </div>
                       ) : null}
                       <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-xs leading-6 text-slate-300">
                         <p className="font-medium text-slate-100">{copy.compareRecoveryTimeline}</p>
@@ -1039,6 +1073,13 @@ export function AgentCompareLab({
                             className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
                           >
                             {copyState === `compare:${lane.targetId}` ? copy.copied : copy.copyOutput}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onExportLaneMarkdown(lane.targetId)}
+                            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
+                          >
+                            {copy.exportLane}
                           </button>
                         </div>
                       </div>

@@ -987,6 +987,7 @@ function serializeCompareResultAsMarkdown(params: {
   compareResult: AgentCompareResponse;
   compareProgressByTargetId?: Record<string, AgentCompareLaneProgress>;
   compareBaseTargetId?: string;
+  laneTargetIds?: string[];
   prompt: string;
   systemPrompt: string;
   contextWindow: number;
@@ -999,6 +1000,7 @@ function serializeCompareResultAsMarkdown(params: {
     compareResult,
     compareProgressByTargetId,
     compareBaseTargetId,
+    laneTargetIds,
     prompt,
     systemPrompt,
     contextWindow,
@@ -1009,15 +1011,23 @@ function serializeCompareResultAsMarkdown(params: {
   } = params;
   const baseLane =
     compareResult.results.find((lane) => lane.targetId === compareBaseTargetId) || compareResult.results[0] || null;
+  const exportedResults = laneTargetIds?.length
+    ? compareResult.results.filter((lane) => laneTargetIds.includes(lane.targetId))
+    : compareResult.results;
+  const recoveryConclusions = exportedResults.map((lane) => ({
+    lane,
+    conclusion: deriveCompareRecoveryConclusion(compareProgressByTargetId?.[lane.targetId], lane)
+  }));
 
   const lines = [
-    "# Compare Lab Export",
+    exportedResults.length === 1 ? "# Compare Lane Export" : "# Compare Lab Export",
     "",
     `- Run ID: ${compareResult.runId}`,
     `- Generated At: ${compareResult.generatedAt}`,
     `- Compare Intent: ${compareResult.compareIntent}`,
     `- Output Shape: ${compareResult.compareOutputShape}`,
     `- Base Lane: ${baseLane?.targetLabel || "n/a"}`,
+    `- Export Scope: ${exportedResults.length === 1 ? exportedResults[0]?.targetLabel || "single lane" : `${exportedResults.length} lanes`}`,
     `- Fairness Fingerprint: ${compareResult.fairnessFingerprint}`,
     `- Context Window: ${formatContextWindowLabel(contextWindow)}`,
     `- Provider Profile: ${providerProfile}`,
@@ -1031,11 +1041,20 @@ function serializeCompareResultAsMarkdown(params: {
     lines.push("## Compare Note", "", compareResult.warning, "");
   }
 
+  if (recoveryConclusions.length) {
+    lines.push("## Recovery Summary", "");
+    for (const { lane, conclusion } of recoveryConclusions) {
+      lines.push(`- ${lane.targetLabel}: ${conclusion}`);
+    }
+    lines.push("");
+  }
+
   lines.push("## Prompt", "", "```text", prompt, "```", "", "## System Prompt", "", "```text", systemPrompt, "```", "");
 
-  for (const lane of compareResult.results) {
+  for (const lane of exportedResults) {
     const overlapBase = baseLane?.content ? computeCompareOverlap(baseLane.content, lane.content) : 1;
     const schemaStatus = deriveCompareSchemaStatus(baseLane?.content || "", lane.content);
+    const compareProgress = compareProgressByTargetId?.[lane.targetId];
     lines.push(`## ${lane.targetLabel}`);
     lines.push("");
     lines.push(`- Target ID: ${lane.targetId}`);
@@ -1046,6 +1065,7 @@ function serializeCompareResultAsMarkdown(params: {
     lines.push(`- Status: ${lane.ok ? "ok" : "failed"}`);
     lines.push(`- Overlap vs base: ${Math.round(overlapBase * 100)}%`);
     lines.push(`- Schema vs base: ${schemaStatus}`);
+    lines.push(`- Recovery conclusion: ${deriveCompareRecoveryConclusion(compareProgress, lane)}`);
     if (lane.warning) {
       lines.push(`- Warning: ${lane.warning}`);
     }
@@ -1054,7 +1074,6 @@ function serializeCompareResultAsMarkdown(params: {
         `- Usage: prompt ${lane.usage.promptTokens}, completion ${lane.usage.completionTokens}, total ${lane.usage.totalTokens}`
       );
     }
-    const compareProgress = compareProgressByTargetId?.[lane.targetId];
     if (compareProgress?.timeline?.length) {
       lines.push("");
       lines.push("### Recovery Timeline");
@@ -1067,6 +1086,30 @@ function serializeCompareResultAsMarkdown(params: {
   }
 
   return lines.join("\n");
+}
+
+function deriveCompareRecoveryConclusion(
+  compareProgress: AgentCompareLaneProgress | undefined,
+  lane: AgentCompareResponse["results"][number]
+) {
+  const timeline = compareProgress?.timeline || [];
+  const recoveryEntries = timeline.filter((entry) => entry.phase === "recovering" || Boolean(entry.recoveryAction));
+  const latestRecovery = recoveryEntries[recoveryEntries.length - 1];
+
+  if (!timeline.length) {
+    return lane.ok ? "No compare recovery history was recorded for this lane." : "This lane failed before compare recorded any recovery history.";
+  }
+
+  if (!recoveryEntries.length) {
+    return lane.ok ? "Completed without any recovery action." : "Failed without a recorded recovery action.";
+  }
+
+  const recoveryCountLabel = `${recoveryEntries.length} recovery action${recoveryEntries.length === 1 ? "" : "s"}`;
+  const latestAction = latestRecovery?.recoveryAction || latestRecovery?.detail || "A compare recovery action ran.";
+  if (lane.ok) {
+    return `Completed after ${recoveryCountLabel}. Latest action: ${latestAction}`;
+  }
+  return `Attempted ${recoveryCountLabel}, but the lane still ended in a non-ok state. Latest action: ${latestAction}`;
 }
 
 function buildCompareBenchmarkPromptParts(params: {
@@ -1211,6 +1254,8 @@ export function AgentWorkbench() {
   const [compareBenchmarkUseOutputContract, setCompareBenchmarkUseOutputContract] = useState(true);
   const [compareBenchmarkPreviewDiffOnly, setCompareBenchmarkPreviewDiffOnly] = useState(false);
   const [compareRecoveryPendingTargetId, setCompareRecoveryPendingTargetId] = useState("");
+  const [compareRecoveryConfirmTargetId, setCompareRecoveryConfirmTargetId] = useState("");
+  const [compareRecoveryCooldownByTargetId, setCompareRecoveryCooldownByTargetId] = useState<Record<string, number>>({});
   const [benchmarkPending, setBenchmarkPending] = useState(false);
   const [benchmarkError, setBenchmarkError] = useState("");
   const [benchmarkResult, setBenchmarkResult] = useState<AgentBenchmarkResponse | null>(null);
@@ -1256,6 +1301,7 @@ export function AgentWorkbench() {
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const runtimeRequestInFlightRef = useRef(false);
   const sessionSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const compareRecoveryConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedTarget = useMemo(
     () => agentTargets.find((target) => target.id === selectedTargetId) || agentTargets[0],
@@ -3334,6 +3380,52 @@ export function AgentWorkbench() {
     setCompareProgressByTargetId(Object.fromEntries(payload.lanes.map((lane) => [lane.targetId, lane])));
   }
 
+  function clearCompareRecoveryConfirm() {
+    if (compareRecoveryConfirmTimeoutRef.current) {
+      clearTimeout(compareRecoveryConfirmTimeoutRef.current);
+      compareRecoveryConfirmTimeoutRef.current = null;
+    }
+    setCompareRecoveryConfirmTargetId("");
+  }
+
+  function armCompareRecoveryConfirm(targetId: string) {
+    clearCompareRecoveryConfirm();
+    setCompareRecoveryConfirmTargetId(targetId);
+    compareRecoveryConfirmTimeoutRef.current = setTimeout(() => {
+      setCompareRecoveryConfirmTargetId((current) => (current === targetId ? "" : current));
+      compareRecoveryConfirmTimeoutRef.current = null;
+    }, 5000);
+  }
+
+  function startCompareRecoveryCooldown(targetId: string, durationMs = 15000) {
+    const expiresAt = Date.now() + durationMs;
+    setCompareRecoveryCooldownByTargetId((current) => ({
+      ...current,
+      [targetId]: expiresAt
+    }));
+    setTimeout(() => {
+      setCompareRecoveryCooldownByTargetId((current) => {
+        if ((current[targetId] || 0) !== expiresAt) return current;
+        const next = { ...current };
+        delete next[targetId];
+        return next;
+      });
+    }, durationMs);
+  }
+
+  async function requestRetryCompareLaneRecovery(targetId: string) {
+    const cooldownUntil = compareRecoveryCooldownByTargetId[targetId] || 0;
+    if (cooldownUntil > Date.now()) {
+      return;
+    }
+    if (compareRecoveryConfirmTargetId !== targetId) {
+      armCompareRecoveryConfirm(targetId);
+      return;
+    }
+    clearCompareRecoveryConfirm();
+    await handleRetryCompareLaneRecovery(targetId);
+  }
+
   async function handleRetryCompareLaneRecovery(targetId: string) {
     if (!compareRequestId) {
       setCompareError(locale.startsWith("en") ? "Run compare first." : "请先运行一次 compare。");
@@ -3349,6 +3441,7 @@ export function AgentWorkbench() {
       ? `Manual recovery requested for ${target.label}. Restarting the local gateway from Compare.`
       : `已为 ${target.label} 发起手动恢复，Compare 正在重启本地网关。`;
     setCompareRecoveryPendingTargetId(targetId);
+    clearCompareRecoveryConfirm();
     setCompareError("");
     try {
       await syncCompareProgressPatch({
@@ -3411,6 +3504,7 @@ export function AgentWorkbench() {
       }
     } finally {
       setCompareRecoveryPendingTargetId("");
+      startCompareRecoveryCooldown(targetId);
     }
   }
 
@@ -3435,6 +3529,14 @@ export function AgentWorkbench() {
     [compareBenchmarkUseOutputContract, compareOutputShape, input, systemPrompt]
   );
 
+  useEffect(() => {
+    return () => {
+      if (compareRecoveryConfirmTimeoutRef.current) {
+        clearTimeout(compareRecoveryConfirmTimeoutRef.current);
+      }
+    };
+  }, []);
+
   function handleExportCompareMarkdown() {
     if (!compareResult) return;
     const content = serializeCompareResultAsMarkdown({
@@ -3457,6 +3559,36 @@ export function AgentWorkbench() {
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = `compare-${compareResult.runId}.md`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleExportCompareLaneMarkdown(targetId: string) {
+    if (!compareResult) return;
+    const lane = compareResult.results.find((entry) => entry.targetId === targetId);
+    if (!lane) return;
+
+    const content = serializeCompareResultAsMarkdown({
+      compareResult,
+      compareProgressByTargetId,
+      compareBaseTargetId,
+      laneTargetIds: [targetId],
+      prompt: input,
+      systemPrompt,
+      contextWindow,
+      providerProfile,
+      thinkingMode,
+      enableTools,
+      enableRetrieval
+    });
+
+    const blob = new Blob([content], {
+      type: "text/markdown;charset=utf-8"
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `compare-${compareResult.runId}-${targetId}.md`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -5841,6 +5973,8 @@ export function AgentWorkbench() {
                   compareBenchmarkPromptDiffPreview={compareBenchmarkPromptDiffPreview}
                   compareBenchmarkPreviewDiffOnly={compareBenchmarkPreviewDiffOnly}
                   compareRecoveryPendingTargetId={compareRecoveryPendingTargetId}
+                  compareRecoveryConfirmTargetId={compareRecoveryConfirmTargetId}
+                  compareRecoveryCooldownByTargetId={compareRecoveryCooldownByTargetId}
                   benchmarkPending={benchmarkPending}
                   benchmarkError={benchmarkError}
                   benchmarkResult={benchmarkResult}
@@ -5864,7 +5998,8 @@ export function AgentWorkbench() {
                   onExportMarkdown={handleExportCompareMarkdown}
                   onCompareBenchmarkUseOutputContractChange={setCompareBenchmarkUseOutputContract}
                   onCompareBenchmarkPreviewDiffOnlyChange={setCompareBenchmarkPreviewDiffOnly}
-                  onRetryLocalRecovery={handleRetryCompareLaneRecovery}
+                  onRetryLocalRecovery={requestRetryCompareLaneRecovery}
+                  onExportLaneMarkdown={handleExportCompareLaneMarkdown}
                   onCopy={handleCopy}
                   copyState={copyState}
                 />
