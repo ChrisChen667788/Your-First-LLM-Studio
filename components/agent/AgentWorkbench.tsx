@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { AgentCompareLab } from "@/components/agent/AgentCompareLab";
 import { agentTargets, agentToolSpecs } from "@/lib/agent/catalog";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import {
@@ -13,6 +14,8 @@ import { clampContextWindowForTarget } from "@/lib/agent/metrics";
 import type {
   AgentCacheMode,
   AgentChatResponse,
+  AgentCompareIntent,
+  AgentCompareOutputShape,
   AgentConnectionCheckResponse,
   AgentConnectionCheckStage,
   AgentGroundedVerification,
@@ -25,6 +28,7 @@ import type {
   AgentRuntimePrewarmResponse,
   AgentRuntimeStatus,
   AgentTarget,
+  AgentWorkbenchMode,
   AgentToolDecisionResponse,
   AgentToolRun
 } from "@/lib/agent/types";
@@ -183,6 +187,7 @@ type AgentStreamEvent =
 const CONTEXT_WINDOW_OPTIONS = [4096, 8192, 16384, 32768];
 const PROVIDER_PROFILE_OPTIONS: AgentProviderProfile[] = ["speed", "balanced", "tool-first"];
 const THINKING_MODE_OPTIONS: AgentThinkingMode[] = ["standard", "thinking"];
+const MAX_COMPARE_LANES = 4;
 const PREFERENCES_STORAGE_KEY = "agent-workbench:v1";
 const SESSIONS_STORAGE_KEY = "agent-workbench:sessions:v1";
 const MAX_STORED_SESSIONS = 12;
@@ -996,6 +1001,10 @@ export function AgentWorkbench() {
   const [sessionTargetFilter, setSessionTargetFilter] = useState("all");
   const [sessionExportScope, setSessionExportScope] = useState<"visible" | "pinned">("visible");
   const [selectedTargetId, setSelectedTargetId] = useState("anthropic-claude");
+  const [workbenchMode, setWorkbenchMode] = useState<AgentWorkbenchMode>("chat");
+  const [compareTargetIds, setCompareTargetIds] = useState<string[]>([]);
+  const [compareIntent, setCompareIntent] = useState<AgentCompareIntent>("model-vs-model");
+  const [compareOutputShape, setCompareOutputShape] = useState<AgentCompareOutputShape>("freeform");
   const [turns, setTurns] = useState<AgentTurn[]>([]);
   const [input, setInput] = useState(() => getLocalizedStarterPrompts("zh-CN")[0]);
   const [systemPrompt, setSystemPrompt] = useState(() => getDefaultSystemPromptForLocale("zh-CN"));
@@ -1042,6 +1051,10 @@ export function AgentWorkbench() {
   const selectedTarget = useMemo(
     () => agentTargets.find((target) => target.id === selectedTargetId) || agentTargets[0],
     [selectedTargetId]
+  );
+  const compareLaneCount = useMemo(
+    () => agentTargets.filter((target) => compareTargetIds.includes(target.id)).length,
+    [compareTargetIds]
   );
   const runtimePhase = useMemo(() => describeRuntimePhase(runtimeStatus, locale), [runtimeStatus, locale]);
   const runtimeStageItems = useMemo(() => buildRuntimeStageItems(runtimeStatus, locale), [runtimeStatus, locale]);
@@ -2043,6 +2056,17 @@ export function AgentWorkbench() {
   }, [selectedTargetId]);
 
   useEffect(() => {
+    setCompareTargetIds((current) => {
+      const validTargetIds = current.filter((targetId) => agentTargets.some((target) => target.id === targetId));
+      const deduped = Array.from(new Set(validTargetIds));
+      if (!deduped.includes(selectedTargetId)) {
+        deduped.unshift(selectedTargetId);
+      }
+      return deduped.slice(0, MAX_COMPARE_LANES);
+    });
+  }, [selectedTargetId]);
+
+  useEffect(() => {
     const next = clampUiContextWindow(selectedTargetId, contextWindow, enableTools, enableRetrieval);
     if (next !== contextWindow) {
       setContextWindow(next);
@@ -2095,6 +2119,10 @@ export function AgentWorkbench() {
         if (raw) {
           const parsed = JSON.parse(raw) as {
             selectedTargetId?: string;
+            workbenchMode?: AgentWorkbenchMode;
+            compareTargetIds?: string[];
+            compareIntent?: AgentCompareIntent;
+            compareOutputShape?: AgentCompareOutputShape;
             enableTools?: boolean;
             enableRetrieval?: boolean;
             contextWindow?: number;
@@ -2106,6 +2134,32 @@ export function AgentWorkbench() {
             agentTargets.some((target) => target.id === parsed.selectedTargetId)
           ) {
             setSelectedTargetId(parsed.selectedTargetId);
+          }
+          if (parsed.workbenchMode === "chat" || parsed.workbenchMode === "compare") {
+            setWorkbenchMode(parsed.workbenchMode);
+          }
+          if (Array.isArray(parsed.compareTargetIds)) {
+            const normalizedCompareTargetIds = parsed.compareTargetIds.filter((targetId): targetId is string =>
+              typeof targetId === "string" && agentTargets.some((target) => target.id === targetId)
+            );
+            if (normalizedCompareTargetIds.length) {
+              setCompareTargetIds(Array.from(new Set(normalizedCompareTargetIds)).slice(0, MAX_COMPARE_LANES));
+            }
+          }
+          if (
+            parsed.compareIntent === "model-vs-model"
+            || parsed.compareIntent === "preset-vs-preset"
+            || parsed.compareIntent === "template-vs-template"
+            || parsed.compareIntent === "before-vs-after"
+          ) {
+            setCompareIntent(parsed.compareIntent);
+          }
+          if (
+            parsed.compareOutputShape === "freeform"
+            || parsed.compareOutputShape === "bullet-list"
+            || parsed.compareOutputShape === "strict-json"
+          ) {
+            setCompareOutputShape(parsed.compareOutputShape);
           }
           if (typeof parsed.enableTools === "boolean") {
             setEnableTools(parsed.enableTools);
@@ -2180,6 +2234,10 @@ export function AgentWorkbench() {
       PREFERENCES_STORAGE_KEY,
       JSON.stringify({
         selectedTargetId,
+        workbenchMode,
+        compareTargetIds,
+        compareIntent,
+        compareOutputShape,
         enableTools,
         enableRetrieval,
         contextWindow,
@@ -2187,7 +2245,19 @@ export function AgentWorkbench() {
         thinkingMode
       })
     );
-  }, [contextWindow, enableRetrieval, enableTools, preferencesReady, providerProfile, selectedTargetId, thinkingMode]);
+  }, [
+    compareIntent,
+    compareOutputShape,
+    compareTargetIds,
+    contextWindow,
+    enableRetrieval,
+    enableTools,
+    preferencesReady,
+    providerProfile,
+    selectedTargetId,
+    thinkingMode,
+    workbenchMode
+  ]);
 
   useEffect(() => {
     if (!preferencesReady) return;
@@ -2295,6 +2365,22 @@ export function AgentWorkbench() {
     const timer = window.setTimeout(() => setCopyState(""), 1200);
     return () => window.clearTimeout(timer);
   }, [copyState]);
+
+  function handleToggleCompareTarget(targetId: string) {
+    if (targetId === selectedTargetId) {
+      return;
+    }
+    setCompareTargetIds((current) => {
+      const deduped = Array.from(new Set(current));
+      if (deduped.includes(targetId)) {
+        return deduped.filter((id) => id !== targetId);
+      }
+      if (deduped.length >= MAX_COMPARE_LANES) {
+        return deduped;
+      }
+      return [...deduped, targetId];
+    });
+  }
 
   async function loadRuntimeStatus(currentTargetId = selectedTargetId, options?: { force?: boolean }) {
     const target = agentTargets.find((item) => item.id === currentTargetId) || selectedTarget;
@@ -3550,20 +3636,56 @@ export function AgentWorkbench() {
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">{dictionary.agent.subtitle}</p>
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[318px]">
-                <div className="rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-2.5">
+              <div className="space-y-2 xl:min-w-[318px]">
+                <div className="flex items-center justify-end">
+                  <div className="inline-flex rounded-full border border-white/10 bg-black/20 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setWorkbenchMode("chat")}
+                      className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
+                        workbenchMode === "chat"
+                          ? "bg-cyan-400/15 text-cyan-100"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      chat
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWorkbenchMode("compare")}
+                      className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
+                        workbenchMode === "compare"
+                          ? "bg-cyan-400/15 text-cyan-100"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      compare
+                    </button>
+                  </div>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-2.5">
                   <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">{dictionary.agent.messages}</p>
                   <p className="mt-1.5 text-lg font-semibold text-white">{historyMessages.length}</p>
-                </div>
-                <div className="rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-2.5">
+                  </div>
+                  <div className="rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-2.5">
                   <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">{dictionary.agent.turns}</p>
                   <p className="mt-1.5 text-lg font-semibold text-white">{turns.length}</p>
-                </div>
-                <div className="rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-2.5">
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">{dictionary.agent.tools}</p>
-                  <p className="mt-1.5 text-lg font-semibold text-white">
-                    {turns.reduce((count, turn) => count + turn.toolRuns.length, 0)}
-                  </p>
+                  </div>
+                  <div className="rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">
+                      {workbenchMode === "compare"
+                        ? locale.startsWith("en")
+                          ? "Lanes"
+                          : "对比 Lane"
+                        : dictionary.agent.tools}
+                    </p>
+                    <p className="mt-1.5 text-lg font-semibold text-white">
+                      {workbenchMode === "compare"
+                        ? compareLaneCount
+                        : turns.reduce((count, turn) => count + turn.toolRuns.length, 0)}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3571,6 +3693,9 @@ export function AgentWorkbench() {
 
           <div className="border-b border-white/10 bg-black/20 px-5 py-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
+              <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
+                {locale.startsWith("en") ? "Mode" : "模式"}: {workbenchMode === "chat" ? "Chat" : "Compare"}
+              </span>
               <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] text-cyan-100">
                 {uiText.selectedTargetLabel}: {selectedTarget.label}
               </span>
@@ -3589,6 +3714,11 @@ export function AgentWorkbench() {
               <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
                 {uiText.loadedAlias}: {loadedAliasForSelectedTarget || "—"}
               </span>
+              {workbenchMode === "compare" ? (
+                <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 py-1 text-[11px] text-violet-100">
+                  {locale.startsWith("en") ? "Compare lanes" : "对比 Lane"}: {compareLaneCount}
+                </span>
+              ) : null}
               {gatewayLoadedOtherAlias ? (
                 <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
                   {uiText.runtimeCurrentLoaded}: {describeRuntimeAlias(gatewayLoadedOtherAlias, agentTargets)}
@@ -3646,20 +3776,39 @@ export function AgentWorkbench() {
           <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="border-b border-white/10 xl:border-b-0 xl:border-r xl:border-white/10">
               <div className="border-b border-white/10 bg-black/20 px-5 py-2.5">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {starterPrompts.map((prompt) => (
-                    <button
-                      key={prompt}
-                      type="button"
-                      onClick={() => setInput(prompt)}
-                      className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300 transition hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:text-white"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
+                {workbenchMode === "chat" ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {starterPrompts.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => setInput(prompt)}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300 transition hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:text-white"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+                    <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
+                      {locale.startsWith("en") ? "Compare keeps the current shell" : "Compare 直接嵌进当前工作台"}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                      {locale.startsWith("en") ? "Reuse target catalog" : "复用 target catalog"}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                      {locale.startsWith("en") ? "Same runtime guardrails" : "复用 runtime guardrails"}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                      {locale.startsWith("en") ? "API + execution next slice" : "下一步接 compare run API"}
+                    </span>
+                  </div>
+                )}
               </div>
 
+              {workbenchMode === "chat" ? (
+                <>
               <div
                 ref={transcriptRef}
                 className="h-[52vh] min-h-[360px] max-h-[72vh] resize-y overflow-y-auto bg-[linear-gradient(180deg,rgba(15,23,42,0.18),rgba(2,6,23,0.12))] px-5 py-5 font-mono text-[13px] leading-7 sm:h-[58vh]"
@@ -5020,6 +5169,38 @@ export function AgentWorkbench() {
                   </button>
                 </div>
               </form>
+                </>
+              ) : (
+                <AgentCompareLab
+                  locale={locale}
+                  targets={agentTargets}
+                  selectedTargetId={selectedTargetId}
+                  compareTargetIds={compareTargetIds}
+                  compareIntent={compareIntent}
+                  compareOutputShape={compareOutputShape}
+                  input={input}
+                  systemPrompt={systemPrompt}
+                  enableTools={enableTools}
+                  enableRetrieval={enableRetrieval}
+                  contextWindow={contextWindow}
+                  providerProfile={providerProfile}
+                  thinkingMode={thinkingMode}
+                  pending={pending}
+                  contextWindowOptions={CONTEXT_WINDOW_OPTIONS}
+                  providerProfileOptions={PROVIDER_PROFILE_OPTIONS}
+                  thinkingModeOptions={THINKING_MODE_OPTIONS}
+                  onToggleCompareTarget={handleToggleCompareTarget}
+                  onCompareIntentChange={setCompareIntent}
+                  onCompareOutputShapeChange={setCompareOutputShape}
+                  onInputChange={setInput}
+                  onSystemPromptChange={setSystemPrompt}
+                  onEnableToolsChange={setEnableTools}
+                  onEnableRetrievalChange={setEnableRetrieval}
+                  onContextWindowChange={setContextWindow}
+                  onProviderProfileChange={setProviderProfile}
+                  onThinkingModeChange={setThinkingMode}
+                />
+              )}
             </div>
 
             <aside className="bg-white/[0.03]">

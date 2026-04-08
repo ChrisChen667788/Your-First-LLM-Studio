@@ -8,6 +8,16 @@ export type AgentThinkingMode = "standard" | "thinking";
 
 export type AgentCacheMode = "exact" | "semantic";
 
+export type AgentWorkbenchMode = "chat" | "compare";
+
+export type AgentCompareIntent =
+  | "model-vs-model"
+  | "preset-vs-preset"
+  | "template-vs-template"
+  | "before-vs-after";
+
+export type AgentCompareOutputShape = "freeform" | "bullet-list" | "strict-json";
+
 export type AgentBenchmarkMode = "prompt" | "dataset" | "suite";
 
 export type AgentKnowledgeDocument = {
