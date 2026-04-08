@@ -571,6 +571,18 @@ function formatBenchmarkMetric(value: number, success: boolean, digits: number, 
   return success ? `${value.toFixed(digits)}${suffix}` : "--";
 }
 
+function formatBenchmarkTrendLegendMetric(
+  value: number | null | undefined,
+  kind: "first-token" | "total-latency" | "throughput",
+  tokensPerSecondLabel: string
+) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+  if (kind === "throughput") {
+    return `${value.toFixed(2)} ${tokensPerSecondLabel}`;
+  }
+  return `${value.toFixed(1)} ms`;
+}
+
 function buildHeatmapCellClass(value: number, min: number, max: number) {
   if (!Number.isFinite(value) || max <= min) {
     return "bg-white/5";
@@ -3013,6 +3025,10 @@ export function AdminDashboard() {
       providerProfile: benchmarkProviderProfile,
       thinkingMode: benchmarkThinkingMode
     });
+    const exportRunId = benchmarkData?.runId || benchmarkProgress?.runId || benchmarkRunId;
+    if (exportRunId) {
+      query.set("runId", exportRunId);
+    }
     if (benchmarkPromptMode === "prompt-set" && benchmarkPromptSetId) {
       query.set("promptSetId", benchmarkPromptSetId);
     } else if (benchmarkPromptMode === "dataset" && benchmarkDatasetId) {
@@ -3255,7 +3271,9 @@ export function AdminDashboard() {
         firstTokenValues: entry.points.map((point) => point.avgFirstTokenLatencyMs),
         totalLatencyValues: entry.points.map((point) => point.avgLatencyMs),
         throughputValues: entry.points.map((point) => point.avgTokenThroughputTps),
-        latestSuccessRate: entry.points.length ? entry.points[entry.points.length - 1].successRate : 0
+        latestFirstTokenLatencyMs: entry.points.length ? entry.points[entry.points.length - 1].avgFirstTokenLatencyMs : null,
+        latestTotalLatencyMs: entry.points.length ? entry.points[entry.points.length - 1].avgLatencyMs : null,
+        latestThroughputTps: entry.points.length ? entry.points[entry.points.length - 1].avgTokenThroughputTps : null
       })),
     [data]
   );
@@ -4614,7 +4632,7 @@ export function AdminDashboard() {
               <MultiSeriesCard
                 title={uiText.firstTokenLatency}
                 lines={benchmarkTrendLines.map((line) => ({
-                  label: `${line.label} · ${uiText.benchmarkSuccessRate} ${line.latestSuccessRate.toFixed(0)}%`,
+                  label: `${line.label} · ${formatBenchmarkTrendLegendMetric(line.latestFirstTokenLatencyMs, "first-token", uiText.tokensPerSecond)}`,
                   values: line.firstTokenValues,
                   tone: line.tone
                 }))}
@@ -4622,7 +4640,7 @@ export function AdminDashboard() {
               <MultiSeriesCard
                 title={uiText.totalLatency}
                 lines={benchmarkTrendLines.map((line) => ({
-                  label: `${line.label} · ${uiText.benchmarkSuccessRate} ${line.latestSuccessRate.toFixed(0)}%`,
+                  label: `${line.label} · ${formatBenchmarkTrendLegendMetric(line.latestTotalLatencyMs, "total-latency", uiText.tokensPerSecond)}`,
                   values: line.totalLatencyValues,
                   tone: line.tone
                 }))}
@@ -4630,7 +4648,7 @@ export function AdminDashboard() {
               <MultiSeriesCard
                 title={uiText.tokenThroughput}
                 lines={benchmarkTrendLines.map((line) => ({
-                  label: `${line.label} · ${uiText.benchmarkSuccessRate} ${line.latestSuccessRate.toFixed(0)}%`,
+                  label: `${line.label} · ${formatBenchmarkTrendLegendMetric(line.latestThroughputTps, "throughput", uiText.tokensPerSecond)}`,
                   values: line.throughputValues,
                   tone: line.tone
                 }))}

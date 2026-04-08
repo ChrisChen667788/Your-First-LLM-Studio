@@ -220,9 +220,10 @@ function buildSuitePlan(
 }
 
 const REMOTE_BENCHMARK_SAMPLE_CONCURRENCY = 1;
-const REMOTE_BENCHMARK_GROUP_CONCURRENCY = 1;
+const REMOTE_BENCHMARK_GROUP_CONCURRENCY = 2;
 const REMOTE_BENCHMARK_MAX_ATTEMPTS = 6;
 const REMOTE_BENCHMARK_TIMEOUT_MS = 120000;
+const REMOTE_BENCHMARK_FIRST_TOKEN_TIMEOUT_MS = 20000;
 const REMOTE_PROFILE_COMPARISON_WORKLOAD_IDS = new Set([
   "latency-smoke",
   "instruction-following-lite",
@@ -341,6 +342,57 @@ function getRemoteBenchmarkTimeoutMs(
     timeoutMs += 45000;
   }
   return timeoutMs;
+}
+
+function getRemoteBenchmarkFirstTokenTimeoutMs(
+  workloadId: string,
+  providerProfile: AgentProviderProfile,
+  thinkingMode: AgentThinkingMode,
+  totalTimeoutMs: number
+) {
+  let timeoutMs = REMOTE_BENCHMARK_FIRST_TOKEN_TIMEOUT_MS;
+  if (providerProfile === "balanced") timeoutMs += 5000;
+  if (providerProfile === "tool-first") timeoutMs += 5000;
+  if (thinkingMode === "thinking") timeoutMs += 15000;
+  if (
+    workloadId === "grounded-kb-qa" ||
+    workloadId === "code-rag-repo-qa" ||
+    workloadId === "agent-flow-lite" ||
+    workloadId === "longbench-starter"
+  ) {
+    timeoutMs += 10000;
+  }
+  if (workloadId === "humaneval-starter" || workloadId === "mbppplus-starter") {
+    timeoutMs += 15000;
+  }
+  if (workloadId === "latency-smoke") {
+    timeoutMs = Math.min(timeoutMs, 12000);
+  }
+  return Math.min(Math.max(12000, timeoutMs), Math.max(18000, totalTimeoutMs - 10000));
+}
+
+function getRemoteBenchmarkRetryBudgetMs(
+  workloadId: string,
+  providerProfile: AgentProviderProfile,
+  thinkingMode: AgentThinkingMode,
+  totalTimeoutMs: number,
+  firstTokenTimeoutMs: number
+) {
+  let budgetMs = Math.max(firstTokenTimeoutMs + 15000, 35000);
+  if (providerProfile === "tool-first") budgetMs += 5000;
+  if (thinkingMode === "thinking") budgetMs += 15000;
+  if (
+    workloadId === "grounded-kb-qa" ||
+    workloadId === "code-rag-repo-qa" ||
+    workloadId === "agent-flow-lite" ||
+    workloadId === "longbench-starter"
+  ) {
+    budgetMs += 10000;
+  }
+  if (workloadId === "humaneval-starter" || workloadId === "mbppplus-starter") {
+    budgetMs += 15000;
+  }
+  return Math.min(budgetMs, Math.max(30000, totalTimeoutMs - 15000));
 }
 
 function getRemoteBenchmarkStreamIdleTimeoutMs(totalTimeoutMs: number) {
@@ -1313,8 +1365,28 @@ async function runSingleBenchmarkSample(
       options?.thinkingMode || "standard"
     );
     const remoteStreamIdleTimeoutMs = getRemoteBenchmarkStreamIdleTimeoutMs(remoteTimeoutMs);
+    const remoteFirstTokenTimeoutMs = getRemoteBenchmarkFirstTokenTimeoutMs(
+      options?.workloadId || "custom-prompt",
+      providerProfile,
+      options?.thinkingMode || "standard",
+      remoteTimeoutMs
+    );
+    const remoteRetryBudgetMs = getRemoteBenchmarkRetryBudgetMs(
+      options?.workloadId || "custom-prompt",
+      providerProfile,
+      options?.thinkingMode || "standard",
+      remoteTimeoutMs,
+      remoteFirstTokenTimeoutMs
+    );
+    const retryWindowStartedAt = Date.now();
 
     while (attempt <= REMOTE_BENCHMARK_MAX_ATTEMPTS) {
+      const attemptStartedAt = Date.now();
+      let attemptFirstTokenLatencyMs: number | null = null;
+      let attemptCompletionTokens = 0;
+      let attemptTotalTokens = 0;
+      let attemptOutputBuffer = "";
+
       try {
         if (options?.runId) {
           assertBenchmarkRunActive(options.runId);
@@ -1339,15 +1411,20 @@ async function runSingleBenchmarkSample(
         if (!response.ok) {
           const warning = await response.text();
           lastWarning = warning || `Remote benchmark request failed with HTTP ${response.status}.`;
-          if (attempt < REMOTE_BENCHMARK_MAX_ATTEMPTS && isRetryableRemoteBenchmarkFailure(lastWarning)) {
-            await sleep(getRemoteBenchmarkRetryDelayMs(lastWarning, attempt));
+          const retryDelayMs = getRemoteBenchmarkRetryDelayMs(lastWarning, attempt);
+          if (
+            attempt < REMOTE_BENCHMARK_MAX_ATTEMPTS &&
+            isRetryableRemoteBenchmarkFailure(lastWarning) &&
+            Date.now() - retryWindowStartedAt + retryDelayMs < remoteRetryBudgetMs
+          ) {
+            await sleep(retryDelayMs);
             attempt += 1;
             continue;
           }
           return {
             run: 0,
             firstTokenLatencyMs: null,
-            latencyMs: Date.now() - startedAt,
+            latencyMs: Date.now() - attemptStartedAt,
             completionTokens: 0,
             totalTokens: 0,
             tokenThroughputTps: null,
@@ -1367,12 +1444,32 @@ async function runSingleBenchmarkSample(
                 }
                 const decoder = new TextDecoder();
                 let buffer = "";
+                const firstTokenDeadlineAt = attemptStartedAt + remoteFirstTokenTimeoutMs;
                 while (true) {
+                  if (attemptFirstTokenLatencyMs === null && Date.now() >= firstTokenDeadlineAt) {
+                    void reader.cancel().catch(() => undefined);
+                    throw new Error("Remote benchmark first token timeout.");
+                  }
+                  const readTimeoutMs =
+                    attemptFirstTokenLatencyMs === null
+                      ? Math.max(1, Math.min(remoteStreamIdleTimeoutMs, firstTokenDeadlineAt - Date.now()))
+                      : remoteStreamIdleTimeoutMs;
+                  if (readTimeoutMs <= 0) {
+                    void reader.cancel().catch(() => undefined);
+                    throw new Error("Remote benchmark first token timeout.");
+                  }
                   const { done, value } = await new Promise<ReadableStreamReadResult<Uint8Array>>(
                     (resolve, reject) => {
                       const timer = setTimeout(() => {
-                        reject(new Error("Remote benchmark stream idle timeout."));
-                      }, remoteStreamIdleTimeoutMs);
+                        void reader.cancel().catch(() => undefined);
+                        reject(
+                          new Error(
+                            attemptFirstTokenLatencyMs === null
+                              ? "Remote benchmark first token timeout."
+                              : "Remote benchmark stream idle timeout."
+                          )
+                        );
+                      }, readTimeoutMs);
                       reader
                         .read()
                         .then((result) => {
@@ -1386,6 +1483,10 @@ async function runSingleBenchmarkSample(
                     }
                   );
                   if (done) break;
+                  if (attemptFirstTokenLatencyMs === null && Date.now() >= firstTokenDeadlineAt) {
+                    void reader.cancel().catch(() => undefined);
+                    throw new Error("Remote benchmark first token timeout.");
+                  }
                   buffer += decoder.decode(value, { stream: true });
                   const events = buffer.split("\n\n");
                   buffer = events.pop() || "";
@@ -1400,6 +1501,10 @@ async function runSingleBenchmarkSample(
                       controller.enqueue(new TextEncoder().encode(`${data}\n`));
                     }
                   }
+                  if (attemptFirstTokenLatencyMs === null && Date.now() >= firstTokenDeadlineAt) {
+                    void reader.cancel().catch(() => undefined);
+                    throw new Error("Remote benchmark first token timeout.");
+                  }
                 }
                 controller.close();
               }
@@ -1411,37 +1516,37 @@ async function runSingleBenchmarkSample(
               : [];
             const delta = choices[0]?.delta as Record<string, unknown> | undefined;
             const content = typeof delta?.content === "string" ? delta.content : "";
-            if (content && firstTokenLatencyMs === null) {
-              firstTokenLatencyMs = Date.now() - startedAt;
+            if (content && attemptFirstTokenLatencyMs === null) {
+              attemptFirstTokenLatencyMs = Date.now() - attemptStartedAt;
             }
             if (content) {
-              outputBuffer += content;
+              attemptOutputBuffer += content;
             }
             const usage = payload.usage as Record<string, unknown> | undefined;
             if (usage) {
-              completionTokens =
-                typeof usage.completion_tokens === "number" ? usage.completion_tokens : completionTokens;
-              totalTokens = typeof usage.total_tokens === "number" ? usage.total_tokens : totalTokens;
+              attemptCompletionTokens =
+                typeof usage.completion_tokens === "number" ? usage.completion_tokens : attemptCompletionTokens;
+              attemptTotalTokens = typeof usage.total_tokens === "number" ? usage.total_tokens : attemptTotalTokens;
             }
           }
         );
-        if (firstTokenLatencyMs === null) {
-          firstTokenLatencyMs = Date.now() - startedAt;
+        if (attemptFirstTokenLatencyMs === null) {
+          attemptFirstTokenLatencyMs = Date.now() - attemptStartedAt;
         }
 
-        const latencyMs = Date.now() - startedAt;
+        const latencyMs = Date.now() - attemptStartedAt;
         const tokenThroughputTps =
-          calculateTokenThroughputTps(completionTokens, latencyMs, firstTokenLatencyMs) ?? null;
+          calculateTokenThroughputTps(attemptCompletionTokens, latencyMs, attemptFirstTokenLatencyMs) ?? null;
 
         return {
           run: 0,
-          firstTokenLatencyMs,
+          firstTokenLatencyMs: attemptFirstTokenLatencyMs,
           latencyMs,
-          completionTokens,
-          totalTokens,
+          completionTokens: attemptCompletionTokens,
+          totalTokens: attemptTotalTokens,
           tokenThroughputTps,
-          outputText: outputBuffer.trim().slice(0, 12000),
-          outputPreview: outputBuffer.trim().slice(0, 400),
+          outputText: attemptOutputBuffer.trim().slice(0, 12000),
+          outputPreview: attemptOutputBuffer.trim().slice(0, 400),
           ok: true
         };
       } catch (error) {
@@ -1449,19 +1554,24 @@ async function runSingleBenchmarkSample(
           assertBenchmarkRunActive(options.runId);
         }
         lastWarning = error instanceof Error ? error.message : "Unknown remote benchmark error.";
-        if (attempt < REMOTE_BENCHMARK_MAX_ATTEMPTS && isRetryableRemoteBenchmarkFailure(lastWarning)) {
-          await sleep(getRemoteBenchmarkRetryDelayMs(lastWarning, attempt));
+        const retryDelayMs = getRemoteBenchmarkRetryDelayMs(lastWarning, attempt);
+        if (
+          attempt < REMOTE_BENCHMARK_MAX_ATTEMPTS &&
+          isRetryableRemoteBenchmarkFailure(lastWarning) &&
+          Date.now() - retryWindowStartedAt + retryDelayMs < remoteRetryBudgetMs
+        ) {
+          await sleep(retryDelayMs);
           attempt += 1;
           continue;
         }
         return {
           run: 0,
           firstTokenLatencyMs: null,
-          latencyMs: Date.now() - startedAt,
+          latencyMs: Date.now() - attemptStartedAt,
           completionTokens: 0,
           totalTokens: 0,
           tokenThroughputTps: null,
-          outputPreview: "",
+          outputPreview: attemptOutputBuffer.trim().slice(0, 400),
           ok: false,
           warning: lastWarning
         };
