@@ -268,6 +268,7 @@ export type AgentChatResponse = {
 };
 
 export type AgentCompareRequest = {
+  requestId?: string;
   targetIds: string[];
   input: string;
   messages: AgentMessage[];
@@ -305,6 +306,7 @@ export type AgentCompareLaneResult = {
 
 export type AgentCompareResponse = {
   ok: boolean;
+  requestId: string;
   runId: string;
   generatedAt: string;
   compareIntent: AgentCompareIntent;
@@ -312,6 +314,40 @@ export type AgentCompareResponse = {
   fairnessFingerprint: string;
   warning?: string;
   results: AgentCompareLaneResult[];
+};
+
+export type AgentCompareLaneProgressPhase =
+  | "queued"
+  | "prewarming"
+  | "loading"
+  | "recovering"
+  | "running"
+  | "completed"
+  | "failed";
+
+export type AgentCompareLaneProgress = {
+  targetId: string;
+  targetLabel: string;
+  execution: AgentExecution;
+  phase: AgentCompareLaneProgressPhase;
+  detail: string;
+  startedAt: string;
+  updatedAt: string;
+  loadingElapsedMs?: number | null;
+  recoveryThresholdMs?: number | null;
+  recoveryAction?: string;
+  recoveryTriggeredAt?: string | null;
+  recoveryTriggerElapsedMs?: number | null;
+  warning?: string;
+};
+
+export type AgentCompareProgress = {
+  requestId: string;
+  status: "pending" | "running" | "completed" | "failed";
+  startedAt: string;
+  updatedAt: string;
+  activeTargetId?: string;
+  lanes: AgentCompareLaneProgress[];
 };
 
 export type AgentToolDecisionRequest = {

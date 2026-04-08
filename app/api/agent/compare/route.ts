@@ -13,6 +13,11 @@ import {
   runAgentRequest
 } from "@/lib/agent/providers";
 import { getAgentTarget } from "@/lib/agent/catalog";
+import {
+  completeCompareProgress,
+  createCompareProgress,
+  touchCompareLaneProgress
+} from "@/lib/agent/compare-progress-store";
 import { restartLocalGateway } from "@/lib/agent/local-gateway";
 import {
   applyGroundedResponsePolicy,
@@ -28,6 +33,7 @@ import type {
   AgentChatRequest,
   AgentCompareIntent,
   AgentCompareOutputShape,
+  AgentCompareProgress,
   AgentCompareRequest,
   AgentCompareResponse,
   AgentCompareLaneResult,
@@ -75,14 +81,24 @@ async function fetchLocalGatewayHealth(baseUrl: string, timeoutMs = 2000) {
 }
 
 async function ensureCompareLocalLaneReady(params: {
+  requestId: string;
   baseUrl: string;
   model: string;
   targetId: string;
   targetLabel: string;
 }) {
-  const { baseUrl, model, targetId, targetLabel } = params;
+  const { requestId, baseUrl, model, targetId, targetLabel } = params;
   let recoveryNote = "";
   let restarted = false;
+
+  const setLaneProgress = (
+    patch: Partial<AgentCompareProgress["lanes"][number]> & {
+      phase: AgentCompareProgress["lanes"][number]["phase"];
+      detail: string;
+    }
+  ) => {
+    touchCompareLaneProgress(requestId, targetId, patch);
+  };
 
   const runPrewarm = async (allowRetry = true) =>
     prewarmLocalTargetWithRecovery({
@@ -93,18 +109,48 @@ async function ensureCompareLocalLaneReady(params: {
       allowRetry
     });
 
+  setLaneProgress({
+    phase: "prewarming",
+    detail: `Checking the local runtime and prewarming ${targetLabel}.`,
+    recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS
+  });
+
   let prewarm = await runPrewarm(true);
   if (!prewarm.ok) {
+    setLaneProgress({
+      phase: "failed",
+      detail: prewarm.message,
+      warning: prewarm.message,
+      recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS
+    });
     return { ok: false as const, message: prewarm.message };
   }
   if (prewarm.status === "ready") {
+    setLaneProgress({
+      phase: "running",
+      detail: `${targetLabel} is ready. Starting compare inference.`,
+      recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS
+    });
     return { ok: true as const, warning: undefined };
   }
+
+  setLaneProgress({
+    phase: "loading",
+    detail: `${targetLabel} is still loading. Compare will trigger one recovery if loading reaches ${Math.round(
+      COMPARE_LOCAL_LOADING_STALL_MS / 1000
+    )}s.`,
+    recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS
+  });
 
   const startedAt = Date.now();
   while (Date.now() - startedAt < COMPARE_LOCAL_PREWARM_WAIT_MS) {
     const health = await fetchLocalGatewayHealth(baseUrl);
     if (health?.loaded_alias === model && !health.loading_alias) {
+      setLaneProgress({
+        phase: "running",
+        detail: `${targetLabel} finished loading. Starting compare inference.`,
+        recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS
+      });
       return {
         ok: true as const,
         warning: recoveryNote || (prewarm.status !== "ready" ? prewarm.message : undefined)
@@ -117,9 +163,46 @@ async function ensureCompareLocalLaneReady(params: {
       typeof health?.loading_elapsed_ms === "number" &&
       health.loading_elapsed_ms >= COMPARE_LOCAL_LOADING_STALL_MS;
 
+    if (loadingCurrentTarget) {
+      const loadingElapsedMs =
+        typeof health?.loading_elapsed_ms === "number" ? health.loading_elapsed_ms : null;
+      setLaneProgress({
+        phase: "loading",
+        detail:
+          loadingElapsedMs !== null
+            ? `${targetLabel} has been loading for ${Math.max(1, Math.round(loadingElapsedMs / 1000))}s. Compare will restart the gateway once if this lane stays stalled.`
+            : `${targetLabel} is still loading. Compare is watching for a stalled local runtime before recovering it.`,
+        loadingElapsedMs,
+        recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS
+      });
+    }
+
     if ((health?.loading_error || loadingStalled) && !restarted) {
+      const recoveryTriggerElapsedMs =
+        typeof health?.loading_elapsed_ms === "number"
+          ? health.loading_elapsed_ms
+          : Date.now() - startedAt;
+      const recoveryAction = health?.loading_error
+        ? `Restarted the local gateway after ${Math.max(1, Math.round(recoveryTriggerElapsedMs / 1000))}s because ${targetLabel} reported a loading error.`
+        : `Restarted the local gateway after ${Math.max(1, Math.round(recoveryTriggerElapsedMs / 1000))}s because ${targetLabel} exceeded the compare loading budget.`;
+      setLaneProgress({
+        phase: "recovering",
+        detail: recoveryAction,
+        loadingElapsedMs:
+          typeof health?.loading_elapsed_ms === "number" ? health.loading_elapsed_ms : null,
+        recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS,
+        recoveryAction,
+        recoveryTriggeredAt: new Date().toISOString(),
+        recoveryTriggerElapsedMs
+      });
       const restartedOk = await restartLocalGateway(baseUrl, { waitMs: 180000, autoPrewarmModel: "false" });
       if (!restartedOk) {
+        setLaneProgress({
+          phase: "failed",
+          detail: health?.loading_error || `${targetLabel} load recovery timed out after restart.`,
+          warning: health?.loading_error || `${targetLabel} load recovery timed out after restart.`,
+          recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS
+        });
         return {
           ok: false as const,
           message: health?.loading_error || `${targetLabel} load recovery timed out after restart.`
@@ -129,12 +212,31 @@ async function ensureCompareLocalLaneReady(params: {
       recoveryNote = health?.loading_error
         ? `Recovered after restarting the local gateway because ${targetLabel} reported a loading error.`
         : `Recovered after restarting the local gateway because ${targetLabel} exceeded the compare loading budget.`;
+      setLaneProgress({
+        phase: "prewarming",
+        detail: `Retrying ${targetLabel} after compare recovery.`,
+        recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS,
+        recoveryAction
+      });
       const retryPrewarm = await runPrewarm(false);
       if (!retryPrewarm.ok) {
+        setLaneProgress({
+          phase: "failed",
+          detail: retryPrewarm.message,
+          warning: retryPrewarm.message,
+          recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS,
+          recoveryAction
+        });
         return { ok: false as const, message: retryPrewarm.message };
       }
       prewarm = retryPrewarm;
       if (retryPrewarm.status === "ready") {
+        setLaneProgress({
+          phase: "running",
+          detail: `${targetLabel} recovered and is ready. Starting compare inference.`,
+          recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS,
+          recoveryAction
+        });
         return { ok: true as const, warning: recoveryNote };
       }
     }
@@ -142,11 +244,18 @@ async function ensureCompareLocalLaneReady(params: {
     await sleep(COMPARE_LOCAL_PREWARM_POLL_MS);
   }
 
+  const timeoutMessage = `${targetLabel} did not finish loading within the compare window (${Math.round(
+    COMPARE_LOCAL_PREWARM_WAIT_MS / 1000
+  )}s).`;
+  setLaneProgress({
+    phase: "failed",
+    detail: timeoutMessage,
+    warning: timeoutMessage,
+    recoveryThresholdMs: COMPARE_LOCAL_LOADING_STALL_MS
+  });
   return {
     ok: false as const,
-    message: `${targetLabel} did not finish loading within the compare window (${Math.round(
-      COMPARE_LOCAL_PREWARM_WAIT_MS / 1000
-    )}s).`
+    message: timeoutMessage
   };
 }
 
@@ -231,6 +340,7 @@ function buildFairnessFingerprint(params: {
 }
 
 export async function POST(request: Request) {
+  let requestId = "";
   try {
     const body = (await request.json()) as Partial<AgentCompareRequest>;
 
@@ -249,11 +359,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Need at least one valid targetId." }, { status: 400 });
     }
 
+    requestId =
+      typeof body.requestId === "string" && body.requestId.trim()
+        ? body.requestId.trim()
+        : crypto.randomUUID();
+
     for (const targetId of targetIds) {
       if (!getAgentTarget(targetId)) {
         return NextResponse.json({ error: `Unknown target: ${targetId}` }, { status: 404 });
       }
     }
+
+    createCompareProgress({
+      requestId,
+      lanes: targetIds.map((targetId) => {
+        const target = getAgentTarget(targetId)!;
+        return {
+          targetId,
+          targetLabel: target.label,
+          execution: target.execution,
+          detail: `Queued ${target.label} for compare execution.`
+        };
+      })
+    });
 
     const compareIntent = normalizeCompareIntent(body.compareIntent);
     const compareOutputShape = normalizeCompareOutputShape(body.compareOutputShape);
@@ -329,6 +457,7 @@ export async function POST(request: Request) {
       let laneWarning: string | undefined;
       if (target.execution === "local") {
         const localReady = await ensureCompareLocalLaneReady({
+          requestId,
           baseUrl: resolvedTarget.resolvedBaseUrl,
           model: resolvedTarget.resolvedModel,
           targetId,
@@ -351,9 +480,19 @@ export async function POST(request: Request) {
             latencyMs: Date.now() - laneStartedAt,
             ok: false
           });
+          touchCompareLaneProgress(requestId, targetId, {
+            phase: "failed",
+            detail: localReady.message,
+            warning: localReady.message
+          });
           continue;
         }
         laneWarning = localReady.warning;
+      } else {
+        touchCompareLaneProgress(requestId, targetId, {
+          phase: "running",
+          detail: `${target.label} is a remote lane. Starting compare inference.`
+        });
       }
       beginTrackedRequest(targetId);
       try {
@@ -396,8 +535,17 @@ export async function POST(request: Request) {
           latencyMs: Date.now() - laneStartedAt,
           ok: true
         });
+        touchCompareLaneProgress(requestId, targetId, {
+          phase: "completed",
+          detail: `${response.targetLabel} completed compare inference in ${Math.max(
+            1,
+            Math.round((Date.now() - laneStartedAt) / 1000)
+          )}s.`,
+          warning: [laneWarning, response.warning].filter(Boolean).join(" ").trim() || undefined
+        });
         finishTrackedRequest(targetId, true);
       } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown compare lane failure.";
         results.push({
           targetId,
           targetLabel: target.label,
@@ -409,10 +557,15 @@ export async function POST(request: Request) {
           thinkingMode,
           contextWindow: laneContextWindow,
           content: "",
-          warning: error instanceof Error ? error.message : "Unknown compare lane failure.",
+          warning: message,
           toolRuns: [],
           latencyMs: Date.now() - laneStartedAt,
           ok: false
+        });
+        touchCompareLaneProgress(requestId, targetId, {
+          phase: "failed",
+          detail: message,
+          warning: message
         });
         finishTrackedRequest(targetId, false);
       }
@@ -420,6 +573,7 @@ export async function POST(request: Request) {
 
     const response: AgentCompareResponse = {
       ok: results.some((lane) => lane.ok),
+      requestId,
       runId: crypto.randomUUID(),
       generatedAt: new Date().toISOString(),
       compareIntent,
@@ -440,8 +594,13 @@ export async function POST(request: Request) {
       results
     };
 
+    completeCompareProgress(requestId, response.ok ? "completed" : "failed");
+
     return NextResponse.json(response);
   } catch (error) {
+    if (requestId) {
+      completeCompareProgress(requestId, "failed");
+    }
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown compare error."

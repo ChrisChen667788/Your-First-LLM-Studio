@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type {
   AgentBenchmarkResponse,
   AgentCompareIntent,
+  AgentCompareLaneProgress,
   AgentCompareOutputShape,
   AgentCompareResponse,
   AgentProviderProfile,
@@ -32,7 +33,9 @@ type AgentCompareLabProps = {
   compareResult: AgentCompareResponse | null;
   compareBaseTargetId: string;
   compareRuntimeByTargetId: Record<string, AgentRuntimeStatus>;
+  compareProgressByTargetId: Record<string, AgentCompareLaneProgress>;
   compareBenchmarkUseOutputContract: boolean;
+  compareBenchmarkPromptPreview: string;
   benchmarkPending: boolean;
   benchmarkError: string;
   benchmarkResult: AgentBenchmarkResponse | null;
@@ -205,7 +208,9 @@ export function AgentCompareLab({
   compareResult,
   compareBaseTargetId,
   compareRuntimeByTargetId,
+  compareProgressByTargetId,
   compareBenchmarkUseOutputContract,
+  compareBenchmarkPromptPreview,
   benchmarkPending,
   benchmarkError,
   benchmarkResult,
@@ -260,6 +265,8 @@ export function AgentCompareLab({
         benchmarkHint: "Reuse the current compare setup as a prompt benchmark run in /admin.",
         benchmarkContractToggle: "Preserve compare output contract in handoff",
         benchmarkContractHint: "Carry over bullet-list or strict JSON instructions when you convert this compare run into a prompt benchmark.",
+        benchmarkPromptPreview: "Benchmark prompt preview",
+        benchmarkPromptPreviewHint: "This read-only prompt is the exact payload that compare handoff will send to /api/admin/benchmark.",
         benchmarkSuccess: "Benchmark handoff ready",
         benchmarkOpen: "Open /admin and track this run",
         exportMarkdown: "Export markdown",
@@ -295,7 +302,12 @@ export function AgentCompareLab({
         compareWarning: "Compare note",
         schemaMatch: "Matched keys",
         schemaMismatch: "Different keys",
-        schemaUnavailable: "Not JSON"
+        schemaUnavailable: "Not JSON",
+        compareRuntimePhase: "Compare runtime",
+        compareLoadingFor: "Loading for",
+        compareRecoveryBudget: "Recovery budget",
+        compareLatestRecovery: "Latest recovery",
+        compareAwaitingRecovery: "Compare will trigger one local recovery if this lane stays stalled."
       }
     : {
         title: "Compare Lab",
@@ -324,6 +336,8 @@ export function AgentCompareLab({
         benchmarkHint: "沿用当前 compare 配置，直接转成 /admin 里的 prompt benchmark。",
         benchmarkContractToggle: "handoff 时沿用 compare 输出契约",
         benchmarkContractHint: "把 bullet-list 或 strict JSON 的输出约束一并带到 prompt benchmark 里。",
+        benchmarkPromptPreview: "benchmark prompt 预览",
+        benchmarkPromptPreviewHint: "这里展示的只读 prompt，就是 compare handoff 真正会送到 /api/admin/benchmark 的内容。",
         benchmarkSuccess: "benchmark 已接收",
         benchmarkOpen: "去 /admin 跟踪这轮运行",
         exportMarkdown: "导出 Markdown",
@@ -359,7 +373,12 @@ export function AgentCompareLab({
         compareWarning: "对比说明",
         schemaMatch: "键一致",
         schemaMismatch: "键不同",
-        schemaUnavailable: "非 JSON"
+        schemaUnavailable: "非 JSON",
+        compareRuntimePhase: "Compare 运行态",
+        compareLoadingFor: "加载时长",
+        compareRecoveryBudget: "恢复预算",
+        compareLatestRecovery: "最近恢复动作",
+        compareAwaitingRecovery: "如果这条 lane 继续卡住，compare 会触发一次本地恢复。"
       };
 
   const compareTargets = useMemo(
@@ -661,9 +680,18 @@ export function AgentCompareLab({
               <div className="mt-4 space-y-3">
                 {compareTargets.map((target) => {
                   const runtime = compareRuntimeByTargetId[target.id];
+                  const compareProgress = compareProgressByTargetId[target.id];
                   const loadingSeconds =
                     typeof runtime?.loadingElapsedMs === "number"
                       ? Math.round(runtime.loadingElapsedMs / 1000)
+                      : null;
+                  const compareLoadingSeconds =
+                    typeof compareProgress?.loadingElapsedMs === "number"
+                      ? Math.max(1, Math.round(compareProgress.loadingElapsedMs / 1000))
+                      : null;
+                  const compareRecoveryBudgetSeconds =
+                    typeof compareProgress?.recoveryThresholdMs === "number"
+                      ? Math.max(1, Math.round(compareProgress.recoveryThresholdMs / 1000))
                       : null;
                   return (
                     <div key={target.id} className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4">
@@ -702,6 +730,31 @@ export function AgentCompareLab({
                               {locale.startsWith("en") ? "Loading for" : "加载中"} {loadingSeconds}s
                             </p>
                           ) : null}
+                        </div>
+                      ) : null}
+                      {compareProgress ? (
+                        <div className="mt-3 rounded-xl border border-cyan-400/15 bg-cyan-400/5 px-3 py-3 text-xs leading-6 text-cyan-50">
+                          <p className="font-medium text-cyan-100">{copy.compareRuntimePhase}</p>
+                          <p className="mt-1 text-cyan-50/90">{compareProgress.detail}</p>
+                          <div className="mt-2 grid gap-1 text-cyan-100/80">
+                            {compareLoadingSeconds !== null ? (
+                              <p>
+                                {copy.compareLoadingFor}: {compareLoadingSeconds}s
+                              </p>
+                            ) : null}
+                            {compareRecoveryBudgetSeconds !== null ? (
+                              <p>
+                                {copy.compareRecoveryBudget}: {compareRecoveryBudgetSeconds}s
+                              </p>
+                            ) : null}
+                            {compareProgress.recoveryAction ? (
+                              <p>
+                                {copy.compareLatestRecovery}: {compareProgress.recoveryAction}
+                              </p>
+                            ) : compareProgress.phase === "loading" ? (
+                              <p>{copy.compareAwaitingRecovery}</p>
+                            ) : null}
+                          </div>
                         </div>
                       ) : null}
                       <div className="mt-3 grid gap-2 text-xs leading-6 text-slate-300">
@@ -751,6 +804,16 @@ export function AgentCompareLab({
                     <span className="mt-1 block text-xs leading-6 text-slate-400">{copy.benchmarkContractHint}</span>
                   </span>
                 </label>
+                <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{copy.benchmarkPromptPreview}</p>
+                  <p className="mt-2 text-xs leading-6 text-slate-400">{copy.benchmarkPromptPreviewHint}</p>
+                  <textarea
+                    readOnly
+                    value={compareBenchmarkPromptPreview}
+                    rows={10}
+                    className="mt-3 w-full resize-none rounded-2xl border border-white/10 bg-slate-950/90 px-4 py-3 font-mono text-xs leading-6 text-slate-200 outline-none"
+                  />
+                </div>
                 <button
                   type="button"
                   disabled={!compareResult}

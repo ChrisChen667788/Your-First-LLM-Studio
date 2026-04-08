@@ -16,6 +16,8 @@ import type {
   AgentBenchmarkResponse,
   AgentChatResponse,
   AgentCompareIntent,
+  AgentCompareLaneProgress,
+  AgentCompareProgress,
   AgentCompareOutputShape,
   AgentCompareResponse,
   AgentConnectionCheckResponse,
@@ -1056,6 +1058,28 @@ function serializeCompareResultAsMarkdown(params: {
   return lines.join("\n");
 }
 
+function buildCompareBenchmarkPrompt(params: {
+  input: string;
+  systemPrompt: string;
+  compareOutputShape: AgentCompareOutputShape;
+  compareBenchmarkUseOutputContract: boolean;
+}) {
+  const { input, systemPrompt, compareOutputShape, compareBenchmarkUseOutputContract } = params;
+  return [
+    systemPrompt.trim() ? `System frame:\n${systemPrompt.trim()}` : "",
+    input.trim() ? `Task:\n${input.trim()}` : "",
+    compareBenchmarkUseOutputContract
+      ? compareOutputShape === "bullet-list"
+        ? "Output contract:\n- Return 4 to 6 concise bullet points.\n- Keep the answer grounded in the task."
+        : compareOutputShape === "strict-json"
+          ? 'Output contract:\nReturn valid JSON only using {"answer": string, "key_points": string[], "warnings": string[]}.'
+          : ""
+      : ""
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 function serializeSessionsAsMarkdown(sessions: StoredAgentSession[]) {
   const lines: string[] = [
     "# Agent Sessions",
@@ -1126,7 +1150,9 @@ export function AgentWorkbench() {
   const [compareError, setCompareError] = useState("");
   const [compareResult, setCompareResult] = useState<AgentCompareResponse | null>(null);
   const [compareBaseTargetId, setCompareBaseTargetId] = useState("");
+  const [compareRequestId, setCompareRequestId] = useState("");
   const [compareRuntimeByTargetId, setCompareRuntimeByTargetId] = useState<Record<string, AgentRuntimeStatus>>({});
+  const [compareProgressByTargetId, setCompareProgressByTargetId] = useState<Record<string, AgentCompareLaneProgress>>({});
   const [compareBenchmarkUseOutputContract, setCompareBenchmarkUseOutputContract] = useState(true);
   const [benchmarkPending, setBenchmarkPending] = useState(false);
   const [benchmarkError, setBenchmarkError] = useState("");
@@ -2207,6 +2233,13 @@ export function AgentWorkbench() {
   }, [compareTargetIds]);
 
   useEffect(() => {
+    setCompareProgressByTargetId((current) => {
+      const nextEntries = Object.entries(current).filter(([targetId]) => compareTargetIds.includes(targetId));
+      return nextEntries.length === Object.keys(current).length ? current : Object.fromEntries(nextEntries);
+    });
+  }, [compareTargetIds]);
+
+  useEffect(() => {
     if (!comparePending) return;
     const localCompareTargetIds = compareTargetIds.filter(
       (targetId) => agentTargets.find((target) => target.id === targetId)?.execution === "local"
@@ -2250,6 +2283,41 @@ export function AgentWorkbench() {
       window.clearInterval(timer);
     };
   }, [comparePending, compareTargetIds, thinkingMode]);
+
+  useEffect(() => {
+    if (!comparePending || !compareRequestId) return;
+
+    let cancelled = false;
+
+    async function loadCompareProgress() {
+      try {
+        const query = new URLSearchParams({ requestId: compareRequestId });
+        const response = await fetch(`/api/agent/compare/progress?${query.toString()}`, {
+          cache: "no-store"
+        });
+        const payload = (await response.json()) as AgentCompareProgress & { error?: string };
+        if (!response.ok) {
+          throw new Error(payload.error || `Failed to load compare progress for ${compareRequestId}.`);
+        }
+        if (!cancelled) {
+          setCompareProgressByTargetId(
+            Object.fromEntries(payload.lanes.map((lane) => [lane.targetId, lane]))
+          );
+        }
+      } catch {
+        // Keep the latest known compare progress snapshot if a polling round fails.
+      }
+    }
+
+    void loadCompareProgress();
+    const timer = window.setInterval(() => {
+      void loadCompareProgress();
+    }, 1500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [comparePending, compareRequestId]);
 
   useEffect(() => {
     setCompareTargetIds((current) => {
@@ -3034,15 +3102,19 @@ export function AgentWorkbench() {
       return;
     }
 
+    const requestId = crypto.randomUUID();
     setComparePending(true);
     setCompareError("");
     setBenchmarkError("");
     setBenchmarkResult(null);
+    setCompareRequestId(requestId);
+    setCompareProgressByTargetId({});
     try {
       const response = await fetch("/api/agent/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          requestId,
           targetIds: compareTargetIds,
           input,
           messages: historyMessages,
@@ -3061,6 +3133,7 @@ export function AgentWorkbench() {
         throw new Error(payload.error || "Compare run failed.");
       }
       setCompareResult(payload);
+      setCompareRequestId(payload.requestId || requestId);
       setCompareBaseTargetId(payload.results[0]?.targetId || "");
     } catch (compareRunError) {
       setCompareError(compareRunError instanceof Error ? compareRunError.message : "Compare run failed.");
@@ -3072,15 +3145,23 @@ export function AgentWorkbench() {
   async function handleRerunCompareLane(targetId: string) {
     if (!targetId) return;
 
+    const requestId = crypto.randomUUID();
     setComparePending(true);
     setCompareError("");
     setBenchmarkError("");
     setBenchmarkResult(null);
+    setCompareRequestId(requestId);
+    setCompareProgressByTargetId((current) => {
+      const next = { ...current };
+      delete next[targetId];
+      return next;
+    });
     try {
       const response = await fetch("/api/agent/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          requestId,
           targetIds: [targetId],
           input,
           messages: historyMessages,
@@ -3098,6 +3179,7 @@ export function AgentWorkbench() {
       if (!response.ok) {
         throw new Error(payload.error || "Lane rerun failed.");
       }
+      setCompareRequestId(payload.requestId || requestId);
 
       const nextLane = payload.results[0];
       if (!nextLane) {
@@ -3128,19 +3210,12 @@ export function AgentWorkbench() {
       return;
     }
 
-    const comparePrompt = [
-      systemPrompt.trim() ? `System frame:\n${systemPrompt.trim()}` : "",
-      `Task:\n${input.trim()}`,
+    const comparePrompt = buildCompareBenchmarkPrompt({
+      input,
+      systemPrompt,
+      compareOutputShape,
       compareBenchmarkUseOutputContract
-        ? compareOutputShape === "bullet-list"
-          ? "Output contract:\n- Return 4 to 6 concise bullet points.\n- Keep the answer grounded in the task."
-          : compareOutputShape === "strict-json"
-            ? 'Output contract:\nReturn valid JSON only using {"answer": string, "key_points": string[], "warnings": string[]}.'
-            : ""
-        : ""
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+    });
 
     setBenchmarkPending(true);
     setBenchmarkError("");
@@ -3170,6 +3245,17 @@ export function AgentWorkbench() {
       setBenchmarkPending(false);
     }
   }
+
+  const compareBenchmarkPromptPreview = useMemo(
+    () =>
+      buildCompareBenchmarkPrompt({
+        input,
+        systemPrompt,
+        compareOutputShape,
+        compareBenchmarkUseOutputContract
+      }),
+    [compareBenchmarkUseOutputContract, compareOutputShape, input, systemPrompt]
+  );
 
   function handleExportCompareMarkdown() {
     if (!compareResult) return;
@@ -5570,7 +5656,9 @@ export function AgentWorkbench() {
                   compareResult={compareResult}
                   compareBaseTargetId={compareBaseTargetId}
                   compareRuntimeByTargetId={compareRuntimeByTargetId}
+                  compareProgressByTargetId={compareProgressByTargetId}
                   compareBenchmarkUseOutputContract={compareBenchmarkUseOutputContract}
+                  compareBenchmarkPromptPreview={compareBenchmarkPromptPreview}
                   benchmarkPending={benchmarkPending}
                   benchmarkError={benchmarkError}
                   benchmarkResult={benchmarkResult}
