@@ -19,6 +19,7 @@ import type {
   AgentCompareLaneProgress,
   AgentCompareProgress,
   AgentCompareOutputShape,
+  AgentCompareReviewSummaryTone,
   AgentCompareResponse,
   AgentConnectionCheckResponse,
   AgentConnectionCheckStage,
@@ -983,6 +984,12 @@ function deriveCompareSchemaStatus(base: string, candidate: string) {
   return JSON.stringify(baseJsonKeys) === JSON.stringify(candidateJsonKeys) ? "matched-keys" : "different-keys";
 }
 
+function formatCompareSchemaStatusForNote(status: string) {
+  if (status === "matched-keys") return "matched keys";
+  if (status === "different-keys") return "different keys";
+  return "not JSON";
+}
+
 function serializeCompareResultAsMarkdown(params: {
   compareResult: AgentCompareResponse;
   compareProgressByTargetId?: Record<string, AgentCompareLaneProgress>;
@@ -1129,6 +1136,151 @@ function compactText(value: string, maxLength = 220) {
   return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
 
+function formatInlineMarkdown(value: string) {
+  return escapeHtml(value)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
+function renderMarkdownDocumentToHtml(markdown: string) {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  const html: string[] = [];
+  let paragraphLines: string[] = [];
+  let listItems: string[] = [];
+  let inCodeBlock = false;
+  let codeFenceLanguage = "";
+  let codeLines: string[] = [];
+
+  const flushParagraph = () => {
+    if (!paragraphLines.length) return;
+    html.push(`<p>${formatInlineMarkdown(paragraphLines.join(" "))}</p>`);
+    paragraphLines = [];
+  };
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    html.push(`<ul>${listItems.map((item) => `<li>${formatInlineMarkdown(item)}</li>`).join("")}</ul>`);
+    listItems = [];
+  };
+
+  const flushCodeBlock = () => {
+    if (!inCodeBlock) return;
+    const languageBadge = codeFenceLanguage
+      ? `<div class="code-label">${escapeHtml(codeFenceLanguage)}</div>`
+      : "";
+    html.push(
+      `<div class="code-block">${languageBadge}<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre></div>`
+    );
+    inCodeBlock = false;
+    codeFenceLanguage = "";
+    codeLines = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\t/g, "  ");
+    if (line.trim().startsWith("```")) {
+      if (inCodeBlock) {
+        flushCodeBlock();
+      } else {
+        flushParagraph();
+        flushList();
+        inCodeBlock = true;
+        codeFenceLanguage = line.trim().slice(3).trim();
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(rawLine);
+      continue;
+    }
+
+    const headingMatch = line.match(/^(#{1,3})\s+(.*)$/);
+    if (headingMatch) {
+      flushParagraph();
+      flushList();
+      const level = Math.min(3, headingMatch[1].length);
+      html.push(`<h${level}>${formatInlineMarkdown(headingMatch[2].trim())}</h${level}>`);
+      continue;
+    }
+
+    const bulletMatch = line.match(/^\s*-\s+(.*)$/);
+    if (bulletMatch) {
+      flushParagraph();
+      listItems.push(bulletMatch[1].trim());
+      continue;
+    }
+
+    if (!line.trim()) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    paragraphLines.push(line.trim());
+  }
+
+  flushParagraph();
+  flushList();
+  flushCodeBlock();
+
+  if (!html.length) {
+    html.push("<p>No markdown content was generated for this compare preview.</p>");
+  }
+
+  return html.join("\n");
+}
+
+function deriveCompareLaneTakeaway(params: {
+  lane: AgentCompareResponse["results"][number];
+  baseLane: AgentCompareResponse["results"][number] | null;
+  overlapBase: number;
+  schemaStatus: string;
+}) {
+  const { lane, baseLane, overlapBase, schemaStatus } = params;
+  const lengthDelta = baseLane ? lane.content.length - baseLane.content.length : 0;
+
+  if (lane.warning) {
+    return `warning surfaced: ${compactText(lane.warning, 120)}`;
+  }
+  if (!lane.ok) {
+    return "lane did not complete cleanly";
+  }
+  if (schemaStatus === "different-keys") {
+    return "output schema drifted from the base lane";
+  }
+  if (overlapBase < 0.45) {
+    return `answer framing diverged strongly from the base lane (${Math.round(overlapBase * 100)}% overlap)`;
+  }
+  if (Math.abs(lengthDelta) >= 160) {
+    return lengthDelta > 0
+      ? `response was materially longer than the base lane (+${lengthDelta} chars)`
+      : `response was materially shorter than the base lane (${lengthDelta} chars)`;
+  }
+  return "response stayed broadly aligned with the base lane";
+}
+
+function deriveCompareLaneFollowUp(params: {
+  lane: AgentCompareResponse["results"][number];
+  recoveryConclusion: string;
+  schemaStatus: string;
+}) {
+  const { lane, recoveryConclusion, schemaStatus } = params;
+  if (!lane.ok) {
+    return "rerun this lane or inspect the provider warning before using it as evidence";
+  }
+  if (lane.warning) {
+    return "keep the warning with any shared note so reviewers do not over-trust the output";
+  }
+  if (schemaStatus === "different-keys") {
+    return "keep the base lane as the automation reference unless this schema drift is intentional";
+  }
+  if (/recovery action/i.test(recoveryConclusion) || /Completed after/i.test(recoveryConclusion)) {
+    return "mention the recovery history if this result becomes part of a benchmark or review note";
+  }
+  return "safe to reuse in a benchmark handoff or lightweight review note";
+}
+
 function serializeCompareResultAsCompactMarkdown(params: {
   compareResult: AgentCompareResponse;
   compareProgressByTargetId?: Record<string, AgentCompareLaneProgress>;
@@ -1158,11 +1310,12 @@ function serializeCompareResultAsCompactMarkdown(params: {
   for (const lane of exportedResults) {
     const overlapBase = baseLane?.content ? computeCompareOverlap(baseLane.content, lane.content) : 1;
     const schemaStatus = deriveCompareSchemaStatus(baseLane?.content || "", lane.content);
+    const schemaLabel = formatCompareSchemaStatusForNote(schemaStatus);
     const recoveryConclusion = deriveCompareRecoveryConclusion(compareProgressByTargetId?.[lane.targetId], lane);
     const summary = [
       `${lane.targetLabel} — ${lane.ok ? "ok" : "failed"}`,
       `overlap ${(overlapBase * 100).toFixed(0)}%`,
-      `schema ${schemaStatus.toLowerCase()}`,
+      `schema ${schemaLabel.toLowerCase()}`,
       recoveryConclusion
     ].join("; ");
     lines.push(`- ${summary}`);
@@ -1195,8 +1348,9 @@ function serializeCompareLaneReviewSummary(params: {
   compareProgressByTargetId?: Record<string, AgentCompareLaneProgress>;
   compareBaseTargetId?: string;
   targetId: string;
+  tone: AgentCompareReviewSummaryTone;
 }) {
-  const { compareResult, compareProgressByTargetId, compareBaseTargetId, targetId } = params;
+  const { compareResult, compareProgressByTargetId, compareBaseTargetId, targetId, tone } = params;
   const lane = compareResult.results.find((entry) => entry.targetId === targetId);
   const baseLane =
     compareResult.results.find((entry) => entry.targetId === compareBaseTargetId) || compareResult.results[0] || null;
@@ -1204,17 +1358,61 @@ function serializeCompareLaneReviewSummary(params: {
 
   const overlapBase = baseLane?.content ? computeCompareOverlap(baseLane.content, lane.content) : 1;
   const schemaStatus = deriveCompareSchemaStatus(baseLane?.content || "", lane.content);
+  const schemaLabel = formatCompareSchemaStatusForNote(schemaStatus);
   const recoveryConclusion = deriveCompareRecoveryConclusion(compareProgressByTargetId?.[lane.targetId], lane);
+  const takeaway = deriveCompareLaneTakeaway({
+    lane,
+    baseLane,
+    overlapBase,
+    schemaStatus
+  });
+  const followUp = deriveCompareLaneFollowUp({
+    lane,
+    recoveryConclusion,
+    schemaStatus
+  });
+  const outputTakeaway = compactText(lane.content || "No output captured.", 220);
+
+  if (tone === "issue") {
+    return [
+      `Issue summary — ${lane.targetLabel}`,
+      `- Result: ${lane.ok ? "ok" : "failed"}`,
+      `- Compared against: ${baseLane?.targetLabel || "n/a"}`,
+      `- Main delta: ${takeaway}`,
+      `- Schema vs base: ${schemaLabel}`,
+      `- Recovery: ${recoveryConclusion}`,
+      lane.warning ? `- Warning: ${compactText(lane.warning, 180)}` : "",
+      `- Suggested follow-up: ${followUp}`,
+      `- Output takeaway: ${outputTakeaway}`
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  if (tone === "chat") {
+    return [
+      `Quick compare take on ${lane.targetLabel}:`,
+      `Status: ${lane.ok ? "ok" : "failed"}; base lane ${baseLane?.targetLabel || "n/a"}; overlap ${(overlapBase * 100).toFixed(0)}%; schema ${schemaLabel}.`,
+      `Biggest delta: ${takeaway}.`,
+      `Recovery: ${recoveryConclusion}.`,
+      lane.warning ? `Warning: ${compactText(lane.warning, 180)}.` : "",
+      `Next step: ${followUp}.`,
+      `Output takeaway: ${outputTakeaway}`
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
 
   return [
-    `Review summary: ${lane.targetLabel}`,
+    `PR review note — ${lane.targetLabel}`,
     `- Status: ${lane.ok ? "ok" : "failed"}`,
     `- Base lane: ${baseLane?.targetLabel || "n/a"}`,
     `- Overlap vs base: ${(overlapBase * 100).toFixed(0)}%`,
-    `- Schema vs base: ${schemaStatus}`,
+    `- Schema vs base: ${schemaLabel}`,
+    `- Main delta: ${takeaway}`,
     `- Recovery: ${recoveryConclusion}`,
     lane.warning ? `- Warning: ${compactText(lane.warning, 180)}` : "",
-    `- Output takeaway: ${compactText(lane.content || "No output captured.", 220)}`
+    `- Recommendation: ${followUp}`
   ]
     .filter(Boolean)
     .join("\n");
@@ -1229,7 +1427,11 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
-function buildMarkdownPreviewHtml(title: string, markdown: string) {
+function buildMarkdownPreviewHtml(locale: string, title: string, markdown: string) {
+  const renderedHtml = renderMarkdownDocumentToHtml(markdown);
+  const renderedLabel = locale.startsWith("en") ? "Rendered preview" : "渲染版预览";
+  const rawLabel = locale.startsWith("en") ? "Raw markdown" : "原始 Markdown";
+  const eyebrow = locale.startsWith("en") ? "Compare markdown preview" : "Compare Markdown 预览";
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -1244,22 +1446,66 @@ function buildMarkdownPreviewHtml(title: string, markdown: string) {
       .header { padding: 24px; border-bottom: 1px solid rgba(148,163,184,0.12); background: linear-gradient(135deg, rgba(34,211,238,0.12), rgba(15,23,42,0.96)); }
       .eyebrow { font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: #67e8f9; }
       h1 { margin: 12px 0 0; font-size: 24px; line-height: 1.2; color: #f8fafc; }
+      .header-copy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+      .tabs { display: inline-flex; gap: 8px; border: 1px solid rgba(148,163,184,0.14); background: rgba(15,23,42,0.55); border-radius: 999px; padding: 6px; }
+      .tab-button { border: 0; cursor: pointer; border-radius: 999px; background: transparent; color: #94a3b8; padding: 10px 16px; font: 600 12px/1 ui-sans-serif, system-ui; letter-spacing: 0.06em; text-transform: uppercase; }
+      .tab-button.is-active { background: rgba(34,211,238,0.14); color: #ecfeff; }
       .body { padding: 24px; }
-      pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; color: #cbd5e1; }
+      .panel[hidden] { display: none; }
+      .markdown { color: #dbe7f3; }
+      .markdown h1, .markdown h2, .markdown h3 { margin: 0 0 14px; color: #f8fafc; line-height: 1.2; }
+      .markdown h1 { font-size: 30px; }
+      .markdown h2 { font-size: 22px; margin-top: 28px; }
+      .markdown h3 { font-size: 17px; margin-top: 24px; letter-spacing: 0.02em; }
+      .markdown p { margin: 0 0 14px; font-size: 15px; line-height: 1.85; color: #cbd5e1; }
+      .markdown ul { margin: 0 0 18px; padding-left: 20px; display: grid; gap: 8px; }
+      .markdown li { color: #d7e2ee; line-height: 1.8; }
+      .markdown strong { color: #f8fafc; }
+      .markdown code { border: 1px solid rgba(148,163,184,0.14); background: rgba(15,23,42,0.92); color: #67e8f9; border-radius: 8px; padding: 2px 6px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .code-block { margin: 18px 0; border: 1px solid rgba(148,163,184,0.16); background: rgba(2,6,23,0.78); border-radius: 18px; overflow: hidden; }
+      .code-label { padding: 12px 16px 0; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #67e8f9; }
+      pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; color: #cbd5e1; padding: 18px 20px 20px; }
     </style>
   </head>
   <body>
     <main class="shell">
       <section class="card">
         <div class="header">
-          <div class="eyebrow">Compare markdown preview</div>
-          <h1>${escapeHtml(title)}</h1>
+          <div class="header-copy">
+            <div>
+              <div class="eyebrow">${escapeHtml(eyebrow)}</div>
+              <h1>${escapeHtml(title)}</h1>
+            </div>
+            <div class="tabs" role="tablist" aria-label="${escapeHtml(eyebrow)}">
+              <button type="button" class="tab-button is-active" data-tab="rendered">${escapeHtml(renderedLabel)}</button>
+              <button type="button" class="tab-button" data-tab="raw">${escapeHtml(rawLabel)}</button>
+            </div>
+          </div>
         </div>
         <div class="body">
-          <pre>${escapeHtml(markdown)}</pre>
+          <section class="panel" data-panel="rendered">
+            <div class="markdown">${renderedHtml}</div>
+          </section>
+          <section class="panel" data-panel="raw" hidden>
+            <pre>${escapeHtml(markdown)}</pre>
+          </section>
         </div>
       </section>
     </main>
+    <script>
+      const buttons = Array.from(document.querySelectorAll("[data-tab]"));
+      const panels = Array.from(document.querySelectorAll("[data-panel]"));
+      const setView = (view) => {
+        buttons.forEach((button) => button.classList.toggle("is-active", button.dataset.tab === view));
+        panels.forEach((panel) => {
+          panel.hidden = panel.dataset.panel !== view;
+        });
+      };
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => setView(button.dataset.tab || "rendered"));
+      });
+      setView("rendered");
+    </script>
   </body>
 </html>`;
 }
@@ -1400,6 +1646,7 @@ export function AgentWorkbench() {
   const [compareError, setCompareError] = useState("");
   const [compareResult, setCompareResult] = useState<AgentCompareResponse | null>(null);
   const [compareBaseTargetId, setCompareBaseTargetId] = useState("");
+  const [compareReviewSummaryTone, setCompareReviewSummaryTone] = useState<AgentCompareReviewSummaryTone>("pr");
   const [compareRequestId, setCompareRequestId] = useState("");
   const [compareRuntimeByTargetId, setCompareRuntimeByTargetId] = useState<Record<string, AgentRuntimeStatus>>({});
   const [compareProgressByTargetId, setCompareProgressByTargetId] = useState<Record<string, AgentCompareLaneProgress>>({});
@@ -2643,6 +2890,7 @@ export function AgentWorkbench() {
             workbenchMode?: AgentWorkbenchMode;
             compareTargetIds?: string[];
             compareBaseTargetId?: string;
+            compareReviewSummaryTone?: AgentCompareReviewSummaryTone;
             compareBenchmarkUseOutputContract?: boolean;
             compareBenchmarkPreviewDiffOnly?: boolean;
             compareIntent?: AgentCompareIntent;
@@ -2675,6 +2923,13 @@ export function AgentWorkbench() {
             && agentTargets.some((target) => target.id === parsed.compareBaseTargetId)
           ) {
             setCompareBaseTargetId(parsed.compareBaseTargetId);
+          }
+          if (
+            parsed.compareReviewSummaryTone === "issue"
+            || parsed.compareReviewSummaryTone === "pr"
+            || parsed.compareReviewSummaryTone === "chat"
+          ) {
+            setCompareReviewSummaryTone(parsed.compareReviewSummaryTone);
           }
           if (typeof parsed.compareBenchmarkUseOutputContract === "boolean") {
             setCompareBenchmarkUseOutputContract(parsed.compareBenchmarkUseOutputContract);
@@ -2773,6 +3028,7 @@ export function AgentWorkbench() {
         workbenchMode,
         compareTargetIds,
         compareBaseTargetId,
+        compareReviewSummaryTone,
         compareBenchmarkUseOutputContract,
         compareBenchmarkPreviewDiffOnly,
         compareIntent,
@@ -2788,6 +3044,7 @@ export function AgentWorkbench() {
     compareIntent,
     compareOutputShape,
     compareBaseTargetId,
+    compareReviewSummaryTone,
     compareBenchmarkUseOutputContract,
     compareBenchmarkPreviewDiffOnly,
     compareTargetIds,
@@ -3491,6 +3748,7 @@ export function AgentWorkbench() {
           targetIds: compareResult.results.map((lane) => lane.targetId),
           benchmarkMode: "prompt",
           prompt: comparePrompt,
+          runNote: compareBenchmarkRunNote || undefined,
           runs: 1,
           contextWindow,
           providerProfile,
@@ -3720,6 +3978,19 @@ export function AgentWorkbench() {
       }),
     [compareBenchmarkUseOutputContract, compareOutputShape, input, systemPrompt]
   );
+  const compareBenchmarkRunNote = useMemo(
+    () =>
+      compareResult
+        ? serializeCompareResultAsCompactMarkdown({
+            compareResult,
+            compareProgressByTargetId,
+            compareBaseTargetId,
+            prompt: input,
+            systemPrompt
+          })
+        : "",
+    [compareBaseTargetId, compareProgressByTargetId, compareResult, input, systemPrompt]
+  );
 
   function buildCompareMarkdownContent(laneTargetIds?: string[]) {
     if (!compareResult) return "";
@@ -3817,7 +4088,8 @@ export function AgentWorkbench() {
         compareResult,
         compareProgressByTargetId,
         compareBaseTargetId,
-        targetId
+        targetId,
+        tone: compareReviewSummaryTone
       }),
       `compare:lane-summary:${targetId}`
     );
@@ -3827,7 +4099,11 @@ export function AgentWorkbench() {
     if (!compareResult) return;
     const lane = compareResult.results.find((entry) => entry.targetId === targetId);
     if (!lane) return;
-    const html = buildMarkdownPreviewHtml(`${lane.targetLabel} export preview`, buildCompareMarkdownContent([targetId]));
+    const html = buildMarkdownPreviewHtml(
+      locale,
+      `${lane.targetLabel} export preview`,
+      buildCompareMarkdownContent([targetId])
+    );
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank", "noopener,noreferrer");
@@ -6207,6 +6483,7 @@ export function AgentWorkbench() {
                   compareError={compareError}
                   compareResult={compareResult}
                   compareBaseTargetId={compareBaseTargetId}
+                  compareReviewSummaryTone={compareReviewSummaryTone}
                   compareRuntimeByTargetId={compareRuntimeByTargetId}
                   compareProgressByTargetId={compareProgressByTargetId}
                   compareBenchmarkUseOutputContract={compareBenchmarkUseOutputContract}
@@ -6236,6 +6513,7 @@ export function AgentWorkbench() {
                   onRunCompare={handleRunCompare}
                   onRerunLane={handleRerunCompareLane}
                   onSetBaseLane={setCompareBaseTargetId}
+                  onCompareReviewSummaryToneChange={setCompareReviewSummaryTone}
                   onSendToBenchmark={handleSendCompareToBenchmark}
                   onExportMarkdown={handleExportCompareMarkdown}
                   onCompareBenchmarkUseOutputContractChange={setCompareBenchmarkUseOutputContract}

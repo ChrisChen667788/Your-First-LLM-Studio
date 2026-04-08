@@ -18,6 +18,8 @@ export type AgentCompareIntent =
 
 export type AgentCompareOutputShape = "freeform" | "bullet-list" | "strict-json";
 
+export type AgentCompareReviewSummaryTone = "issue" | "pr" | "chat";
+
 export type AgentBenchmarkMode = "prompt" | "dataset" | "suite";
 
 export type AgentKnowledgeDocument = {
@@ -514,6 +516,7 @@ export type AgentBenchmarkResponse = {
   generatedAt: string;
   benchmarkMode?: AgentBenchmarkMode;
   prompt: string;
+  runNote?: string;
   promptSetId?: string;
   promptSetLabel?: string;
   promptSetPromptCount?: number;
@@ -557,6 +560,7 @@ export type AgentBenchmarkProgress = {
   runId: string;
   status: "pending" | "running" | "completed" | "failed" | "stopped" | "abandoned";
   benchmarkMode?: AgentBenchmarkMode;
+  runNote?: string;
   suiteId?: string;
   suiteLabel?: string;
   profileBatchScope?: AgentBenchmarkProfileBatchScope;

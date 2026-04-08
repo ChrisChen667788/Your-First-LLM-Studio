@@ -78,6 +78,7 @@ type BenchmarkRequestBody = {
   maxTokens?: number;
   benchmarkMode?: AgentBenchmarkMode;
   prompt?: string;
+  runNote?: string;
   promptSetId?: string;
   datasetId?: string;
   datasetSampleLimit?: number;
@@ -1770,6 +1771,7 @@ export async function POST(request: Request) {
         plan: BenchmarkPlan;
         contextWindow: number;
         runs: number;
+        runNote?: string;
         profileBatchScope?: AgentBenchmarkProfileBatchScope;
         profileModes: Array<{
           providerProfile: AgentProviderProfile;
@@ -1784,6 +1786,7 @@ export async function POST(request: Request) {
     const runs = Math.max(1, Math.min(Math.trunc(body.runs || 3), 10));
     const contextWindow = normalizeContextWindow(body.contextWindow, 32768);
     const maxTokens = Math.max(32, Math.min(Math.trunc(body.maxTokens || 192), 512));
+    const runNote = typeof body.runNote === "string" && body.runNote.trim() ? body.runNote.trim() : undefined;
     const thinkingMode = normalizeThinkingMode(body.thinkingMode);
     const requestedProviderProfile = normalizeProviderProfile(body.providerProfile);
     const providerProfile = thinkingMode === "thinking" ? "tool-first" : requestedProviderProfile;
@@ -1818,6 +1821,7 @@ export async function POST(request: Request) {
       plan: resolvedPlan,
       contextWindow,
       runs,
+      runNote,
       profileBatchScope: profileModes.length > 1 ? profileBatchScope : undefined,
       profileModes,
       results
@@ -1862,6 +1866,7 @@ export async function POST(request: Request) {
     createBenchmarkProgress({
       runId,
       benchmarkMode: plan.benchmarkMode,
+      runNote,
       suiteId: plan.suiteId,
       suiteLabel: plan.suiteLabel,
       profileBatchScope: profileModes.length > 1 ? profileBatchScope : "full-suite",
@@ -1895,6 +1900,7 @@ export async function POST(request: Request) {
       generatedAt: new Date().toISOString(),
       benchmarkMode: resolvedPlan.benchmarkMode,
       prompt: resolvedPlan.prompt,
+      runNote,
       promptSetId: resolvedPlan.promptSetId,
       promptSetLabel: resolvedPlan.promptSetLabel,
       promptSetPromptCount: resolvedPlan.promptSetPromptCount,
@@ -2283,6 +2289,7 @@ export async function POST(request: Request) {
           generatedAt: new Date().toISOString(),
           benchmarkMode: responseContext.plan.benchmarkMode,
           prompt: responseContext.plan.prompt,
+          runNote: responseContext.runNote,
           promptSetId: responseContext.plan.promptSetId,
           promptSetLabel: responseContext.plan.promptSetLabel,
           promptSetPromptCount: responseContext.plan.promptSetPromptCount,

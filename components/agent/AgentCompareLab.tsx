@@ -7,6 +7,7 @@ import type {
   AgentCompareLaneProgress,
   AgentCompareLaneTimelineEntry,
   AgentCompareOutputShape,
+  AgentCompareReviewSummaryTone,
   AgentCompareResponse,
   AgentProviderProfile,
   AgentRuntimeStatus,
@@ -33,6 +34,7 @@ type AgentCompareLabProps = {
   compareError: string;
   compareResult: AgentCompareResponse | null;
   compareBaseTargetId: string;
+  compareReviewSummaryTone: AgentCompareReviewSummaryTone;
   compareRuntimeByTargetId: Record<string, AgentRuntimeStatus>;
   compareProgressByTargetId: Record<string, AgentCompareLaneProgress>;
   compareBenchmarkUseOutputContract: boolean;
@@ -62,6 +64,7 @@ type AgentCompareLabProps = {
   onRunCompare: () => void;
   onRerunLane: (targetId: string) => void;
   onSetBaseLane: (targetId: string) => void;
+  onCompareReviewSummaryToneChange: (value: AgentCompareReviewSummaryTone) => void;
   onSendToBenchmark: () => void;
   onExportMarkdown: () => void;
   onCompareBenchmarkUseOutputContractChange: (value: boolean) => void;
@@ -233,6 +236,7 @@ export function AgentCompareLab({
   compareError,
   compareResult,
   compareBaseTargetId,
+  compareReviewSummaryTone,
   compareRuntimeByTargetId,
   compareProgressByTargetId,
   compareBenchmarkUseOutputContract,
@@ -262,6 +266,7 @@ export function AgentCompareLab({
   onRunCompare,
   onRerunLane,
   onSetBaseLane,
+  onCompareReviewSummaryToneChange,
   onSendToBenchmark,
   onExportMarkdown,
   onCompareBenchmarkUseOutputContractChange,
@@ -310,6 +315,7 @@ export function AgentCompareLab({
         benchmarkPromptCopy: "Copy preview",
         benchmarkSuccess: "Benchmark handoff ready",
         benchmarkOpen: "Open /admin and track this run",
+        benchmarkRunNoteAttached: "Compare compact markdown was attached to this benchmark run as a run note.",
         exportMarkdown: "Export markdown",
         copyMarkdown: "Copy issue / PR markdown",
         rerunLane: "Rerun lane",
@@ -324,6 +330,11 @@ export function AgentCompareLab({
         off: "Off",
         resultReview: "Result review",
         resultReviewHint: "Review response shape, output length, warning state, and overlap against the base lane.",
+        reviewSummaryTone: "Comment tone",
+        reviewSummaryToneHint: "Choose the voice you want when copying a short review summary.",
+        reviewSummaryToneIssue: "Issue",
+        reviewSummaryTonePr: "PR",
+        reviewSummaryToneChat: "Chat",
         latestRun: "Latest run",
         baseLane: "Base lane",
         overlap: "Overlap",
@@ -396,6 +407,7 @@ export function AgentCompareLab({
         benchmarkPromptCopy: "复制预览",
         benchmarkSuccess: "benchmark 已接收",
         benchmarkOpen: "去 /admin 跟踪这轮运行",
+        benchmarkRunNoteAttached: "这轮 benchmark 已自动附带 compare 的紧凑 Markdown run note。",
         exportMarkdown: "导出 Markdown",
         copyMarkdown: "复制 issue / PR Markdown",
         rerunLane: "重跑此 lane",
@@ -410,6 +422,11 @@ export function AgentCompareLab({
         off: "关闭",
         resultReview: "结果审阅",
         resultReviewHint: "现在可以看输出形态、长度、warning，以及相对基准 lane 的重合度和结构差异。",
+        reviewSummaryTone: "评论语气",
+        reviewSummaryToneHint: "复制评论摘要前，先选 issue / PR / chat 的表达方式。",
+        reviewSummaryToneIssue: "Issue",
+        reviewSummaryTonePr: "PR",
+        reviewSummaryToneChat: "Chat",
         latestRun: "最近一次运行",
         baseLane: "基准 lane",
         overlap: "重合度",
@@ -1033,6 +1050,9 @@ export function AgentCompareLab({
                   <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-100">
                     <p className="font-medium">{copy.benchmarkSuccess}</p>
                     <p className="mt-1 text-xs text-emerald-100/90">runId: {benchmarkResult.runId}</p>
+                    {benchmarkResult.runNote ? (
+                      <p className="mt-2 text-xs leading-6 text-emerald-100/85">{copy.benchmarkRunNoteAttached}</p>
+                    ) : null}
                     <a href="/admin" className="mt-2 inline-flex text-xs font-semibold text-emerald-50 underline underline-offset-4">
                       {copy.benchmarkOpen}
                     </a>
@@ -1047,12 +1067,38 @@ export function AgentCompareLab({
                   <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{copy.resultReview}</p>
                   <p className="mt-2 text-sm leading-6 text-slate-400">{copy.resultReviewHint}</p>
                 </div>
-                {compareResult ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-right">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.latestRun}</p>
-                    <p className="mt-1 text-xs text-white">{new Date(compareResult.generatedAt).toLocaleString()}</p>
+                <div className="flex flex-wrap items-start gap-3">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.reviewSummaryTone}</p>
+                    <p className="mt-1 text-[11px] leading-5 text-slate-400">{copy.reviewSummaryToneHint}</p>
+                    <div className="mt-2 inline-flex rounded-full border border-white/10 bg-white/[0.04] p-1">
+                      {([
+                        ["issue", copy.reviewSummaryToneIssue],
+                        ["pr", copy.reviewSummaryTonePr],
+                        ["chat", copy.reviewSummaryToneChat]
+                      ] as Array<[AgentCompareReviewSummaryTone, string]>).map(([tone, label]) => (
+                        <button
+                          key={tone}
+                          type="button"
+                          onClick={() => onCompareReviewSummaryToneChange(tone)}
+                          className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
+                            compareReviewSummaryTone === tone
+                              ? "bg-cyan-400/15 text-cyan-50"
+                              : "text-slate-300 hover:bg-white/[0.06]"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                ) : null}
+                  {compareResult ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-right">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.latestRun}</p>
+                      <p className="mt-1 text-xs text-white">{new Date(compareResult.generatedAt).toLocaleString()}</p>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               {!compareResult ? (
