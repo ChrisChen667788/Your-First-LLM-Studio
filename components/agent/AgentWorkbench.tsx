@@ -1123,6 +1123,147 @@ function deriveCompareRecoveryConclusion(
   return `Attempted ${recoveryCountLabel}, but the lane still ended in a non-ok state. Latest action: ${latestAction}`;
 }
 
+function compactText(value: string, maxLength = 220) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function serializeCompareResultAsCompactMarkdown(params: {
+  compareResult: AgentCompareResponse;
+  compareProgressByTargetId?: Record<string, AgentCompareLaneProgress>;
+  compareBaseTargetId?: string;
+  laneTargetIds?: string[];
+  prompt: string;
+  systemPrompt: string;
+}) {
+  const { compareResult, compareProgressByTargetId, compareBaseTargetId, laneTargetIds, prompt, systemPrompt } = params;
+  const baseLane =
+    compareResult.results.find((lane) => lane.targetId === compareBaseTargetId) || compareResult.results[0] || null;
+  const exportedResults = laneTargetIds?.length
+    ? compareResult.results.filter((lane) => laneTargetIds.includes(lane.targetId))
+    : compareResult.results;
+
+  const lines = [
+    exportedResults.length === 1 ? "## Compare lane summary" : "## Compare run summary",
+    "",
+    `- Run ID: ${compareResult.runId}`,
+    `- Base lane: ${baseLane?.targetLabel || "n/a"}`,
+    `- Fingerprint: ${compareResult.fairnessFingerprint}`,
+    `- Prompt excerpt: ${compactText(prompt, 160) || "(empty prompt)"}`,
+    systemPrompt.trim() ? `- System frame: ${compactText(systemPrompt, 120)}` : ""
+  ].filter(Boolean) as string[];
+
+  lines.push("", "### Lane verdicts", "");
+  for (const lane of exportedResults) {
+    const overlapBase = baseLane?.content ? computeCompareOverlap(baseLane.content, lane.content) : 1;
+    const schemaStatus = deriveCompareSchemaStatus(baseLane?.content || "", lane.content);
+    const recoveryConclusion = deriveCompareRecoveryConclusion(compareProgressByTargetId?.[lane.targetId], lane);
+    const summary = [
+      `${lane.targetLabel} — ${lane.ok ? "ok" : "failed"}`,
+      `overlap ${(overlapBase * 100).toFixed(0)}%`,
+      `schema ${schemaStatus.toLowerCase()}`,
+      recoveryConclusion
+    ].join("; ");
+    lines.push(`- ${summary}`);
+    if (lane.warning) {
+      lines.push(`  - Warning: ${compactText(lane.warning, 160)}`);
+    }
+  }
+
+  if (exportedResults.length === 1 && baseLane && exportedResults[0] && exportedResults[0].targetId !== baseLane.targetId) {
+    const lane = exportedResults[0];
+    lines.push(
+      "",
+      "### Base lane reference",
+      "",
+      `- ${baseLane.targetLabel} · ${baseLane.resolvedModel}`,
+      `- Candidate: ${lane.targetLabel} · ${lane.resolvedModel}`,
+      `- Length delta vs base: ${lane.content.length - baseLane.content.length}`
+    );
+  }
+
+  if (compareResult.warning) {
+    lines.push("", "### Compare note", "", `- ${compactText(compareResult.warning, 200)}`);
+  }
+
+  return lines.join("\n");
+}
+
+function serializeCompareLaneReviewSummary(params: {
+  compareResult: AgentCompareResponse;
+  compareProgressByTargetId?: Record<string, AgentCompareLaneProgress>;
+  compareBaseTargetId?: string;
+  targetId: string;
+}) {
+  const { compareResult, compareProgressByTargetId, compareBaseTargetId, targetId } = params;
+  const lane = compareResult.results.find((entry) => entry.targetId === targetId);
+  const baseLane =
+    compareResult.results.find((entry) => entry.targetId === compareBaseTargetId) || compareResult.results[0] || null;
+  if (!lane) return "";
+
+  const overlapBase = baseLane?.content ? computeCompareOverlap(baseLane.content, lane.content) : 1;
+  const schemaStatus = deriveCompareSchemaStatus(baseLane?.content || "", lane.content);
+  const recoveryConclusion = deriveCompareRecoveryConclusion(compareProgressByTargetId?.[lane.targetId], lane);
+
+  return [
+    `Review summary: ${lane.targetLabel}`,
+    `- Status: ${lane.ok ? "ok" : "failed"}`,
+    `- Base lane: ${baseLane?.targetLabel || "n/a"}`,
+    `- Overlap vs base: ${(overlapBase * 100).toFixed(0)}%`,
+    `- Schema vs base: ${schemaStatus}`,
+    `- Recovery: ${recoveryConclusion}`,
+    lane.warning ? `- Warning: ${compactText(lane.warning, 180)}` : "",
+    `- Output takeaway: ${compactText(lane.content || "No output captured.", 220)}`
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildMarkdownPreviewHtml(title: string, markdown: string) {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(title)}</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #020617; color: #e2e8f0; }
+      .shell { max-width: 1080px; margin: 0 auto; padding: 40px 24px 64px; }
+      .card { border: 1px solid rgba(148,163,184,0.18); background: rgba(15,23,42,0.88); border-radius: 24px; overflow: hidden; box-shadow: 0 30px 80px rgba(2,6,23,0.45); }
+      .header { padding: 24px; border-bottom: 1px solid rgba(148,163,184,0.12); background: linear-gradient(135deg, rgba(34,211,238,0.12), rgba(15,23,42,0.96)); }
+      .eyebrow { font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: #67e8f9; }
+      h1 { margin: 12px 0 0; font-size: 24px; line-height: 1.2; color: #f8fafc; }
+      .body { padding: 24px; }
+      pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; color: #cbd5e1; }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card">
+        <div class="header">
+          <div class="eyebrow">Compare markdown preview</div>
+          <h1>${escapeHtml(title)}</h1>
+        </div>
+        <div class="body">
+          <pre>${escapeHtml(markdown)}</pre>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>`;
+}
+
 function buildCompareBenchmarkPromptParts(params: {
   input: string;
   systemPrompt: string;
@@ -3642,12 +3783,55 @@ export function AgentWorkbench() {
 
   async function handleCopyCompareMarkdown() {
     if (!compareResult) return;
-    await handleCopy(buildCompareMarkdownContent(), "compare:markdown");
+    await handleCopy(
+      serializeCompareResultAsCompactMarkdown({
+        compareResult,
+        compareProgressByTargetId,
+        compareBaseTargetId,
+        prompt: input,
+        systemPrompt
+      }),
+      "compare:markdown"
+    );
   }
 
   async function handleCopyCompareLaneMarkdown(targetId: string) {
     if (!compareResult) return;
-    await handleCopy(buildCompareMarkdownContent([targetId]), `compare:lane-markdown:${targetId}`);
+    await handleCopy(
+      serializeCompareResultAsCompactMarkdown({
+        compareResult,
+        compareProgressByTargetId,
+        compareBaseTargetId,
+        laneTargetIds: [targetId],
+        prompt: input,
+        systemPrompt
+      }),
+      `compare:lane-markdown:${targetId}`
+    );
+  }
+
+  async function handleCopyCompareLaneReviewSummary(targetId: string) {
+    if (!compareResult) return;
+    await handleCopy(
+      serializeCompareLaneReviewSummary({
+        compareResult,
+        compareProgressByTargetId,
+        compareBaseTargetId,
+        targetId
+      }),
+      `compare:lane-summary:${targetId}`
+    );
+  }
+
+  function handlePreviewCompareLaneMarkdown(targetId: string) {
+    if (!compareResult) return;
+    const lane = compareResult.results.find((entry) => entry.targetId === targetId);
+    if (!lane) return;
+    const html = buildMarkdownPreviewHtml(`${lane.targetLabel} export preview`, buildCompareMarkdownContent([targetId]));
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   function handleStepWorkspaceFileAnchor(direction: -1 | 1) {
@@ -6060,6 +6244,8 @@ export function AgentWorkbench() {
                   onExportLaneMarkdown={handleExportCompareLaneMarkdown}
                   onCopyMarkdown={handleCopyCompareMarkdown}
                   onCopyLaneMarkdown={handleCopyCompareLaneMarkdown}
+                  onCopyLaneReviewSummary={handleCopyCompareLaneReviewSummary}
+                  onPreviewLaneMarkdown={handlePreviewCompareLaneMarkdown}
                   onCopy={handleCopy}
                   copyState={copyState}
                 />

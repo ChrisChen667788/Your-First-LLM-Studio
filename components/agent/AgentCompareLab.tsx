@@ -70,6 +70,8 @@ type AgentCompareLabProps = {
   onExportLaneMarkdown: (targetId: string) => void;
   onCopyMarkdown: () => void;
   onCopyLaneMarkdown: (targetId: string) => void;
+  onCopyLaneReviewSummary: (targetId: string) => void;
+  onPreviewLaneMarkdown: (targetId: string) => void;
   onCopy: (text: string, key: string) => void;
   copyState: string;
 };
@@ -268,6 +270,8 @@ export function AgentCompareLab({
   onExportLaneMarkdown,
   onCopyMarkdown,
   onCopyLaneMarkdown,
+  onCopyLaneReviewSummary,
+  onPreviewLaneMarkdown,
   onCopy,
   copyState
 }: AgentCompareLabProps) {
@@ -307,7 +311,7 @@ export function AgentCompareLab({
         benchmarkSuccess: "Benchmark handoff ready",
         benchmarkOpen: "Open /admin and track this run",
         exportMarkdown: "Export markdown",
-        copyMarkdown: "Copy markdown",
+        copyMarkdown: "Copy issue / PR markdown",
         rerunLane: "Rerun lane",
         setBaseLane: "Set as base",
         baseLaneTag: "Base lane",
@@ -355,7 +359,9 @@ export function AgentCompareLab({
         compareManualRecoveryCooldown: "Recovery cooldown",
         compareManualRecoveryCooldownHint: "A short cooldown is active so we do not spam local restarts.",
         exportLane: "Export lane",
-        copyLaneMarkdown: "Copy markdown"
+        copyLaneMarkdown: "Copy markdown",
+        copyLaneReviewSummary: "Copy review summary",
+        previewLane: "Open preview"
       }
     : {
         title: "Compare Lab",
@@ -391,7 +397,7 @@ export function AgentCompareLab({
         benchmarkSuccess: "benchmark 已接收",
         benchmarkOpen: "去 /admin 跟踪这轮运行",
         exportMarkdown: "导出 Markdown",
-        copyMarkdown: "复制 Markdown",
+        copyMarkdown: "复制 issue / PR Markdown",
         rerunLane: "重跑此 lane",
         setBaseLane: "设为基准",
         baseLaneTag: "基准 lane",
@@ -439,7 +445,9 @@ export function AgentCompareLab({
         compareManualRecoveryCooldown: "恢复冷却中",
         compareManualRecoveryCooldownHint: "为了避免连续误触，本地恢复会有一个很短的冷却时间。",
         exportLane: "导出此 lane",
-        copyLaneMarkdown: "复制 Markdown"
+        copyLaneMarkdown: "复制 Markdown",
+        copyLaneReviewSummary: "复制评论摘要",
+        previewLane: "新标签页预览"
       };
 
   const compareTargets = useMemo(
@@ -1117,10 +1125,24 @@ export function AgentCompareLab({
                           </button>
                           <button
                             type="button"
+                            onClick={() => onPreviewLaneMarkdown(lane.targetId)}
+                            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
+                          >
+                            {copy.previewLane}
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => onCopyLaneMarkdown(lane.targetId)}
                             className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
                           >
                             {copyState === `compare:lane-markdown:${lane.targetId}` ? copy.copied : copy.copyLaneMarkdown}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onCopyLaneReviewSummary(lane.targetId)}
+                            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
+                          >
+                            {copyState === `compare:lane-summary:${lane.targetId}` ? copy.copied : copy.copyLaneReviewSummary}
                           </button>
                         </div>
                       </div>
