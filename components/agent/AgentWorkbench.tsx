@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AgentCompareLab } from "@/components/agent/AgentCompareLab";
+import dynamic from "next/dynamic";
 import { agentTargets as builtinAgentTargets, agentToolSpecs } from "@/lib/agent/catalog";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import {
@@ -76,6 +76,29 @@ type AgentTurn = {
     targetMode: "original" | "current";
   };
 };
+
+const AgentCompareLab = dynamic(
+  () => import("@/components/agent/AgentCompareLab").then((mod) => mod.AgentCompareLab),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4 px-5 py-5">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="h-4 w-32 rounded-full bg-cyan-400/10" />
+          <div className="mt-4 h-10 rounded-2xl bg-white/[0.05]" />
+          <div className="mt-3 h-10 rounded-2xl bg-white/[0.05]" />
+        </div>
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="h-4 w-40 rounded-full bg-white/[0.08]" />
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="h-28 rounded-2xl bg-black/20" />
+            <div className="h-28 rounded-2xl bg-black/20" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+);
 
 type StoredAgentSession = {
   id: string;

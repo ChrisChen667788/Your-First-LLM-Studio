@@ -9,15 +9,36 @@ export function AgentPageShell() {
 
   useEffect(() => {
     let cancelled = false;
+    let timeoutId: number | null = null;
+    let idleCallbackId: number | null = null;
 
-    void import("@/components/agent/AgentWorkbench").then((mod) => {
-      if (!cancelled) {
-        setAgentWorkbench(() => mod.AgentWorkbench);
-      }
-    });
+    const loadWorkbench = () => {
+      void import("@/components/agent/AgentWorkbench").then((mod) => {
+        if (!cancelled) {
+          setAgentWorkbench(() => mod.AgentWorkbench);
+        }
+      });
+    };
+
+    const requestIdle = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    if (typeof requestIdle.requestIdleCallback === "function") {
+      idleCallbackId = requestIdle.requestIdleCallback(loadWorkbench, { timeout: 1200 });
+    } else {
+      timeoutId = window.setTimeout(loadWorkbench, 180);
+    }
 
     return () => {
       cancelled = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      if (idleCallbackId !== null && typeof requestIdle.cancelIdleCallback === "function") {
+        requestIdle.cancelIdleCallback(idleCallbackId);
+      }
     };
   }, []);
 
