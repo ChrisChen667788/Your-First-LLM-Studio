@@ -33,6 +33,14 @@ type RuntimeSwitchHistoryEntry = {
   switchedAt: string | null;
 };
 
+type RuntimeMetricSample = {
+  timestamp: string;
+  gatewayCpuPct: number | null;
+  gatewayResidentMemoryMb: number | null;
+};
+
+const MAX_RUNTIME_METRIC_SAMPLES = 24;
+
 type BenchmarkCoverageHelpRow = {
   id: string;
   labelZh: string;
@@ -513,6 +521,11 @@ function formatDurationShort(value?: number | null) {
   return `${seconds}s`;
 }
 
+function formatRecommendedContextBadge(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
+  return `${Math.round(value / 1024)}K`;
+}
+
 function buildPolyline(values: number[]) {
   if (!values.length) return "";
   const max = Math.max(...values, 1);
@@ -523,6 +536,52 @@ function buildPolyline(values: number[]) {
       return `${x},${y}`;
     })
     .join(" ");
+}
+
+function RuntimeMetricSparkline({
+  title,
+  latest,
+  values,
+  tone,
+  helper
+}: {
+  title: string;
+  latest: string;
+  values: number[];
+  tone: "cyan" | "emerald";
+  helper: string;
+}) {
+  const stroke = tone === "cyan" ? "#22d3ee" : "#34d399";
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-slate-300">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{title}</p>
+          <p className="mt-3 text-xl font-semibold text-white">{latest}</p>
+        </div>
+        <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-400">
+          {values.length ? `${values.length} pts` : "No data"}
+        </span>
+      </div>
+      <div className="mt-3 h-16 rounded-2xl border border-white/10 bg-black/20 p-2.5">
+        {values.length ? (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
+            <polyline
+              fill="none"
+              stroke={stroke}
+              strokeWidth="3"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              points={buildPolyline(values)}
+            />
+          </svg>
+        ) : (
+          <div className="flex h-full items-center justify-center text-xs text-slate-500">--</div>
+        )}
+      </div>
+      <p className="mt-2 text-xs text-slate-400">{helper}</p>
+    </div>
+  );
 }
 
 function MetricCard({
@@ -1101,6 +1160,7 @@ export function AdminDashboard() {
   const [benchmarkBaselinePending, setBenchmarkBaselinePending] = useState(false);
   const [benchmarkBaselineMessage, setBenchmarkBaselineMessage] = useState("");
   const [runtimeStatuses, setRuntimeStatuses] = useState<Record<string, AgentRuntimeStatus | null>>({});
+  const [runtimeMetricHistory, setRuntimeMetricHistory] = useState<Record<string, RuntimeMetricSample[]>>({});
   const [runtimeActionPending, setRuntimeActionPending] = useState<Record<string, RuntimeActionKind | "">>({});
   const [runtimeLogExcerpts, setRuntimeLogExcerpts] = useState<Record<string, string>>({});
   const [runtimeLogSummaries, setRuntimeLogSummaries] = useState<Record<string, AgentRuntimeLogSummary | null>>({});
@@ -1120,6 +1180,22 @@ export function AdminDashboard() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<DashboardResponse | null>(null);
+
+  function recordRuntimeMetricSample(targetId: string, status: AgentRuntimeStatus) {
+    const sample: RuntimeMetricSample = {
+      timestamp: new Date().toISOString(),
+      gatewayCpuPct: typeof status.gatewayCpuPct === "number" ? status.gatewayCpuPct : null,
+      gatewayResidentMemoryMb:
+        typeof status.gatewayResidentMemoryMb === "number" ? status.gatewayResidentMemoryMb : null
+    };
+    setRuntimeMetricHistory((current) => {
+      const nextSamples = [...(current[targetId] || []), sample].slice(-MAX_RUNTIME_METRIC_SAMPLES);
+      return {
+        ...current,
+        [targetId]: nextSamples
+      };
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -2610,6 +2686,7 @@ export function AdminDashboard() {
         ...current,
         [targetId]: payload
       }));
+      recordRuntimeMetricSample(targetId, payload);
       if (payload.message) {
         setRuntimeMessages((current) => ({
           ...current,
@@ -3282,6 +3359,14 @@ export function AdminDashboard() {
     });
     window.localStorage.setItem(RUNTIME_SWITCH_HISTORY_STORAGE_KEY, JSON.stringify(payload));
   }, [runtimeLastSwitchAt, runtimeLastSwitchMs]);
+
+  useEffect(() => {
+    setRuntimeMetricHistory((current) => {
+      const allowedTargetIds = new Set(localTargets.map((target) => target.id));
+      const nextEntries = Object.entries(current).filter(([targetId]) => allowedTargetIds.has(targetId));
+      return nextEntries.length === Object.keys(current).length ? current : Object.fromEntries(nextEntries);
+    });
+  }, [localTargets]);
 
   useEffect(() => {
     void loadLatestBenchmarkProgress();
@@ -6259,6 +6344,13 @@ export function AdminDashboard() {
           <div className="mt-4 grid gap-4 xl:grid-cols-2">
             {localTargets.map((target) => {
               const runtime = runtimeStatuses[target.id];
+              const metricHistory = runtimeMetricHistory[target.id] || [];
+              const cpuHistory = metricHistory
+                .map((entry) => entry.gatewayCpuPct)
+                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+              const rssHistory = metricHistory
+                .map((entry) => entry.gatewayResidentMemoryMb)
+                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
               const action = runtimeActionPending[target.id] || "";
               const runtimeMessage = runtimeMessages[target.id] || runtime?.message || "";
               const logExcerpt = runtimeLogExcerpts[target.id] || "";
@@ -6274,6 +6366,7 @@ export function AdminDashboard() {
                 : gatewayLoadedOtherAlias
                   ? describeRuntimeAlias(gatewayLoadedOtherAlias, localTargets)
                   : null;
+              const recommendedContextBadge = formatRecommendedContextBadge(target.recommendedContextWindow);
               const lastSwitchMsForTarget = runtimeLastSwitchMs[target.id] ?? null;
               const lastSwitchAtForTarget = runtimeLastSwitchAt[target.id] ?? null;
               return (
@@ -6314,6 +6407,38 @@ export function AdminDashboard() {
                       <p className="mt-1 text-xs text-slate-500">
                         {uiText.queueLabel}: {runtime?.queueDepth ?? 0} · {uiText.activeLabel}: {runtime?.activeRequests ?? 0}
                       </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {target.parameterScale ? (
+                          <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                            {locale.startsWith("en") ? "Scale" : "参数规模"} · {target.parameterScale}
+                          </span>
+                        ) : null}
+                        {target.quantizationLabel ? (
+                          <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-emerald-100">
+                            {locale.startsWith("en") ? "Quant" : "量化"} · {target.quantizationLabel}
+                          </span>
+                        ) : null}
+                        {recommendedContextBadge ? (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
+                            {locale.startsWith("en") ? "Rec context" : "建议上下文"} · {recommendedContextBadge}
+                          </span>
+                        ) : null}
+                        {target.sourceLabel ? (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300">
+                            {target.sourceLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                      {target.sourceRepoId ? (
+                        <p className="mt-2 text-xs text-slate-500">
+                          {locale.startsWith("en") ? "Repo id" : "模型仓库"}: {target.sourceRepoId}
+                        </p>
+                      ) : null}
+                      {target.sourcePath ? (
+                        <p className="mt-1 break-all text-xs text-slate-500">
+                          {locale.startsWith("en") ? "Source path" : "来源路径"}: {target.sourcePath}
+                        </p>
+                      ) : null}
                       <p className="mt-1 text-xs text-slate-500">
                         {locale.startsWith("en")
                           ? liveCostTargetLabel
@@ -6355,38 +6480,36 @@ export function AdminDashboard() {
                           <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{uiText.runtimeLastExit}</p>
                           <p className="mt-3 text-base font-semibold text-white">{runtime?.lastExitAt ? new Date(runtime.lastExitAt).toLocaleString() : dictionary.common.unknown}</p>
                         </div>
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-slate-300">
-                          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                            {locale.startsWith("en") ? "Gateway CPU" : "网关 CPU"}
-                          </p>
-                          <p className="mt-3 text-xl font-semibold text-white">
-                            {typeof runtime?.gatewayCpuPct === "number" ? `${runtime.gatewayCpuPct.toFixed(1)}%` : "--"}
-                          </p>
-                          <p className="mt-2 text-xs text-slate-400">
-                            {liveCostTargetLabel
+                        <RuntimeMetricSparkline
+                          title={locale.startsWith("en") ? "Gateway CPU" : "网关 CPU"}
+                          latest={typeof runtime?.gatewayCpuPct === "number" ? `${runtime.gatewayCpuPct.toFixed(1)}%` : "--"}
+                          values={cpuHistory}
+                          tone="cyan"
+                          helper={
+                            liveCostTargetLabel
                               ? locale.startsWith("en")
                                 ? `Realtime process usage for ${liveCostTargetLabel}`
                                 : `${liveCostTargetLabel} 的实时进程开销`
                               : locale.startsWith("en")
                                 ? "No local model loaded"
-                                : "当前没有已加载模型"}
-                          </p>
-                        </div>
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-slate-300">
-                          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                            {locale.startsWith("en") ? "Gateway RSS" : "网关内存"}
-                          </p>
-                          <p className="mt-3 text-xl font-semibold text-white">
-                            {typeof runtime?.gatewayResidentMemoryMb === "number"
+                                : "当前没有已加载模型"
+                          }
+                        />
+                        <RuntimeMetricSparkline
+                          title={locale.startsWith("en") ? "Gateway RSS" : "网关内存"}
+                          latest={
+                            typeof runtime?.gatewayResidentMemoryMb === "number"
                               ? `${runtime.gatewayResidentMemoryMb.toFixed(1)} MB`
-                              : "--"}
-                          </p>
-                          <p className="mt-2 text-xs text-slate-400">
-                            {locale.startsWith("en")
-                              ? "Shared local gateway resident memory"
-                              : "共享本地网关进程的常驻内存"}
-                          </p>
-                        </div>
+                              : "--"
+                          }
+                          values={rssHistory}
+                          tone="emerald"
+                          helper={
+                            locale.startsWith("en")
+                              ? "Rolling resident memory footprint for the shared gateway process"
+                              : "共享本地网关进程的滚动常驻内存占用"
+                          }
+                        />
                       </div>
                     </div>
 

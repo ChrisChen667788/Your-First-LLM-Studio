@@ -4935,6 +4935,51 @@ export function AgentWorkbench() {
                   <p className="text-slate-500">{dictionary.agent.memory}</p>
                   <p className="mt-1 text-[13px] leading-6">{selectedTarget.memoryProfile}</p>
                 </div>
+                {selectedTarget.execution === "local" &&
+                (selectedTarget.parameterScale ||
+                  selectedTarget.quantizationLabel ||
+                  selectedTarget.sourceLabel ||
+                  selectedTarget.sourceRepoId ||
+                  selectedTarget.sourcePath ||
+                  typeof selectedTarget.recommendedContextWindow === "number") ? (
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-3 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                      {locale.startsWith("en") ? "Local model metadata" : "本地模型元数据"}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {selectedTarget.parameterScale ? (
+                        <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                          {locale.startsWith("en") ? "Scale" : "参数规模"} · {selectedTarget.parameterScale}
+                        </span>
+                      ) : null}
+                      {selectedTarget.quantizationLabel ? (
+                        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-emerald-100">
+                          {locale.startsWith("en") ? "Quant" : "量化"} · {selectedTarget.quantizationLabel}
+                        </span>
+                      ) : null}
+                      {typeof selectedTarget.recommendedContextWindow === "number" ? (
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
+                          {locale.startsWith("en") ? "Rec context" : "建议上下文"} · {Math.round(selectedTarget.recommendedContextWindow / 1024)}K
+                        </span>
+                      ) : null}
+                      {selectedTarget.sourceLabel ? (
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300">
+                          {selectedTarget.sourceLabel}
+                        </span>
+                      ) : null}
+                    </div>
+                    {selectedTarget.sourceRepoId ? (
+                      <p className="mt-3 break-all text-[12px] leading-6 text-slate-300">
+                        {locale.startsWith("en") ? "Repo id" : "模型仓库"}: {selectedTarget.sourceRepoId}
+                      </p>
+                    ) : null}
+                    {selectedTarget.sourcePath ? (
+                      <p className="mt-1 break-all text-[12px] leading-6 text-slate-400">
+                        {locale.startsWith("en") ? "Source path" : "来源路径"}: {selectedTarget.sourcePath}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div>
                   <p className="text-slate-500">{dictionary.agent.toolMode}</p>
                   <p className="mt-1 text-[13px] leading-6">

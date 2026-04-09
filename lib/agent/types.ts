@@ -223,6 +223,13 @@ export type AgentTarget = {
   memoryProfile: string;
   notes: string[];
   launchHints?: string[];
+  parameterScale?: string;
+  quantizationLabel?: string;
+  sourceKind?: "configured" | "huggingface-cache" | "lm-studio" | "custom-directory";
+  sourceLabel?: string;
+  sourcePath?: string;
+  sourceRepoId?: string;
+  recommendedContextWindow?: number | null;
 };
 
 export type AgentChatRequest = {

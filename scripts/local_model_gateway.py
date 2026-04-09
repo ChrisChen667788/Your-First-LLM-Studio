@@ -9,14 +9,12 @@ import tempfile
 import threading
 import time
 import uuid
+from dataclasses import dataclass, field
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
 print("[boot] local_model_gateway importing framework dependencies", flush=True)
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
-import uvicorn
 print("[boot] framework dependencies imported", flush=True)
 
 
@@ -79,12 +77,44 @@ os.environ["HF_HUB_CACHE"] = str(hf_hub_cache)
 os.environ["HUGGINGFACE_HUB_CACHE"] = str(hf_hub_cache)
 os.environ["TRANSFORMERS_CACHE"] = str(transformers_cache)
 
-app = FastAPI(title="Local MLX Agent Gateway", version="0.5.0")
 load_lock = threading.Lock()
 inference_lock = threading.Lock()
 state_lock = threading.Lock()
 confirmation_lock = threading.Lock()
 mlx_import_lock = threading.Lock()
+
+
+class HTTPException(Exception):
+    def __init__(self, status_code: int, detail: str):
+        super().__init__(detail)
+        self.status_code = status_code
+        self.detail = detail
+
+
+def require_string(payload: dict[str, Any], key: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise HTTPException(status_code=400, detail=f"`{key}` must be a non-empty string.")
+    return value
+
+
+def clamp_int(
+    payload: dict[str, Any],
+    key: str,
+    *,
+    default: int,
+    minimum: int,
+    maximum: int,
+) -> int:
+    raw = payload.get(key, default)
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        raise HTTPException(status_code=400, detail=f"`{key}` must be an integer.")
+    if raw < minimum or raw > maximum:
+        raise HTTPException(
+            status_code=400,
+            detail=f"`{key}` must be between {minimum} and {maximum}.",
+        )
+    return raw
 loaded_alias = None
 loaded_model = None
 loaded_tokenizer = None
@@ -109,6 +139,7 @@ BASE_MODEL_REPOS = {
     ),
 }
 MODEL_REPOS = dict(BASE_MODEL_REPOS)
+MODEL_METADATA = {}
 WORKSPACE_ROOT = Path(os.getenv("LOCAL_AGENT_WORKSPACE_ROOT", os.getcwd())).resolve()
 MAX_TOOL_STEPS = max(1, min(8, int(os.getenv("LOCAL_AGENT_TOOL_STEPS", "6"))))
 MAX_ACTION_RETRIES = max(0, min(3, int(os.getenv("LOCAL_AGENT_JSON_RETRIES", "2"))))
@@ -152,6 +183,52 @@ PRIVILEGED_COMMAND_PATTERNS = [
 def normalize_local_model_alias(value: str):
     normalized = re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-")
     return normalized if normalized.startswith("local-") else f"local-{normalized}"
+
+
+def is_probable_local_path(value: str | None):
+    if not value:
+        return False
+    if value.startswith(("~", "/", ".")):
+        return True
+    return os.path.sep in value and not value.count("/") == 1
+
+
+def infer_source_kind_from_root(root: Path):
+    root_text = str(root).lower()
+    if ".lmstudio" in root_text or "lm studio" in root_text:
+        return "lm-studio"
+    return "custom-directory"
+
+
+def build_model_registry_entry(
+    repo: str,
+    *,
+    repo_id: str | None = None,
+    source_path: Path | str | None = None,
+    source_kind: str = "configured",
+    discovery_root: Path | str | None = None,
+):
+    source_path_text = str(source_path) if source_path else None
+    return {
+        "repo": repo,
+        "repo_id": repo_id,
+        "source_path": source_path_text,
+        "source_kind": source_kind,
+        "discovery_root": str(discovery_root) if discovery_root else None,
+    }
+
+
+def build_base_model_registry():
+    registry = {}
+    for alias, repo in BASE_MODEL_REPOS.items():
+        source_path = repo if is_probable_local_path(repo) else None
+        registry[alias] = build_model_registry_entry(
+            repo,
+            repo_id=None if source_path else repo,
+            source_path=source_path,
+            source_kind="configured",
+        )
+    return registry
 
 
 def infer_repo_id_from_cache_dir(entry: Path):
@@ -250,7 +327,13 @@ def discover_cached_model_repos():
             alias = normalize_local_model_alias(repo_id.split("/", 1)[1] if "/" in repo_id else repo_id)
             if alias in BASE_MODEL_REPOS or alias in discovered:
                 continue
-            discovered[alias] = repo_id
+            discovered[alias] = build_model_registry_entry(
+                repo_id,
+                repo_id=repo_id,
+                source_path=snapshot_dir,
+                source_kind="huggingface-cache",
+                discovery_root=root,
+            )
     return discovered
 
 
@@ -297,14 +380,25 @@ def discover_local_installed_model_paths():
             alias = normalize_local_model_alias(repo_id.split("/", 1)[1] if "/" in repo_id else repo_id)
             if alias in BASE_MODEL_REPOS or alias in discovered:
                 continue
-            discovered[alias] = str(candidate)
+            discovered[alias] = build_model_registry_entry(
+                str(candidate),
+                repo_id=repo_id,
+                source_path=candidate,
+                source_kind=infer_source_kind_from_root(root),
+                discovery_root=root,
+            )
     return discovered
 
 
 def refresh_model_repos():
-    global MODEL_REPOS
+    global MODEL_REPOS, MODEL_METADATA
     discovered = {**discover_cached_model_repos(), **discover_local_installed_model_paths()}
-    MODEL_REPOS = {**BASE_MODEL_REPOS, **discovered}
+    MODEL_METADATA = {**build_base_model_registry(), **discovered}
+    MODEL_REPOS = {
+        alias: entry["repo"]
+        for alias, entry in MODEL_METADATA.items()
+        if isinstance(entry, dict) and isinstance(entry.get("repo"), str)
+    }
     return MODEL_REPOS
 READ_ONLY_COMMAND_PATTERNS = [
     re.compile(r"^pwd$", re.IGNORECASE),
@@ -370,44 +464,137 @@ Rules:
 """
 
 
-class ChatMessage(BaseModel):
+@dataclass
+class ChatMessage:
     role: str
     content: str
 
+    @classmethod
+    def from_payload(cls, payload: Any):
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=400, detail="Each chat message must be an object.")
+        return cls(role=require_string(payload, "role"), content=require_string(payload, "content"))
 
-class ChatToolFunction(BaseModel):
+
+@dataclass
+class ChatToolFunction:
     name: str
     description: str | None = None
     parameters: dict[str, Any] | None = None
 
+    @classmethod
+    def from_payload(cls, payload: Any):
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=400, detail="Tool function must be an object.")
+        description = payload.get("description")
+        if description is not None and not isinstance(description, str):
+            raise HTTPException(status_code=400, detail="Tool function description must be a string.")
+        parameters = payload.get("parameters")
+        if parameters is not None and not isinstance(parameters, dict):
+            raise HTTPException(status_code=400, detail="Tool function parameters must be an object.")
+        return cls(
+            name=require_string(payload, "name"),
+            description=description,
+            parameters=parameters,
+        )
 
-class ChatTool(BaseModel):
+
+@dataclass
+class ChatTool:
     type: str = "function"
-    function: ChatToolFunction
+    function: ChatToolFunction | None = None
+
+    @classmethod
+    def from_payload(cls, payload: Any):
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=400, detail="Each tool must be an object.")
+        raw_type = payload.get("type", "function")
+        if not isinstance(raw_type, str):
+            raise HTTPException(status_code=400, detail="Tool type must be a string.")
+        raw_function = payload.get("function")
+        if raw_function is None:
+            raise HTTPException(status_code=400, detail="Tool function is required.")
+        return cls(type=raw_type, function=ChatToolFunction.from_payload(raw_function))
 
 
-class ChatCompletionsRequest(BaseModel):
+@dataclass
+class ChatCompletionsRequest:
     model: str
     messages: list[ChatMessage]
-    max_tokens: int = Field(default=512, ge=1, le=2048)
+    max_tokens: int = 512
     tools: list[ChatTool] | None = None
-    tool_choice: str | None = None
+    tool_choice: Any = None
     extra_body: dict[str, Any] | None = None
 
+    @classmethod
+    def from_payload(cls, payload: Any):
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=400, detail="Chat completion request must be an object.")
+        raw_messages = payload.get("messages")
+        if not isinstance(raw_messages, list) or not raw_messages:
+            raise HTTPException(status_code=400, detail="`messages` must be a non-empty array.")
+        tools = payload.get("tools")
+        if tools is not None:
+            if not isinstance(tools, list):
+                raise HTTPException(status_code=400, detail="`tools` must be an array when provided.")
+            tools = [ChatTool.from_payload(item) for item in tools]
+        extra_body = payload.get("extra_body")
+        if extra_body is not None and not isinstance(extra_body, dict):
+            raise HTTPException(status_code=400, detail="`extra_body` must be an object when provided.")
+        return cls(
+            model=require_string(payload, "model"),
+            messages=[ChatMessage.from_payload(item) for item in raw_messages],
+            max_tokens=clamp_int(payload, "max_tokens", default=512, minimum=1, maximum=2048),
+            tools=tools,
+            tool_choice=payload.get("tool_choice"),
+            extra_body=extra_body,
+        )
 
-class DirectToolRequest(BaseModel):
+
+@dataclass
+class DirectToolRequest:
     tool_name: str
-    arguments: dict[str, Any] = Field(default_factory=dict)
+    arguments: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_payload(cls, payload: Any):
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=400, detail="Tool request must be an object.")
+        arguments = payload.get("arguments", {})
+        if not isinstance(arguments, dict):
+            raise HTTPException(status_code=400, detail="`arguments` must be an object.")
+        return cls(tool_name=require_string(payload, "tool_name"), arguments=arguments)
 
 
-class RejectConfirmationRequest(BaseModel):
+@dataclass
+class RejectConfirmationRequest:
     confirmation_token: str
 
+    @classmethod
+    def from_payload(cls, payload: Any):
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=400, detail="Confirmation rejection request must be an object.")
+        return cls(confirmation_token=require_string(payload, "confirmation_token"))
 
-class PrewarmModelRequest(BaseModel):
+
+@dataclass
+class PrewarmModelRequest:
     model: str
-    max_tokens: int = Field(default=12, ge=1, le=64)
+    max_tokens: int = 12
     warm_generate: bool = False
+
+    @classmethod
+    def from_payload(cls, payload: Any):
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=400, detail="Prewarm request must be an object.")
+        warm_generate = payload.get("warm_generate", False)
+        if not isinstance(warm_generate, bool):
+            raise HTTPException(status_code=400, detail="`warm_generate` must be a boolean.")
+        return cls(
+            model=require_string(payload, "model"),
+            max_tokens=clamp_int(payload, "max_tokens", default=12, minimum=1, maximum=64),
+            warm_generate=warm_generate,
+        )
 
 
 def get_mlx_runtime():
@@ -1937,7 +2124,6 @@ def run_local_tool_loop(model_alias: str, model: Any, tokenizer: Any, request: C
     return final_output, tool_runs, warning or "Tool loop hit the step limit and fell back to a final model answer.", usage
 
 
-@app.get("/health")
 def health():
     cleanup_expired_confirmations()
     refresh_model_repos()
@@ -1963,7 +2149,6 @@ def health():
     }
 
 
-@app.get("/v1/models")
 def list_models():
     refresh_model_repos()
     return {
@@ -1972,14 +2157,17 @@ def list_models():
                 "id": alias,
                 "object": "model",
                 "owned_by": "local-mlx-gateway",
-                "repo": repo,
+                "repo": metadata.get("repo"),
+                "repo_id": metadata.get("repo_id"),
+                "source_path": metadata.get("source_path"),
+                "source_kind": metadata.get("source_kind"),
+                "discovery_root": metadata.get("discovery_root"),
             }
-            for alias, repo in MODEL_REPOS.items()
+            for alias, metadata in MODEL_METADATA.items()
         ]
     }
 
 
-@app.post("/v1/models/prewarm")
 def prewarm_model(request: PrewarmModelRequest):
     load_started_at = time.perf_counter()
     repo, model, tokenizer = get_loaded_runtime(request.model)
@@ -2013,7 +2201,6 @@ def prewarm_model(request: PrewarmModelRequest):
     }
 
 
-@app.post("/v1/models/release")
 def release_model():
     released_alias = release_loaded_runtime()
     return {
@@ -2024,7 +2211,6 @@ def release_model():
     }
 
 
-@app.post("/v1/tools/run")
 def run_direct_tool(request: DirectToolRequest):
     output = run_tool_handler(request.tool_name, request.arguments)
     return {
@@ -2034,7 +2220,6 @@ def run_direct_tool(request: DirectToolRequest):
     }
 
 
-@app.post("/v1/tools/confirmations/reject")
 def reject_direct_confirmation(request: RejectConfirmationRequest):
     cancelled = cancel_confirmation(request.confirmation_token)
     return {
@@ -2053,7 +2238,6 @@ def reject_direct_confirmation(request: RejectConfirmationRequest):
     }
 
 
-@app.post("/v1/chat/completions")
 def chat_completions(request: ChatCompletionsRequest):
     global queued_requests, active_requests
 
@@ -2144,7 +2328,6 @@ def chat_completions(request: ChatCompletionsRequest):
     return payload
 
 
-@app.post("/v1/chat/completions/stream")
 def chat_completions_stream(request: ChatCompletionsRequest):
     global queued_requests, active_requests
 
@@ -2183,8 +2366,109 @@ def chat_completions_stream(request: ChatCompletionsRequest):
                 else:
                     queued_requests = max(0, queued_requests - 1)
 
-    return StreamingResponse(event_stream(), media_type="application/x-ndjson")
+    return event_stream()
+
+
+def read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
+    content_length = int(handler.headers.get("Content-Length") or "0")
+    raw_body = handler.rfile.read(content_length) if content_length > 0 else b""
+    if not raw_body:
+        return {}
+    try:
+        parsed = json.loads(raw_body.decode("utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON body: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise HTTPException(status_code=400, detail="Request body must be a JSON object.")
+    return parsed
+
+
+class GatewayRequestHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    server_version = "LocalMLXGateway/0.5.0"
+
+    def log_message(self, format: str, *args):
+        print(f"[http] {self.address_string()} - {format % args}", flush=True)
+
+    def send_json(self, status_code: int, payload: dict[str, Any]):
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def send_ndjson_stream(self, iterator):
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.close_connection = True
+        for chunk in iterator:
+            data = chunk.encode("utf-8") if isinstance(chunk, str) else bytes(chunk)
+            self.wfile.write(data)
+            self.wfile.flush()
+
+    def dispatch_get(self, path: str):
+        if path == "/health":
+            return 200, health()
+        if path == "/v1/models":
+            return 200, list_models()
+        raise HTTPException(status_code=404, detail=f"Unknown route: {path}")
+
+    def dispatch_post(self, path: str, payload: dict[str, Any]):
+        if path == "/v1/models/prewarm":
+            return 200, prewarm_model(PrewarmModelRequest.from_payload(payload))
+        if path == "/v1/models/release":
+            return 200, release_model()
+        if path == "/v1/tools/run":
+            return 200, run_direct_tool(DirectToolRequest.from_payload(payload))
+        if path == "/v1/tools/confirmations/reject":
+            return 200, reject_direct_confirmation(RejectConfirmationRequest.from_payload(payload))
+        if path == "/v1/chat/completions":
+            return 200, chat_completions(ChatCompletionsRequest.from_payload(payload))
+        if path == "/v1/chat/completions/stream":
+            return "stream", chat_completions_stream(ChatCompletionsRequest.from_payload(payload))
+        raise HTTPException(status_code=404, detail=f"Unknown route: {path}")
+
+    def do_GET(self):
+        path = self.path.split("?", 1)[0]
+        try:
+            status_code, payload = self.dispatch_get(path)
+            self.send_json(status_code, payload)
+        except HTTPException as exc:
+            self.send_json(exc.status_code, {"detail": exc.detail})
+        except Exception as exc:  # pragma: no cover - server edge
+            print(f"[http] GET {path} failed error={exc}", flush=True)
+            self.send_json(500, {"detail": str(exc)})
+
+    def do_POST(self):
+        path = self.path.split("?", 1)[0]
+        try:
+            payload = read_json_body(self)
+            status_code, response_payload = self.dispatch_post(path, payload)
+            if status_code == "stream":
+                self.send_ndjson_stream(response_payload)
+                return
+            self.send_json(status_code, response_payload)
+        except HTTPException as exc:
+            self.send_json(exc.status_code, {"detail": exc.detail})
+        except BrokenPipeError:
+            print(f"[http] POST {path} client disconnected", flush=True)
+        except Exception as exc:  # pragma: no cover - server edge
+            print(f"[http] POST {path} failed error={exc}", flush=True)
+            self.send_json(500, {"detail": str(exc)})
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=4000)
+    server = ThreadingHTTPServer(("127.0.0.1", 4000), GatewayRequestHandler)
+    server.daemon_threads = True
+    print("[boot] local_model_gateway serving on http://127.0.0.1:4000", flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
