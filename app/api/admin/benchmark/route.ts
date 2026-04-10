@@ -37,6 +37,8 @@ import {
   registerBenchmarkRunController
 } from "@/lib/agent/benchmark-run-control";
 import {
+  buildOpenAICompatibleRequestShape,
+  buildProviderOutputContract,
   normalizeProviderProfile,
   normalizeThinkingMode,
   resolveSuggestedMaxTokens,
@@ -1287,6 +1289,21 @@ async function runSingleBenchmarkSample(
       let attemptOutputBuffer = "";
 
       try {
+        const requestShape = buildOpenAICompatibleRequestShape({
+          target,
+          input: prompt,
+          enableTools: false,
+          thinkingMode: options?.thinkingMode || "standard"
+        });
+        const benchmarkSystemPrompt = buildProviderOutputContract(
+          "Reply directly and keep the answer concise.",
+          {
+            target,
+            input: prompt,
+            enableTools: false,
+            thinkingMode: options?.thinkingMode || "standard"
+          }
+        );
         if (options?.runId) {
           assertBenchmarkRunActive(options.runId);
         }
@@ -1306,12 +1323,13 @@ async function runSingleBenchmarkSample(
                 ...(target.resolvedApiKey ? { Authorization: `Bearer ${target.resolvedApiKey}` } : {})
               },
               body: JSON.stringify({
-                model: target.resolvedModel,
+                model: requestShape.model,
                 messages: [
-                  { role: "system", content: "Reply directly and keep the answer concise." },
+                  { role: "system", content: benchmarkSystemPrompt },
                   { role: "user", content: prompt }
                 ],
                 max_tokens: effectiveMaxTokens,
+                ...requestShape.bodyExtras,
                 stream: true,
                 stream_options: { include_usage: true }
               })

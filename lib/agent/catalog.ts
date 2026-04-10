@@ -172,11 +172,11 @@ export const agentTargets: AgentTarget[] = [
     transport: "openai-compatible",
     execution: "remote",
     description:
-      "DeepSeek flagship remote target wired through the official OpenAI-compatible endpoint. Standard mode uses deepseek-chat and thinking mode uses deepseek-reasoner.",
+      "DeepSeek flagship remote target wired through the official OpenAI-compatible endpoint. Standard mode uses deepseek-chat, while thinking mode keeps the same chat model and enables DeepSeek's official thinking parameter for tool and structured-output compatibility.",
     modelEnv: "DEEPSEEK_MODEL",
     modelDefault: "deepseek-chat",
     thinkingModelEnv: "DEEPSEEK_THINKING_MODEL",
-    thinkingModelDefault: "deepseek-reasoner",
+    thinkingModelDefault: "deepseek-chat",
     baseUrlEnv: "DEEPSEEK_BASE_URL",
     baseUrlDefault: "https://api.deepseek.com/v1",
     apiKeyEnv: "DEEPSEEK_API_KEY",
@@ -184,9 +184,9 @@ export const agentTargets: AgentTarget[] = [
     recommendedContext: "128K server-side",
     memoryProfile: "Offloaded to DeepSeek.",
     notes: [
-      "Pinned to DeepSeek's current flagship chat and reasoner aliases.",
+      "Pinned to DeepSeek's current flagship chat alias, with thinking mode enabled through the official thinking parameter.",
       "Tool calling stays on the same OpenAI-compatible route, so compare / benchmark / connection check can reuse the shared provider stack.",
-      "Reasoning-mode benchmark timing treats reasoning_content as first output activity, so long-think runs do not look falsely idle."
+      "Thinking mode now prefers the chat + thinking path, which matches DeepSeek's current tool-calling examples and keeps structured-output workloads more stable."
     ]
   },
   {

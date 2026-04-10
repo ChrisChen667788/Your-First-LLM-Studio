@@ -694,4 +694,5 @@ export type ProviderReply = {
   toolRuns: AgentToolRun[];
   usage?: AgentUsage;
   warning?: string;
+  resolvedModel?: string;
 };

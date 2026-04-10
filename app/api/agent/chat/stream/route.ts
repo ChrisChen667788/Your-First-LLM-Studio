@@ -9,6 +9,8 @@ import {
 import { ensureLocalGatewayAvailable } from "@/lib/agent/local-gateway";
 import { lookupPromptCache, savePromptCache } from "@/lib/agent/cache-store";
 import {
+  buildOpenAICompatibleRequestShape,
+  buildProviderOutputContract,
   buildProviderMessages,
   isThinkingModelConfigured,
   normalizeProviderProfile,
@@ -688,6 +690,18 @@ export async function POST(request: Request) {
               }
             }
           } else {
+            const requestShape = buildOpenAICompatibleRequestShape({
+              target,
+              input: body.input!,
+              enableTools: false,
+              thinkingMode
+            });
+            const remoteSystemPrompt = buildProviderOutputContract(systemPrompt, {
+              target,
+              input: body.input!,
+              enableTools: false,
+              thinkingMode
+            });
             const upstream = await fetch(`${target.resolvedBaseUrl}/chat/completions`, {
               method: "POST",
               headers: {
@@ -695,9 +709,9 @@ export async function POST(request: Request) {
                 ...(target.resolvedApiKey ? { Authorization: `Bearer ${target.resolvedApiKey}` } : {})
               },
               body: JSON.stringify({
-                model: target.resolvedModel,
+                model: requestShape.model,
                 messages: [
-                  { role: "system", content: systemPrompt },
+                  { role: "system", content: remoteSystemPrompt },
                   ...buildProviderMessages(body.messages!, body.input!, contextWindow)
                 ],
                 max_tokens: resolveSuggestedMaxTokens({
@@ -707,6 +721,7 @@ export async function POST(request: Request) {
                   providerProfile,
                   thinkingMode
                 }),
+                ...requestShape.bodyExtras,
                 stream: true,
                 stream_options: { include_usage: true }
               })
