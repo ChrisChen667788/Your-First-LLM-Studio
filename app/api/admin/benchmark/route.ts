@@ -39,8 +39,8 @@ import {
 import {
   normalizeProviderProfile,
   normalizeThinkingMode,
+  resolveSuggestedMaxTokens,
   resolveTargetWithMode,
-  suggestMaxTokens
 } from "@/lib/agent/providers";
 import {
   getRemoteBenchmarkProviderKind,
@@ -1193,10 +1193,14 @@ async function runSingleBenchmarkSample(
   let totalTokens = 0;
   let outputBuffer = "";
 
-  const effectiveMaxTokens = Math.min(
-    maxTokens,
-    suggestMaxTokens(target.execution, false, prompt, providerProfile)
-  );
+  const effectiveMaxTokens = resolveSuggestedMaxTokens({
+    target,
+    enableTools: false,
+    input: prompt,
+    providerProfile,
+    thinkingMode: options?.thinkingMode || "standard",
+    requestedMaxTokens: maxTokens
+  });
   const runSignal = options?.runId ? getBenchmarkRunSignal(options.runId) : undefined;
   const localExtraBody = buildLocalBenchmarkExtraBody(target, options?.thinkingMode || "standard");
 
@@ -1428,7 +1432,9 @@ async function runSingleBenchmarkSample(
               : [];
             const delta = choices[0]?.delta as Record<string, unknown> | undefined;
             const content = typeof delta?.content === "string" ? delta.content : "";
-            if (content && attemptFirstTokenLatencyMs === null) {
+            const reasoningContent =
+              typeof delta?.reasoning_content === "string" ? delta.reasoning_content : "";
+            if ((content || reasoningContent) && attemptFirstTokenLatencyMs === null) {
               attemptFirstTokenLatencyMs = Date.now() - attemptStartedAt;
             }
             if (content) {

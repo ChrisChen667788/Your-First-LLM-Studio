@@ -17,8 +17,8 @@ import {
   runAgentRequest,
   resolveTargetWithMode,
   normalizeStructuredAnswerOutput,
+  resolveSuggestedMaxTokens,
   sanitizeAssistantContent,
-  suggestMaxTokens,
   shouldUseToolLoop
 } from "@/lib/agent/providers";
 import { appendChatLog } from "@/lib/agent/log-store";
@@ -578,7 +578,13 @@ export async function POST(request: Request) {
                     { role: "system", content: systemPrompt },
                     ...buildProviderMessages(body.messages!, body.input!, contextWindow)
                   ],
-                  max_tokens: suggestMaxTokens(target.execution, false, body.input!, providerProfile),
+                  max_tokens: resolveSuggestedMaxTokens({
+                    target,
+                    enableTools: false,
+                    input: body.input!,
+                    providerProfile,
+                    thinkingMode
+                  }),
                   extra_body: buildLocalChatTemplateExtraBody(body.targetId!, thinkingMode)
                 })
               }, LOCAL_STREAM_CONNECT_TIMEOUT_MS);
@@ -694,7 +700,13 @@ export async function POST(request: Request) {
                   { role: "system", content: systemPrompt },
                   ...buildProviderMessages(body.messages!, body.input!, contextWindow)
                 ],
-                max_tokens: suggestMaxTokens(target.execution, false, body.input!, providerProfile),
+                max_tokens: resolveSuggestedMaxTokens({
+                  target,
+                  enableTools: false,
+                  input: body.input!,
+                  providerProfile,
+                  thinkingMode
+                }),
                 stream: true,
                 stream_options: { include_usage: true }
               })
@@ -706,14 +718,17 @@ export async function POST(request: Request) {
 
             await readOpenAISseStream(upstream, async (payload) => {
               const choices = Array.isArray(payload.choices) ? payload.choices : [];
-              const choice = choices[0] as { delta?: { content?: string }; finish_reason?: string | null } | undefined;
+              const choice = choices[0] as { delta?: { content?: string; reasoning_content?: string }; finish_reason?: string | null } | undefined;
               const delta = choice?.delta?.content;
+              const reasoningDelta = choice?.delta?.reasoning_content;
+              if ((typeof delta === "string" && delta) || (typeof reasoningDelta === "string" && reasoningDelta)) {
+                if (firstVisibleDeltaAt === null) {
+                  firstVisibleDeltaAt = Date.now();
+                }
+              }
               if (typeof delta === "string" && delta) {
                 const next = projector.push(delta);
                 if (next.delta) {
-                  if (firstVisibleDeltaAt === null) {
-                    firstVisibleDeltaAt = Date.now();
-                  }
                   write({ type: "delta", delta: next.delta });
                 }
               }

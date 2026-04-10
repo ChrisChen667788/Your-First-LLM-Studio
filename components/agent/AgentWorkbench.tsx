@@ -3,6 +3,8 @@
 import { FormEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { agentTargets as builtinAgentTargets, agentToolSpecs } from "@/lib/agent/catalog";
+import { useAgentCompareActions } from "@/components/agent/useAgentCompareActions";
+import { useAgentCompareLifecycle } from "@/components/agent/useAgentCompareLifecycle";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { useAgentCompareState } from "@/components/agent/useAgentCompareState";
 import {
@@ -100,10 +102,6 @@ const AgentCompareLab = dynamic(
     )
   }
 );
-
-async function loadCompareShareModule() {
-  return import("@/lib/agent/compare-share");
-}
 
 type StoredAgentSession = {
   id: string;
@@ -1136,8 +1134,7 @@ export function AgentWorkbench() {
   const lastObservedTurnCountRef = useRef(0);
   const runtimeRequestInFlightRef = useRef(false);
   const sessionSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const compareRecoveryConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const compareRecoveryNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hydrateWorkbenchStateRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -1174,10 +1171,10 @@ export function AgentWorkbench() {
       setSelectedTargetId(agentTargets[0].id);
     }
     setCompareTargetIds((current) => current.filter((targetId) => agentTargets.some((target) => target.id === targetId)));
-  }, [agentTargets, selectedTargetId]);
+  }, [agentTargets, selectedTargetId, setCompareTargetIds]);
   const compareLaneCount = useMemo(
     () => agentTargets.filter((target) => compareTargetIds.includes(target.id)).length,
-    [compareTargetIds]
+    [agentTargets, compareTargetIds]
   );
   const runtimePhase = useMemo(() => describeRuntimePhase(runtimeStatus, locale), [runtimeStatus, locale]);
   const runtimeStageItems = useMemo(() => buildRuntimeStageItems(runtimeStatus, locale), [runtimeStatus, locale]);
@@ -1199,7 +1196,7 @@ export function AgentWorkbench() {
           label: agentTargets.find((target) => target.id === targetId)?.label || targetId
         }))
         .sort((a, b) => a.label.localeCompare(b.label)),
-    [savedSessions]
+    [agentTargets, savedSessions]
   );
 
   const historyMessages = useMemo(() => flattenTurns(turns), [turns]);
@@ -1242,7 +1239,7 @@ export function AgentWorkbench() {
       targetLabel: agentTargets.find((target) => target.id === targetId)?.label || targetId,
       sessions: sessionsInGroup
     }));
-  }, [filteredHistorySessions]);
+  }, [agentTargets, filteredHistorySessions]);
   const supportsConnectionCheck = selectedTarget.execution === "remote" && Boolean(selectedTarget.apiKeyEnv);
   const connectionCheck = connectionChecksByTargetId[selectedTargetId] || null;
   const previousLocaleRef = useRef(locale);
@@ -2027,7 +2024,7 @@ export function AgentWorkbench() {
     [sessionTargetFilter, sessionTargetOptions, uiText.allTargets]
   );
 
-  function restoreSession(session: StoredAgentSession) {
+  const restoreSession = useCallback((session: StoredAgentSession) => {
     setTranscriptPinnedToBottom(true);
     setSessionId(session.id);
     setSelectedTargetId(
@@ -2050,7 +2047,7 @@ export function AgentWorkbench() {
     setRuntimeLogExcerpt("");
     setToolDecisionBusyKey("");
     setToolDecisionStatusByToken({});
-  }
+  }, [agentTargets, locale]);
 
   function updateSessions(updater: (current: StoredAgentSession[]) => StoredAgentSession[]) {
     setSavedSessions((current) => {
@@ -2180,128 +2177,30 @@ export function AgentWorkbench() {
     setRuntimeLogExcerpt("");
   }, [selectedTargetId]);
 
-  useEffect(() => {
-    setCompareError("");
-    setBenchmarkError("");
-  }, [compareIntent, compareOutputShape, compareTargetIds, contextWindow, enableRetrieval, enableTools, input, providerProfile, systemPrompt, thinkingMode]);
-
-  useEffect(() => {
-    if (!compareResult?.results.length) {
-      setCompareBaseTargetId("");
-      return;
-    }
-    setCompareBaseTargetId((current) => {
-      if (current && compareResult.results.some((lane) => lane.targetId === current)) {
-        return current;
-      }
-      return compareResult.results[0]?.targetId || "";
-    });
-  }, [compareResult]);
-
-  useEffect(() => {
-    setCompareRuntimeByTargetId((current) => {
-      const nextEntries = Object.entries(current).filter(([targetId]) => compareTargetIds.includes(targetId));
-      return nextEntries.length === Object.keys(current).length ? current : Object.fromEntries(nextEntries);
-    });
-  }, [compareTargetIds]);
-
-  useEffect(() => {
-    setCompareProgressByTargetId((current) => {
-      const nextEntries = Object.entries(current).filter(([targetId]) => compareTargetIds.includes(targetId));
-      return nextEntries.length === Object.keys(current).length ? current : Object.fromEntries(nextEntries);
-    });
-  }, [compareTargetIds]);
-
-  useEffect(() => {
-    if (!comparePending) return;
-    const localCompareTargetIds = compareTargetIds.filter(
-      (targetId) => agentTargets.find((target) => target.id === targetId)?.execution === "local"
-    );
-    if (!localCompareTargetIds.length) return;
-
-    let cancelled = false;
-
-    async function loadCompareRuntimeStatuses() {
-      try {
-        const responses = await Promise.all(
-          localCompareTargetIds.map(async (targetId) => {
-            const query = new URLSearchParams({
-              targetId,
-              thinkingMode
-            });
-            const response = await fetch(`/api/agent/runtime?${query.toString()}`, {
-              cache: "no-store"
-            });
-            const payload = (await response.json()) as AgentRuntimeStatus & { error?: string };
-            if (!response.ok) {
-              throw new Error(payload.error || `Failed to load runtime for ${targetId}.`);
-            }
-            return [targetId, payload] as const;
-          })
-        );
-        if (!cancelled) {
-          setCompareRuntimeByTargetId(Object.fromEntries(responses));
-        }
-      } catch {
-        // Keep the latest known runtime snapshot if a polling round fails.
-      }
-    }
-
-    void loadCompareRuntimeStatuses();
-    const timer = window.setInterval(() => {
-      void loadCompareRuntimeStatuses();
-    }, 1500);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [comparePending, compareTargetIds, thinkingMode]);
-
-  useEffect(() => {
-    if (!comparePending || !compareRequestId) return;
-
-    let cancelled = false;
-
-    async function loadCompareProgress() {
-      try {
-        const query = new URLSearchParams({ requestId: compareRequestId });
-        const response = await fetch(`/api/agent/compare/progress?${query.toString()}`, {
-          cache: "no-store"
-        });
-        const payload = (await response.json()) as AgentCompareProgress & { error?: string };
-        if (!response.ok) {
-          throw new Error(payload.error || `Failed to load compare progress for ${compareRequestId}.`);
-        }
-        if (!cancelled) {
-          setCompareProgressByTargetId(
-            Object.fromEntries(payload.lanes.map((lane) => [lane.targetId, lane]))
-          );
-        }
-      } catch {
-        // Keep the latest known compare progress snapshot if a polling round fails.
-      }
-    }
-
-    void loadCompareProgress();
-    const timer = window.setInterval(() => {
-      void loadCompareProgress();
-    }, 1500);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [comparePending, compareRequestId]);
-
-  useEffect(() => {
-    setCompareTargetIds((current) => {
-      const validTargetIds = current.filter((targetId) => agentTargets.some((target) => target.id === targetId));
-      const deduped = Array.from(new Set(validTargetIds));
-      if (!deduped.includes(selectedTargetId)) {
-        deduped.unshift(selectedTargetId);
-      }
-      return deduped.slice(0, MAX_COMPARE_LANES);
-    });
-  }, [selectedTargetId]);
+  useAgentCompareLifecycle({
+    agentTargets,
+    selectedTargetId,
+    compareTargetIds,
+    compareIntent,
+    compareOutputShape,
+    comparePending,
+    compareRequestId,
+    compareResult,
+    contextWindow,
+    enableRetrieval,
+    enableTools,
+    input,
+    providerProfile,
+    systemPrompt,
+    thinkingMode,
+    maxCompareLanes: MAX_COMPARE_LANES,
+    setCompareTargetIds,
+    setCompareError,
+    setBenchmarkError,
+    setCompareBaseTargetId,
+    setCompareRuntimeByTargetId,
+    setCompareProgressByTargetId
+  });
 
   useEffect(() => {
     const next = clampUiContextWindow(selectedTargetId, contextWindow, enableTools, enableRetrieval);
@@ -2322,6 +2221,8 @@ export function AgentWorkbench() {
   }, [locale, starterPrompts]);
 
   useEffect(() => {
+    if (hydrateWorkbenchStateRef.current) return;
+    hydrateWorkbenchStateRef.current = true;
     let cancelled = false;
 
     async function hydrateWorkbenchState() {
@@ -2494,7 +2395,19 @@ export function AgentWorkbench() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [
+    agentTargets,
+    locale,
+    restoreSession,
+    setCompareBaseTargetId,
+    setCompareBenchmarkPreviewDiffOnly,
+    setCompareBenchmarkUseOutputContract,
+    setCompareIntent,
+    setCompareOutputShape,
+    setCompareReviewSummaryDetail,
+    setCompareReviewSummaryTone,
+    setCompareTargetIds
+  ]);
 
   useEffect(() => {
     if (!preferencesReady) return;
@@ -2714,47 +2627,50 @@ export function AgentWorkbench() {
     });
   }
 
-  async function loadRuntimeStatus(currentTargetId = selectedTargetId, options?: { force?: boolean }) {
-    const target = agentTargets.find((item) => item.id === currentTargetId) || selectedTarget;
+  const loadRuntimeStatus = useCallback(
+    async (currentTargetId = selectedTargetId, options?: { force?: boolean }) => {
+      const target = agentTargets.find((item) => item.id === currentTargetId) || selectedTarget;
 
-    if (runtimeRequestInFlightRef.current && !options?.force) {
-      return;
-    }
+      if (runtimeRequestInFlightRef.current && !options?.force) {
+        return;
+      }
 
-    runtimeRequestInFlightRef.current = true;
+      runtimeRequestInFlightRef.current = true;
 
-    try {
-      const query = new URLSearchParams({
-        targetId: currentTargetId,
-        thinkingMode
-      });
-      const response = await fetch(`/api/agent/runtime?${query.toString()}`, {
-        cache: "no-store"
-      });
-      const data = (await response.json()) as AgentRuntimeStatus & { error?: string };
-      if (!response.ok) {
+      try {
+        const query = new URLSearchParams({
+          targetId: currentTargetId,
+          thinkingMode
+        });
+        const response = await fetch(`/api/agent/runtime?${query.toString()}`, {
+          cache: "no-store"
+        });
+        const data = (await response.json()) as AgentRuntimeStatus & { error?: string };
+        if (!response.ok) {
+          setRuntimeStatus({
+            targetId: currentTargetId,
+            targetLabel: target.label,
+            execution: target.execution,
+            available: false,
+            message: data.error || uiText.runtimeFailed
+          });
+          return;
+        }
+        setRuntimeStatus(data);
+      } catch (runtimeError) {
         setRuntimeStatus({
           targetId: currentTargetId,
           targetLabel: target.label,
           execution: target.execution,
           available: false,
-          message: data.error || uiText.runtimeFailed
+          message: runtimeError instanceof Error ? runtimeError.message : uiText.runtimeFailed
         });
-        return;
+      } finally {
+        runtimeRequestInFlightRef.current = false;
       }
-      setRuntimeStatus(data);
-    } catch (runtimeError) {
-      setRuntimeStatus({
-        targetId: currentTargetId,
-        targetLabel: target.label,
-        execution: target.execution,
-        available: false,
-        message: runtimeError instanceof Error ? runtimeError.message : uiText.runtimeFailed
-      });
-    } finally {
-      runtimeRequestInFlightRef.current = false;
-    }
-  }
+    },
+    [agentTargets, selectedTarget, selectedTargetId, thinkingMode, uiText.runtimeFailed]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -2773,7 +2689,7 @@ export function AgentWorkbench() {
       cancelled = true;
       if (timer) clearInterval(timer);
     };
-  }, [pending, selectedTarget.execution, selectedTarget.label, selectedTargetId, thinkingMode]);
+  }, [loadRuntimeStatus, pending, selectedTarget.execution, selectedTarget.label, selectedTargetId]);
 
   async function runPrompt(
     nextPrompt: string,
@@ -3150,479 +3066,57 @@ export function AgentWorkbench() {
     }
   }
 
-  async function handleRunCompare() {
-    if (compareTargetIds.length < 2) {
-      setCompareError(locale.startsWith("en") ? "Choose at least two targets." : "至少选择两个对比目标。");
-      return;
-    }
-
-    const requestId = crypto.randomUUID();
-    setComparePending(true);
-    setCompareError("");
-    setBenchmarkError("");
-    setBenchmarkResult(null);
-    setCompareRequestId(requestId);
-    setCompareProgressByTargetId({});
-    try {
-      const response = await fetch("/api/agent/compare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestId,
-          targetIds: compareTargetIds,
-          input,
-          messages: historyMessages,
-          systemPrompt,
-          compareIntent,
-          compareOutputShape,
-          enableTools,
-          enableRetrieval,
-          contextWindow,
-          providerProfile,
-          thinkingMode
-        })
-      });
-      const payload = (await response.json()) as AgentCompareResponse & { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || "Compare run failed.");
-      }
-      setCompareResult(payload);
-      setCompareRequestId(payload.requestId || requestId);
-      setCompareBaseTargetId(payload.results[0]?.targetId || "");
-    } catch (compareRunError) {
-      setCompareError(compareRunError instanceof Error ? compareRunError.message : "Compare run failed.");
-    } finally {
-      setComparePending(false);
-    }
-  }
-
-  async function handleRerunCompareLane(targetId: string) {
-    if (!targetId) return;
-
-    const requestId = crypto.randomUUID();
-    setComparePending(true);
-    setCompareError("");
-    setBenchmarkError("");
-    setBenchmarkResult(null);
-    setCompareRequestId(requestId);
-    setCompareProgressByTargetId((current) => {
-      const next = { ...current };
-      delete next[targetId];
-      return next;
-    });
-    try {
-      const response = await fetch("/api/agent/compare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestId,
-          targetIds: [targetId],
-          input,
-          messages: historyMessages,
-          systemPrompt,
-          compareIntent,
-          compareOutputShape,
-          enableTools,
-          enableRetrieval,
-          contextWindow,
-          providerProfile,
-          thinkingMode
-        })
-      });
-      const payload = (await response.json()) as AgentCompareResponse & { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || "Lane rerun failed.");
-      }
-      setCompareRequestId(payload.requestId || requestId);
-
-      const nextLane = payload.results[0];
-      if (!nextLane) {
-        throw new Error("Lane rerun returned no result.");
-      }
-
-      setCompareResult((current) => {
-        if (!current?.results.length) return payload;
-        const nextResults = current.results.map((lane) => (lane.targetId === targetId ? nextLane : lane));
-        return {
-          ...current,
-          ok: nextResults.some((lane) => lane.ok),
-          generatedAt: payload.generatedAt,
-          results: nextResults,
-          warning: payload.warning || current.warning
-        };
-      });
-    } catch (rerunError) {
-      setCompareError(rerunError instanceof Error ? rerunError.message : "Lane rerun failed.");
-    } finally {
-      setComparePending(false);
-    }
-  }
-
-  async function handleSendCompareToBenchmark() {
-    if (!compareResult?.results.length) {
-      setBenchmarkError(locale.startsWith("en") ? "Run compare first." : "请先运行一次 compare。");
-      return;
-    }
-
-    const compareShare = await loadCompareShareModule();
-    const comparePrompt = compareShare.buildCompareBenchmarkPrompt({
-      input,
-      systemPrompt,
-      compareOutputShape,
-      compareBenchmarkUseOutputContract
-    });
-    const compareRunNote = compareShare.serializeCompareResultAsCompactMarkdown({
-      compareResult,
-      compareProgressByTargetId,
-      compareBaseTargetId,
-      prompt: input,
-      systemPrompt
-    });
-
-    setBenchmarkPending(true);
-    setBenchmarkError("");
-    setBenchmarkResult(null);
-    try {
-      const response = await fetch("/api/admin/benchmark", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetIds: compareResult.results.map((lane) => lane.targetId),
-          benchmarkMode: "prompt",
-          prompt: comparePrompt,
-          runNote: compareRunNote || undefined,
-          runs: 1,
-          contextWindow,
-          providerProfile,
-          thinkingMode
-        })
-      });
-      const payload = (await response.json()) as AgentBenchmarkResponse & { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || "Benchmark handoff failed.");
-      }
-      setBenchmarkResult(payload);
-    } catch (handoffError) {
-      setBenchmarkError(handoffError instanceof Error ? handoffError.message : "Benchmark handoff failed.");
-    } finally {
-      setBenchmarkPending(false);
-    }
-  }
-
-  async function syncCompareProgressPatch(input: {
-    requestId: string;
-    targetId: string;
-    phase: AgentCompareLaneProgress["phase"];
-    detail: string;
-    loadingElapsedMs?: number | null;
-    recoveryThresholdMs?: number | null;
-    recoveryAction?: string;
-    recoveryTriggeredAt?: string | null;
-    recoveryTriggerElapsedMs?: number | null;
-    warning?: string;
-    recordTimeline?: boolean;
-  }) {
-    const response = await fetch("/api/agent/compare/progress", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input)
-    });
-    const payload = (await response.json()) as AgentCompareProgress & { error?: string };
-    if (!response.ok) {
-      throw new Error(payload.error || "Failed to update compare progress.");
-    }
-    setCompareProgressByTargetId(Object.fromEntries(payload.lanes.map((lane) => [lane.targetId, lane])));
-  }
-
-  function clearCompareRecoveryConfirm() {
-    if (compareRecoveryConfirmTimeoutRef.current) {
-      clearTimeout(compareRecoveryConfirmTimeoutRef.current);
-      compareRecoveryConfirmTimeoutRef.current = null;
-    }
-    setCompareRecoveryConfirmTargetId("");
-  }
-
-  function showCompareRecoveryNotice(
-    tone: "info" | "success" | "warning",
-    message: string,
-    durationMs = 5000
-  ) {
-    if (compareRecoveryNoticeTimeoutRef.current) {
-      clearTimeout(compareRecoveryNoticeTimeoutRef.current);
-      compareRecoveryNoticeTimeoutRef.current = null;
-    }
-    setCompareRecoveryNotice({ tone, message });
-    compareRecoveryNoticeTimeoutRef.current = setTimeout(() => {
-      setCompareRecoveryNotice((current) => (current?.message === message ? null : current));
-      compareRecoveryNoticeTimeoutRef.current = null;
-    }, durationMs);
-  }
-
-  function armCompareRecoveryConfirm(targetId: string) {
-    clearCompareRecoveryConfirm();
-    setCompareRecoveryConfirmTargetId(targetId);
-    const target = agentTargets.find((entry) => entry.id === targetId);
-    showCompareRecoveryNotice(
-      "info",
-      locale.startsWith("en")
-        ? `Click again within 5 seconds to restart ${target?.label || targetId} from Compare.`
-        : `请在 5 秒内再次点击，Compare 才会重启 ${target?.label || targetId}。`
-    );
-    compareRecoveryConfirmTimeoutRef.current = setTimeout(() => {
-      setCompareRecoveryConfirmTargetId((current) => (current === targetId ? "" : current));
-      compareRecoveryConfirmTimeoutRef.current = null;
-    }, 5000);
-  }
-
-  function startCompareRecoveryCooldown(targetId: string, durationMs = 15000) {
-    const expiresAt = Date.now() + durationMs;
-    setCompareRecoveryCooldownByTargetId((current) => ({
-      ...current,
-      [targetId]: expiresAt
-    }));
-    const target = agentTargets.find((entry) => entry.id === targetId);
-    showCompareRecoveryNotice(
-      "warning",
-      locale.startsWith("en")
-        ? `${target?.label || targetId} is in a short recovery cooldown so Compare does not spam restarts.`
-        : `${target?.label || targetId} 已进入短暂恢复冷却，避免 Compare 连续重启。`,
-      durationMs
-    );
-    setTimeout(() => {
-      setCompareRecoveryCooldownByTargetId((current) => {
-        if ((current[targetId] || 0) !== expiresAt) return current;
-        const next = { ...current };
-        delete next[targetId];
-        return next;
-      });
-    }, durationMs);
-  }
-
-  async function requestRetryCompareLaneRecovery(targetId: string) {
-    const cooldownUntil = compareRecoveryCooldownByTargetId[targetId] || 0;
-    if (cooldownUntil > Date.now()) {
-      return;
-    }
-    if (compareRecoveryConfirmTargetId !== targetId) {
-      armCompareRecoveryConfirm(targetId);
-      return;
-    }
-    clearCompareRecoveryConfirm();
-    await handleRetryCompareLaneRecovery(targetId);
-  }
-
-  async function handleRetryCompareLaneRecovery(targetId: string) {
-    if (!compareRequestId) {
-      setCompareError(locale.startsWith("en") ? "Run compare first." : "请先运行一次 compare。");
-      return;
-    }
-    const target = agentTargets.find((entry) => entry.id === targetId);
-    if (!target || target.execution !== "local") {
-      setCompareError(locale.startsWith("en") ? "Manual recovery is available only for local lanes." : "手动恢复仅支持本地 lane。");
-      return;
-    }
-
-    const recoveryDetail = locale.startsWith("en")
-      ? `Manual recovery requested for ${target.label}. Restarting the local gateway from Compare.`
-      : `已为 ${target.label} 发起手动恢复，Compare 正在重启本地网关。`;
-    setCompareRecoveryPendingTargetId(targetId);
-    clearCompareRecoveryConfirm();
-    setCompareError("");
-    try {
-      await syncCompareProgressPatch({
-        requestId: compareRequestId,
-        targetId,
-        phase: "recovering",
-        detail: recoveryDetail,
-        recoveryAction: recoveryDetail,
-        recoveryTriggeredAt: new Date().toISOString(),
-        recordTimeline: true
-      });
-
-      const response = await fetch("/api/agent/runtime/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetId,
-          action: "restart"
-        })
-      });
-      const payload = (await response.json()) as AgentRuntimeActionResponse & { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || payload.message || "Manual local recovery failed.");
-      }
-
-      if (payload.runtime) {
-        setCompareRuntimeByTargetId((current) => ({
-          ...current,
-          [targetId]: payload.runtime as AgentRuntimeStatus
-        }));
-      }
-
-      const completionDetail = payload.message
-        ? `${payload.message} Compare will keep polling this lane.`
-        : locale.startsWith("en")
-          ? `Local gateway restarted for ${target.label}. Compare will keep polling this lane.`
-          : `${target.label} 的本地网关已重启，Compare 会继续轮询这条 lane。`;
-      showCompareRecoveryNotice(
-        "success",
-        locale.startsWith("en")
-          ? `${target.label} restarted from Compare. The lane will keep polling until it is ready.`
-          : `${target.label} 已在 Compare 中重启，系统会继续轮询直到这条 lane 就绪。`
-      );
-      await syncCompareProgressPatch({
-        requestId: compareRequestId,
-        targetId,
-        phase: "prewarming",
-        detail: completionDetail,
-        recoveryAction: payload.message || completionDetail,
-        recordTimeline: true
-      });
-    } catch (recoveryError) {
-      const message = recoveryError instanceof Error ? recoveryError.message : "Manual local recovery failed.";
-      setCompareError(message);
-      showCompareRecoveryNotice("warning", message, 7000);
-      try {
-        await syncCompareProgressPatch({
-          requestId: compareRequestId,
-          targetId,
-          phase: "failed",
-          detail: message,
-          warning: message,
-          recordTimeline: true
-        });
-      } catch {
-        // Ignore secondary sync failures. The primary error is already surfaced.
-      }
-    } finally {
-      setCompareRecoveryPendingTargetId("");
-      startCompareRecoveryCooldown(targetId);
-    }
-  }
-
-  async function buildCompareMarkdownContent(laneTargetIds?: string[]) {
-    if (!compareResult) return "";
-    const compareShare = await loadCompareShareModule();
-    return compareShare.serializeCompareResultAsMarkdown({
-      compareResult,
-      compareProgressByTargetId,
-      compareBaseTargetId,
-      laneTargetIds,
-      prompt: input,
-      systemPrompt,
-      contextWindow,
-      providerProfile,
-      thinkingMode,
-      enableTools,
-      enableRetrieval
-    });
-  }
-
-  useEffect(() => {
-    return () => {
-      if (compareRecoveryConfirmTimeoutRef.current) {
-        clearTimeout(compareRecoveryConfirmTimeoutRef.current);
-      }
-      if (compareRecoveryNoticeTimeoutRef.current) {
-        clearTimeout(compareRecoveryNoticeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  async function handleExportCompareMarkdown() {
-    if (!compareResult) return;
-    const content = await buildCompareMarkdownContent();
-
-    const blob = new Blob([content], {
-      type: "text/markdown;charset=utf-8"
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `compare-${compareResult.runId}.md`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
-
-  async function handleExportCompareLaneMarkdown(targetId: string) {
-    if (!compareResult) return;
-    const lane = compareResult.results.find((entry) => entry.targetId === targetId);
-    if (!lane) return;
-    const content = await buildCompareMarkdownContent([targetId]);
-
-    const blob = new Blob([content], {
-      type: "text/markdown;charset=utf-8"
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `compare-${compareResult.runId}-${targetId}.md`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
-
-  async function handleCopyCompareMarkdown() {
-    if (!compareResult) return;
-    const compareShare = await loadCompareShareModule();
-    await handleCopy(
-      compareShare.serializeCompareResultAsCompactMarkdown({
-        compareResult,
-        compareProgressByTargetId,
-        compareBaseTargetId,
-        prompt: input,
-        systemPrompt
-      }),
-      "compare:markdown"
-    );
-  }
-
-  async function handleCopyCompareLaneMarkdown(targetId: string) {
-    if (!compareResult) return;
-    const compareShare = await loadCompareShareModule();
-    await handleCopy(
-      compareShare.serializeCompareResultAsCompactMarkdown({
-        compareResult,
-        compareProgressByTargetId,
-        compareBaseTargetId,
-        laneTargetIds: [targetId],
-        prompt: input,
-        systemPrompt
-      }),
-      `compare:lane-markdown:${targetId}`
-    );
-  }
-
-  async function handleCopyCompareLaneReviewSummary(targetId: string) {
-    if (!compareResult) return;
-    const compareShare = await loadCompareShareModule();
-    await handleCopy(
-      compareShare.serializeCompareLaneReviewSummary({
-        compareResult,
-        compareProgressByTargetId,
-        compareBaseTargetId,
-        targetId,
-        tone: compareReviewSummaryTone,
-        detailMode: compareReviewSummaryDetail
-      }),
-      `compare:lane-summary:${targetId}`
-    );
-  }
-
-  async function handlePreviewCompareLaneMarkdown(targetId: string) {
-    if (!compareResult) return;
-    const lane = compareResult.results.find((entry) => entry.targetId === targetId);
-    if (!lane) return;
-    const compareShare = await loadCompareShareModule();
-    const html = compareShare.buildMarkdownPreviewHtml(
-      locale,
-      `${lane.targetLabel} export preview`,
-      await buildCompareMarkdownContent([targetId])
-    );
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank", "noopener,noreferrer");
-    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  }
+  const {
+    handleRunCompare,
+    handleRerunCompareLane,
+    handleSendCompareToBenchmark,
+    requestRetryCompareLaneRecovery,
+    handleExportCompareMarkdown,
+    handleExportCompareLaneMarkdown,
+    handleCopyCompareMarkdown,
+    handleCopyCompareLaneMarkdown,
+    handleCopyCompareLaneReviewSummary,
+    handlePreviewCompareLaneMarkdown
+  } = useAgentCompareActions({
+    locale,
+    agentTargets,
+    compareTargetIds,
+    compareIntent,
+    compareOutputShape,
+    comparePending,
+    compareResult,
+    compareBaseTargetId,
+    compareRequestId,
+    compareProgressByTargetId,
+    compareBenchmarkUseOutputContract,
+    compareReviewSummaryTone,
+    compareReviewSummaryDetail,
+    compareRecoveryConfirmTargetId,
+    compareRecoveryCooldownByTargetId,
+    historyMessages,
+    input,
+    systemPrompt,
+    contextWindow,
+    enableTools,
+    enableRetrieval,
+    providerProfile,
+    thinkingMode,
+    setComparePending,
+    setCompareError,
+    setCompareResult,
+    setCompareBaseTargetId,
+    setCompareRequestId,
+    setCompareProgressByTargetId,
+    setCompareRuntimeByTargetId,
+    setCompareRecoveryPendingTargetId,
+    setCompareRecoveryConfirmTargetId,
+    setCompareRecoveryCooldownByTargetId,
+    setCompareRecoveryNotice,
+    setBenchmarkPending,
+    setBenchmarkError,
+    setBenchmarkResult,
+    copyText: handleCopy
+  });
 
   function handleStepWorkspaceFileAnchor(direction: -1 | 1) {
     setWorkspaceFileFocusState((current) => {

@@ -1,6 +1,6 @@
 import type { AgentProviderProfile, AgentThinkingMode, ResolvedTarget } from "./types";
 
-export type RemoteBenchmarkProviderKind = "openai-compatible" | "claude-compatible";
+export type RemoteBenchmarkProviderKind = "openai-compatible" | "claude-compatible" | "deepseek-compatible";
 
 export type RemoteBenchmarkPolicy = {
   totalTimeoutMs: number;
@@ -32,6 +32,9 @@ const INSTRUCTION_STYLE_WORKLOADS = new Set(["instruction-following-lite", "ifev
 export function getRemoteBenchmarkProviderKind(target: ResolvedTarget): RemoteBenchmarkProviderKind {
   if (target.id === "anthropic-claude" || /claude/i.test(target.resolvedModel)) {
     return "claude-compatible";
+  }
+  if (target.id === "deepseek-api" || /deepseek/i.test(target.resolvedModel)) {
+    return "deepseek-compatible";
   }
   return "openai-compatible";
 }
@@ -76,6 +79,14 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
     }
   }
 
+  if (providerKind === "deepseek-compatible") {
+    if (thinkingMode === "thinking") {
+      firstTokenTimeoutMs += 12000;
+    } else if (providerProfile === "tool-first") {
+      firstTokenTimeoutMs += 3000;
+    }
+  }
+
   if (workloadId === "latency-smoke") {
     if (providerKind === "claude-compatible") {
       if (thinkingMode === "thinking") {
@@ -89,6 +100,9 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
       }
     } else {
       firstTokenTimeoutMs = Math.min(firstTokenTimeoutMs, 12000);
+    }
+    if (providerKind === "deepseek-compatible") {
+      firstTokenTimeoutMs = thinkingMode === "thinking" ? 26000 : 14000;
     }
   }
 
@@ -129,6 +143,9 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
     } else {
       retryBudgetMs = 28000;
     }
+    if (providerKind === "deepseek-compatible") {
+      retryBudgetMs = thinkingMode === "thinking" ? 52000 : 32000;
+    }
   }
 
   if (providerKind === "claude-compatible" && thinkingMode === "standard" && isInstructionStyleWorkload(workloadId)) {
@@ -165,6 +182,9 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
     } else {
       streamIdleTimeoutMs = 8000;
     }
+    if (providerKind === "deepseek-compatible") {
+      streamIdleTimeoutMs = thinkingMode === "thinking" ? 22000 : 10000;
+    }
   } else if (providerKind === "claude-compatible" && thinkingMode === "standard" && isInstructionStyleWorkload(workloadId)) {
     streamIdleTimeoutMs = providerProfile === "balanced" ? 22000 : 18000;
   } else if (isInstructionStyleWorkload(workloadId)) {
@@ -182,6 +202,7 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
   } else {
     streamIdleTimeoutMs = Math.floor(totalTimeoutMs * 0.35);
     if (providerKind === "claude-compatible") streamIdleTimeoutMs += 5000;
+    if (providerKind === "deepseek-compatible") streamIdleTimeoutMs += thinkingMode === "thinking" ? 12000 : 3000;
     if (providerProfile === "tool-first") streamIdleTimeoutMs += 10000;
     if (thinkingMode === "thinking") streamIdleTimeoutMs += 15000;
     if (isLongContextWorkload(workloadId)) streamIdleTimeoutMs += 10000;

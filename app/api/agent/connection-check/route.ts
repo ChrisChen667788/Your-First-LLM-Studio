@@ -51,6 +51,9 @@ function buildDocsUrl(targetId: string) {
   if (targetId === "anthropic-claude") {
     return "https://docs.anthropic.com";
   }
+  if (targetId === "deepseek-api") {
+    return "https://api-docs.deepseek.com/zh-cn/";
+  }
   return undefined;
 }
 

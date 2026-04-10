@@ -166,6 +166,30 @@ export const agentTargets: AgentTarget[] = [
     ]
   },
   {
+    id: "deepseek-api",
+    label: "DeepSeek API",
+    providerLabel: "DeepSeek",
+    transport: "openai-compatible",
+    execution: "remote",
+    description:
+      "DeepSeek flagship remote target wired through the official OpenAI-compatible endpoint. Standard mode uses deepseek-chat and thinking mode uses deepseek-reasoner.",
+    modelEnv: "DEEPSEEK_MODEL",
+    modelDefault: "deepseek-chat",
+    thinkingModelEnv: "DEEPSEEK_THINKING_MODEL",
+    thinkingModelDefault: "deepseek-reasoner",
+    baseUrlEnv: "DEEPSEEK_BASE_URL",
+    baseUrlDefault: "https://api.deepseek.com/v1",
+    apiKeyEnv: "DEEPSEEK_API_KEY",
+    supportsTools: true,
+    recommendedContext: "128K server-side",
+    memoryProfile: "Offloaded to DeepSeek.",
+    notes: [
+      "Pinned to DeepSeek's current flagship chat and reasoner aliases.",
+      "Tool calling stays on the same OpenAI-compatible route, so compare / benchmark / connection check can reuse the shared provider stack.",
+      "Reasoning-mode benchmark timing treats reasoning_content as first output activity, so long-think runs do not look falsely idle."
+    ]
+  },
+  {
     id: "kimi-api",
     label: "Kimi API",
     providerLabel: "Moonshot",

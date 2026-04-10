@@ -213,6 +213,39 @@ export function suggestMaxTokens(
   return inputLength <= 80 ? 128 : 192;
 }
 
+function isDeepSeekCompatibleTarget(target: ResolvedTarget) {
+  return target.id === "deepseek-api" || /deepseek/i.test(target.resolvedModel);
+}
+
+export function resolveSuggestedMaxTokens(options: {
+  target: ResolvedTarget;
+  enableTools: boolean;
+  input: string;
+  providerProfile?: AgentProviderProfile;
+  thinkingMode?: AgentThinkingMode;
+  requestedMaxTokens?: number;
+}) {
+  const {
+    target,
+    enableTools,
+    input,
+    providerProfile = "balanced",
+    thinkingMode = "standard",
+    requestedMaxTokens
+  } = options;
+
+  const suggested = suggestMaxTokens(target.execution, enableTools, input, providerProfile);
+  let nextMaxTokens =
+    typeof requestedMaxTokens === "number" ? Math.min(requestedMaxTokens, suggested) : suggested;
+
+  if (isDeepSeekCompatibleTarget(target) && thinkingMode === "thinking") {
+    const deepSeekReasoningFloor = enableTools ? 1024 : 768;
+    nextMaxTokens = Math.max(nextMaxTokens, deepSeekReasoningFloor);
+  }
+
+  return nextMaxTokens;
+}
+
 function extractTextFromContent(content: unknown) {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -226,6 +259,10 @@ function extractTextFromContent(content: unknown) {
       .join("\n");
   }
   return "";
+}
+
+function extractReasoningContent(value: unknown) {
+  return typeof value === "string" ? value : "";
 }
 
 export function sanitizeAssistantContent(content: string) {
@@ -598,7 +635,13 @@ async function callOpenAICompatible(
   let latestUsage: AgentUsage | undefined;
 
   for (let step = 0; step < MAX_REMOTE_TOOL_STEPS; step += 1) {
-    const defaultMaxTokens = suggestMaxTokens(target.execution, enableTools, input, providerProfile);
+    const defaultMaxTokens = resolveSuggestedMaxTokens({
+      target,
+      enableTools,
+      input,
+      providerProfile,
+      thinkingMode
+    });
     const body: Record<string, unknown> = {
       model: target.resolvedModel,
       messages: currentMessages,
@@ -690,6 +733,7 @@ async function callOpenAICompatible(
       choices?: Array<{
         message?: {
           content?: unknown;
+          reasoning_content?: unknown;
           tool_calls?: Array<{
             id?: string;
             function?: {
@@ -705,6 +749,7 @@ async function callOpenAICompatible(
     latestUsage = normalizeUsage(data.usage) || latestUsage;
     const assistantMessage = data.choices?.[0]?.message;
     const content = sanitizeAssistantContent(extractTextFromContent(assistantMessage?.content));
+    const reasoningContent = extractReasoningContent(assistantMessage?.reasoning_content);
     const toolCalls =
       assistantMessage?.tool_calls?.map((toolCall) => ({
         id: toolCall.id || crypto.randomUUID(),
@@ -730,6 +775,7 @@ async function callOpenAICompatible(
       {
         role: "assistant",
         content,
+        ...(reasoningContent ? { reasoning_content: reasoningContent } : {}),
         tool_calls: toolCalls.map((toolCall) => ({
           id: toolCall.id,
           type: "function",
@@ -797,7 +843,12 @@ async function callAnthropic(
       model: target.resolvedModel,
       system: systemPrompt,
       messages: currentMessages,
-      max_tokens: suggestMaxTokens(target.execution, enableTools, input, providerProfile)
+      max_tokens: resolveSuggestedMaxTokens({
+        target,
+        enableTools,
+        input,
+        providerProfile
+      })
     };
 
     if (enableTools && target.supportsTools) {
