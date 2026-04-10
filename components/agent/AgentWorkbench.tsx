@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent as ReactKeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { agentTargets as builtinAgentTargets, agentToolSpecs } from "@/lib/agent/catalog";
 import { useAgentCompareActions } from "@/components/agent/useAgentCompareActions";
@@ -447,6 +447,52 @@ function describeRuntimeAlias(alias: string | null | undefined, targets: AgentTa
   if (!alias) return "—";
   const matched = targets.find((target) => target.id === alias);
   return matched ? `${matched.label}` : alias;
+}
+
+type RailDetailsSectionProps = {
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+};
+
+function RailDetailsSection({
+  title,
+  subtitle,
+  badge,
+  defaultOpen = false,
+  children
+}: RailDetailsSectionProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <details
+      open={isOpen}
+      onToggle={(event) => setIsOpen((event.currentTarget as HTMLDetailsElement).open)}
+      className="group rounded-2xl border border-white/10 bg-black/25 open:border-cyan-400/20 open:bg-white/[0.05]"
+    >
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{title}</p>
+          {subtitle ? (
+            <p className="mt-1.5 text-[13px] leading-6 text-slate-300">{subtitle}</p>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {badge ? (
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
+              {badge}
+            </span>
+          ) : null}
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-400 transition group-open:-rotate-180">
+            ↓
+          </span>
+        </div>
+      </summary>
+      <div className="border-t border-white/10 px-4 py-3">{children}</div>
+    </details>
+  );
 }
 
 function readNumberField(source: Record<string, unknown> | null, key: string) {
@@ -5553,138 +5599,163 @@ export function AgentWorkbench() {
               <div className="border-b border-white/10 px-5 py-3.5">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">{dictionary.nav.agent}</p>
                 <h3 className="mt-1.5 text-base font-semibold text-white">
-                  {workbenchMode === "chat"
-                    ? `${dictionary.agent.localRuntime} / ${locale.startsWith("en") ? "Process rail" : "运行侧栏"}`
-                    : `${dictionary.agent.localRuntime} / ${dictionary.agent.promptFrame}`}
+                  {dictionary.agent.localRuntime} / {locale.startsWith("en") ? "Status rail" : "状态侧栏"}
                 </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  {locale.startsWith("en")
+                    ? "Keep the right rail high-signal: a compact status strip first, then expand model, process, and compare details only when needed."
+                    : "右侧只保留高信号状态条；模型、进程和 compare 细节按需展开，避免一整列长条同权堆叠。"}
+                </p>
               </div>
 
-              <div className="space-y-4 px-5 py-4">
-                {workbenchMode === "compare" ? (
-                  <>
-                <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{dictionary.agent.resolvedEndpoint}</p>
-                  <p className="mt-1.5 break-all text-[13px] leading-6 text-slate-200">
-                    {lastTurn?.resolvedBaseUrl || selectedTarget.baseUrlDefault}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{dictionary.agent.providerSelfCheck}</p>
-                      <p className="mt-1.5 text-[13px] leading-6 text-slate-300">
-                        {dictionary.agent.selfCheckDescription}
+              <div className="space-y-3 px-5 py-4">
+                <div className="rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(12,18,35,0.96),rgba(4,8,22,0.9))] px-4 py-4 shadow-[0_24px_80px_-44px_rgba(34,211,238,0.35)]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                        {selectedTarget.execution === "local"
+                          ? dictionary.agent.localRuntime
+                          : locale.startsWith("en")
+                            ? "Remote target"
+                            : "远端目标"}
+                      </p>
+                      <p className="mt-1.5 text-sm leading-6 text-slate-200">
+                        {selectedTarget.execution === "local"
+                          ? (runtimeStatus?.phaseDetail ||
+                            (runtimeStatus?.available
+                              ? runtimeStatus.busy
+                                ? uiText.runtimeSerializing
+                                : uiText.runtimeReady
+                              : runtimeStatus?.message || uiText.runtimeUnavailable))
+                          : `${runtimeStatus?.resolvedModel || lastTurn?.resolvedModel || selectedTarget.modelDefault} · ${selectedTarget.label}`}
                       </p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={!supportsConnectionCheck || connectionCheckPending || pending}
-                        onClick={handleConnectionCheck}
-                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                      >
-                        {connectionCheckPending ? dictionary.agent.checking : dictionary.agent.runCheck}
-                      </button>
-                      <a
-                        href={`/api/agent/check-history/export?targetId=${encodeURIComponent(selectedTargetId)}&format=markdown`}
-                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
-                      >
-                        {dictionary.agent.exportMarkdown}
-                      </a>
-                      <a
-                        href={`/api/agent/check-history/export?targetId=${encodeURIComponent(selectedTargetId)}&format=json`}
-                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
-                      >
-                        {dictionary.agent.exportJson}
-                      </a>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${
+                        selectedTarget.execution === "local"
+                          ? runtimePhase.className
+                          : "bg-violet-400/15 text-violet-200"
+                      }`}
+                    >
+                      {selectedTarget.execution === "local"
+                        ? runtimePhase.label
+                        : locale.startsWith("en")
+                          ? "Remote"
+                          : "远端"}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {typeof runtimeStatus?.queueDepth === "number" ? (
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
+                        {uiText.queueLabel} {runtimeStatus.queueDepth}
+                      </span>
+                    ) : null}
+                    {typeof runtimeStatus?.activeRequests === "number" ? (
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
+                        {uiText.activeLabel} {runtimeStatus.activeRequests}
+                      </span>
+                    ) : null}
+                    {loadedAliasForSelectedTarget ? (
+                      <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-cyan-200">
+                        {describeRuntimeAlias(loadedAliasForSelectedTarget, agentTargets)}
+                      </span>
+                    ) : null}
+                    {gatewayLoadedOtherAlias ? (
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
+                        {uiText.runtimeCurrentLoaded} {describeRuntimeAlias(gatewayLoadedOtherAlias, agentTargets)}
+                      </span>
+                    ) : null}
+                    {runtimeStatus?.loadingAlias ? (
+                      <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-amber-200">
+                        {uiText.runtimeSwitchingNow}: {describeRuntimeAlias(runtimeStatus.loadingAlias, agentTargets)}
+                      </span>
+                    ) : null}
+                    {selectedTarget.execution === "remote" ? (
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
+                        {lastTurn?.resolvedBaseUrl || selectedTarget.baseUrlDefault}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{dictionary.common.model}</p>
+                      <p className="mt-1 break-all text-[13px] leading-6 text-slate-200">
+                        {runtimeStatus?.resolvedModel || lastTurn?.resolvedModel || selectedTarget.modelDefault}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                        {selectedTarget.execution === "local" ? uiText.runtimeLastSwitchLoad : dictionary.common.endpoint}
+                      </p>
+                      <p className="mt-1 break-all text-[13px] leading-6 text-slate-200">
+                        {selectedTarget.execution === "local"
+                          ? formatRuntimeDuration(selectedTargetLastSwitchMs)
+                          : lastTurn?.resolvedBaseUrl || selectedTarget.baseUrlDefault}
+                      </p>
                     </div>
                   </div>
 
-                  {!supportsConnectionCheck ? (
-                    <p className="mt-3 text-sm leading-6 text-slate-400">
-                      {dictionary.agent.checkOnlyRemote}
-                    </p>
-                  ) : null}
-
-                  {connectionCheckError ? (
-                    <div className="mt-3 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-3 py-3 text-sm text-rose-100">
-                      {connectionCheckError}
+                  {selectedTarget.execution === "local" ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
+                        onClick={handlePrewarmAll}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
+                      >
+                        {prewarmAllPending ? uiText.prewarmingAll : uiText.prewarmAllModels}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
+                        onClick={handlePrewarm}
+                        className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
+                      >
+                        {prewarmPending ? uiText.prewarming : uiText.prewarmModel}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
+                        onClick={() => void handleRuntimeAction("release")}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
+                      >
+                        {runtimeActionPending === "release" ? uiText.releasingModel : uiText.releaseModel}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
+                        onClick={() => void handleRuntimeAction("restart")}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
+                      >
+                        {runtimeActionPending === "restart" ? uiText.restartingGateway : uiText.restartGateway}
+                      </button>
                     </div>
                   ) : null}
 
-                  {connectionCheck ? (
-                    <div className="mt-3.5 space-y-2.5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
-                            connectionCheck.ok
-                              ? "bg-emerald-400/15 text-emerald-200"
-                              : "bg-amber-400/15 text-amber-200"
-                          }`}
-                        >
-                          {connectionCheck.ok ? dictionary.agent.allChecksPassed : dictionary.agent.checkAttention}
-                        </span>
-                        <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                          {new Date(connectionCheck.checkedAt).toLocaleTimeString()}
-                        </span>
-                      </div>
-
-                      <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-xs leading-6 text-slate-300">
-                        <p>{dictionary.common.model}: {connectionCheck.resolvedModel}</p>
-                        <p className="break-all">{dictionary.common.endpoint}: {connectionCheck.resolvedBaseUrl}</p>
-                        {connectionCheck.docsUrl ? (
-                          <a
-                            href={connectionCheck.docsUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-1 inline-block text-cyan-300 underline decoration-cyan-300/40 underline-offset-4"
-                          >
-                            {dictionary.agent.openDocs}
-                          </a>
-                        ) : null}
-                        <p className="mt-2 text-slate-500">
-                          {dictionary.agent.historySavedAt}: <span className="text-slate-300">data/agent-observability</span>
-                        </p>
-                      </div>
-
-                      {connectionCheck.stages.map((stage) => (
-                        <div
-                          key={stage.id}
-                          className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${getConnectionStageBadgeClass(stage.ok)}`}
-                              >
-                                {formatConnectionStageLabel(stage.id)}
-                              </span>
-                              <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                                {stage.ok ? dictionary.common.ok : dictionary.common.failed}
-                              </span>
-                              {typeof stage.httpStatus === "number" ? (
-                                <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                                  http {stage.httpStatus}
-                                </span>
-                              ) : null}
-                            </div>
-                            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                              {stage.latencyMs} ms
-                            </span>
-                          </div>
-                          <p className="mt-1.5 text-[13px] leading-6 text-slate-300">{stage.summary}</p>
-                        </div>
-                      ))}
+                  {runtimeStatus?.loadingError ? (
+                    <div className="mt-3 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs leading-6 text-rose-100">
+                      {uiText.runtimeLoadingError}: {runtimeStatus.loadingError}
                     </div>
+                  ) : null}
+
+                  {prewarmMessage ? (
+                    <p className="mt-3 text-xs leading-6 text-cyan-200">{prewarmMessage}</p>
                   ) : null}
                 </div>
-                  </>
-                ) : null}
 
-                <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{dictionary.agent.resolvedModel}</p>
-                  <div className="mt-2.5 space-y-2.5 text-sm text-slate-300">
+                <RailDetailsSection
+                  title={dictionary.agent.resolvedModel}
+                  subtitle={
+                    locale.startsWith("en")
+                      ? "Resolved model names, endpoint wiring, and docs stay here instead of occupying the whole rail."
+                      : "把模型解析结果、endpoint 和文档入口折进这里，不再整列展开占满右侧。"
+                  }
+                  badge={selectedTarget.execution === "local" ? dictionary.common.local : "remote"}
+                  defaultOpen={true}
+                >
+                  <div className="space-y-3 text-sm text-slate-300">
                     <div>
                       <p className="text-slate-500">{dictionary.common.model}</p>
                       <p className="mt-1 break-all text-[13px] leading-6 text-slate-200">
@@ -5692,7 +5763,7 @@ export function AgentWorkbench() {
                       </p>
                     </div>
                     {selectedTarget.execution === "remote" ? (
-                      <>
+                      <div className="grid gap-3 sm:grid-cols-2">
                         <div>
                           <p className="text-slate-500">{uiText.thinkingModeStandard}</p>
                           <p className="mt-1 break-all text-[13px] leading-6 text-slate-200">
@@ -5705,7 +5776,7 @@ export function AgentWorkbench() {
                             {runtimeStatus?.thinkingResolvedModel || selectedTarget.thinkingModelDefault || selectedTarget.modelDefault}
                           </p>
                         </div>
-                      </>
+                      </div>
                     ) : null}
                     <div>
                       <p className="text-slate-500">{dictionary.common.endpoint}</p>
@@ -5730,217 +5801,282 @@ export function AgentWorkbench() {
                       <p className="mt-1 text-xs leading-6 text-slate-400">data/agent-observability</p>
                     </div>
                   </div>
-                </div>
+                </RailDetailsSection>
+
+                {selectedTarget.execution === "local" ? (
+                  <RailDetailsSection
+                    title={dictionary.agent.localRuntime}
+                    subtitle={
+                      locale.startsWith("en")
+                        ? "Expand for process ids, runtime stage, switch history, load errors, and the current log excerpt."
+                        : "展开后看进程号、运行阶段、切换历史、加载错误和当前日志摘录。"
+                    }
+                    badge={runtimePhase.label}
+                  >
+                    {runtimeStatus ? (
+                      <div className="space-y-3 text-sm text-slate-200">
+                        <div>
+                          <p className="text-slate-500">{locale.startsWith("en") ? "Runtime stage" : "运行阶段"}</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {runtimeStageItems.map((step) => (
+                              <span
+                                key={`runtime-stage:${step.key}`}
+                                className={`rounded-full border px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] ${
+                                  step.active
+                                    ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+                                    : step.completed
+                                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+                                      : "border-white/10 bg-white/[0.04] text-slate-400"
+                                }`}
+                              >
+                                {step.label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <p className="text-slate-500">{uiText.supervisor}</p>
+                            <p className="mt-1 break-all text-white">
+                              {runtimeStatus.supervisorPid ?? dictionary.common.unknown} ·{" "}
+                              {runtimeStatus.supervisorAlive ? dictionary.common.ok : dictionary.common.failed}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">{uiText.gatewayProcess}</p>
+                            <p className="mt-1 break-all text-white">
+                              {runtimeStatus.gatewayPid ?? dictionary.common.unknown} ·{" "}
+                              {runtimeStatus.gatewayAlive ? dictionary.common.ok : dictionary.common.failed}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">{uiText.runtimeCurrentLoaded}</p>
+                            <p className="mt-1 break-all text-white">
+                              {describeRuntimeAlias(runtimeStatus.loadedAlias, agentTargets)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">{uiText.runtimeLastSwitchLoad}</p>
+                            <p className="mt-1 break-all text-white">{formatRuntimeDuration(selectedTargetLastSwitchMs)}</p>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <p className="text-slate-500">{uiText.runtimeLastSwitchAt}</p>
+                            <p className="mt-1 break-all text-white">
+                              {formatRuntimeTimestamp(selectedTargetLastSwitchAt, locale)}
+                            </p>
+                          </div>
+                        </div>
+                        {(runtimeStatus.loadingAlias || runtimeStatus.loadingError) ? (
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {runtimeStatus.loadingAlias ? (
+                              <div>
+                                <p className="text-slate-500">{uiText.runtimeSwitchingNow}</p>
+                                <p className="mt-1 break-all text-white">
+                                  {describeRuntimeAlias(runtimeStatus.loadingAlias, agentTargets)}
+                                  {typeof runtimeStatus.loadingElapsedMs === "number"
+                                    ? ` · ${uiText.runtimeLoadingElapsed} ${Math.max(1, Math.round(runtimeStatus.loadingElapsedMs / 1000))}s`
+                                    : ""}
+                                </p>
+                              </div>
+                            ) : null}
+                            {runtimeStatus.loadingError ? (
+                              <div>
+                                <p className="text-slate-500">{uiText.runtimeLoadingError}</p>
+                                <p className="mt-1 break-all text-rose-200">{runtimeStatus.loadingError}</p>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        {runtimeLogExcerpt ? (
+                          <div>
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-slate-500">{uiText.logExcerpt}</p>
+                              <button
+                                type="button"
+                                disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
+                                onClick={() => void handleRuntimeAction("read_log")}
+                                className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
+                              >
+                                {runtimeActionPending === "read_log" ? uiText.loadingRuntimeLog : uiText.viewRuntimeLog}
+                              </button>
+                            </div>
+                            <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 font-mono text-xs leading-6 text-slate-300">
+                              {runtimeLogExcerpt}
+                            </pre>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
+                            onClick={() => void handleRuntimeAction("read_log")}
+                            className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
+                          >
+                            {runtimeActionPending === "read_log" ? uiText.loadingRuntimeLog : uiText.viewRuntimeLog}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-6 text-slate-400">{dictionary.agent.checking}</p>
+                    )}
+                  </RailDetailsSection>
+                ) : null}
 
                 {workbenchMode === "compare" ? (
                   <>
-                <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{dictionary.agent.promptFrame}</p>
-                  <textarea
-                    value={systemPrompt}
-                    onChange={(event) => setSystemPrompt(event.target.value)}
-                    rows={14}
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 font-mono text-xs leading-6 text-slate-200 outline-none transition focus:border-cyan-400/40"
-                  />
-                </div>
+                    <RailDetailsSection
+                      title={dictionary.agent.promptFrame}
+                      subtitle={
+                        locale.startsWith("en")
+                          ? "Only expand when you need to adjust the compare prompt frame from the side."
+                          : "需要从侧边改 compare 提示框架时再展开，不让它默认常驻占位。"
+                      }
+                    >
+                      <textarea
+                        value={systemPrompt}
+                        onChange={(event) => setSystemPrompt(event.target.value)}
+                        rows={12}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 font-mono text-xs leading-6 text-slate-200 outline-none transition focus:border-cyan-400/40"
+                      />
+                    </RailDetailsSection>
 
-                <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{dictionary.agent.launchHints}</p>
-                  <div className="mt-2 space-y-2">
-                    {(selectedTarget.launchHints || [uiText.fallbackLaunchHint]).map(
-                      (hint) => (
-                        <pre
-                          key={hint}
-                          className="overflow-x-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 font-mono text-xs leading-6 text-slate-200"
-                        >
-                          {hint}
-                        </pre>
-                      )
-                    )}
-                  </div>
-                </div>
-                  </>
-                ) : null}
+                    <RailDetailsSection
+                      title={dictionary.agent.launchHints}
+                      subtitle={
+                        locale.startsWith("en")
+                          ? "Deployment and fallback hints stay tucked away until you need operational context."
+                          : "部署与 fallback 提示折叠收纳，需要运维上下文时再展开。"
+                      }
+                      badge={selectedTarget.execution === "local" ? dictionary.common.local : "remote"}
+                    >
+                      <div className="space-y-2">
+                        {(selectedTarget.launchHints || [uiText.fallbackLaunchHint]).map((hint) => (
+                          <pre
+                            key={hint}
+                            className="overflow-x-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 font-mono text-xs leading-6 text-slate-200"
+                          >
+                            {hint}
+                          </pre>
+                        ))}
+                      </div>
+                    </RailDetailsSection>
 
-                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{dictionary.agent.localRuntime}</p>
-                    {selectedTarget.execution === "local" ? (
-                      <span className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] ${runtimePhase.className}`}>
-                        {runtimePhase.label}
-                      </span>
-                    ) : null}
-                  </div>
-                  {runtimeStatus ? (
-                    <div className="mt-3 space-y-3 text-sm text-slate-200">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {typeof runtimeStatus.queueDepth === "number" ? (
-                          <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] text-slate-300">
-                            {uiText.queueLabel} {runtimeStatus.queueDepth}
-                          </span>
+                    <RailDetailsSection
+                      title={dictionary.agent.providerSelfCheck}
+                      subtitle={
+                        locale.startsWith("en")
+                          ? "Run connection checks and inspect stage-by-stage latency without keeping the whole report visible."
+                          : "把连接自检和分阶段耗时折叠起来，需要时再展开查看，不让整份报告一直占据右栏。"
+                      }
+                      badge={
+                        connectionCheck
+                          ? connectionCheck.ok
+                            ? dictionary.common.ok
+                            : dictionary.common.failed
+                          : locale.startsWith("en")
+                            ? "Idle"
+                            : "未运行"
+                      }
+                    >
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={!supportsConnectionCheck || connectionCheckPending || pending}
+                            onClick={handleConnectionCheck}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
+                          >
+                            {connectionCheckPending ? dictionary.agent.checking : dictionary.agent.runCheck}
+                          </button>
+                          <a
+                            href={`/api/agent/check-history/export?targetId=${encodeURIComponent(selectedTargetId)}&format=markdown`}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
+                          >
+                            {dictionary.agent.exportMarkdown}
+                          </a>
+                          <a
+                            href={`/api/agent/check-history/export?targetId=${encodeURIComponent(selectedTargetId)}&format=json`}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
+                          >
+                            {dictionary.agent.exportJson}
+                          </a>
+                        </div>
+
+                        {!supportsConnectionCheck ? (
+                          <p className="text-sm leading-6 text-slate-400">{dictionary.agent.checkOnlyRemote}</p>
                         ) : null}
-                        {typeof runtimeStatus.activeRequests === "number" ? (
-                          <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] text-slate-300">
-                            {uiText.activeLabel} {runtimeStatus.activeRequests}
-                          </span>
+
+                        {connectionCheckError ? (
+                          <div className="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-3 py-3 text-sm text-rose-100">
+                            {connectionCheckError}
+                          </div>
                         ) : null}
-                        {loadedAliasForSelectedTarget ? (
-                          <span className="rounded-full bg-cyan-400/10 px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] text-cyan-300">
-                            {describeRuntimeAlias(loadedAliasForSelectedTarget, agentTargets)}
-                          </span>
-                        ) : null}
-                        {gatewayLoadedOtherAlias ? (
-                          <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] text-slate-300">
-                            {uiText.runtimeCurrentLoaded} {describeRuntimeAlias(gatewayLoadedOtherAlias, agentTargets)}
-                          </span>
-                        ) : null}
-                        {runtimeStatus.loadingAlias ? (
-                          <span className="rounded-full bg-amber-400/10 px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] text-amber-200">
-                            {uiText.runtimeSwitchingNow}: {describeRuntimeAlias(runtimeStatus.loadingAlias, agentTargets)}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div>
-                        <p className="text-slate-500">{uiText.runtimeMessage}</p>
-                        <p className="mt-1 leading-6">
-                          {runtimeStatus.phaseDetail || runtimeStatus.message || dictionary.common.unknown}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500">{locale.startsWith("en") ? "Runtime stage" : "运行阶段"}</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {runtimeStageItems.map((step) => (
-                            <span
-                              key={`runtime-stage:${step.key}`}
-                              className={`rounded-full border px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] ${
-                                step.active
-                                  ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
-                                  : step.completed
-                                    ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-                                    : "border-white/10 bg-white/[0.04] text-slate-400"
-                              }`}
-                            >
-                              {step.label}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <p className="text-slate-500">{uiText.supervisor}</p>
-                          <p className="mt-1 break-all text-white">
-                            {runtimeStatus.supervisorPid ?? dictionary.common.unknown} ·{" "}
-                            {runtimeStatus.supervisorAlive ? dictionary.common.ok : dictionary.common.failed}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500">{uiText.gatewayProcess}</p>
-                          <p className="mt-1 break-all text-white">
-                            {runtimeStatus.gatewayPid ?? dictionary.common.unknown} ·{" "}
-                            {runtimeStatus.gatewayAlive ? dictionary.common.ok : dictionary.common.failed}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <p className="text-slate-500">{uiText.runtimeCurrentLoaded}</p>
-                          <p className="mt-1 break-all text-white">
-                            {describeRuntimeAlias(runtimeStatus.loadedAlias, agentTargets)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500">{uiText.runtimeLastSwitchLoad}</p>
-                          <p className="mt-1 break-all text-white">{formatRuntimeDuration(selectedTargetLastSwitchMs)}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500">{uiText.runtimeLastSwitchAt}</p>
-                          <p className="mt-1 break-all text-white">
-                            {formatRuntimeTimestamp(selectedTargetLastSwitchAt, locale)}
-                          </p>
-                        </div>
-                      </div>
-                      {(runtimeStatus.loadingAlias || runtimeStatus.loadingError) ? (
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          {runtimeStatus.loadingAlias ? (
-                            <div>
-                              <p className="text-slate-500">{uiText.runtimeSwitchingNow}</p>
-                              <p className="mt-1 break-all text-white">
-                                {describeRuntimeAlias(runtimeStatus.loadingAlias, agentTargets)}
-                                {typeof runtimeStatus.loadingElapsedMs === "number"
-                                  ? ` · ${uiText.runtimeLoadingElapsed} ${Math.max(1, Math.round(runtimeStatus.loadingElapsedMs / 1000))}s`
-                                  : ""}
+
+                        {connectionCheck ? (
+                          <div className="space-y-2.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
+                                  connectionCheck.ok
+                                    ? "bg-emerald-400/15 text-emerald-200"
+                                    : "bg-amber-400/15 text-amber-200"
+                                }`}
+                              >
+                                {connectionCheck.ok ? dictionary.agent.allChecksPassed : dictionary.agent.checkAttention}
+                              </span>
+                              <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
+                                {new Date(connectionCheck.checkedAt).toLocaleTimeString()}
+                              </span>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-xs leading-6 text-slate-300">
+                              <p>{dictionary.common.model}: {connectionCheck.resolvedModel}</p>
+                              <p className="break-all">{dictionary.common.endpoint}: {connectionCheck.resolvedBaseUrl}</p>
+                              {connectionCheck.docsUrl ? (
+                                <a
+                                  href={connectionCheck.docsUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-1 inline-block text-cyan-300 underline decoration-cyan-300/40 underline-offset-4"
+                                >
+                                  {dictionary.agent.openDocs}
+                                </a>
+                              ) : null}
+                              <p className="mt-2 text-slate-500">
+                                {dictionary.agent.historySavedAt}: <span className="text-slate-300">data/agent-observability</span>
                               </p>
                             </div>
-                          ) : null}
-                          {runtimeStatus.loadingError ? (
-                            <div>
-                              <p className="text-slate-500">{uiText.runtimeLoadingError}</p>
-                              <p className="mt-1 break-all text-rose-200">{runtimeStatus.loadingError}</p>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {prewarmMessage ? (
-                        <div>
-                          <p className="text-slate-500">{uiText.runtimeActions}</p>
-                          <p className="mt-1 leading-6 text-cyan-200">{prewarmMessage}</p>
-                        </div>
-                      ) : null}
-                      {runtimeLogExcerpt ? (
-                        <div>
-                          <p className="text-slate-500">{uiText.logExcerpt}</p>
-                          <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 font-mono text-xs leading-6 text-slate-300">
-                            {runtimeLogExcerpt}
-                          </pre>
-                        </div>
-                      ) : null}
-                      <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
-                        <button
-                          type="button"
-                          disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
-                          onClick={handlePrewarmAll}
-                          className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                        >
-                          {prewarmAllPending ? uiText.prewarmingAll : uiText.prewarmAllModels}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
-                          onClick={handlePrewarm}
-                          className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                        >
-                          {prewarmPending ? uiText.prewarming : uiText.prewarmModel}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
-                          onClick={() => void handleRuntimeAction("release")}
-                          className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                        >
-                          {runtimeActionPending === "release" ? uiText.releasingModel : uiText.releaseModel}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
-                          onClick={() => void handleRuntimeAction("restart")}
-                          className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                        >
-                          {runtimeActionPending === "restart" ? uiText.restartingGateway : uiText.restartGateway}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={prewarmAllPending || prewarmPending || pending || Boolean(runtimeActionPending)}
-                          onClick={() => void handleRuntimeAction("read_log")}
-                          className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                        >
-                          {runtimeActionPending === "read_log" ? uiText.loadingRuntimeLog : uiText.viewRuntimeLog}
-                        </button>
+
+                            {connectionCheck.stages.map((stage) => (
+                              <div
+                                key={stage.id}
+                                className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span
+                                      className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${getConnectionStageBadgeClass(stage.ok)}`}
+                                    >
+                                      {formatConnectionStageLabel(stage.id)}
+                                    </span>
+                                    {typeof stage.httpStatus === "number" ? (
+                                      <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
+                                        http {stage.httpStatus}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                                    {stage.latencyMs} ms
+                                  </span>
+                                </div>
+                                <p className="mt-1.5 text-[13px] leading-6 text-slate-300">{stage.summary}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-sm leading-6 text-slate-400">{dictionary.agent.checking}</p>
-                  )}
-                </div>
+                    </RailDetailsSection>
+                  </>
+                ) : null}
               </div>
             </aside>
           </div>
