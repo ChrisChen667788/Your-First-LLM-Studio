@@ -38,6 +38,11 @@ type RuntimeMetricSample = {
   timestamp: string;
   gatewayCpuPct: number | null;
   gatewayResidentMemoryMb: number | null;
+  gatewayGpuPct: number | null;
+  gatewayGpuMemoryMb: number | null;
+  gatewayEnergySignalPct: number | null;
+  gatewayDiskUsedPct: number | null;
+  modelStorageFootprintMb: number | null;
 };
 
 const MAX_RUNTIME_METRIC_SAMPLES = 24;
@@ -549,10 +554,16 @@ function RuntimeMetricSparkline({
   title: string;
   latest: string;
   values: number[];
-  tone: "cyan" | "emerald";
+  tone: "cyan" | "emerald" | "amber" | "violet";
   helper: string;
 }) {
-  const stroke = tone === "cyan" ? "#22d3ee" : "#34d399";
+  const strokeMap = {
+    cyan: "#22d3ee",
+    emerald: "#34d399",
+    amber: "#f59e0b",
+    violet: "#a78bfa"
+  };
+  const stroke = strokeMap[tone];
   return (
     <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-slate-300">
       <div className="flex items-start justify-between gap-3">
@@ -1217,7 +1228,14 @@ export function AdminDashboard() {
       timestamp: new Date().toISOString(),
       gatewayCpuPct: typeof status.gatewayCpuPct === "number" ? status.gatewayCpuPct : null,
       gatewayResidentMemoryMb:
-        typeof status.gatewayResidentMemoryMb === "number" ? status.gatewayResidentMemoryMb : null
+        typeof status.gatewayResidentMemoryMb === "number" ? status.gatewayResidentMemoryMb : null,
+      gatewayGpuPct: typeof status.gatewayGpuPct === "number" ? status.gatewayGpuPct : null,
+      gatewayGpuMemoryMb: typeof status.gatewayGpuMemoryMb === "number" ? status.gatewayGpuMemoryMb : null,
+      gatewayEnergySignalPct:
+        typeof status.gatewayEnergySignalPct === "number" ? status.gatewayEnergySignalPct : null,
+      gatewayDiskUsedPct: typeof status.gatewayDiskUsedPct === "number" ? status.gatewayDiskUsedPct : null,
+      modelStorageFootprintMb:
+        typeof status.modelStorageFootprintMb === "number" ? status.modelStorageFootprintMb : null
     };
     setRuntimeMetricHistory((current) => {
       const nextSamples = [...(current[targetId] || []), sample].slice(-MAX_RUNTIME_METRIC_SAMPLES);
@@ -6434,6 +6452,18 @@ export function AdminDashboard() {
               const rssHistory = metricHistory
                 .map((entry) => entry.gatewayResidentMemoryMb)
                 .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+              const gpuHistory = metricHistory
+                .map((entry) => entry.gatewayGpuPct)
+                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+              const gpuMemoryHistory = metricHistory
+                .map((entry) => entry.gatewayGpuMemoryMb)
+                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+              const energyHistory = metricHistory
+                .map((entry) => entry.gatewayEnergySignalPct)
+                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+              const diskUsedHistory = metricHistory
+                .map((entry) => entry.gatewayDiskUsedPct)
+                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
               const action = runtimeActionPending[target.id] || "";
               const runtimeMessage = runtimeMessages[target.id] || runtime?.message || "";
               const logExcerpt = runtimeLogExcerpts[target.id] || "";
@@ -6591,6 +6621,70 @@ export function AdminDashboard() {
                             locale.startsWith("en")
                               ? "Rolling resident memory footprint for the shared gateway process"
                               : "共享本地网关进程的滚动常驻内存占用"
+                          }
+                        />
+                        <RuntimeMetricSparkline
+                          title={locale.startsWith("en") ? "Gateway GPU" : "网关 GPU"}
+                          latest={typeof runtime?.gatewayGpuPct === "number" ? `${runtime.gatewayGpuPct.toFixed(1)}%` : "--"}
+                          values={gpuHistory}
+                          tone="violet"
+                          helper={
+                            locale.startsWith("en")
+                              ? "Apple AGX device utilization sampled from ioreg without requiring sudo"
+                              : "通过 ioreg 采样 Apple AGX 设备利用率，无需 sudo"
+                          }
+                        />
+                        <RuntimeMetricSparkline
+                          title={locale.startsWith("en") ? "GPU memory" : "GPU 显存"}
+                          latest={
+                            typeof runtime?.gatewayGpuMemoryMb === "number"
+                              ? `${runtime.gatewayGpuMemoryMb.toFixed(1)} MB`
+                              : "--"
+                          }
+                          values={gpuMemoryHistory}
+                          tone="amber"
+                          helper={
+                            locale.startsWith("en")
+                              ? "Shared GPU system memory currently in use by AGX"
+                              : "AGX 当前占用的共享 GPU 系统内存"
+                          }
+                        />
+                        <RuntimeMetricSparkline
+                          title={locale.startsWith("en") ? "Energy signal" : "能耗信号"}
+                          latest={
+                            typeof runtime?.gatewayEnergySignalPct === "number"
+                              ? `${runtime.gatewayEnergySignalPct.toFixed(1)}%`
+                              : "--"
+                          }
+                          values={energyHistory}
+                          tone="amber"
+                          helper={
+                            locale.startsWith("en")
+                              ? "Best-effort energy estimate derived from CPU, GPU, busy state, and AC/battery context"
+                              : "结合 CPU、GPU、忙碌状态与供电信息得到的近似能耗信号"
+                          }
+                        />
+                        <RuntimeMetricSparkline
+                          title={locale.startsWith("en") ? "Storage pressure" : "存储占用"}
+                          latest={
+                            typeof runtime?.gatewayDiskUsedPct === "number"
+                              ? `${runtime.gatewayDiskUsedPct.toFixed(1)}%`
+                              : "--"
+                          }
+                          values={diskUsedHistory}
+                          tone="emerald"
+                          helper={
+                            locale.startsWith("en")
+                              ? `System disk usage. Model footprint: ${
+                                  typeof runtime?.modelStorageFootprintMb === "number"
+                                    ? `${runtime.modelStorageFootprintMb.toFixed(1)} MB`
+                                    : "--"
+                                }`
+                              : `系统磁盘使用率。模型体积：${
+                                  typeof runtime?.modelStorageFootprintMb === "number"
+                                    ? `${runtime.modelStorageFootprintMb.toFixed(1)} MB`
+                                    : "--"
+                                }`
                           }
                         />
                       </div>

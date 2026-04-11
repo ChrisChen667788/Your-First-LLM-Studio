@@ -144,7 +144,9 @@ export async function GET(request: Request) {
         )
       : false;
   const supervisor = getLocalGatewaySupervisorInfo();
-  const processMetrics = readRuntimeProcessMetrics(supervisor.gatewayPid ?? supervisor.supervisorPid);
+  const baseProcessMetrics = readRuntimeProcessMetrics(supervisor.gatewayPid ?? supervisor.supervisorPid, {
+    modelSourcePath: target.sourcePath
+  });
 
   if (target.execution !== "local") {
     const phase = deriveRuntimePhase({
@@ -167,8 +169,13 @@ export async function GET(request: Request) {
       busy: false,
       queueDepth: 0,
       activeRequests: 0,
-      gatewayCpuPct: processMetrics.gatewayCpuPct,
-      gatewayResidentMemoryMb: processMetrics.gatewayResidentMemoryMb,
+      gatewayCpuPct: baseProcessMetrics.gatewayCpuPct,
+      gatewayResidentMemoryMb: baseProcessMetrics.gatewayResidentMemoryMb,
+      gatewayGpuPct: baseProcessMetrics.gatewayGpuPct,
+      gatewayGpuMemoryMb: baseProcessMetrics.gatewayGpuMemoryMb,
+      gatewayEnergySignalPct: baseProcessMetrics.gatewayEnergySignalPct,
+      gatewayDiskUsedPct: baseProcessMetrics.gatewayDiskUsedPct,
+      modelStorageFootprintMb: baseProcessMetrics.modelStorageFootprintMb,
       loadedAlias: null,
       message: "Remote target. No local runtime queue."
     };
@@ -210,8 +217,13 @@ export async function GET(request: Request) {
           busy: true,
           queueDepth: 0,
           activeRequests: 0,
-          gatewayCpuPct: processMetrics.gatewayCpuPct,
-          gatewayResidentMemoryMb: processMetrics.gatewayResidentMemoryMb,
+          gatewayCpuPct: baseProcessMetrics.gatewayCpuPct,
+          gatewayResidentMemoryMb: baseProcessMetrics.gatewayResidentMemoryMb,
+          gatewayGpuPct: baseProcessMetrics.gatewayGpuPct,
+          gatewayGpuMemoryMb: baseProcessMetrics.gatewayGpuMemoryMb,
+          gatewayEnergySignalPct: baseProcessMetrics.gatewayEnergySignalPct,
+          gatewayDiskUsedPct: baseProcessMetrics.gatewayDiskUsedPct,
+          modelStorageFootprintMb: baseProcessMetrics.modelStorageFootprintMb,
           loadedAlias: null,
           loadingAlias: null,
           loadingElapsedMs: null,
@@ -236,19 +248,26 @@ export async function GET(request: Request) {
     if (!data) {
       throw new Error(ensureReason || "Local runtime health endpoint is unavailable.");
     }
+    const loadedAlias =
+      typeof data.loaded_alias === "string" || data.loaded_alias === null
+        ? (data.loaded_alias as string | null)
+        : null;
+    const loadingAlias =
+      typeof data.loading_alias === "string" || data.loading_alias === null
+        ? (data.loading_alias as string | null)
+        : null;
+    const busy = Boolean(data.busy);
+    const processMetrics = readRuntimeProcessMetrics(supervisor.gatewayPid ?? supervisor.supervisorPid, {
+      modelSourcePath: target.sourcePath,
+      runtimeBusy: busy
+    });
     const payload: AgentRuntimeStatus = {
       ...deriveRuntimePhase({
         execution: target.execution,
         available: typeof data.loading_alias === "string" ? false : true,
-        busy: Boolean(data.busy),
-        loadedAlias:
-          typeof data.loaded_alias === "string" || data.loaded_alias === null
-            ? (data.loaded_alias as string | null)
-            : null,
-        loadingAlias:
-          typeof data.loading_alias === "string" || data.loading_alias === null
-            ? (data.loading_alias as string | null)
-            : null,
+        busy,
+        loadedAlias,
+        loadingAlias,
         loadingError: typeof data.loading_error === "string" ? data.loading_error : null,
         supervisorAlive: supervisor.supervisorAlive,
         gatewayAlive: supervisor.gatewayAlive
@@ -265,14 +284,16 @@ export async function GET(request: Request) {
       thinkingModelConfigured,
       gatewayCpuPct: processMetrics.gatewayCpuPct,
       gatewayResidentMemoryMb: processMetrics.gatewayResidentMemoryMb,
-      busy: Boolean(data.busy),
+      gatewayGpuPct: processMetrics.gatewayGpuPct,
+      gatewayGpuMemoryMb: processMetrics.gatewayGpuMemoryMb,
+      gatewayEnergySignalPct: processMetrics.gatewayEnergySignalPct,
+      gatewayDiskUsedPct: processMetrics.gatewayDiskUsedPct,
+      modelStorageFootprintMb: processMetrics.modelStorageFootprintMb,
+      busy,
       queueDepth: typeof data.queue_depth === "number" ? data.queue_depth : 0,
       activeRequests: typeof data.active_requests === "number" ? data.active_requests : 0,
-      loadedAlias: typeof data.loaded_alias === "string" || data.loaded_alias === null ? (data.loaded_alias as string | null) : null,
-      loadingAlias:
-        typeof data.loading_alias === "string" || data.loading_alias === null
-          ? (data.loading_alias as string | null)
-          : null,
+      loadedAlias,
+      loadingAlias,
       loadingElapsedMs: typeof data.loading_elapsed_ms === "number" ? data.loading_elapsed_ms : null,
       loadingError: typeof data.loading_error === "string" ? data.loading_error : null,
       workspaceRoot: typeof data.workspace_root === "string" ? data.workspace_root : undefined,
@@ -318,8 +339,13 @@ export async function GET(request: Request) {
       busy: false,
       queueDepth: 0,
       activeRequests: 0,
-      gatewayCpuPct: processMetrics.gatewayCpuPct,
-      gatewayResidentMemoryMb: processMetrics.gatewayResidentMemoryMb,
+      gatewayCpuPct: baseProcessMetrics.gatewayCpuPct,
+      gatewayResidentMemoryMb: baseProcessMetrics.gatewayResidentMemoryMb,
+      gatewayGpuPct: baseProcessMetrics.gatewayGpuPct,
+      gatewayGpuMemoryMb: baseProcessMetrics.gatewayGpuMemoryMb,
+      gatewayEnergySignalPct: baseProcessMetrics.gatewayEnergySignalPct,
+      gatewayDiskUsedPct: baseProcessMetrics.gatewayDiskUsedPct,
+      modelStorageFootprintMb: baseProcessMetrics.modelStorageFootprintMb,
       loadedAlias: null,
       loadingAlias: null,
       loadingElapsedMs: null,

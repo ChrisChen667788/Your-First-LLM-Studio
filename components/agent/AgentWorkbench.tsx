@@ -97,6 +97,20 @@ type AgentTurn = {
   };
 };
 
+type AgentTargetsScanResponse = {
+  ok: boolean;
+  targets?: AgentTarget[];
+  remoteChecks?: Record<string, AgentConnectionCheckResponse>;
+  summary?: {
+    localNewTargetIds: string[];
+    localRemovedTargetIds: string[];
+    remoteConfiguredCount: number;
+    remoteHealthyCount: number;
+    remoteSkippedTargetIds: string[];
+  };
+  error?: string;
+};
+
 const AgentCompareLab = dynamic(
   () => import("@/components/agent/AgentCompareLab").then((mod) => mod.AgentCompareLab),
   {
@@ -942,6 +956,9 @@ export function AgentWorkbench() {
   >({});
   const [connectionCheckPending, setConnectionCheckPending] = useState(false);
   const [connectionCheckError, setConnectionCheckError] = useState("");
+  const [scanTargetsPending, setScanTargetsPending] = useState(false);
+  const [scanTargetsMessage, setScanTargetsMessage] = useState("");
+  const [scanTargetsMessageTone, setScanTargetsMessageTone] = useState<"success" | "error">("success");
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [serverSessionSyncState, setServerSessionSyncState] = useState<"" | "syncing" | "synced" | "error">("");
   const transcriptRef = useRef<HTMLDivElement | null>(null);
@@ -951,30 +968,32 @@ export function AgentWorkbench() {
   const sessionSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydrateWorkbenchStateRef = useRef(false);
 
+  const loadAvailableTargets = useCallback(async () => {
+    try {
+      const response = await fetch("/api/agent/targets", { cache: "no-store" });
+      const payload = (await response.json()) as { targets?: AgentTarget[] };
+      if (!response.ok || !Array.isArray(payload.targets) || !payload.targets.length) return;
+      setAvailableTargets(payload.targets);
+    } catch {
+      // keep builtin targets when sync fails
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
-    async function loadAvailableTargets() {
-      try {
-        const response = await fetch("/api/agent/targets", { cache: "no-store" });
-        const payload = (await response.json()) as { targets?: AgentTarget[] };
-        if (!response.ok || cancelled || !Array.isArray(payload.targets) || !payload.targets.length) return;
-        setAvailableTargets(payload.targets);
-      } catch {
-        // keep builtin targets when sync fails
-      }
-    }
-
     void loadAvailableTargets();
     const timer = window.setInterval(() => {
-      void loadAvailableTargets();
+      if (!cancelled) {
+        void loadAvailableTargets();
+      }
     }, 30000);
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [loadAvailableTargets]);
 
   const selectedTarget = useMemo(
     () => agentTargets.find((target) => target.id === selectedTargetId) || agentTargets[0],
@@ -2406,6 +2425,12 @@ export function AgentWorkbench() {
     return () => window.clearTimeout(timer);
   }, [copyState]);
 
+  useEffect(() => {
+    if (!scanTargetsMessage) return;
+    const timer = window.setTimeout(() => setScanTargetsMessage(""), 5000);
+    return () => window.clearTimeout(timer);
+  }, [scanTargetsMessage]);
+
   function handleToggleCompareTarget(targetId: string) {
     if (targetId === selectedTargetId) {
       return;
@@ -2466,6 +2491,58 @@ export function AgentWorkbench() {
     },
     [agentTargets, selectedTarget, selectedTargetId, thinkingMode, uiText.runtimeFailed]
   );
+
+  const handleScanTargets = useCallback(async () => {
+    if (scanTargetsPending) return;
+
+    setScanTargetsPending(true);
+    setScanTargetsMessage("");
+    setConnectionCheckError("");
+
+    try {
+      const response = await fetch("/api/agent/targets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        cache: "no-store"
+      });
+      const payload = (await response.json()) as AgentTargetsScanResponse;
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || (locale.startsWith("en") ? "Scan failed." : "扫描失败。"));
+      }
+
+      if (Array.isArray(payload.targets) && payload.targets.length) {
+        setAvailableTargets(payload.targets);
+      }
+      if (payload.remoteChecks && typeof payload.remoteChecks === "object") {
+        setConnectionChecksByTargetId((current) => ({
+          ...current,
+          ...payload.remoteChecks
+        }));
+      }
+
+      const summary = payload.summary;
+      const localAdded = summary?.localNewTargetIds.length || 0;
+      const localRemoved = summary?.localRemovedTargetIds.length || 0;
+      const remoteHealthy = summary?.remoteHealthyCount || 0;
+      const remoteConfigured = summary?.remoteConfiguredCount || 0;
+      const remoteSkipped = summary?.remoteSkippedTargetIds.length || 0;
+
+      setScanTargetsMessageTone("success");
+      setScanTargetsMessage(
+        locale.startsWith("en")
+          ? `Scan complete. Local +${localAdded}${localRemoved ? ` / -${localRemoved}` : ""}; remote APIs healthy ${remoteHealthy}/${remoteConfigured}${remoteSkipped ? `, skipped ${remoteSkipped}` : ""}.`
+          : `扫描完成。本地新增 ${localAdded} 个${localRemoved ? `、移除 ${localRemoved} 个` : ""}；远端 API 健康 ${remoteHealthy}/${remoteConfigured}${remoteSkipped ? `，跳过 ${remoteSkipped} 个` : ""}。`
+      );
+      await loadRuntimeStatus(selectedTargetId, { force: true });
+    } catch (scanError) {
+      setScanTargetsMessageTone("error");
+      setScanTargetsMessage(scanError instanceof Error ? scanError.message : locale.startsWith("en") ? "Scan failed." : "扫描失败。");
+    } finally {
+      setScanTargetsPending(false);
+    }
+  }, [loadRuntimeStatus, locale, scanTargetsPending, selectedTargetId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3314,10 +3391,37 @@ export function AgentWorkbench() {
             <section>
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{dictionary.agent.targets}</p>
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300">
-                  {agentTargets.length}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleScanTargets()}
+                    disabled={scanTargetsPending}
+                    className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {scanTargetsPending
+                      ? locale.startsWith("en")
+                        ? "Scanning..."
+                        : "扫描中..."
+                      : locale.startsWith("en")
+                        ? "Scan models / APIs"
+                        : "一键扫描新模型 / API"}
+                  </button>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300">
+                    {agentTargets.length}
+                  </span>
+                </div>
               </div>
+              {scanTargetsMessage ? (
+                <div
+                  className={`mb-3 rounded-2xl border px-3 py-2 text-[11px] leading-5 ${
+                    scanTargetsMessageTone === "success"
+                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+                      : "border-rose-400/20 bg-rose-400/10 text-rose-100"
+                  }`}
+                >
+                  {scanTargetsMessage}
+                </div>
+              ) : null}
               <div className="space-y-2">
                 {agentTargets.map((target) => {
                   const active = target.id === selectedTargetId;

@@ -79,6 +79,10 @@ function loadLocalEnv() {
   return values;
 }
 
+export function clearProviderEnvCache() {
+  localEnvCache = null;
+}
+
 function readEnv(name: string | undefined, fallback: string) {
   if (!name) return fallback;
   const localEnv = loadLocalEnv();
@@ -225,6 +229,43 @@ export function isDeepSeekCompatibleTarget(target: ResolvedTarget) {
   return target.id === "deepseek-api" || /deepseek/i.test(target.resolvedModel);
 }
 
+export type OpenAICompatibleProviderFamily =
+  | "openai"
+  | "deepseek"
+  | "claude-compatible"
+  | "moonshot"
+  | "zhipu"
+  | "dashscope"
+  | "generic";
+
+export function getOpenAICompatibleProviderFamily(target: ResolvedTarget): OpenAICompatibleProviderFamily {
+  const baseUrl = target.resolvedBaseUrl.toLowerCase();
+  const model = target.resolvedModel.toLowerCase();
+  if (target.id === "openai-gpt54" || baseUrl.includes("api.openai.com") || /\bgpt-|o\d|o[34]\b/.test(model)) {
+    return "openai";
+  }
+  if (target.id === "deepseek-api" || baseUrl.includes("deepseek.com") || model.includes("deepseek")) {
+    return "deepseek";
+  }
+  if (target.id === "anthropic-claude" || model.includes("claude")) {
+    return "claude-compatible";
+  }
+  if (target.id === "kimi-api" || baseUrl.includes("moonshot.cn") || model.includes("kimi")) {
+    return "moonshot";
+  }
+  if (target.id === "glm-api" || baseUrl.includes("bigmodel.cn") || model.includes("glm")) {
+    return "zhipu";
+  }
+  if (target.id === "qwen-api" || baseUrl.includes("dashscope.aliyuncs.com") || model.includes("qwen")) {
+    return "dashscope";
+  }
+  return "generic";
+}
+
+function isOpenAICompatibleRemoteTarget(target: ResolvedTarget) {
+  return target.execution === "remote" && target.transport === "openai-compatible";
+}
+
 function expectsJsonToolCallOutput(input: string) {
   const trimmed = input.trim();
   if (!trimmed) return false;
@@ -249,6 +290,7 @@ export function buildProviderOutputContract(systemPrompt: string, options: {
   const lines: string[] = [];
   const strictJsonRequested = expectsStrictJsonOutput(input);
   const jsonToolCallRequested = expectsJsonToolCallOutput(input);
+  const providerFamily = getOpenAICompatibleProviderFamily(target);
 
   if (strictJsonRequested) {
     lines.push("- Return valid JSON only.");
@@ -270,8 +312,25 @@ export function buildProviderOutputContract(systemPrompt: string, options: {
     lines.push("- If the task asks for bullet items, emit only the requested bullet lines.");
   }
 
+  if (isOpenAICompatibleRemoteTarget(target) && (strictJsonRequested || jsonToolCallRequested)) {
+    lines.push("- Prefer one final machine-readable payload over explanatory lead-in text.");
+    lines.push("- Keep the visible answer parseable even if the provider performs hidden reasoning first.");
+  }
+
+  if (isOpenAICompatibleRemoteTarget(target) && enableTools) {
+    lines.push("- If tools are enabled, do not narrate the tool choice before emitting the structured result.");
+  }
+
   if (isDeepSeekCompatibleTarget(target) && thinkingMode === "thinking") {
     lines.push("- Always produce a final visible answer in `content`; do not stop after reasoning alone.");
+  }
+
+  if ((providerFamily === "moonshot" || providerFamily === "zhipu" || providerFamily === "dashscope") && strictJsonRequested) {
+    lines.push("- Keep keys stable and avoid optional prose fields that would break downstream regression parsing.");
+  }
+
+  if ((providerFamily === "moonshot" || providerFamily === "zhipu" || providerFamily === "dashscope") && jsonToolCallRequested) {
+    lines.push("- Return the tool object directly; avoid extra explanation, markdown, or roleplay around the tool payload.");
   }
 
   if (!lines.length) {
@@ -295,6 +354,8 @@ export function buildOpenAICompatibleRequestShape(options: {
   const { target, input, enableTools, thinkingMode = "standard" } = options;
   const bodyExtras: Record<string, unknown> = {};
   let model = target.resolvedModel;
+  const strictJsonRequested = expectsStrictJsonOutput(input);
+  const jsonToolCallRequested = expectsJsonToolCallOutput(input);
 
   if (target.execution === "local") {
     const extraBody = buildLocalChatTemplateExtraBody(target, thinkingMode);
@@ -308,7 +369,11 @@ export function buildOpenAICompatibleRequestShape(options: {
     bodyExtras.thinking = { type: "enabled" };
   }
 
-  if (!enableTools && isDeepSeekCompatibleTarget(target) && expectsStrictJsonOutput(input)) {
+  if (
+    !enableTools &&
+    isOpenAICompatibleRemoteTarget(target) &&
+    (strictJsonRequested || jsonToolCallRequested)
+  ) {
     bodyExtras.response_format = { type: "json_object" };
   }
 
@@ -337,6 +402,8 @@ export function resolveSuggestedMaxTokens(options: {
 
   const suggested = suggestMaxTokens(target.execution, enableTools, input, providerProfile);
   const strictJsonRequested = expectsStrictJsonOutput(input);
+  const jsonToolCallRequested = expectsJsonToolCallOutput(input);
+  const providerFamily = getOpenAICompatibleProviderFamily(target);
   let nextMaxTokens =
     typeof requestedMaxTokens === "number" ? Math.min(requestedMaxTokens, suggested) : suggested;
 
@@ -352,6 +419,29 @@ export function resolveSuggestedMaxTokens(options: {
       deepSeekReasoningFloor = Math.max(deepSeekReasoningFloor, 3072);
     }
     nextMaxTokens = Math.max(nextMaxTokens, deepSeekReasoningFloor);
+  }
+
+  if (
+    isOpenAICompatibleRemoteTarget(target) &&
+    providerFamily !== "deepseek" &&
+    providerFamily !== "claude-compatible"
+  ) {
+    let providerSpecificFloor = 0;
+    if (thinkingMode === "thinking") {
+      providerSpecificFloor = 1536;
+    }
+    if (providerProfile === "tool-first") {
+      providerSpecificFloor = Math.max(providerSpecificFloor, 1024);
+    }
+    if (strictJsonRequested || jsonToolCallRequested) {
+      providerSpecificFloor = Math.max(providerSpecificFloor, thinkingMode === "thinking" ? 2048 : 1280);
+    }
+    if (enableTools) {
+      providerSpecificFloor = Math.max(providerSpecificFloor, thinkingMode === "thinking" ? 2048 : 1408);
+    }
+    if (providerSpecificFloor > 0) {
+      nextMaxTokens = Math.max(nextMaxTokens, providerSpecificFloor);
+    }
   }
 
   return nextMaxTokens;

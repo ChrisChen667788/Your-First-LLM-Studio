@@ -417,6 +417,11 @@ export type AgentRuntimeStatus = {
   lastEvent?: string | null;
   gatewayCpuPct?: number | null;
   gatewayResidentMemoryMb?: number | null;
+  gatewayGpuPct?: number | null;
+  gatewayGpuMemoryMb?: number | null;
+  gatewayEnergySignalPct?: number | null;
+  gatewayDiskUsedPct?: number | null;
+  modelStorageFootprintMb?: number | null;
   lastEnsureReason?: string | null;
   logFile?: string;
 };

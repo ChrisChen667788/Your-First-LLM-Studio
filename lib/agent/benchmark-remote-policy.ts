@@ -1,6 +1,12 @@
 import type { AgentProviderProfile, AgentThinkingMode, ResolvedTarget } from "./types";
 
-export type RemoteBenchmarkProviderKind = "openai-compatible" | "claude-compatible" | "deepseek-compatible";
+export type RemoteBenchmarkProviderKind =
+  | "openai-compatible"
+  | "claude-compatible"
+  | "deepseek-compatible"
+  | "moonshot-compatible"
+  | "zhipu-compatible"
+  | "dashscope-compatible";
 
 export type RemoteBenchmarkPolicy = {
   totalTimeoutMs: number;
@@ -30,11 +36,22 @@ const CODE_GENERATION_WORKLOADS = new Set(["humaneval-starter", "mbppplus-starte
 const INSTRUCTION_STYLE_WORKLOADS = new Set(["instruction-following-lite", "ifeval-starter"]);
 
 export function getRemoteBenchmarkProviderKind(target: ResolvedTarget): RemoteBenchmarkProviderKind {
+  const baseUrl = target.resolvedBaseUrl.toLowerCase();
+  const model = target.resolvedModel.toLowerCase();
   if (target.id === "anthropic-claude" || /claude/i.test(target.resolvedModel)) {
     return "claude-compatible";
   }
   if (target.id === "deepseek-api" || /deepseek/i.test(target.resolvedModel)) {
     return "deepseek-compatible";
+  }
+  if (target.id === "kimi-api" || baseUrl.includes("moonshot.cn") || model.includes("kimi")) {
+    return "moonshot-compatible";
+  }
+  if (target.id === "glm-api" || baseUrl.includes("bigmodel.cn") || model.includes("glm")) {
+    return "zhipu-compatible";
+  }
+  if (target.id === "qwen-api" || baseUrl.includes("dashscope.aliyuncs.com") || model.includes("qwen")) {
+    return "dashscope-compatible";
   }
   return "openai-compatible";
 }
@@ -85,6 +102,16 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
     } else if (providerProfile === "tool-first") {
       firstTokenTimeoutMs += 3000;
     }
+  }
+
+  if (providerKind === "moonshot-compatible") {
+    if (thinkingMode === "thinking") firstTokenTimeoutMs += 10000;
+    if (providerProfile === "tool-first") firstTokenTimeoutMs += 4000;
+  }
+
+  if (providerKind === "zhipu-compatible" || providerKind === "dashscope-compatible") {
+    if (thinkingMode === "thinking") firstTokenTimeoutMs += 7000;
+    if (providerProfile === "tool-first") firstTokenTimeoutMs += 3000;
   }
 
   if (workloadId === "latency-smoke") {
@@ -146,6 +173,12 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
     if (providerKind === "deepseek-compatible") {
       retryBudgetMs = thinkingMode === "thinking" ? 52000 : 32000;
     }
+    if (providerKind === "moonshot-compatible") {
+      retryBudgetMs = thinkingMode === "thinking" ? 52000 : 34000;
+    }
+    if (providerKind === "zhipu-compatible" || providerKind === "dashscope-compatible") {
+      retryBudgetMs = thinkingMode === "thinking" ? 50000 : 34000;
+    }
   }
 
   if (providerKind === "claude-compatible" && thinkingMode === "standard" && isInstructionStyleWorkload(workloadId)) {
@@ -185,6 +218,12 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
     if (providerKind === "deepseek-compatible") {
       streamIdleTimeoutMs = thinkingMode === "thinking" ? 22000 : 10000;
     }
+    if (providerKind === "moonshot-compatible") {
+      streamIdleTimeoutMs = thinkingMode === "thinking" ? 24000 : 12000;
+    }
+    if (providerKind === "zhipu-compatible" || providerKind === "dashscope-compatible") {
+      streamIdleTimeoutMs = thinkingMode === "thinking" ? 22000 : 12000;
+    }
   } else if (providerKind === "claude-compatible" && thinkingMode === "standard" && isInstructionStyleWorkload(workloadId)) {
     streamIdleTimeoutMs = providerProfile === "balanced" ? 22000 : 18000;
   } else if (isInstructionStyleWorkload(workloadId)) {
@@ -203,6 +242,10 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
     streamIdleTimeoutMs = Math.floor(totalTimeoutMs * 0.35);
     if (providerKind === "claude-compatible") streamIdleTimeoutMs += 5000;
     if (providerKind === "deepseek-compatible") streamIdleTimeoutMs += thinkingMode === "thinking" ? 12000 : 3000;
+    if (providerKind === "moonshot-compatible") streamIdleTimeoutMs += thinkingMode === "thinking" ? 10000 : 4000;
+    if (providerKind === "zhipu-compatible" || providerKind === "dashscope-compatible") {
+      streamIdleTimeoutMs += thinkingMode === "thinking" ? 8000 : 3000;
+    }
     if (providerProfile === "tool-first") streamIdleTimeoutMs += 10000;
     if (thinkingMode === "thinking") streamIdleTimeoutMs += 15000;
     if (isLongContextWorkload(workloadId)) streamIdleTimeoutMs += 10000;
