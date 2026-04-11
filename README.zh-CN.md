@@ -202,4 +202,4 @@ public/                   对外资源和社媒封面图
 - 当前版本：[`VERSION`](./VERSION)
 - Release notes：[`docs/releases`](./docs/releases)
 - 发布流程：[`docs/release-process.md`](./docs/release-process.md)
-- 最新 release：[v0.2.3](https://github.com/ChrisChen667788/local-agent-lab/releases/tag/v0.2.3)
+- 最新版本说明：[v0.3.0](./docs/releases/v0.3.0_2026-04-11.md)
