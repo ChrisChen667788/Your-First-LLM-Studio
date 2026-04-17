@@ -2684,6 +2684,60 @@ export function AgentWorkbench() {
     [loadStudioRecipes]
   );
 
+  const handleExportStudioRecipes = useCallback(() => {
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      source: "first-llm-studio",
+      recipes
+    };
+    const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], {
+      type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `first-llm-studio-recipes-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }, [recipes]);
+
+  const handleImportStudioRecipes = useCallback(
+    async (file: File) => {
+      setRecipesPending(true);
+      setRecipesError("");
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text) as unknown;
+        const response = await fetch("/api/agent/recipes", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(parsed)
+        });
+        const payload = (await response.json()) as {
+          ok?: boolean;
+          error?: string;
+          recipes?: AgentStudioRecipe[];
+        };
+        if (!response.ok) {
+          throw new Error(payload.error || "Failed to import recipes.");
+        }
+        await loadStudioRecipes();
+        const importedRecipeId = payload.recipes?.[0]?.id;
+        if (importedRecipeId) {
+          setActiveRecipeId(importedRecipeId);
+        }
+      } catch (recipeImportError) {
+        setRecipesError(recipeImportError instanceof Error ? recipeImportError.message : "Failed to import recipes.");
+      } finally {
+        setRecipesPending(false);
+      }
+    },
+    [loadStudioRecipes]
+  );
+
   const handleRunStudioRecipeCompare = useCallback(
     async (recipeId: string) => {
       const resolved = resolveStudioRecipeState(recipeId);
@@ -6084,6 +6138,8 @@ export function AgentWorkbench() {
                   onRunRecipeBenchmark={handleRunStudioRecipeBenchmark}
                   onDeleteRecipe={handleDeleteStudioRecipe}
                   onSaveCurrentRecipe={handleCreateStudioRecipe}
+                  onExportRecipesJson={handleExportStudioRecipes}
+                  onImportRecipesJson={handleImportStudioRecipes}
                   onCopy={handleCopy}
                   copyState={copyState}
                 />

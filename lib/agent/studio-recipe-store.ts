@@ -6,6 +6,17 @@ import type { AgentStudioRecipe } from "@/lib/agent/types";
 const DATA_DIR = getLocalAgentDataDir();
 const RECIPE_FILE = getLocalAgentDataPath("studio-recipes.json");
 
+type MutableStudioRecipeInput = Omit<AgentStudioRecipe, "id" | "source" | "createdAt" | "updatedAt"> & {
+  id?: string;
+};
+
+export type StudioRecipeImportResult = {
+  imported: AgentStudioRecipe[];
+  importedCount: number;
+  replacedCount: number;
+  skippedCount: number;
+};
+
 function ensureDataDir() {
   mkdirSync(DATA_DIR, { recursive: true });
 }
@@ -63,6 +74,17 @@ function mergeRecipes(userRecipes: AgentStudioRecipe[]) {
   });
 }
 
+function buildUniqueRecipeId(existingRows: AgentStudioRecipe[], label: string, preferredId?: string | null) {
+  const baseId = (preferredId?.trim() || buildSlug(label)).slice(0, 64);
+  let nextId = baseId;
+  let counter = 2;
+  while (existingRows.some((entry) => entry.id === nextId)) {
+    nextId = `${baseId}-${counter}`.slice(0, 64);
+    counter += 1;
+  }
+  return nextId;
+}
+
 export function readStudioRecipes() {
   ensureDataDir();
   if (!existsSync(RECIPE_FILE)) {
@@ -92,15 +114,9 @@ export function readStudioRecipes() {
   }
 }
 
-export function createStudioRecipe(input: Omit<AgentStudioRecipe, "id" | "source" | "createdAt" | "updatedAt"> & { id?: string }) {
+export function createStudioRecipe(input: MutableStudioRecipeInput) {
   const rows = readStudioRecipes();
-  const baseId = (input.id?.trim() || buildSlug(input.label)).slice(0, 64);
-  let nextId = baseId;
-  let counter = 2;
-  while (rows.some((entry) => entry.id === nextId)) {
-    nextId = `${baseId}-${counter}`.slice(0, 64);
-    counter += 1;
-  }
+  const nextId = buildUniqueRecipeId(rows, input.label, input.id);
   const timestamp = new Date().toISOString();
   const record = normalizeRecipe({
     ...input,
@@ -112,6 +128,62 @@ export function createStudioRecipe(input: Omit<AgentStudioRecipe, "id" | "source
   rows.push(record);
   writeRecipes(rows);
   return record;
+}
+
+export function importStudioRecipes(inputs: MutableStudioRecipeInput[]): StudioRecipeImportResult {
+  const rows = readStudioRecipes();
+  const imported: AgentStudioRecipe[] = [];
+  let replacedCount = 0;
+  let skippedCount = 0;
+
+  for (const input of inputs) {
+    const builtinRecipe = input.id
+      ? rows.find((entry) => entry.id === input.id && entry.source === "builtin") || null
+      : null;
+    if (builtinRecipe) {
+      skippedCount += 1;
+      continue;
+    }
+    const existingUserRecipe = input.id
+      ? rows.find((entry) => entry.id === input.id && entry.source === "user") || null
+      : null;
+
+    if (existingUserRecipe) {
+      const nextRecord = normalizeRecipe({
+        ...existingUserRecipe,
+        ...input,
+        id: existingUserRecipe.id,
+        source: "user",
+        createdAt: existingUserRecipe.createdAt,
+        updatedAt: new Date().toISOString()
+      });
+      const index = rows.findIndex((entry) => entry.id === existingUserRecipe.id);
+      rows[index] = nextRecord;
+      imported.push(nextRecord);
+      replacedCount += 1;
+      continue;
+    }
+
+    const nextId = buildUniqueRecipeId(rows, input.label, input.id);
+    const timestamp = new Date().toISOString();
+    const record = normalizeRecipe({
+      ...input,
+      id: nextId,
+      source: "user",
+      createdAt: timestamp,
+      updatedAt: timestamp
+    });
+    rows.push(record);
+    imported.push(record);
+  }
+
+  writeRecipes(rows);
+  return {
+    imported,
+    importedCount: imported.length,
+    replacedCount,
+    skippedCount
+  };
 }
 
 export function deleteStudioRecipe(id: string) {

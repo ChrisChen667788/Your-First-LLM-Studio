@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import type { AgentStudioRecipe } from "@/lib/agent/types";
 
 type AgentRecipeGalleryProps = {
@@ -20,6 +21,8 @@ type AgentRecipeGalleryProps = {
   onRunBenchmark: (recipeId: string) => void;
   onDelete: (recipeId: string) => void;
   onSaveCurrent: () => void;
+  onExportJson: () => void;
+  onImportJson: (file: File) => void;
 };
 
 function formatContextWindowLabel(value: number) {
@@ -43,9 +46,13 @@ export function AgentRecipeGallery({
   onRunCompare,
   onRunBenchmark,
   onDelete,
-  onSaveCurrent
+  onSaveCurrent,
+  onExportJson,
+  onImportJson
 }: AgentRecipeGalleryProps) {
   const isEn = locale.startsWith("en");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   return (
     <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -58,11 +65,11 @@ export function AgentRecipeGallery({
           </h3>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
             {isEn
-              ? "Start from a strong built-in recipe or save the exact compare setup we already have on screen, including prompt, schema, targets, and fairness controls."
-              : "可以直接套用内置高价值配方，也可以把当前屏幕上的 prompt、schema、目标矩阵和公平性控制项保存成自己的 compare 配方。"}
+              ? "Start from a strong built-in recipe, save the exact compare setup we already have on screen, or share recipe JSON across teammates."
+              : "可以直接套用内置高价值配方，也可以把当前屏幕上的 compare 配置保存或导出成 JSON，方便团队复用。"}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-300">
             {recipes.length} {isEn ? "recipes" : "个配方"}
           </span>
@@ -74,6 +81,33 @@ export function AgentRecipeGallery({
           >
             {pending ? (isEn ? "Refreshing…" : "刷新中…") : isEn ? "Refresh" : "刷新"}
           </button>
+          <button
+            type="button"
+            onClick={onExportJson}
+            className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-100 transition hover:bg-emerald-400/20"
+          >
+            {isEn ? "Export JSON" : "导出 JSON"}
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={pending}
+            className="rounded-full border border-violet-400/25 bg-violet-400/10 px-3 py-1.5 text-[11px] font-semibold text-violet-100 transition hover:bg-violet-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {pending ? (isEn ? "Importing…" : "导入中…") : isEn ? "Import JSON" : "导入 JSON"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              onImportJson(file);
+              event.currentTarget.value = "";
+            }}
+          />
         </div>
       </div>
 

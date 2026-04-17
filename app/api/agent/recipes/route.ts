@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { createStudioRecipe, deleteStudioRecipe, readStudioRecipes } from "@/lib/agent/studio-recipe-store";
+import {
+  createStudioRecipe,
+  deleteStudioRecipe,
+  importStudioRecipes,
+  readStudioRecipes
+} from "@/lib/agent/studio-recipe-store";
 import type { AgentStudioRecipe } from "@/lib/agent/types";
 
 export const runtime = "nodejs";
@@ -7,6 +12,28 @@ export const dynamic = "force-dynamic";
 
 type RecipeBody = Partial<AgentStudioRecipe> & {
   id?: string;
+};
+
+type RecipeImportEnvelope = {
+  recipes?: RecipeBody[];
+};
+
+type ValidatedRecipePayload = {
+  id?: string;
+  label: string;
+  description: string;
+  tags: string[];
+  targetIds: string[];
+  input: string;
+  systemPrompt: string;
+  kind: "compare";
+  compareIntent: AgentStudioRecipe["compareIntent"];
+  compareOutputShape: AgentStudioRecipe["compareOutputShape"];
+  contextWindow: number;
+  enableTools: boolean;
+  enableRetrieval: boolean;
+  providerProfile: AgentStudioRecipe["providerProfile"];
+  thinkingMode: AgentStudioRecipe["thinkingMode"];
 };
 
 function normalizeText(value: unknown) {
@@ -23,7 +50,7 @@ function normalizeStringArray(value: unknown) {
     : [];
 }
 
-function validateRecipePayload(body: RecipeBody) {
+function validateRecipePayload(body: RecipeBody): { error: string } | ValidatedRecipePayload {
   const label = normalizeText(body.label);
   if (!label) return { error: "Recipe label is required." };
   const description = normalizeText(body.description);
@@ -56,6 +83,7 @@ function validateRecipePayload(body: RecipeBody) {
   }
 
   return {
+    id: normalizeText(body.id) || undefined,
     label,
     description,
     tags: normalizeStringArray(body.tags),
@@ -73,6 +101,14 @@ function validateRecipePayload(body: RecipeBody) {
   };
 }
 
+function extractImportRows(body: unknown) {
+  if (Array.isArray(body)) return body as RecipeBody[];
+  if (body && typeof body === "object" && Array.isArray((body as RecipeImportEnvelope).recipes)) {
+    return (body as RecipeImportEnvelope).recipes || [];
+  }
+  return [];
+}
+
 export async function GET() {
   return NextResponse.json({ ok: true, recipes: readStudioRecipes() });
 }
@@ -84,11 +120,47 @@ export async function POST(request: Request) {
     if ("error" in validated) {
       return NextResponse.json({ error: validated.error }, { status: 400 });
     }
-    const recipe = createStudioRecipe({ ...validated, id: body.id });
+    const recipe = createStudioRecipe(validated);
     return NextResponse.json({ ok: true, recipe });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create recipe." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = (await request.json()) as unknown;
+    const rows = extractImportRows(body);
+    if (!rows.length) {
+      return NextResponse.json({ error: "Recipe import requires a recipes array." }, { status: 400 });
+    }
+
+    const validatedRows: ValidatedRecipePayload[] = [];
+    for (const row of rows) {
+      const validated = validateRecipePayload(row);
+      if ("error" in validated) {
+        return NextResponse.json(
+          { error: `${validated.error} (${normalizeText(row.label) || normalizeText(row.id) || "unknown recipe"})` },
+          { status: 400 }
+        );
+      }
+      validatedRows.push(validated);
+    }
+
+    const result = importStudioRecipes(validatedRows);
+    return NextResponse.json({
+      ok: true,
+      importedCount: result.importedCount,
+      replacedCount: result.replacedCount,
+      skippedCount: result.skippedCount,
+      recipes: result.imported
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to import recipes." },
       { status: 500 }
     );
   }

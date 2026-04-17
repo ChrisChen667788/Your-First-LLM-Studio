@@ -94,6 +94,8 @@ type AgentCompareLabProps = {
   onRunRecipeBenchmark: (recipeId: string) => void;
   onDeleteRecipe: (recipeId: string) => void;
   onSaveCurrentRecipe: () => void;
+  onExportRecipesJson: () => void;
+  onImportRecipesJson: (file: File) => void;
   onCopy: (text: string, key: string) => void;
   copyState: string;
 };
@@ -311,6 +313,8 @@ export function AgentCompareLab({
   onRunRecipeBenchmark,
   onDeleteRecipe,
   onSaveCurrentRecipe,
+  onExportRecipesJson,
+  onImportRecipesJson,
   onCopy,
   copyState
 }: AgentCompareLabProps) {
@@ -658,6 +662,8 @@ export function AgentCompareLab({
               onRunBenchmark={onRunRecipeBenchmark}
               onDelete={onDeleteRecipe}
               onSaveCurrent={onSaveCurrentRecipe}
+              onExportJson={onExportRecipesJson}
+              onImportJson={onImportRecipesJson}
             />
 
             <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">

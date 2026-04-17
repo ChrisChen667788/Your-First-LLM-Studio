@@ -18,7 +18,8 @@ type AgentGetCodePanelProps = {
 const LANGUAGE_LABELS: Record<AgentReproduceLanguage, string> = {
   curl: "curl",
   python: "Python",
-  typescript: "TypeScript"
+  typescript: "TypeScript",
+  "openai-sdk": "OpenAI SDK"
 };
 
 export function AgentGetCodePanel({
