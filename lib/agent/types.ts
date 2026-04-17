@@ -96,6 +96,31 @@ export type AgentBenchmarkPromptSet = {
   prompts: string[];
 };
 
+export type AgentStudioRecipeKind = "compare";
+
+export type AgentStudioRecipeSource = "builtin" | "user";
+
+export type AgentStudioRecipe = {
+  id: string;
+  kind: AgentStudioRecipeKind;
+  source: AgentStudioRecipeSource;
+  label: string;
+  description: string;
+  tags: string[];
+  targetIds: string[];
+  input: string;
+  systemPrompt: string;
+  compareIntent: AgentCompareIntent;
+  compareOutputShape: AgentCompareOutputShape;
+  contextWindow: number;
+  enableTools: boolean;
+  enableRetrieval: boolean;
+  providerProfile: AgentProviderProfile;
+  thinkingMode: AgentThinkingMode;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AgentBenchmarkDatasetEvaluationRule =
   | {
       kind: "choice-exact";

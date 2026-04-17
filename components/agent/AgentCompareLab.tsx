@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { AgentRecipeGallery } from "@/components/agent/AgentRecipeGallery";
 import { buildCompareBenchmarkPrompt, buildCompareBenchmarkPromptDiff } from "@/lib/agent/compare-share";
 import type {
   AgentBenchmarkResponse,
@@ -13,6 +14,7 @@ import type {
   AgentCompareResponse,
   AgentProviderProfile,
   AgentRuntimeStatus,
+  AgentStudioRecipe,
   AgentTarget,
   AgentThinkingMode
 } from "@/lib/agent/types";
@@ -49,6 +51,12 @@ type AgentCompareLabProps = {
   benchmarkPending: boolean;
   benchmarkError: string;
   benchmarkResult: AgentBenchmarkResponse | null;
+  recipes: AgentStudioRecipe[];
+  recipesPending: boolean;
+  recipesError: string;
+  activeRecipeId: string;
+  recipeDraftLabel: string;
+  recipeDraftDescription: string;
   contextWindowOptions: number[];
   providerProfileOptions: AgentProviderProfile[];
   thinkingModeOptions: AgentThinkingMode[];
@@ -77,6 +85,12 @@ type AgentCompareLabProps = {
   onCopyLaneMarkdown: (targetId: string) => void;
   onCopyLaneReviewSummary: (targetId: string) => void;
   onPreviewLaneMarkdown: (targetId: string) => void;
+  onRecipeDraftLabelChange: (value: string) => void;
+  onRecipeDraftDescriptionChange: (value: string) => void;
+  onRefreshRecipes: () => void;
+  onApplyRecipe: (recipeId: string) => void;
+  onDeleteRecipe: (recipeId: string) => void;
+  onSaveCurrentRecipe: () => void;
   onCopy: (text: string, key: string) => void;
   copyState: string;
 };
@@ -251,6 +265,12 @@ export function AgentCompareLab({
   benchmarkPending,
   benchmarkError,
   benchmarkResult,
+  recipes,
+  recipesPending,
+  recipesError,
+  activeRecipeId,
+  recipeDraftLabel,
+  recipeDraftDescription,
   contextWindowOptions,
   providerProfileOptions,
   thinkingModeOptions,
@@ -279,6 +299,12 @@ export function AgentCompareLab({
   onCopyLaneMarkdown,
   onCopyLaneReviewSummary,
   onPreviewLaneMarkdown,
+  onRecipeDraftLabelChange,
+  onRecipeDraftDescriptionChange,
+  onRefreshRecipes,
+  onApplyRecipe,
+  onDeleteRecipe,
+  onSaveCurrentRecipe,
   onCopy,
   copyState
 }: AgentCompareLabProps) {
@@ -604,10 +630,27 @@ export function AgentCompareLab({
               {compareRecoveryNotice.message}
             </div>
           ) : null}
-        </section>
+      </section>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_minmax(360px,0.82fr)] 2xl:grid-cols-[minmax(0,1.34fr)_minmax(420px,0.8fr)]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_minmax(360px,0.82fr)] 2xl:grid-cols-[minmax(0,1.34fr)_minmax(420px,0.8fr)]">
           <div className="space-y-5">
+            <AgentRecipeGallery
+              locale={locale}
+              recipes={recipes}
+              pending={recipesPending}
+              error={recipesError}
+              activeRecipeId={activeRecipeId}
+              draftLabel={recipeDraftLabel}
+              draftDescription={recipeDraftDescription}
+              selectedTargetCount={compareTargets.length}
+              onDraftLabelChange={onRecipeDraftLabelChange}
+              onDraftDescriptionChange={onRecipeDraftDescriptionChange}
+              onRefresh={onRefreshRecipes}
+              onApply={onApplyRecipe}
+              onDelete={onDeleteRecipe}
+              onSaveCurrent={onSaveCurrentRecipe}
+            />
+
             <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>

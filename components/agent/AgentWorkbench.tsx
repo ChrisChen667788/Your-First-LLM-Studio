@@ -2,6 +2,7 @@
 
 import { FormEvent, KeyboardEvent as ReactKeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { AgentGetCodePanel } from "@/components/agent/AgentGetCodePanel";
 import { agentTargets as builtinAgentTargets, agentToolSpecs } from "@/lib/agent/catalog";
 import { useAgentCompareActions } from "@/components/agent/useAgentCompareActions";
 import {
@@ -32,6 +33,10 @@ import {
 } from "@/lib/i18n";
 import { clampContextWindowForTarget } from "@/lib/agent/metrics";
 import { sanitizeDisplayPath } from "@/lib/agent/path-display";
+import {
+  buildReproduceRequestArtifacts,
+  type AgentReproduceLanguage
+} from "@/lib/agent/reproduce-request";
 import type {
   AgentCacheMode,
   AgentBenchmarkResponse,
@@ -54,6 +59,7 @@ import type {
   AgentRuntimePrewarmAllResponse,
   AgentRuntimePrewarmResponse,
   AgentRuntimeStatus,
+  AgentStudioRecipe,
   AgentTarget,
   AgentWorkbenchMode,
   AgentToolDecisionResponse,
@@ -875,6 +881,14 @@ export function AgentWorkbench() {
   const [sessionExportScope, setSessionExportScope] = useState<"visible" | "pinned">("visible");
   const [selectedTargetId, setSelectedTargetId] = useState("anthropic-claude");
   const [workbenchMode, setWorkbenchMode] = useState<AgentWorkbenchMode>("chat");
+  const [recipes, setRecipes] = useState<AgentStudioRecipe[]>([]);
+  const [recipesPending, setRecipesPending] = useState(false);
+  const [recipesError, setRecipesError] = useState("");
+  const [activeRecipeId, setActiveRecipeId] = useState("");
+  const [recipeDraftLabel, setRecipeDraftLabel] = useState("");
+  const [recipeDraftDescription, setRecipeDraftDescription] = useState("");
+  const [getCodeOpen, setGetCodeOpen] = useState(false);
+  const [getCodeLanguage, setGetCodeLanguage] = useState<AgentReproduceLanguage>("curl");
   const {
     compareTargetIds,
     compareIntent,
@@ -980,6 +994,23 @@ export function AgentWorkbench() {
     }
   }, []);
 
+  const loadStudioRecipes = useCallback(async () => {
+    setRecipesPending(true);
+    setRecipesError("");
+    try {
+      const response = await fetch("/api/agent/recipes", { cache: "no-store" });
+      const payload = (await response.json()) as { ok?: boolean; recipes?: AgentStudioRecipe[]; error?: string };
+      if (!response.ok || !Array.isArray(payload.recipes)) {
+        throw new Error(payload.error || "Failed to load studio recipes.");
+      }
+      setRecipes(payload.recipes);
+    } catch (recipeLoadError) {
+      setRecipesError(recipeLoadError instanceof Error ? recipeLoadError.message : "Failed to load studio recipes.");
+    } finally {
+      setRecipesPending(false);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -996,6 +1027,10 @@ export function AgentWorkbench() {
     };
   }, [loadAvailableTargets]);
 
+  useEffect(() => {
+    void loadStudioRecipes();
+  }, [loadStudioRecipes]);
+
   const selectedTarget = useMemo(
     () => agentTargets.find((target) => target.id === selectedTargetId) || agentTargets[0],
     [agentTargets, selectedTargetId]
@@ -1011,6 +1046,51 @@ export function AgentWorkbench() {
     () => agentTargets.filter((target) => compareTargetIds.includes(target.id)).length,
     [agentTargets, compareTargetIds]
   );
+  const reproduceRequestArtifacts = useMemo(() => {
+    return workbenchMode === "compare"
+      ? buildReproduceRequestArtifacts({
+          mode: "compare",
+          compareTargetIds,
+          input,
+          historyMessages: flattenTurns(turns),
+          systemPrompt,
+          compareIntent,
+          compareOutputShape,
+          contextWindow,
+          enableTools,
+          enableRetrieval,
+          providerProfile,
+          thinkingMode,
+          compareResult
+        })
+      : buildReproduceRequestArtifacts({
+          mode: "chat",
+          targetId: selectedTargetId,
+          input,
+          historyMessages: flattenTurns(turns),
+          systemPrompt,
+          contextWindow,
+          enableTools,
+          enableRetrieval,
+          providerProfile,
+          thinkingMode
+        });
+  }, [
+    compareIntent,
+    compareOutputShape,
+    compareResult,
+    compareTargetIds,
+    contextWindow,
+    enableRetrieval,
+    enableTools,
+    input,
+    providerProfile,
+    selectedTargetId,
+    systemPrompt,
+    thinkingMode,
+    turns,
+    workbenchMode
+  ]);
   const validTargetIds = useMemo(() => agentTargets.map((target) => target.id), [agentTargets]);
   const runtimePhase = useMemo(() => describeRuntimePhase(runtimeStatus, locale), [runtimeStatus, locale]);
   const runtimeStageItems = useMemo(() => buildRuntimeStageItems(runtimeStatus, locale), [runtimeStatus, locale]);
@@ -2447,6 +2527,138 @@ export function AgentWorkbench() {
       return [...deduped, targetId];
     });
   }
+
+  const handleApplyStudioRecipe = useCallback(
+    (recipeId: string) => {
+      const recipe = recipes.find((entry) => entry.id === recipeId);
+      if (!recipe) {
+        setRecipesError(locale.startsWith("en") ? "Recipe not found." : "没有找到这个配方。");
+        return;
+      }
+      const validTargetIds = Array.from(
+        new Set(recipe.targetIds.filter((targetId) => agentTargets.some((target) => target.id === targetId)))
+      );
+      const nextSelectedTargetId =
+        validTargetIds[0] || (agentTargets.some((target) => target.id === selectedTargetId) ? selectedTargetId : agentTargets[0]?.id);
+      if (!nextSelectedTargetId) {
+        setRecipesError(locale.startsWith("en") ? "No valid targets are available for this recipe." : "这个配方当前没有可用目标。");
+        return;
+      }
+
+      setSelectedTargetId(nextSelectedTargetId);
+      setCompareTargetIds(validTargetIds.length ? validTargetIds : [nextSelectedTargetId]);
+      setInput(recipe.input);
+      setSystemPrompt(recipe.systemPrompt);
+      setCompareIntent(recipe.compareIntent);
+      setCompareOutputShape(recipe.compareOutputShape);
+      setContextWindow(clampUiContextWindow(nextSelectedTargetId, recipe.contextWindow, recipe.enableTools, recipe.enableRetrieval));
+      setEnableTools(recipe.enableTools);
+      setEnableRetrieval(recipe.enableRetrieval);
+      setProviderProfile(recipe.providerProfile);
+      setThinkingMode(recipe.thinkingMode);
+      setWorkbenchMode("compare");
+      setActiveRecipeId(recipe.id);
+      setRecipeDraftLabel(recipe.label);
+      setRecipeDraftDescription(recipe.description);
+      setRecipesError("");
+    },
+    [
+      agentTargets,
+      locale,
+      recipes,
+      selectedTargetId,
+      setCompareIntent,
+      setCompareOutputShape,
+      setCompareTargetIds
+    ]
+  );
+
+  const handleCreateStudioRecipe = useCallback(async () => {
+    const label = recipeDraftLabel.trim();
+    if (!label) {
+      setRecipesError(locale.startsWith("en") ? "Recipe name is required." : "需要先填写配方名称。");
+      return;
+    }
+    setRecipesPending(true);
+    setRecipesError("");
+    try {
+      const response = await fetch("/api/agent/recipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          label,
+          description: recipeDraftDescription.trim(),
+          tags: [
+            workbenchMode,
+            compareOutputShape,
+            enableTools ? "tools" : "no-tools",
+            enableRetrieval ? "retrieval" : "no-retrieval"
+          ],
+          targetIds: compareTargetIds,
+          input,
+          systemPrompt,
+          compareIntent,
+          compareOutputShape,
+          contextWindow,
+          enableTools,
+          enableRetrieval,
+          providerProfile,
+          thinkingMode
+        })
+      });
+      const payload = (await response.json()) as { ok?: boolean; recipe?: AgentStudioRecipe; error?: string };
+      if (!response.ok || !payload.recipe) {
+        throw new Error(payload.error || "Failed to save recipe.");
+      }
+      await loadStudioRecipes();
+      setActiveRecipeId(payload.recipe.id);
+      setRecipeDraftLabel("");
+      setRecipeDraftDescription("");
+    } catch (recipeSaveError) {
+      setRecipesError(recipeSaveError instanceof Error ? recipeSaveError.message : "Failed to save recipe.");
+    } finally {
+      setRecipesPending(false);
+    }
+  }, [
+    compareIntent,
+    compareOutputShape,
+    compareTargetIds,
+    contextWindow,
+    enableRetrieval,
+    enableTools,
+    input,
+    locale,
+    providerProfile,
+    recipeDraftDescription,
+    recipeDraftLabel,
+    loadStudioRecipes,
+    systemPrompt,
+    thinkingMode,
+    workbenchMode
+  ]);
+
+  const handleDeleteStudioRecipe = useCallback(
+    async (recipeId: string) => {
+      setRecipesPending(true);
+      setRecipesError("");
+      try {
+        const response = await fetch(`/api/agent/recipes?id=${encodeURIComponent(recipeId)}`, {
+          method: "DELETE"
+        });
+        const payload = (await response.json()) as { ok?: boolean; error?: string };
+        if (!response.ok) {
+          throw new Error(payload.error || "Failed to delete recipe.");
+        }
+        await loadStudioRecipes();
+        setActiveRecipeId((current) => (current === recipeId ? "" : current));
+      } catch (recipeDeleteError) {
+        setRecipesError(recipeDeleteError instanceof Error ? recipeDeleteError.message : "Failed to delete recipe.");
+      } finally {
+        setRecipesPending(false);
+      }
+    },
+    [loadStudioRecipes]
+  );
 
   const loadRuntimeStatus = useCallback(
     async (currentTargetId = selectedTargetId, options?: { force?: boolean }) => {
@@ -3887,7 +4099,14 @@ export function AgentWorkbench() {
               </div>
 
               <div className="space-y-2 xl:min-w-[318px]">
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGetCodeOpen(true)}
+                    className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-400/20"
+                  >
+                    {locale.startsWith("en") ? "Get code" : "获取代码"}
+                  </button>
                   <div className="inline-flex rounded-full border border-white/10 bg-black/20 p-1">
                     <button
                       type="button"
@@ -5666,6 +5885,12 @@ export function AgentWorkbench() {
                   benchmarkPending={benchmarkPending}
                   benchmarkError={benchmarkError}
                   benchmarkResult={benchmarkResult}
+                  recipes={recipes}
+                  recipesPending={recipesPending}
+                  recipesError={recipesError}
+                  activeRecipeId={activeRecipeId}
+                  recipeDraftLabel={recipeDraftLabel}
+                  recipeDraftDescription={recipeDraftDescription}
                   contextWindowOptions={CONTEXT_WINDOW_OPTIONS}
                   providerProfileOptions={PROVIDER_PROFILE_OPTIONS}
                   thinkingModeOptions={THINKING_MODE_OPTIONS}
@@ -5694,6 +5919,12 @@ export function AgentWorkbench() {
                   onCopyLaneMarkdown={handleCopyCompareLaneMarkdown}
                   onCopyLaneReviewSummary={handleCopyCompareLaneReviewSummary}
                   onPreviewLaneMarkdown={handlePreviewCompareLaneMarkdown}
+                  onRecipeDraftLabelChange={setRecipeDraftLabel}
+                  onRecipeDraftDescriptionChange={setRecipeDraftDescription}
+                  onRefreshRecipes={loadStudioRecipes}
+                  onApplyRecipe={handleApplyStudioRecipe}
+                  onDeleteRecipe={handleDeleteStudioRecipe}
+                  onSaveCurrentRecipe={handleCreateStudioRecipe}
                   onCopy={handleCopy}
                   copyState={copyState}
                 />
@@ -6182,6 +6413,18 @@ export function AgentWorkbench() {
           </div>
         </div>
       </div>
+      <AgentGetCodePanel
+        locale={locale}
+        open={getCodeOpen}
+        mode={workbenchMode}
+        language={getCodeLanguage}
+        summary={reproduceRequestArtifacts.summary as Record<string, unknown>}
+        snippets={reproduceRequestArtifacts.snippets}
+        copyState={copyState}
+        onClose={() => setGetCodeOpen(false)}
+        onLanguageChange={setGetCodeLanguage}
+        onCopy={handleCopy}
+      />
     </section>
   );
 }
