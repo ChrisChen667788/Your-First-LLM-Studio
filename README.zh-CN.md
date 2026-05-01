@@ -216,4 +216,4 @@ public/                   对外资源和社媒封面图
 - 当前版本：[`VERSION`](./VERSION)
 - Release notes：[`docs/releases`](./docs/releases)
 - 发布流程：[`docs/release-process.md`](./docs/release-process.md)
-- 最新版本说明：[v0.3.0](./docs/releases/v0.3.0_2026-04-11.md)
+- 最新版本说明：[v0.3.1](./docs/releases/v0.3.1_2026-05-02.md)

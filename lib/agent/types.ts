@@ -18,11 +18,17 @@ export type AgentCompareIntent =
   | "template-vs-template"
   | "before-vs-after";
 
-export type AgentCompareOutputShape = "freeform" | "bullet-list" | "strict-json";
+export type AgentCompareOutputShape =
+  | "freeform"
+  | "bullet-list"
+  | "strict-json";
 
 export type AgentCompareReviewSummaryTone = "issue" | "pr" | "chat";
 
-export type AgentCompareReviewSummaryDetail = "compact" | "strict-review" | "friendly-report";
+export type AgentCompareReviewSummaryDetail =
+  | "compact"
+  | "strict-review"
+  | "friendly-report";
 
 export type AgentBenchmarkMode = "prompt" | "dataset" | "suite";
 
@@ -64,9 +70,15 @@ export type AgentKnowledgeHit = {
   };
 };
 
-export type AgentRetrievalScope = "all" | "knowledge-base" | "benchmark-builtins";
+export type AgentRetrievalScope =
+  | "all"
+  | "knowledge-base"
+  | "benchmark-builtins";
 
-export type AgentRetrievalSourcePreference = "balanced" | "knowledge-first" | "benchmark-first";
+export type AgentRetrievalSourcePreference =
+  | "balanced"
+  | "knowledge-first"
+  | "benchmark-first";
 
 export type AgentRetrievalEvidenceMode = "compact" | "expanded";
 
@@ -244,7 +256,9 @@ export type AgentBenchmarkSuite = {
   workloads: AgentBenchmarkSuiteWorkload[];
 };
 
-export type AgentBenchmarkProfileBatchScope = "full-suite" | "comparison-subset";
+export type AgentBenchmarkProfileBatchScope =
+  | "full-suite"
+  | "comparison-subset";
 
 export type AgentMessage = {
   role: "user" | "assistant";
@@ -286,7 +300,12 @@ export type AgentTarget = {
   launchHints?: string[];
   parameterScale?: string;
   quantizationLabel?: string;
-  sourceKind?: "configured" | "huggingface-cache" | "lm-studio" | "custom-directory" | "adapter-runtime";
+  sourceKind?:
+    | "configured"
+    | "huggingface-cache"
+    | "lm-studio"
+    | "custom-directory"
+    | "adapter-runtime";
   sourceLabel?: string;
   sourcePath?: string;
   sourceRepoId?: string;
@@ -452,7 +471,15 @@ export type AgentRuntimeStatus = {
   targetLabel: string;
   execution: AgentExecution;
   available: boolean;
-  phase?: "remote" | "unloaded" | "ready" | "busy" | "loading" | "recovering" | "offline" | "error";
+  phase?:
+    | "remote"
+    | "unloaded"
+    | "ready"
+    | "busy"
+    | "loading"
+    | "recovering"
+    | "offline"
+    | "error";
   phaseDetail?: string;
   resolvedModel?: string;
   resolvedBaseUrl?: string;
@@ -648,7 +675,13 @@ export type AgentBenchmarkResponse = {
 
 export type AgentBenchmarkProgress = {
   runId: string;
-  status: "pending" | "running" | "completed" | "failed" | "stopped" | "abandoned";
+  status:
+    | "pending"
+    | "running"
+    | "completed"
+    | "failed"
+    | "stopped"
+    | "abandoned";
   benchmarkMode?: AgentBenchmarkMode;
   runNote?: string;
   suiteId?: string;
@@ -733,7 +766,10 @@ export type AgentBenchmarkBaseline = AgentBenchmarkResponse & {
   isDefault?: boolean;
 };
 
-export type AgentBenchmarkReportMatchSource = "recent-window" | "full-history" | "exact-run-id";
+export type AgentBenchmarkReportMatchSource =
+  | "recent-window"
+  | "full-history"
+  | "exact-run-id";
 
 export type AgentBenchmarkReportPreview = {
   ok: true;
@@ -974,6 +1010,44 @@ export type AgentFineTuneJob = {
   notes?: string;
 };
 
+export type AgentFineTuneReportFormat =
+  | "markdown"
+  | "manifest-json"
+  | "metrics-csv";
+
+export type AgentFineTuneLossSummary = {
+  first?: number | null;
+  latest?: number | null;
+  best?: number | null;
+  delta?: number | null;
+  relativeDeltaPct?: number | null;
+};
+
+export type AgentFineTuneReportMetricsSummary = {
+  pointCount: number;
+  firstStep?: number | null;
+  latestStep?: number | null;
+  train: AgentFineTuneLossSummary;
+  valid: AgentFineTuneLossSummary;
+};
+
+export type AgentFineTuneReportExport = {
+  jobId: string;
+  format: AgentFineTuneReportFormat;
+  filePath: string;
+  content: string;
+  generatedAt: string;
+  metricsSummary: AgentFineTuneReportMetricsSummary;
+};
+
+export type AgentFineTuneBundleArchive = {
+  jobId: string;
+  filePath: string;
+  fileName: string;
+  sizeBytes: number;
+  generatedAt: string;
+};
+
 export type AgentFineTuneTargetOption = {
   id: string;
   label: string;
@@ -1020,7 +1094,11 @@ export type AgentFineTuneAdapterArtifact = {
   updatedAt: string;
 };
 
-export type AgentTimelineEventKind = "session" | "compare" | "benchmark" | "finetune";
+export type AgentTimelineEventKind =
+  | "session"
+  | "compare"
+  | "benchmark"
+  | "finetune";
 
 export type AgentTimelineEventStatus =
   | "started"

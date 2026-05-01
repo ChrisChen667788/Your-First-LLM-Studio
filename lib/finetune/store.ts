@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import {
   existsSync,
   mkdirSync,
@@ -9,7 +9,7 @@ import {
   statSync,
   writeFileSync,
 } from "fs";
-import { homedir } from "os";
+import { homedir, tmpdir } from "os";
 import path from "path";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
 import {
@@ -22,13 +22,18 @@ import { discoverFineTuneUpstreamDatasets } from "@/lib/community/dataset-discov
 import type {
   AgentTarget,
   AgentFineTuneAdapterArtifact,
+  AgentFineTuneBundleArchive,
   AgentFineTuneCurvePoint,
   AgentFineTuneDataset,
   AgentFineTuneDatasetFormat,
   AgentFineTuneDatasetValidation,
   AgentFineTuneJob,
   AgentFineTuneJobProgress,
+  AgentFineTuneLossSummary,
   AgentFineTuneRecipe,
+  AgentFineTuneReportExport,
+  AgentFineTuneReportFormat,
+  AgentFineTuneReportMetricsSummary,
   AgentFineTuneSummary,
   AgentFineTuneTargetOption,
 } from "@/lib/agent/types";
@@ -202,7 +207,9 @@ function resolveLocalDatasetPath(sourcePath: string) {
 
   const candidates = new Set<string>();
   candidates.add(
-    path.isAbsolute(normalized) ? normalized : path.join(process.cwd(), normalized),
+    path.isAbsolute(normalized)
+      ? normalized
+      : path.join(process.cwd(), normalized),
   );
 
   const fineTuneMarker = `${path.sep}data${path.sep}fine-tune${path.sep}`;
@@ -215,7 +222,9 @@ function resolveLocalDatasetPath(sourcePath: string) {
   const posixMarker = "/data/fine-tune/";
   const posixMarkerIndex = normalized.indexOf(posixMarker);
   if (posixMarkerIndex >= 0) {
-    candidates.add(path.join(process.cwd(), normalized.slice(posixMarkerIndex + 1)));
+    candidates.add(
+      path.join(process.cwd(), normalized.slice(posixMarkerIndex + 1)),
+    );
   }
 
   for (const candidate of candidates) {
@@ -253,6 +262,80 @@ function normalizeChatMessageContent(content: unknown) {
   return "";
 }
 
+function readStringField(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function normalizeChatRole(value: unknown) {
+  const role = typeof value === "string" ? value.toLowerCase().trim() : "";
+  if (role === "human" || role === "user") return "user";
+  if (role === "gpt" || role === "bot" || role === "assistant") {
+    return "assistant";
+  }
+  if (role === "system") return "system";
+  return "";
+}
+
+function coerceChatMessages(record: Record<string, unknown>) {
+  const rawMessages =
+    record.messages ||
+    record.conversations ||
+    record.conversation ||
+    record.dialogue ||
+    record.dialog ||
+    record.turns;
+
+  if (Array.isArray(rawMessages)) {
+    const messages = rawMessages
+      .map((message) => {
+        if (!message || typeof message !== "object") return null;
+        const item = message as Record<string, unknown>;
+        const role = normalizeChatRole(item.role || item.from || item.speaker);
+        const content = normalizeChatMessageContent(
+          item.content || item.value || item.text || item.message,
+        );
+        if (!role || !content) return null;
+        return { role, content };
+      })
+      .filter((message): message is { role: string; content: string } =>
+        Boolean(message),
+      );
+    if (
+      messages.some((message) => message.role === "user") &&
+      messages.some((message) => message.role === "assistant")
+    ) {
+      return messages;
+    }
+  }
+
+  const prompt = readStringField(record, [
+    "prompt",
+    "instruction",
+    "query",
+    "question",
+    "input",
+  ]);
+  const completion = readStringField(record, [
+    "completion",
+    "response",
+    "output",
+    "answer",
+    "target",
+  ]);
+  if (prompt && completion) {
+    return [
+      { role: "user", content: prompt },
+      { role: "assistant", content: completion },
+    ];
+  }
+
+  return [] as Array<{ role: string; content: string }>;
+}
+
 function validateChatJsonl(lines: string[]) {
   const warnings: string[] = [];
   const errors: string[] = [];
@@ -260,10 +343,8 @@ function validateChatJsonl(lines: string[]) {
 
   lines.forEach((line, index) => {
     try {
-      const parsed = JSON.parse(line) as {
-        messages?: Array<{ role?: unknown; content?: unknown }>;
-      };
-      const messages = Array.isArray(parsed.messages) ? parsed.messages : [];
+      const parsed = JSON.parse(line) as Record<string, unknown>;
+      const messages = coerceChatMessages(parsed);
       const userMessage = messages.find((message) => message?.role === "user");
       const assistantMessage = [...messages]
         .reverse()
@@ -276,7 +357,7 @@ function validateChatJsonl(lines: string[]) {
       );
       if (!messages.length || !inputPreview || !outputPreview) {
         errors.push(
-          `Line ${index + 1}: chat-jsonl requires user and assistant messages.`,
+          `Line ${index + 1}: chat-jsonl requires user and assistant messages or convertible instruction/output fields.`,
         );
         return;
       }
@@ -306,24 +387,20 @@ function validateInstructionJsonl(lines: string[]) {
   lines.forEach((line, index) => {
     try {
       const parsed = JSON.parse(line) as Record<string, unknown>;
-      const prompt =
-        typeof parsed.prompt === "string"
-          ? parsed.prompt
-          : typeof parsed.instruction === "string"
-            ? parsed.instruction
-            : typeof parsed.input === "string"
-              ? parsed.input
-              : "";
-      const response =
-        typeof parsed.response === "string"
-          ? parsed.response
-          : typeof parsed.completion === "string"
-            ? parsed.completion
-            : typeof parsed.output === "string"
-              ? parsed.output
-              : typeof parsed.answer === "string"
-                ? parsed.answer
-                : "";
+      const prompt = readStringField(parsed, [
+        "prompt",
+        "instruction",
+        "query",
+        "question",
+        "input",
+      ]);
+      const response = readStringField(parsed, [
+        "response",
+        "completion",
+        "output",
+        "answer",
+        "target",
+      ]);
       if (!prompt.trim() || !response.trim()) {
         errors.push(
           `Line ${index + 1}: instruction-jsonl requires prompt/instruction and response/output.`,
@@ -544,6 +621,7 @@ function getJobPaths(jobId: string) {
     stateFile: path.join(bundlePath, "state.json"),
     metricsFile: path.join(bundlePath, "metrics.jsonl"),
     logFile: path.join(bundlePath, "worker.log"),
+    reportsDir: path.join(bundlePath, "reports"),
   };
 }
 
@@ -571,16 +649,81 @@ function writeJobRuntimeState(jobId: string, patch: FineTuneJobRuntimeState) {
   });
 }
 
+function normalizeFineTuneMetricPoint(
+  value: unknown,
+): AgentFineTuneCurvePoint | null {
+  if (!value || typeof value !== "object") return null;
+  const entry = value as Partial<AgentFineTuneCurvePoint>;
+  if (
+    (entry.split !== "train" && entry.split !== "valid") ||
+    typeof entry.step !== "number" ||
+    !Number.isFinite(entry.step) ||
+    typeof entry.loss !== "number" ||
+    !Number.isFinite(entry.loss)
+  ) {
+    return null;
+  }
+  return {
+    step: entry.step,
+    split: entry.split,
+    loss: entry.loss,
+    learningRate:
+      typeof entry.learningRate === "number" &&
+      Number.isFinite(entry.learningRate)
+        ? entry.learningRate
+        : null,
+    tokensPerSecond:
+      typeof entry.tokensPerSecond === "number" &&
+      Number.isFinite(entry.tokensPerSecond)
+        ? entry.tokensPerSecond
+        : null,
+    peakMemoryGb:
+      typeof entry.peakMemoryGb === "number" &&
+      Number.isFinite(entry.peakMemoryGb)
+        ? entry.peakMemoryGb
+        : null,
+    trainedTokens:
+      typeof entry.trainedTokens === "number" &&
+      Number.isFinite(entry.trainedTokens)
+        ? entry.trainedTokens
+        : null,
+    durationSec:
+      typeof entry.durationSec === "number" &&
+      Number.isFinite(entry.durationSec)
+        ? entry.durationSec
+        : null,
+    at: typeof entry.at === "string" ? entry.at : new Date().toISOString(),
+  } satisfies AgentFineTuneCurvePoint;
+}
+
+function readFineTuneMetricsFile(metricsFile: string) {
+  if (!existsSync(metricsFile)) return [] as AgentFineTuneCurvePoint[];
+  return readFileSync(metricsFile, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return normalizeFineTuneMetricPoint(JSON.parse(line));
+      } catch {
+        return null;
+      }
+    })
+    .filter((entry): entry is AgentFineTuneCurvePoint => Boolean(entry))
+    .sort((a, b) => a.step - b.step || a.split.localeCompare(b.split));
+}
+
 function mergeJobState(job: AgentFineTuneJob) {
   const paths = getJobPaths(job.id);
   const runtime = readJobRuntimeState(job.id) || {};
-  const curve = Array.isArray(runtime.curve)
+  const runtimeCurve = Array.isArray(runtime.curve)
     ? runtime.curve
-        .filter((entry): entry is AgentFineTuneCurvePoint =>
-          Boolean(entry && typeof entry.step === "number"),
-        )
+        .map(normalizeFineTuneMetricPoint)
+        .filter((entry): entry is AgentFineTuneCurvePoint => Boolean(entry))
         .slice(-MAX_CURVE_POINTS)
     : [];
+  const metricsCurve = readFineTuneMetricsFile(paths.metricsFile);
+  const curve = metricsCurve.length ? metricsCurve : runtimeCurve;
 
   return {
     ...job,
@@ -816,24 +959,20 @@ function resolveBaseModelRef(target: AgentFineTuneTargetOption) {
 
 function normalizeInstructionSample(line: string) {
   const parsed = JSON.parse(line) as Record<string, unknown>;
-  const prompt =
-    typeof parsed.prompt === "string"
-      ? parsed.prompt
-      : typeof parsed.instruction === "string"
-        ? parsed.instruction
-        : typeof parsed.input === "string"
-          ? parsed.input
-          : "";
-  const completion =
-    typeof parsed.completion === "string"
-      ? parsed.completion
-      : typeof parsed.response === "string"
-        ? parsed.response
-        : typeof parsed.output === "string"
-          ? parsed.output
-          : typeof parsed.answer === "string"
-            ? parsed.answer
-            : "";
+  const prompt = readStringField(parsed, [
+    "prompt",
+    "instruction",
+    "query",
+    "question",
+    "input",
+  ]);
+  const completion = readStringField(parsed, [
+    "completion",
+    "response",
+    "output",
+    "answer",
+    "target",
+  ]);
   return {
     prompt: prompt.trim(),
     completion: completion.trim(),
@@ -841,10 +980,8 @@ function normalizeInstructionSample(line: string) {
 }
 
 function normalizeChatSample(line: string) {
-  const parsed = JSON.parse(line) as { messages?: unknown };
-  return {
-    messages: Array.isArray(parsed.messages) ? parsed.messages : [],
-  };
+  const parsed = JSON.parse(line) as Record<string, unknown>;
+  return { messages: coerceChatMessages(parsed) };
 }
 
 function prepareFineTuneDataset(
@@ -1513,6 +1650,290 @@ export function cancelFineTuneJob(input: { jobId: string }) {
   return readJobs().find((entry) => entry.id === job.id)!;
 }
 
+function summarizeLoss(
+  points: AgentFineTuneCurvePoint[],
+): AgentFineTuneLossSummary {
+  if (!points.length) {
+    return {};
+  }
+  const sorted = [...points].sort((a, b) => a.step - b.step);
+  const first = sorted[0]?.loss ?? null;
+  const latest = sorted.at(-1)?.loss ?? null;
+  const best = Math.min(...sorted.map((point) => point.loss));
+  const delta =
+    typeof first === "number" && typeof latest === "number"
+      ? latest - first
+      : null;
+  const relativeDeltaPct =
+    typeof delta === "number" && typeof first === "number" && first > 0
+      ? (delta / first) * 100
+      : null;
+  return {
+    first,
+    latest,
+    best,
+    delta,
+    relativeDeltaPct,
+  };
+}
+
+function summarizeFineTuneMetrics(
+  points: AgentFineTuneCurvePoint[],
+): AgentFineTuneReportMetricsSummary {
+  const sorted = [...points].sort((a, b) => a.step - b.step);
+  return {
+    pointCount: sorted.length,
+    firstStep: sorted[0]?.step ?? null,
+    latestStep: sorted.at(-1)?.step ?? null,
+    train: summarizeLoss(sorted.filter((point) => point.split === "train")),
+    valid: summarizeLoss(sorted.filter((point) => point.split === "valid")),
+  };
+}
+
+function formatReportNumber(value?: number | null, digits = 4) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value.toFixed(digits)
+    : "--";
+}
+
+function formatReportPct(value?: number | null) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`
+    : "--";
+}
+
+function csvCell(value: unknown) {
+  const text = value === null || value === undefined ? "" : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function buildFineTuneMetricsCsv(points: AgentFineTuneCurvePoint[]) {
+  const rows = [
+    [
+      "step",
+      "split",
+      "loss",
+      "learningRate",
+      "tokensPerSecond",
+      "peakMemoryGb",
+      "trainedTokens",
+      "durationSec",
+      "at",
+    ],
+    ...points.map((point) => [
+      point.step,
+      point.split,
+      point.loss,
+      point.learningRate ?? "",
+      point.tokensPerSecond ?? "",
+      point.peakMemoryGb ?? "",
+      point.trainedTokens ?? "",
+      point.durationSec ?? "",
+      point.at,
+    ]),
+  ];
+  return `${rows.map((row) => row.map(csvCell).join(",")).join("\n")}\n`;
+}
+
+function buildFineTuneMarkdownReport(input: {
+  job: AgentFineTuneJob;
+  recipe?: AgentFineTuneRecipe;
+  dataset?: AgentFineTuneDataset;
+  bundle: FineTuneJobBundle | null;
+  metricsSummary: AgentFineTuneReportMetricsSummary;
+  artifactFiles: string[];
+  logLines: string[];
+  generatedAt: string;
+}) {
+  const {
+    job,
+    recipe,
+    dataset,
+    bundle,
+    metricsSummary,
+    artifactFiles,
+    logLines,
+    generatedAt,
+  } = input;
+  const plan = bundle?.plan;
+  return [
+    `# Fine-tune Run Report: ${job.adapterName}`,
+    "",
+    `Generated: ${generatedAt}`,
+    "",
+    "## Run Summary",
+    "",
+    `- Job ID: ${job.id}`,
+    `- Status: ${job.status}`,
+    `- Base model: ${job.baseModelRef || plan?.modelRef || "--"}`,
+    `- Dataset: ${dataset?.label || bundle?.dataset.label || job.datasetId}`,
+    `- Recipe: ${recipe?.label || job.recipeId}`,
+    `- Adapter: ${job.adapterName}`,
+    `- Started: ${job.startedAt || "--"}`,
+    `- Completed: ${job.completedAt || "--"}`,
+    `- Output dir: ${job.outputDir}`,
+    "",
+    "## Training Configuration",
+    "",
+    `- Method: ${recipe?.fineTuneMethod || plan?.fineTuneMethod || "--"}`,
+    `- Optimizer: ${recipe?.optimizer || plan?.optimizer || "--"}`,
+    `- Sequence length: ${recipe?.sequenceLength ?? plan?.maxSeqLength ?? "--"}`,
+    `- Batch size: ${recipe?.batchSize ?? plan?.batchSize ?? "--"}`,
+    `- Epochs: ${recipe?.epochs ?? "--"}`,
+    `- Learning rate: ${recipe?.learningRate ?? plan?.learningRate ?? "--"}`,
+    `- LoRA rank / alpha: ${recipe ? `${recipe.loraRank} / ${recipe.loraAlpha}` : "--"}`,
+    `- Gradient accumulation: ${recipe?.gradientAccumulationSteps ?? plan?.gradAccumulationSteps ?? "--"}`,
+    `- Validation split: ${recipe?.validationSplitPct ?? plan?.validationSplitPct ?? "--"}%`,
+    `- Total planned steps: ${plan?.totalSteps ?? "--"}`,
+    "",
+    "## Loss Summary",
+    "",
+    "| Split | First | Latest | Best | Delta | Relative delta |",
+    "| --- | ---: | ---: | ---: | ---: | ---: |",
+    `| Train | ${formatReportNumber(metricsSummary.train.first)} | ${formatReportNumber(metricsSummary.train.latest)} | ${formatReportNumber(metricsSummary.train.best)} | ${formatReportNumber(metricsSummary.train.delta)} | ${formatReportPct(metricsSummary.train.relativeDeltaPct)} |`,
+    `| Validation | ${formatReportNumber(metricsSummary.valid.first)} | ${formatReportNumber(metricsSummary.valid.latest)} | ${formatReportNumber(metricsSummary.valid.best)} | ${formatReportNumber(metricsSummary.valid.delta)} | ${formatReportPct(metricsSummary.valid.relativeDeltaPct)} |`,
+    "",
+    `Metrics points: ${metricsSummary.pointCount}`,
+    `Step range: ${metricsSummary.firstStep ?? "--"} - ${metricsSummary.latestStep ?? "--"}`,
+    "",
+    "## Artifacts",
+    "",
+    `- Bundle: ${job.bundlePath}`,
+    `- Config: ${job.configFile || "--"}`,
+    `- Metrics: ${job.metricsFile || "--"}`,
+    `- Worker log: ${job.logFile || "--"}`,
+    `- Checkpoint/artifact files: ${artifactFiles.length}`,
+    ...artifactFiles.slice(0, 20).map((file) => `  - ${file}`),
+    artifactFiles.length > 20
+      ? `  - ... ${artifactFiles.length - 20} more`
+      : "",
+    "",
+    "## Recent Worker Log",
+    "",
+    "```text",
+    ...(logLines.length ? logLines : ["No worker log lines available."]),
+    "```",
+    "",
+    "## Recommended Follow-up",
+    "",
+    "- Attach the adapter runtime, then run Compare against the base lane.",
+    "- Send the adapter to the benchmark suite linked above before publishing.",
+    "- Keep this report with `metrics.csv` and `run-manifest.json` for reproducibility.",
+    "",
+  ].join("\n");
+}
+
+export function exportFineTuneJobReport(input: {
+  jobId: string;
+  format?: AgentFineTuneReportFormat;
+}): AgentFineTuneReportExport {
+  const format = input.format || "markdown";
+  const job = readJobs().find((entry) => entry.id === input.jobId);
+  if (!job) {
+    throw new Error("Fine-tune job not found.");
+  }
+  const paths = getJobPaths(job.id);
+  mkdirSync(paths.reportsDir, { recursive: true });
+  const recipe = readRecipes().find((entry) => entry.id === job.recipeId);
+  const dataset = readDatasets().find((entry) => entry.id === job.datasetId);
+  const bundle = readJsonFile<FineTuneJobBundle | null>(paths.bundleFile, null);
+  const metrics = readFineTuneMetricsFile(paths.metricsFile);
+  const metricsSummary = summarizeFineTuneMetrics(metrics);
+  const artifactFiles = listArtifactFiles(paths.outputDir, 500);
+  const logLines = tailLines(paths.logFile, 80);
+  const generatedAt = new Date().toISOString();
+  const manifest = {
+    kind: "first-llm-studio-finetune-report",
+    generatedAt,
+    job,
+    recipe,
+    dataset,
+    bundle,
+    metricsSummary,
+    artifactFiles,
+  };
+  const fileNameByFormat: Record<AgentFineTuneReportFormat, string> = {
+    markdown: "training-report.md",
+    "manifest-json": "run-manifest.json",
+    "metrics-csv": "metrics.csv",
+  };
+  const filePath = path.join(paths.reportsDir, fileNameByFormat[format]);
+  const content =
+    format === "metrics-csv"
+      ? buildFineTuneMetricsCsv(metrics)
+      : format === "manifest-json"
+        ? `${JSON.stringify(manifest, null, 2)}\n`
+        : buildFineTuneMarkdownReport({
+            job,
+            recipe,
+            dataset,
+            bundle,
+            metricsSummary,
+            artifactFiles,
+            logLines,
+            generatedAt,
+          });
+  writeFileSync(filePath, content, "utf8");
+  return {
+    jobId: job.id,
+    format,
+    filePath,
+    content,
+    generatedAt,
+    metricsSummary,
+  };
+}
+
+export function exportFineTuneJobBundleArchive(input: {
+  jobId: string;
+}): AgentFineTuneBundleArchive {
+  const job = readJobs().find((entry) => entry.id === input.jobId);
+  if (!job) {
+    throw new Error("Fine-tune job not found.");
+  }
+  const paths = getJobPaths(job.id);
+  if (!existsSync(paths.bundlePath)) {
+    throw new Error(
+      `Fine-tune bundle path does not exist: ${paths.bundlePath}`,
+    );
+  }
+
+  exportFineTuneJobReport({ jobId: job.id, format: "markdown" });
+  exportFineTuneJobReport({ jobId: job.id, format: "manifest-json" });
+  exportFineTuneJobReport({ jobId: job.id, format: "metrics-csv" });
+
+  const generatedAt = new Date().toISOString();
+  const archiveDir = path.join(tmpdir(), "first-llm-studio-finetune-bundles");
+  mkdirSync(archiveDir, { recursive: true });
+  const safeAdapterName =
+    normalizeRuntimeAliasSegment(job.adapterName) || "adapter";
+  const fileName = `first-llm-studio-finetune-${safeAdapterName}-${job.id}.tgz`;
+  const filePath = path.join(archiveDir, fileName);
+  const result = spawnSync(
+    "tar",
+    ["-czf", filePath, "-C", paths.bundlePath, "."],
+    {
+      cwd: process.cwd(),
+      encoding: "utf8",
+    },
+  );
+  if (result.status !== 0) {
+    throw new Error(
+      result.stderr?.trim() ||
+        result.error?.message ||
+        "Failed to create archive.",
+    );
+  }
+  const stats = statSync(filePath);
+  return {
+    jobId: job.id,
+    filePath,
+    fileName,
+    sizeBytes: stats.size,
+    generatedAt,
+  };
+}
+
 function openExternalPath(targetPath: string) {
   const child = spawn("open", [targetPath], {
     cwd: process.cwd(),
@@ -1523,7 +1944,12 @@ function openExternalPath(targetPath: string) {
 }
 
 export function openFineTunePath(input: {
-  kind: "job-bundle" | "job-output" | "adapter-output" | "dataset-source";
+  kind:
+    | "job-bundle"
+    | "job-output"
+    | "job-reports"
+    | "adapter-output"
+    | "dataset-source";
   id: string;
 }) {
   const summary = readFineTuneSummary();
@@ -1537,6 +1963,10 @@ export function openFineTunePath(input: {
     const job = summary.jobs.find((entry) => entry.id === input.id);
     if (!job) throw new Error("Fine-tune job not found.");
     resolvedPath = job.outputDir;
+  } else if (input.kind === "job-reports") {
+    const job = summary.jobs.find((entry) => entry.id === input.id);
+    if (!job) throw new Error("Fine-tune job not found.");
+    resolvedPath = getJobPaths(job.id).reportsDir;
   } else if (input.kind === "adapter-output") {
     const adapter = summary.adapters.find((entry) => entry.id === input.id);
     if (!adapter) throw new Error("Fine-tune adapter not found.");

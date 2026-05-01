@@ -2,7 +2,10 @@
 
 import { useMemo } from "react";
 import { AgentRecipeGallery } from "@/components/agent/AgentRecipeGallery";
-import { buildCompareBenchmarkPrompt, buildCompareBenchmarkPromptDiff } from "@/lib/agent/compare-share";
+import {
+  buildCompareBenchmarkPrompt,
+  buildCompareBenchmarkPromptDiff,
+} from "@/lib/agent/compare-share";
 import type {
   AgentBenchmarkResponse,
   AgentCompareIntent,
@@ -16,7 +19,7 @@ import type {
   AgentRuntimeStatus,
   AgentStudioRecipe,
   AgentTarget,
-  AgentThinkingMode
+  AgentThinkingMode,
 } from "@/lib/agent/types";
 
 type AgentCompareLabProps = {
@@ -47,7 +50,10 @@ type AgentCompareLabProps = {
   compareRecoveryPendingTargetId: string;
   compareRecoveryConfirmTargetId: string;
   compareRecoveryCooldownByTargetId: Record<string, number>;
-  compareRecoveryNotice: { tone: "info" | "success" | "warning"; message: string } | null;
+  compareRecoveryNotice: {
+    tone: "info" | "success" | "warning";
+    message: string;
+  } | null;
   benchmarkPending: boolean;
   benchmarkError: string;
   benchmarkResult: AgentBenchmarkResponse | null;
@@ -74,8 +80,12 @@ type AgentCompareLabProps = {
   onRunCompare: () => void;
   onRerunLane: (targetId: string) => void;
   onSetBaseLane: (targetId: string) => void;
-  onCompareReviewSummaryToneChange: (value: AgentCompareReviewSummaryTone) => void;
-  onCompareReviewSummaryDetailChange: (value: AgentCompareReviewSummaryDetail) => void;
+  onCompareReviewSummaryToneChange: (
+    value: AgentCompareReviewSummaryTone,
+  ) => void;
+  onCompareReviewSummaryDetailChange: (
+    value: AgentCompareReviewSummaryDetail,
+  ) => void;
   onSendToBenchmark: () => void;
   onExportMarkdown: () => void;
   onCompareBenchmarkUseOutputContractChange: (value: boolean) => void;
@@ -112,43 +122,48 @@ const COMPARE_INTENT_META: Record<
   "model-vs-model": {
     zh: {
       label: "模型对模型",
-      description: "同一提示词、同一推理预算下比较多个目标的行为差异。"
+      description: "同一提示词、同一推理预算下比较多个目标的行为差异。",
     },
     en: {
       label: "Model vs model",
-      description: "Compare multiple targets under the same prompt and inference budget."
-    }
+      description:
+        "Compare multiple targets under the same prompt and inference budget.",
+    },
   },
   "preset-vs-preset": {
     zh: {
       label: "配置对配置",
-      description: "保持目标一致，只比较 provider profile、thinking 或 sampling 预设。"
+      description:
+        "保持目标一致，只比较 provider profile、thinking 或 sampling 预设。",
     },
     en: {
       label: "Preset vs preset",
-      description: "Hold the target steady and compare profile, thinking, or sampling presets."
-    }
+      description:
+        "Hold the target steady and compare profile, thinking, or sampling presets.",
+    },
   },
   "template-vs-template": {
     zh: {
       label: "模板对模板",
-      description: "比较不同 system prompt / prompt frame 对输出的影响。"
+      description: "比较不同 system prompt / prompt frame 对输出的影响。",
     },
     en: {
       label: "Template vs template",
-      description: "Inspect how different system frames reshape the same task output."
-    }
+      description:
+        "Inspect how different system frames reshape the same task output.",
+    },
   },
   "before-vs-after": {
     zh: {
       label: "变更前后",
-      description: "为后续微调、提示词修订或 checkpoint 前后对比预留入口。"
+      description: "为后续微调、提示词修订或 checkpoint 前后对比预留入口。",
     },
     en: {
       label: "Before / after",
-      description: "Reserve a clean lane for checkpoint, prompt, or fine-tune deltas."
-    }
-  }
+      description:
+        "Reserve a clean lane for checkpoint, prompt, or fine-tune deltas.",
+    },
+  },
 };
 
 const OUTPUT_SHAPE_META: Record<
@@ -159,17 +174,36 @@ const OUTPUT_SHAPE_META: Record<
   }
 > = {
   freeform: {
-    zh: { label: "自由输出", description: "保留模型自然回答，适合整体手感和长文风格比较。" },
-    en: { label: "Freeform", description: "Keep the model natural and compare overall tone and reasoning." }
+    zh: {
+      label: "自由输出",
+      description: "保留模型自然回答，适合整体手感和长文风格比较。",
+    },
+    en: {
+      label: "Freeform",
+      description:
+        "Keep the model natural and compare overall tone and reasoning.",
+    },
   },
   "bullet-list": {
-    zh: { label: "要点列表", description: "压成同结构要点，适合快速横向审阅。" },
-    en: { label: "Bullet list", description: "Force a concise outline so lanes stay easy to review." }
+    zh: {
+      label: "要点列表",
+      description: "压成同结构要点，适合快速横向审阅。",
+    },
+    en: {
+      label: "Bullet list",
+      description: "Force a concise outline so lanes stay easy to review.",
+    },
   },
   "strict-json": {
-    zh: { label: "严格 JSON", description: "为结构化输出、抽取和微调回归验证准备。" },
-    en: { label: "Strict JSON", description: "Use a stable schema for extraction and regression checks." }
-  }
+    zh: {
+      label: "严格 JSON",
+      description: "为结构化输出、抽取和微调回归验证准备。",
+    },
+    en: {
+      label: "Strict JSON",
+      description: "Use a stable schema for extraction and regression checks.",
+    },
+  },
 };
 
 function formatContextWindowLabel(value: number) {
@@ -199,7 +233,7 @@ function createTokenSet(content: string) {
       .toLowerCase()
       .split(/[^a-z0-9_\u4e00-\u9fff]+/i)
       .map((token) => token.trim())
-      .filter((token) => token.length >= 2)
+      .filter((token) => token.length >= 2),
   );
 }
 
@@ -228,11 +262,14 @@ function extractJsonKeys(content: string) {
 
 function formatTimelineTime(locale: string, value: string) {
   try {
-    return new Date(value).toLocaleTimeString(locale.startsWith("en") ? "en-US" : "zh-CN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
-    });
+    return new Date(value).toLocaleTimeString(
+      locale.startsWith("en") ? "en-US" : "zh-CN",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      },
+    );
   } catch {
     return value;
   }
@@ -316,7 +353,7 @@ export function AgentCompareLab({
   onExportRecipesJson,
   onImportRecipesJson,
   onCopy,
-  copyState
+  copyState,
 }: AgentCompareLabProps) {
   const localeKey = locale.startsWith("en") ? "en" : "zh";
   const copy = locale.startsWith("en")
@@ -335,7 +372,8 @@ export function AgentCompareLab({
         promptInput: "Task prompt",
         systemFrame: "System frame",
         lanePreview: "Lane preview",
-        lanePreviewHint: "This compares real outputs while keeping the current /agent workbench frame intact.",
+        lanePreviewHint:
+          "This compares real outputs while keeping the current /agent workbench frame intact.",
         fairnessFingerprint: "Fairness fingerprint",
         currentTarget: "Current target",
         local: "Local",
@@ -345,22 +383,27 @@ export function AgentCompareLab({
         runningCompare: "Running compare...",
         benchmarkAction: "Send to benchmark",
         benchmarkPending: "Sending to benchmark...",
-        benchmarkHint: "Reuse the current compare setup as a prompt benchmark run in /admin.",
+        benchmarkHint:
+          "Reuse the current compare setup as a prompt benchmark run in /admin.",
         benchmarkContractToggle: "Preserve compare output contract in handoff",
-        benchmarkContractHint: "Carry over bullet-list or strict JSON instructions when you convert this compare run into a prompt benchmark.",
+        benchmarkContractHint:
+          "Carry over bullet-list or strict JSON instructions when you convert this compare run into a prompt benchmark.",
         benchmarkPromptPreview: "Benchmark prompt preview",
-        benchmarkPromptPreviewHint: "This read-only prompt is the exact payload that compare handoff will send to /api/admin/benchmark.",
+        benchmarkPromptPreviewHint:
+          "This read-only prompt is the exact payload that compare handoff will send to /api/admin/benchmark.",
         benchmarkPromptDiffOnly: "Show diff only",
         benchmarkPromptCopy: "Copy preview",
         benchmarkSuccess: "Benchmark handoff ready",
         benchmarkOpen: "Open /admin and track this run",
-        benchmarkRunNoteAttached: "Compare compact markdown was attached to this benchmark run as a run note.",
+        benchmarkRunNoteAttached:
+          "Compare compact markdown was attached to this benchmark run as a run note.",
         exportMarkdown: "Export markdown",
         copyMarkdown: "Copy issue / PR markdown",
         rerunLane: "Rerun lane",
         setBaseLane: "Set as base",
         baseLaneTag: "Base lane",
-        needMoreTargets: "Add at least one more lane to make the comparison meaningful.",
+        needMoreTargets:
+          "Add at least one more lane to make the comparison meaningful.",
         targetMatrixCurrent: "Pinned current target",
         targetMatrixCapacity: "Lane capacity",
         targetMatrixTarget: "Target",
@@ -373,14 +416,17 @@ export function AgentCompareLab({
         on: "On",
         off: "Off",
         resultReview: "Result review",
-        resultReviewHint: "Review response shape, output length, warning state, and overlap against the base lane.",
+        resultReviewHint:
+          "Review response shape, output length, warning state, and overlap against the base lane.",
         reviewSummaryTone: "Comment tone",
-        reviewSummaryToneHint: "Choose the voice you want when copying a short review summary.",
+        reviewSummaryToneHint:
+          "Choose the voice you want when copying a short review summary.",
         reviewSummaryToneIssue: "Issue",
         reviewSummaryTonePr: "PR",
         reviewSummaryToneChat: "Chat",
         reviewSummaryDetail: "Summary depth",
-        reviewSummaryDetailHint: "Use longer templates when you want a stricter review note or a friendlier status update.",
+        reviewSummaryDetailHint:
+          "Use longer templates when you want a stricter review note or a friendlier status update.",
         reviewSummaryDetailCompact: "Compact",
         reviewSummaryDetailStrict: "Strict review",
         reviewSummaryDetailFriendly: "Friendly report",
@@ -392,7 +438,8 @@ export function AgentCompareLab({
         warning: "Warning",
         copyOutput: "Copy output",
         copied: "Copied",
-        noResults: "Run compare to inspect side-by-side outputs and review notes.",
+        noResults:
+          "Run compare to inspect side-by-side outputs and review notes.",
         laneFailed: "Lane failed",
         laneOk: "Lane ok",
         actualContext: "Actual context",
@@ -409,21 +456,25 @@ export function AgentCompareLab({
         compareLoadingFor: "Loading for",
         compareRecoveryBudget: "Recovery budget",
         compareLatestRecovery: "Latest recovery",
-        compareAwaitingRecovery: "Compare will trigger one local recovery if this lane stays stalled.",
+        compareAwaitingRecovery:
+          "Compare will trigger one local recovery if this lane stays stalled.",
         compareRecoveryTimeline: "Recovery timeline",
         compareIdleStatus: "idle",
-        compareNoTimeline: "Timeline entries will appear here once compare records loading or recovery milestones.",
+        compareNoTimeline:
+          "Timeline entries will appear here once compare records loading or recovery milestones.",
         compareManualRecovery: "Retry local recovery",
         compareManualRecoveryPending: "Retrying local recovery...",
         compareManualRecoveryConfirm: "Click again to confirm",
-        compareManualRecoveryConfirmHint: "Click once more within 5 seconds to restart the local gateway from Compare.",
+        compareManualRecoveryConfirmHint:
+          "Click once more within 5 seconds to restart the local gateway from Compare.",
         compareManualRecoveryCooldown: "Recovery cooldown",
-        compareManualRecoveryCooldownHint: "A short cooldown is active so we do not spam local restarts.",
+        compareManualRecoveryCooldownHint:
+          "A short cooldown is active so we do not spam local restarts.",
         compareDrawer: "Timeline and notes",
         exportLane: "Export lane",
         copyLaneMarkdown: "Copy markdown",
         copyLaneReviewSummary: "Copy review summary",
-        previewLane: "Open preview"
+        previewLane: "Open preview",
       }
     : {
         title: "Compare Lab",
@@ -448,16 +499,20 @@ export function AgentCompareLab({
         runningCompare: "对比运行中...",
         benchmarkAction: "送入 benchmark",
         benchmarkPending: "正在送入 benchmark...",
-        benchmarkHint: "沿用当前 compare 配置，直接转成 /admin 里的 prompt benchmark。",
+        benchmarkHint:
+          "沿用当前 compare 配置，直接转成 /admin 里的 prompt benchmark。",
         benchmarkContractToggle: "handoff 时沿用 compare 输出契约",
-        benchmarkContractHint: "把 bullet-list 或 strict JSON 的输出约束一并带到 prompt benchmark 里。",
+        benchmarkContractHint:
+          "把 bullet-list 或 strict JSON 的输出约束一并带到 prompt benchmark 里。",
         benchmarkPromptPreview: "benchmark prompt 预览",
-        benchmarkPromptPreviewHint: "这里展示的只读 prompt，就是 compare handoff 真正会送到 /api/admin/benchmark 的内容。",
+        benchmarkPromptPreviewHint:
+          "这里展示的只读 prompt，就是 compare handoff 真正会送到 /api/admin/benchmark 的内容。",
         benchmarkPromptDiffOnly: "只看差异",
         benchmarkPromptCopy: "复制预览",
         benchmarkSuccess: "benchmark 已接收",
         benchmarkOpen: "去 /admin 跟踪这轮运行",
-        benchmarkRunNoteAttached: "这轮 benchmark 已自动附带 compare 的紧凑 Markdown run note。",
+        benchmarkRunNoteAttached:
+          "这轮 benchmark 已自动附带 compare 的紧凑 Markdown run note。",
         exportMarkdown: "导出 Markdown",
         copyMarkdown: "复制 issue / PR Markdown",
         rerunLane: "重跑此 lane",
@@ -476,14 +531,17 @@ export function AgentCompareLab({
         on: "开启",
         off: "关闭",
         resultReview: "结果审阅",
-        resultReviewHint: "现在可以看输出形态、长度、warning，以及相对基准 lane 的重合度和结构差异。",
+        resultReviewHint:
+          "现在可以看输出形态、长度、warning，以及相对基准 lane 的重合度和结构差异。",
         reviewSummaryTone: "评论语气",
-        reviewSummaryToneHint: "复制评论摘要前，先选 issue / PR / chat 的表达方式。",
+        reviewSummaryToneHint:
+          "复制评论摘要前，先选 issue / PR / chat 的表达方式。",
         reviewSummaryToneIssue: "Issue",
         reviewSummaryTonePr: "PR",
         reviewSummaryToneChat: "Chat",
         reviewSummaryDetail: "摘要长度",
-        reviewSummaryDetailHint: "需要更正式的评审或更柔和的汇报时，可以切换到更长的模板。",
+        reviewSummaryDetailHint:
+          "需要更正式的评审或更柔和的汇报时，可以切换到更长的模板。",
         reviewSummaryDetailCompact: "紧凑",
         reviewSummaryDetailStrict: "严格审阅",
         reviewSummaryDetailFriendly: "友好汇报",
@@ -512,29 +570,34 @@ export function AgentCompareLab({
         compareLoadingFor: "加载时长",
         compareRecoveryBudget: "恢复预算",
         compareLatestRecovery: "最近恢复动作",
-        compareAwaitingRecovery: "如果这条 lane 继续卡住，compare 会触发一次本地恢复。",
+        compareAwaitingRecovery:
+          "如果这条 lane 继续卡住，compare 会触发一次本地恢复。",
         compareRecoveryTimeline: "恢复动作时间线",
         compareIdleStatus: "空闲",
-        compareNoTimeline: "当 compare 记录到加载、恢复或完成节点后，这里会显示可读历史。",
+        compareNoTimeline:
+          "当 compare 记录到加载、恢复或完成节点后，这里会显示可读历史。",
         compareManualRecovery: "手动重试本地恢复",
         compareManualRecoveryPending: "正在手动重试本地恢复...",
         compareManualRecoveryConfirm: "再次点击确认",
-        compareManualRecoveryConfirmHint: "请在 5 秒内再次点击，Compare 才会真正重启本地网关。",
+        compareManualRecoveryConfirmHint:
+          "请在 5 秒内再次点击，Compare 才会真正重启本地网关。",
         compareManualRecoveryCooldown: "恢复冷却中",
-        compareManualRecoveryCooldownHint: "为了避免连续误触，本地恢复会有一个很短的冷却时间。",
+        compareManualRecoveryCooldownHint:
+          "为了避免连续误触，本地恢复会有一个很短的冷却时间。",
         compareDrawer: "时间线与备注",
         exportLane: "导出此 lane",
         copyLaneMarkdown: "复制 Markdown",
         copyLaneReviewSummary: "复制评论摘要",
-        previewLane: "新标签页预览"
+        previewLane: "新标签页预览",
       };
 
   const compareTargets = useMemo(
     () => targets.filter((target) => compareTargetIds.includes(target.id)),
-    [compareTargetIds, targets]
+    [compareTargetIds, targets],
   );
   const selectedIntentMeta = COMPARE_INTENT_META[compareIntent][localeKey];
-  const selectedOutputShapeMeta = OUTPUT_SHAPE_META[compareOutputShape][localeKey];
+  const selectedOutputShapeMeta =
+    OUTPUT_SHAPE_META[compareOutputShape][localeKey];
 
   const fairnessFingerprint = useMemo(
     () =>
@@ -544,7 +607,9 @@ export function AgentCompareLab({
         formatThinkingMode(locale, thinkingMode),
         `${copy.tools} ${enableTools ? copy.on : copy.off}`,
         `${copy.retrieval} ${enableRetrieval ? copy.on : copy.off}`,
-        OUTPUT_SHAPE_META[compareOutputShape][locale.startsWith("en") ? "en" : "zh"].label
+        OUTPUT_SHAPE_META[compareOutputShape][
+          locale.startsWith("en") ? "en" : "zh"
+        ].label,
       ].join(" · "),
     [
       compareOutputShape,
@@ -557,8 +622,8 @@ export function AgentCompareLab({
       enableTools,
       locale,
       providerProfile,
-      thinkingMode
-    ]
+      thinkingMode,
+    ],
   );
 
   const compareBenchmarkPromptPreview = useMemo(
@@ -567,9 +632,14 @@ export function AgentCompareLab({
         input,
         systemPrompt,
         compareOutputShape,
-        compareBenchmarkUseOutputContract
+        compareBenchmarkUseOutputContract,
       }),
-    [compareBenchmarkUseOutputContract, compareOutputShape, input, systemPrompt]
+    [
+      compareBenchmarkUseOutputContract,
+      compareOutputShape,
+      input,
+      systemPrompt,
+    ],
   );
 
   const compareBenchmarkPromptDiffPreview = useMemo(
@@ -578,15 +648,25 @@ export function AgentCompareLab({
         input,
         systemPrompt,
         compareOutputShape,
-        compareBenchmarkUseOutputContract
+        compareBenchmarkUseOutputContract,
       }),
-    [compareBenchmarkUseOutputContract, compareOutputShape, input, systemPrompt]
+    [
+      compareBenchmarkUseOutputContract,
+      compareOutputShape,
+      input,
+      systemPrompt,
+    ],
   );
 
   const hasEnoughTargets = compareTargets.length >= 2;
   const baseResult = useMemo(
-    () => compareResult?.results.find((lane) => lane.targetId === compareBaseTargetId) || compareResult?.results[0] || null,
-    [compareBaseTargetId, compareResult?.results]
+    () =>
+      compareResult?.results.find(
+        (lane) => lane.targetId === compareBaseTargetId,
+      ) ||
+      compareResult?.results[0] ||
+      null,
+    [compareBaseTargetId, compareResult?.results],
   );
   const reviewRows = useMemo(() => {
     if (!compareResult?.results.length || !baseResult) return [];
@@ -605,26 +685,35 @@ export function AgentCompareLab({
         overlap,
         lengthDelta: lane.content.length - baseResult.content.length,
         schemaStatus,
-        isBase: lane.targetId === baseResult.targetId
+        isBase: lane.targetId === baseResult.targetId,
       };
     });
-  }, [baseResult, compareResult?.results, copy.schemaMatch, copy.schemaMismatch, copy.schemaUnavailable]);
-  const primaryReviewRow = reviewRows.find((row) => row.isBase) || reviewRows[0] || null;
+  }, [
+    baseResult,
+    compareResult?.results,
+    copy.schemaMatch,
+    copy.schemaMismatch,
+    copy.schemaUnavailable,
+  ]);
+  const primaryReviewRow =
+    reviewRows.find((row) => row.isBase) || reviewRows[0] || null;
   const secondaryReviewRows = reviewRows.filter((row) => !row.isBase);
   const reviewLayoutCopy = locale.startsWith("en")
     ? {
         primaryResult: "Primary result",
         secondaryDiffs: "Secondary diff drawers",
-        secondaryDiffsHint: "Keep the base lane in full view, then open only the diffs you want to inspect.",
+        secondaryDiffsHint:
+          "Keep the base lane in full view, then open only the diffs you want to inspect.",
         openDrawer: "Open diff drawer",
-        drawerNotes: "Expanded diff"
+        drawerNotes: "Expanded diff",
       }
     : {
         primaryResult: "主结果",
         secondaryDiffs: "次级 diff 抽屉",
-        secondaryDiffsHint: "让基准 lane 保持完整可读，只按需展开其它 lane 的差异细节。",
+        secondaryDiffsHint:
+          "让基准 lane 保持完整可读，只按需展开其它 lane 的差异细节。",
         openDrawer: "展开 diff 抽屉",
-        drawerNotes: "展开后细节"
+        drawerNotes: "展开后细节",
       };
 
   return (
@@ -633,15 +722,25 @@ export function AgentCompareLab({
         <section className="rounded-[28px] border border-cyan-400/15 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.85),rgba(2,6,23,0.92))] p-5 shadow-[0_30px_70px_rgba(2,6,23,0.35)]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-200/80">/agent · compare</p>
-              <h3 className="mt-3 text-2xl font-semibold text-white">{copy.title}</h3>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-200/80">
+                /agent · compare
+              </p>
+              <h3 className="mt-3 text-2xl font-semibold text-white">
+                {copy.title}
+              </h3>
               {copy.subtitle ? (
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">{copy.subtitle}</p>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
+                  {copy.subtitle}
+                </p>
               ) : null}
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-right">
-              <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">{copy.fairnessFingerprint}</p>
-              <p className="mt-2 text-sm font-medium text-white">{fairnessFingerprint}</p>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                {copy.fairnessFingerprint}
+              </p>
+              <p className="mt-2 text-sm font-medium text-white">
+                {fairnessFingerprint}
+              </p>
             </div>
           </div>
           {compareRecoveryNotice ? (
@@ -657,9 +756,9 @@ export function AgentCompareLab({
               {compareRecoveryNotice.message}
             </div>
           ) : null}
-      </section>
+        </section>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.32fr)_minmax(360px,0.88fr)] 2xl:grid-cols-[minmax(0,1.48fr)_minmax(420px,0.9fr)]">
+        <div className="grid gap-5">
           <div className="space-y-5">
             <AgentRecipeGallery
               locale={locale}
@@ -692,10 +791,18 @@ export function AgentCompareLab({
                 </div>
                 <div className="flex flex-wrap gap-2 text-[11px] text-slate-200">
                   <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5">
-                    {Object.entries(COMPARE_INTENT_META).find(([intent]) => intent === compareIntent)?.[1][locale.startsWith("en") ? "en" : "zh"].label}
+                    {
+                      Object.entries(COMPARE_INTENT_META).find(
+                        ([intent]) => intent === compareIntent,
+                      )?.[1][locale.startsWith("en") ? "en" : "zh"].label
+                    }
                   </span>
                   <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1.5">
-                    {Object.entries(OUTPUT_SHAPE_META).find(([shape]) => shape === compareOutputShape)?.[1][locale.startsWith("en") ? "en" : "zh"].label}
+                    {
+                      Object.entries(OUTPUT_SHAPE_META).find(
+                        ([shape]) => shape === compareOutputShape,
+                      )?.[1][locale.startsWith("en") ? "en" : "zh"].label
+                    }
                   </span>
                   <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">
                     {formatContextWindowLabel(contextWindow)}
@@ -709,67 +816,91 @@ export function AgentCompareLab({
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.22fr)_minmax(320px,0.78fr)]">
+              <div className="mt-4 grid gap-4">
                 <div className="space-y-4">
-	                  <section className="rounded-3xl border border-white/10 bg-black/20 p-4">
-	                    <div className="flex flex-wrap items-start justify-between gap-3">
-	                      <div>
-	                        <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{copy.promptFrame}</p>
-	                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-	                          {locale.startsWith("en")
-	                            ? "One shared task prompt stays primary; system framing is folded into a secondary drawer."
-	                            : "主任务提示词保持优先，系统提示词收进次级抽屉。"}
-	                        </p>
-	                      </div>
-	                      <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-slate-300">
-	                        {selectedIntentMeta.label} · {selectedOutputShapeMeta.label}
-	                      </div>
-	                    </div>
-	                    <div className="mt-4">
-	                      <div className="flex flex-wrap items-center justify-between gap-2">
-	                        <label className="text-xs uppercase tracking-[0.18em] text-slate-500">{copy.promptInput}</label>
-	                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] text-slate-400">
-	                          {input.length} chars
-	                        </span>
-	                      </div>
-	                      <textarea
-	                        value={input}
-	                        onChange={(event) => onInputChange(event.target.value)}
-	                        rows={7}
-	                        className="mt-2 min-h-[170px] w-full resize-y rounded-3xl border border-white/10 bg-black/25 px-4 py-4 font-mono text-sm leading-7 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400/40 focus:bg-black/35"
-	                      />
-	                      <details className="mt-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3" open={Boolean(systemPrompt.trim())}>
-	                        <summary className="cursor-pointer list-none">
-	                          <span className="flex flex-wrap items-center justify-between gap-3">
-	                            <span className="text-xs uppercase tracking-[0.18em] text-slate-500">{copy.systemFrame}</span>
-	                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] text-slate-400">
-	                              {systemPrompt.trim() ? `${systemPrompt.length} chars` : locale.startsWith("en") ? "optional" : "可选"}
-	                            </span>
-	                          </span>
-	                        </summary>
-	                        <textarea
-	                          value={systemPrompt}
-	                          onChange={(event) => onSystemPromptChange(event.target.value)}
-	                          rows={5}
-	                          className="mt-3 w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 font-mono text-xs leading-6 text-slate-200 outline-none transition focus:border-cyan-400/40"
-	                        />
-	                      </details>
-	                    </div>
-	                  </section>
+                  <section className="rounded-3xl border border-white/10 bg-black/20 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                          {copy.promptFrame}
+                        </p>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                          {locale.startsWith("en")
+                            ? "One shared task prompt stays primary; system framing is folded into a secondary drawer."
+                            : "主任务提示词保持优先，系统提示词收进次级抽屉。"}
+                        </p>
+                      </div>
+                      <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-slate-300">
+                        {selectedIntentMeta.label} ·{" "}
+                        {selectedOutputShapeMeta.label}
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                          {copy.promptInput}
+                        </label>
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] text-slate-400">
+                          {input.length} chars
+                        </span>
+                      </div>
+                      <textarea
+                        value={input}
+                        onChange={(event) => onInputChange(event.target.value)}
+                        rows={7}
+                        className="mt-2 min-h-[170px] w-full resize-y rounded-3xl border border-white/10 bg-black/25 px-4 py-4 font-mono text-sm leading-7 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400/40 focus:bg-black/35"
+                      />
+                      <details
+                        className="mt-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3"
+                        open={Boolean(systemPrompt.trim())}
+                      >
+                        <summary className="cursor-pointer list-none">
+                          <span className="flex flex-wrap items-center justify-between gap-3">
+                            <span className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                              {copy.systemFrame}
+                            </span>
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] text-slate-400">
+                              {systemPrompt.trim()
+                                ? `${systemPrompt.length} chars`
+                                : locale.startsWith("en")
+                                  ? "optional"
+                                  : "可选"}
+                            </span>
+                          </span>
+                        </summary>
+                        <textarea
+                          value={systemPrompt}
+                          onChange={(event) =>
+                            onSystemPromptChange(event.target.value)
+                          }
+                          rows={5}
+                          className="mt-3 w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 font-mono text-xs leading-6 text-slate-200 outline-none transition focus:border-cyan-400/40"
+                        />
+                      </details>
+                    </div>
+                  </section>
 
                   <section className="rounded-3xl border border-white/10 bg-black/20 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{copy.targets}</p>
-                        <p className="mt-2 text-sm leading-6 text-slate-400">{copy.targetsHint}</p>
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                          {copy.targets}
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-slate-400">
+                          {copy.targetsHint}
+                        </p>
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] text-cyan-100">
-                        {copy.targetMatrixCurrent}: {targets.find((target) => target.id === selectedTargetId)?.label || "—"}
+                        {copy.targetMatrixCurrent}:{" "}
+                        {targets.find(
+                          (target) => target.id === selectedTargetId,
+                        )?.label || "—"}
                       </span>
                       <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-slate-200">
-                        {copy.targetMatrixCapacity}: {compareTargets.length}/{MAX_COMPARE_LANES}
+                        {copy.targetMatrixCapacity}: {compareTargets.length}/
+                        {MAX_COMPARE_LANES}
                       </span>
                     </div>
                     <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/60">
@@ -782,52 +913,72 @@ export function AgentCompareLab({
                         </div>
                         <div className="divide-y divide-white/10">
                           {targets.map((target) => {
-                            const checked = compareTargetIds.includes(target.id);
+                            const checked = compareTargetIds.includes(
+                              target.id,
+                            );
                             const pinned = target.id === selectedTargetId;
                             return (
                               <label
                                 key={target.id}
                                 className={`grid cursor-pointer gap-3 px-4 py-4 transition md:grid-cols-[40px_minmax(280px,1.5fr)_132px_118px] md:items-center ${
-                                  checked ? "bg-cyan-400/10" : "bg-slate-950/70 hover:bg-white/[0.05]"
+                                  checked
+                                    ? "bg-cyan-400/10"
+                                    : "bg-slate-950/70 hover:bg-white/[0.05]"
                                 } ${pinned ? "ring-inset ring-1 ring-cyan-300/20" : ""}`}
                               >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                disabled={pinned}
-                                onChange={() => onToggleCompareTarget(target.id)}
-                                className="mt-1 rounded border-white/20 bg-slate-950 md:mt-0 disabled:cursor-not-allowed"
-                              />
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="line-clamp-1 text-sm font-medium text-white">{target.label}</p>
-                                  <span
-                                    className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
-                                      target.execution === "local"
-                                        ? "bg-emerald-400/10 text-emerald-200"
-                                        : "bg-violet-400/10 text-violet-200"
-                                    }`}
-                                  >
-                                    {target.execution === "local" ? copy.local : copy.remote}
-                                  </span>
-                                  {pinned ? (
-                                    <span className="rounded-full bg-cyan-400/10 px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-cyan-100">
-                                      {copy.currentTarget}
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={pinned}
+                                  onChange={() =>
+                                    onToggleCompareTarget(target.id)
+                                  }
+                                  className="mt-1 rounded border-white/20 bg-slate-950 md:mt-0 disabled:cursor-not-allowed"
+                                />
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="line-clamp-1 text-sm font-medium text-white">
+                                      {target.label}
+                                    </p>
+                                    <span
+                                      className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
+                                        target.execution === "local"
+                                          ? "bg-emerald-400/10 text-emerald-200"
+                                          : "bg-violet-400/10 text-violet-200"
+                                      }`}
+                                    >
+                                      {target.execution === "local"
+                                        ? copy.local
+                                        : copy.remote}
                                     </span>
-                                  ) : null}
+                                    {pinned ? (
+                                      <span className="rounded-full bg-cyan-400/10 px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                                        {copy.currentTarget}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <p className="mt-2 line-clamp-2 text-xs leading-6 text-slate-400">
+                                    {target.description}
+                                  </p>
+                                  <p className="mt-1 text-[11px] text-slate-500">
+                                    {target.providerLabel}
+                                  </p>
                                 </div>
-                                <p className="mt-2 line-clamp-2 text-xs leading-6 text-slate-400">{target.description}</p>
-                                <p className="mt-1 text-[11px] text-slate-500">{target.providerLabel}</p>
-                              </div>
-                              <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-200">
-                                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 md:hidden">{copy.targetMatrixContext}</p>
-                                <p className="mt-1 md:mt-0">{target.recommendedContext}</p>
-                              </div>
-                              <div className="flex items-center md:justify-end">
-                                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-slate-200">
-                                  {checked ? copy.laneReady : copy.lanePending}
-                                </span>
-                              </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-200">
+                                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 md:hidden">
+                                    {copy.targetMatrixContext}
+                                  </p>
+                                  <p className="mt-1 md:mt-0">
+                                    {target.recommendedContext}
+                                  </p>
+                                </div>
+                                <div className="flex items-center md:justify-end">
+                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-slate-200">
+                                    {checked
+                                      ? copy.laneReady
+                                      : copy.lanePending}
+                                  </span>
+                                </div>
                               </label>
                             );
                           })}
@@ -839,67 +990,95 @@ export function AgentCompareLab({
 
                 <div className="space-y-4">
                   <section className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{copy.recipe}</p>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                      {copy.recipe}
+                    </p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {Object.entries(COMPARE_INTENT_META).map(([intent, meta]) => {
-                        const selected = compareIntent === intent;
-                        const labelSet = meta[localeKey];
-                        return (
-                          <button
-                            key={intent}
-                            type="button"
-                            onClick={() => onCompareIntentChange(intent as AgentCompareIntent)}
-                            className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
-                              selected
-                                ? "border-cyan-400/25 bg-cyan-400/10 text-cyan-100"
-                                : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
-                            }`}
-                          >
-                            {labelSet.label}
-                          </button>
-                        );
-                      })}
+                      {Object.entries(COMPARE_INTENT_META).map(
+                        ([intent, meta]) => {
+                          const selected = compareIntent === intent;
+                          const labelSet = meta[localeKey];
+                          return (
+                            <button
+                              key={intent}
+                              type="button"
+                              onClick={() =>
+                                onCompareIntentChange(
+                                  intent as AgentCompareIntent,
+                                )
+                              }
+                              className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
+                                selected
+                                  ? "border-cyan-400/25 bg-cyan-400/10 text-cyan-100"
+                                  : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
+                              }`}
+                            >
+                              {labelSet.label}
+                            </button>
+                          );
+                        },
+                      )}
                     </div>
                     <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3">
-                      <p className="text-sm font-medium text-white">{selectedIntentMeta.label}</p>
-                      <p className="mt-1 text-xs leading-6 text-slate-400">{selectedIntentMeta.description}</p>
+                      <p className="text-sm font-medium text-white">
+                        {selectedIntentMeta.label}
+                      </p>
+                      <p className="mt-1 text-xs leading-6 text-slate-400">
+                        {selectedIntentMeta.description}
+                      </p>
                     </div>
                   </section>
 
                   <section className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{copy.outputShape}</p>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                      {copy.outputShape}
+                    </p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {Object.entries(OUTPUT_SHAPE_META).map(([shape, meta]) => {
-                        const selected = compareOutputShape === shape;
-                        const labelSet = meta[localeKey];
-                        return (
-                          <button
-                            key={shape}
-                            type="button"
-                            onClick={() => onCompareOutputShapeChange(shape as AgentCompareOutputShape)}
-                            className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
-                              selected
-                                ? "border-violet-400/25 bg-violet-400/10 text-violet-100"
-                                : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
-                            }`}
-                          >
-                            {labelSet.label}
-                          </button>
-                        );
-                      })}
+                      {Object.entries(OUTPUT_SHAPE_META).map(
+                        ([shape, meta]) => {
+                          const selected = compareOutputShape === shape;
+                          const labelSet = meta[localeKey];
+                          return (
+                            <button
+                              key={shape}
+                              type="button"
+                              onClick={() =>
+                                onCompareOutputShapeChange(
+                                  shape as AgentCompareOutputShape,
+                                )
+                              }
+                              className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
+                                selected
+                                  ? "border-violet-400/25 bg-violet-400/10 text-violet-100"
+                                  : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
+                              }`}
+                            >
+                              {labelSet.label}
+                            </button>
+                          );
+                        },
+                      )}
                     </div>
                     <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3">
-                      <p className="text-sm font-medium text-white">{selectedOutputShapeMeta.label}</p>
-                      <p className="mt-1 text-xs leading-6 text-slate-400">{selectedOutputShapeMeta.description}</p>
+                      <p className="text-sm font-medium text-white">
+                        {selectedOutputShapeMeta.label}
+                      </p>
+                      <p className="mt-1 text-xs leading-6 text-slate-400">
+                        {selectedOutputShapeMeta.description}
+                      </p>
                     </div>
                   </section>
 
                   <section className="rounded-3xl border border-white/10 bg-black/20 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{copy.lockedControls}</p>
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                          {copy.lockedControls}
+                        </p>
                         {copy.lockedControlsHint ? (
-                          <p className="mt-2 text-sm leading-6 text-slate-400">{copy.lockedControlsHint}</p>
+                          <p className="mt-2 text-sm leading-6 text-slate-400">
+                            {copy.lockedControlsHint}
+                          </p>
                         ) : null}
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -907,19 +1086,26 @@ export function AgentCompareLab({
                           type="button"
                           onClick={() => onEnableToolsChange(!enableTools)}
                           className={`rounded-full border px-3 py-1.5 text-[11px] transition ${
-                            enableTools ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100" : "border-white/10 bg-white/[0.04] text-slate-300"
+                            enableTools
+                              ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+                              : "border-white/10 bg-white/[0.04] text-slate-300"
                           }`}
                         >
                           {copy.tools}: {enableTools ? copy.on : copy.off}
                         </button>
                         <button
                           type="button"
-                          onClick={() => onEnableRetrievalChange(!enableRetrieval)}
+                          onClick={() =>
+                            onEnableRetrievalChange(!enableRetrieval)
+                          }
                           className={`rounded-full border px-3 py-1.5 text-[11px] transition ${
-                            enableRetrieval ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300"
+                            enableRetrieval
+                              ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-100"
+                              : "border-white/10 bg-white/[0.04] text-slate-300"
                           }`}
                         >
-                          {copy.retrieval}: {enableRetrieval ? copy.on : copy.off}
+                          {copy.retrieval}:{" "}
+                          {enableRetrieval ? copy.on : copy.off}
                         </button>
                       </div>
                     </div>
@@ -930,7 +1116,9 @@ export function AgentCompareLab({
                         </span>
                         <select
                           value={contextWindow}
-                          onChange={(event) => onContextWindowChange(Number(event.target.value))}
+                          onChange={(event) =>
+                            onContextWindowChange(Number(event.target.value))
+                          }
                           className="w-full rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-slate-100 outline-none"
                         >
                           {contextWindowOptions.map((value) => (
@@ -942,11 +1130,17 @@ export function AgentCompareLab({
                       </label>
                       <label className="space-y-2 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-3">
                         <span className="text-[11px] font-medium text-slate-400">
-                          {locale.startsWith("en") ? "Profile" : "Provider 档位"}
+                          {locale.startsWith("en")
+                            ? "Profile"
+                            : "Provider 档位"}
                         </span>
                         <select
                           value={providerProfile}
-                          onChange={(event) => onProviderProfileChange(event.target.value as AgentProviderProfile)}
+                          onChange={(event) =>
+                            onProviderProfileChange(
+                              event.target.value as AgentProviderProfile,
+                            )
+                          }
                           className="w-full rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-slate-100 outline-none"
                         >
                           {providerProfileOptions.map((value) => (
@@ -962,7 +1156,11 @@ export function AgentCompareLab({
                         </span>
                         <select
                           value={thinkingMode}
-                          onChange={(event) => onThinkingModeChange(event.target.value as AgentThinkingMode)}
+                          onChange={(event) =>
+                            onThinkingModeChange(
+                              event.target.value as AgentThinkingMode,
+                            )
+                          }
                           className="w-full rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-slate-100 outline-none"
                         >
                           {thinkingModeOptions.map((value) => (
@@ -974,31 +1172,44 @@ export function AgentCompareLab({
                       </label>
                     </div>
                     <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.fairnessFingerprint}</p>
-                      <p className="mt-2 text-sm font-medium text-white">{fairnessFingerprint}</p>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                        {copy.fairnessFingerprint}
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-white">
+                        {fairnessFingerprint}
+                      </p>
                     </div>
                   </section>
                 </div>
               </div>
-
             </section>
 
             <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{copy.resultReview}</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">{copy.resultReviewHint}</p>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    {copy.resultReview}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    {copy.resultReviewHint}
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-start gap-3">
                   <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.reviewSummaryTone}</p>
-                    <p className="mt-1 text-[11px] leading-5 text-slate-400">{copy.reviewSummaryToneHint}</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                      {copy.reviewSummaryTone}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-5 text-slate-400">
+                      {copy.reviewSummaryToneHint}
+                    </p>
                     <div className="mt-2 inline-flex rounded-full border border-white/10 bg-white/[0.04] p-1">
-                      {([
-                        ["issue", copy.reviewSummaryToneIssue],
-                        ["pr", copy.reviewSummaryTonePr],
-                        ["chat", copy.reviewSummaryToneChat]
-                      ] as Array<[AgentCompareReviewSummaryTone, string]>).map(([tone, label]) => (
+                      {(
+                        [
+                          ["issue", copy.reviewSummaryToneIssue],
+                          ["pr", copy.reviewSummaryTonePr],
+                          ["chat", copy.reviewSummaryToneChat],
+                        ] as Array<[AgentCompareReviewSummaryTone, string]>
+                      ).map(([tone, label]) => (
                         <button
                           key={tone}
                           type="button"
@@ -1015,18 +1226,26 @@ export function AgentCompareLab({
                     </div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.reviewSummaryDetail}</p>
-                    <p className="mt-1 text-[11px] leading-5 text-slate-400">{copy.reviewSummaryDetailHint}</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                      {copy.reviewSummaryDetail}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-5 text-slate-400">
+                      {copy.reviewSummaryDetailHint}
+                    </p>
                     <div className="mt-2 inline-flex rounded-full border border-white/10 bg-white/[0.04] p-1">
-                      {([
-                        ["compact", copy.reviewSummaryDetailCompact],
-                        ["strict-review", copy.reviewSummaryDetailStrict],
-                        ["friendly-report", copy.reviewSummaryDetailFriendly]
-                      ] as Array<[AgentCompareReviewSummaryDetail, string]>).map(([detail, label]) => (
+                      {(
+                        [
+                          ["compact", copy.reviewSummaryDetailCompact],
+                          ["strict-review", copy.reviewSummaryDetailStrict],
+                          ["friendly-report", copy.reviewSummaryDetailFriendly],
+                        ] as Array<[AgentCompareReviewSummaryDetail, string]>
+                      ).map(([detail, label]) => (
                         <button
                           key={detail}
                           type="button"
-                          onClick={() => onCompareReviewSummaryDetailChange(detail)}
+                          onClick={() =>
+                            onCompareReviewSummaryDetailChange(detail)
+                          }
                           className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
                             compareReviewSummaryDetail === detail
                               ? "bg-violet-400/15 text-violet-50"
@@ -1040,8 +1259,12 @@ export function AgentCompareLab({
                   </div>
                   {compareResult ? (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-right">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.latestRun}</p>
-                      <p className="mt-1 text-xs text-white">{new Date(compareResult.generatedAt).toLocaleString()}</p>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                        {copy.latestRun}
+                      </p>
+                      <p className="mt-1 text-xs text-white">
+                        {new Date(compareResult.generatedAt).toLocaleString()}
+                      </p>
                     </div>
                   ) : null}
                 </div>
@@ -1057,26 +1280,39 @@ export function AgentCompareLab({
                     <article className="rounded-[26px] border border-cyan-400/15 bg-[linear-gradient(135deg,rgba(15,23,42,0.92),rgba(2,6,23,0.88))] px-4 py-4 shadow-[0_24px_70px_rgba(2,6,23,0.35)]">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
-                          <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/80">{reviewLayoutCopy.primaryResult}</p>
+                          <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/80">
+                            {reviewLayoutCopy.primaryResult}
+                          </p>
                           <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <p className="text-base font-semibold text-white">{primaryReviewRow.lane.targetLabel}</p>
+                            <p className="text-base font-semibold text-white">
+                              {primaryReviewRow.lane.targetLabel}
+                            </p>
                             <span className="rounded-full bg-cyan-400/10 px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-cyan-100">
                               {copy.baseLaneTag}
                             </span>
-                            <span className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
-                              primaryReviewRow.lane.ok ? "bg-emerald-400/10 text-emerald-200" : "bg-rose-400/10 text-rose-200"
-                            }`}>
-                              {primaryReviewRow.lane.ok ? copy.laneOk : copy.laneFailed}
+                            <span
+                              className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
+                                primaryReviewRow.lane.ok
+                                  ? "bg-emerald-400/10 text-emerald-200"
+                                  : "bg-rose-400/10 text-rose-200"
+                              }`}
+                            >
+                              {primaryReviewRow.lane.ok
+                                ? copy.laneOk
+                                : copy.laneFailed}
                             </span>
                           </div>
                           <p className="mt-2 text-xs leading-6 text-slate-400">
-                            {primaryReviewRow.lane.providerLabel} · {primaryReviewRow.lane.resolvedModel}
+                            {primaryReviewRow.lane.providerLabel} ·{" "}
+                            {primaryReviewRow.lane.resolvedModel}
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => onRerunLane(primaryReviewRow.lane.targetId)}
+                            onClick={() =>
+                              onRerunLane(primaryReviewRow.lane.targetId)
+                            }
                             disabled={comparePending}
                             className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
                           >
@@ -1084,21 +1320,39 @@ export function AgentCompareLab({
                           </button>
                           <button
                             type="button"
-                            onClick={() => onCopy(primaryReviewRow.lane.content || primaryReviewRow.lane.warning || "", `compare:${primaryReviewRow.lane.targetId}`)}
+                            onClick={() =>
+                              onCopy(
+                                primaryReviewRow.lane.content ||
+                                  primaryReviewRow.lane.warning ||
+                                  "",
+                                `compare:${primaryReviewRow.lane.targetId}`,
+                              )
+                            }
                             className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
                           >
-                            {copyState === `compare:${primaryReviewRow.lane.targetId}` ? copy.copied : copy.copyOutput}
+                            {copyState ===
+                            `compare:${primaryReviewRow.lane.targetId}`
+                              ? copy.copied
+                              : copy.copyOutput}
                           </button>
                           <button
                             type="button"
-                            onClick={() => onExportLaneMarkdown(primaryReviewRow.lane.targetId)}
+                            onClick={() =>
+                              onExportLaneMarkdown(
+                                primaryReviewRow.lane.targetId,
+                              )
+                            }
                             className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
                           >
                             {copy.exportLane}
                           </button>
                           <button
                             type="button"
-                            onClick={() => onPreviewLaneMarkdown(primaryReviewRow.lane.targetId)}
+                            onClick={() =>
+                              onPreviewLaneMarkdown(
+                                primaryReviewRow.lane.targetId,
+                              )
+                            }
                             className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
                           >
                             {copy.previewLane}
@@ -1108,48 +1362,79 @@ export function AgentCompareLab({
 
                       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
                         <pre className="min-h-[220px] max-h-[420px] overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-black/25 px-4 py-4 text-xs leading-6 text-slate-100">
-                          {primaryReviewRow.lane.content || primaryReviewRow.lane.warning || "—"}
+                          {primaryReviewRow.lane.content ||
+                            primaryReviewRow.lane.warning ||
+                            "—"}
                         </pre>
                         <div className="space-y-3">
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.actualContext}</p>
-                              <p className="mt-2 text-sm font-semibold text-white">{formatContextWindowLabel(primaryReviewRow.lane.contextWindow)}</p>
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                                {copy.actualContext}
+                              </p>
+                              <p className="mt-2 text-sm font-semibold text-white">
+                                {formatContextWindowLabel(
+                                  primaryReviewRow.lane.contextWindow,
+                                )}
+                              </p>
                             </div>
                             <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{locale.startsWith("en") ? "Latency" : "耗时"}</p>
-                              <p className="mt-2 text-sm font-semibold text-white">{primaryReviewRow.lane.latencyMs.toFixed(1)} ms</p>
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                                {locale.startsWith("en") ? "Latency" : "耗时"}
+                              </p>
+                              <p className="mt-2 text-sm font-semibold text-white">
+                                {primaryReviewRow.lane.latencyMs.toFixed(1)} ms
+                              </p>
                             </div>
                             <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.overlap}</p>
-                              <p className="mt-2 text-sm font-semibold text-white">{(primaryReviewRow.overlap * 100).toFixed(0)}%</p>
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                                {copy.overlap}
+                              </p>
+                              <p className="mt-2 text-sm font-semibold text-white">
+                                {(primaryReviewRow.overlap * 100).toFixed(0)}%
+                              </p>
                             </div>
                             <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.schema}</p>
-                              <p className="mt-2 text-sm font-semibold text-white">{primaryReviewRow.schemaStatus}</p>
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                                {copy.schema}
+                              </p>
+                              <p className="mt-2 text-sm font-semibold text-white">
+                                {primaryReviewRow.schemaStatus}
+                              </p>
                             </div>
                           </div>
                           {primaryReviewRow.lane.usage ? (
                             <div className="flex flex-wrap gap-2 text-[11px] text-slate-300">
-                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">{copy.usage}</span>
                               <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                                {copy.promptTokens} {primaryReviewRow.lane.usage.promptTokens}
+                                {copy.usage}
                               </span>
                               <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                                {copy.completionTokens} {primaryReviewRow.lane.usage.completionTokens}
+                                {copy.promptTokens}{" "}
+                                {primaryReviewRow.lane.usage.promptTokens}
                               </span>
                               <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                                {copy.totalTokens} {primaryReviewRow.lane.usage.totalTokens}
+                                {copy.completionTokens}{" "}
+                                {primaryReviewRow.lane.usage.completionTokens}
+                              </span>
+                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                                {copy.totalTokens}{" "}
+                                {primaryReviewRow.lane.usage.totalTokens}
                               </span>
                             </div>
                           ) : null}
                           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-                            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{copy.fairnessFingerprint}</p>
-                            <p className="mt-2 text-xs leading-6 text-slate-300">{compareResult.fairnessFingerprint}</p>
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                              {copy.fairnessFingerprint}
+                            </p>
+                            <p className="mt-2 text-xs leading-6 text-slate-300">
+                              {compareResult.fairnessFingerprint}
+                            </p>
                           </div>
                           {primaryReviewRow.lane.warning ? (
                             <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 py-3 text-xs leading-6 text-amber-100">
-                              <span className="font-semibold">{copy.warning}: </span>
+                              <span className="font-semibold">
+                                {copy.warning}:{" "}
+                              </span>
                               {primaryReviewRow.lane.warning}
                             </div>
                           ) : null}
@@ -1162,454 +1447,658 @@ export function AgentCompareLab({
                     <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{reviewLayoutCopy.secondaryDiffs}</p>
-                          <p className="mt-2 text-sm leading-6 text-slate-400">{reviewLayoutCopy.secondaryDiffsHint}</p>
+                          <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                            {reviewLayoutCopy.secondaryDiffs}
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-slate-400">
+                            {reviewLayoutCopy.secondaryDiffsHint}
+                          </p>
                         </div>
                         <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-slate-300">
                           {secondaryReviewRows.length}
                         </span>
                       </div>
                       <div className="mt-4 grid gap-3 xl:grid-cols-2">
-                        {secondaryReviewRows.map(({ lane, overlap, lengthDelta, schemaStatus }) => (
-                          <details
-                            key={`${compareResult.runId}:${lane.targetId}`}
-                            className="rounded-2xl border border-white/10 bg-slate-950/75 px-4 py-4"
-                          >
-                            <summary className="cursor-pointer list-none">
-                              <div className="flex flex-wrap items-start justify-between gap-3">
-                                <div>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-sm font-medium text-white">{lane.targetLabel}</p>
-                                    <span className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
-                                      lane.ok ? "bg-emerald-400/10 text-emerald-200" : "bg-rose-400/10 text-rose-200"
-                                    }`}>
-                                      {lane.ok ? copy.laneOk : copy.laneFailed}
-                                    </span>
+                        {secondaryReviewRows.map(
+                          ({ lane, overlap, lengthDelta, schemaStatus }) => (
+                            <details
+                              key={`${compareResult.runId}:${lane.targetId}`}
+                              className="rounded-2xl border border-white/10 bg-slate-950/75 px-4 py-4"
+                            >
+                              <summary className="cursor-pointer list-none">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="text-sm font-medium text-white">
+                                        {lane.targetLabel}
+                                      </p>
+                                      <span
+                                        className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
+                                          lane.ok
+                                            ? "bg-emerald-400/10 text-emerald-200"
+                                            : "bg-rose-400/10 text-rose-200"
+                                        }`}
+                                      >
+                                        {lane.ok
+                                          ? copy.laneOk
+                                          : copy.laneFailed}
+                                      </span>
+                                    </div>
+                                    <p className="mt-2 text-xs leading-6 text-slate-400">
+                                      {lane.providerLabel} ·{" "}
+                                      {lane.resolvedModel}
+                                    </p>
                                   </div>
-                                  <p className="mt-2 text-xs leading-6 text-slate-400">
-                                    {lane.providerLabel} · {lane.resolvedModel}
+                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-slate-200">
+                                    {reviewLayoutCopy.openDrawer}
+                                  </span>
+                                </div>
+                                <div className="mt-4 grid gap-2 text-xs leading-6 text-slate-300 sm:grid-cols-2">
+                                  <p>
+                                    {copy.overlap}: {(overlap * 100).toFixed(0)}
+                                    %
+                                  </p>
+                                  <p>
+                                    {copy.lengthDelta}:{" "}
+                                    {lengthDelta >= 0
+                                      ? `+${lengthDelta}`
+                                      : `${lengthDelta}`}
+                                  </p>
+                                  <p>
+                                    {copy.schema}: {schemaStatus}
+                                  </p>
+                                  <p>
+                                    {locale.startsWith("en")
+                                      ? "Latency"
+                                      : "耗时"}
+                                    : {lane.latencyMs.toFixed(1)} ms
                                   </p>
                                 </div>
-                                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-slate-200">
-                                  {reviewLayoutCopy.openDrawer}
-                                </span>
-                              </div>
-                              <div className="mt-4 grid gap-2 text-xs leading-6 text-slate-300 sm:grid-cols-2">
-                                <p>{copy.overlap}: {(overlap * 100).toFixed(0)}%</p>
-                                <p>{copy.lengthDelta}: {lengthDelta >= 0 ? `+${lengthDelta}` : `${lengthDelta}`}</p>
-                                <p>{copy.schema}: {schemaStatus}</p>
-                                <p>{locale.startsWith("en") ? "Latency" : "耗时"}: {lane.latencyMs.toFixed(1)} ms</p>
-                              </div>
-                            </summary>
+                              </summary>
 
-                            <div className="mt-4 border-t border-white/10 pt-4">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => onRerunLane(lane.targetId)}
-                                  disabled={comparePending}
-                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {copy.rerunLane}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onSetBaseLane(lane.targetId)}
-                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                                >
-                                  {copy.setBaseLane}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onCopy(lane.content || lane.warning || "", `compare:${lane.targetId}`)}
-                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                                >
-                                  {copyState === `compare:${lane.targetId}` ? copy.copied : copy.copyOutput}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onExportLaneMarkdown(lane.targetId)}
-                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                                >
-                                  {copy.exportLane}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onPreviewLaneMarkdown(lane.targetId)}
-                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                                >
-                                  {copy.previewLane}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onCopyLaneMarkdown(lane.targetId)}
-                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                                >
-                                  {copyState === `compare:lane-markdown:${lane.targetId}` ? copy.copied : copy.copyLaneMarkdown}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onCopyLaneReviewSummary(lane.targetId)}
-                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                                >
-                                  {copyState === `compare:lane-summary:${lane.targetId}` ? copy.copied : copy.copyLaneReviewSummary}
-                                </button>
-                              </div>
-
-                              {lane.warning ? (
-                                <div className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-3 text-xs leading-6 text-amber-100">
-                                  <span className="font-semibold">{copy.warning}: </span>
-                                  {lane.warning}
+                              <div className="mt-4 border-t border-white/10 pt-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => onRerunLane(lane.targetId)}
+                                    disabled={comparePending}
+                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                                  >
+                                    {copy.rerunLane}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onSetBaseLane(lane.targetId)}
+                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
+                                  >
+                                    {copy.setBaseLane}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onCopy(
+                                        lane.content || lane.warning || "",
+                                        `compare:${lane.targetId}`,
+                                      )
+                                    }
+                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
+                                  >
+                                    {copyState === `compare:${lane.targetId}`
+                                      ? copy.copied
+                                      : copy.copyOutput}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onExportLaneMarkdown(lane.targetId)
+                                    }
+                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
+                                  >
+                                    {copy.exportLane}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onPreviewLaneMarkdown(lane.targetId)
+                                    }
+                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
+                                  >
+                                    {copy.previewLane}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onCopyLaneMarkdown(lane.targetId)
+                                    }
+                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
+                                  >
+                                    {copyState ===
+                                    `compare:lane-markdown:${lane.targetId}`
+                                      ? copy.copied
+                                      : copy.copyLaneMarkdown}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onCopyLaneReviewSummary(lane.targetId)
+                                    }
+                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
+                                  >
+                                    {copyState ===
+                                    `compare:lane-summary:${lane.targetId}`
+                                      ? copy.copied
+                                      : copy.copyLaneReviewSummary}
+                                  </button>
                                 </div>
-                              ) : null}
 
-                              {lane.usage ? (
-                                <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-400">
-                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                                    {copy.usage}
-                                  </span>
-                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                                    {copy.promptTokens} {lane.usage.promptTokens}
-                                  </span>
-                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                                    {copy.completionTokens} {lane.usage.completionTokens}
-                                  </span>
-                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                                    {copy.totalTokens} {lane.usage.totalTokens}
-                                  </span>
-                                </div>
-                              ) : null}
+                                {lane.warning ? (
+                                  <div className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-3 text-xs leading-6 text-amber-100">
+                                    <span className="font-semibold">
+                                      {copy.warning}:{" "}
+                                    </span>
+                                    {lane.warning}
+                                  </div>
+                                ) : null}
 
-                              <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-slate-500">{reviewLayoutCopy.drawerNotes}</p>
-                              <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-xs leading-6 text-slate-200">
-                                {lane.content || lane.warning || "—"}
-                              </pre>
-                            </div>
-                          </details>
-                        ))}
+                                {lane.usage ? (
+                                  <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-400">
+                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                                      {copy.usage}
+                                    </span>
+                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                                      {copy.promptTokens}{" "}
+                                      {lane.usage.promptTokens}
+                                    </span>
+                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                                      {copy.completionTokens}{" "}
+                                      {lane.usage.completionTokens}
+                                    </span>
+                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                                      {copy.totalTokens}{" "}
+                                      {lane.usage.totalTokens}
+                                    </span>
+                                  </div>
+                                ) : null}
+
+                                <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                                  {reviewLayoutCopy.drawerNotes}
+                                </p>
+                                <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-xs leading-6 text-slate-200">
+                                  {lane.content || lane.warning || "—"}
+                                </pre>
+                              </div>
+                            </details>
+                          ),
+                        )}
                       </div>
                     </div>
                   ) : null}
-	                </div>
-	              )}
-	            </section>
-	          </div>
+                </div>
+              )}
+            </section>
+          </div>
 
-	          <aside className="space-y-5 xl:sticky xl:top-5 xl:self-start">
-	            <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-	              <div className="flex flex-wrap items-start justify-between gap-3">
-	                <div>
-	                  <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{copy.lanePreview}</p>
-	                  {copy.lanePreviewHint ? (
-	                    <p className="mt-2 text-sm leading-6 text-slate-400">{copy.lanePreviewHint}</p>
-	                  ) : null}
-	                </div>
-	                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-100">
-	                  {compareTargets.length}/{MAX_COMPARE_LANES}
-	                </span>
-	              </div>
-	              {!hasEnoughTargets ? (
-	                <div className="mt-4 rounded-2xl border border-dashed border-amber-300/20 bg-amber-300/10 px-4 py-4 text-sm leading-6 text-amber-100">
-	                  {copy.needMoreTargets}
-	                </div>
-	              ) : null}
-	              <div className="mt-4 space-y-3">
-	                {compareTargets.map((target) => {
-	                  const runtime = compareRuntimeByTargetId[target.id];
-	                  const compareProgress = compareProgressByTargetId[target.id];
-	                  const compareTimeline = compareProgress?.timeline || [];
-	                  const loadingSeconds =
-	                    typeof runtime?.loadingElapsedMs === "number"
-	                      ? Math.round(runtime.loadingElapsedMs / 1000)
-	                      : null;
-	                  const compareLoadingSeconds =
-	                    typeof compareProgress?.loadingElapsedMs === "number"
-	                      ? Math.max(1, Math.round(compareProgress.loadingElapsedMs / 1000))
-	                      : null;
-	                  const compareRecoveryBudgetSeconds =
-	                    typeof compareProgress?.recoveryThresholdMs === "number"
-	                      ? Math.max(1, Math.round(compareProgress.recoveryThresholdMs / 1000))
-	                      : null;
-	                  const recoveryConfirmPending = compareRecoveryConfirmTargetId === target.id;
-	                  const recoveryCoolingDown = (compareRecoveryCooldownByTargetId[target.id] || 0) > Date.now();
-                    const runtimeSummary = runtime?.phaseDetail || runtime?.phase || "—";
-                    const compareSummary = compareProgress?.detail || compareProgress?.phase || copy.compareIdleStatus;
-		                  return (
-		                    <article key={target.id} className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5">
-		                      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
-		                        <div className="min-w-0">
-		                          <div className="flex flex-wrap items-center gap-2">
-		                            <p className="line-clamp-1 text-sm font-medium text-white">{target.label}</p>
-		                            <span
-		                              className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
-		                                target.execution === "local"
-		                                  ? "bg-emerald-400/10 text-emerald-200"
-		                                  : "bg-violet-400/10 text-violet-200"
-		                              }`}
-		                            >
-		                              {target.execution === "local" ? copy.local : copy.remote}
-		                            </span>
-		                            {target.id === selectedTargetId ? (
-		                              <span className="rounded-full bg-cyan-400/10 px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-cyan-100">
-		                                {copy.currentTarget}
-		                              </span>
-		                            ) : null}
-		                          </div>
-		                          <p className="mt-1 line-clamp-1 text-xs text-slate-500">
-		                            {target.providerLabel} · {target.recommendedContext}
-		                          </p>
-		                        </div>
-		                        <span className="justify-self-start rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300 xl:justify-self-end">
-		                          {hasEnoughTargets ? copy.laneReady : copy.lanePending}
-		                        </span>
-		                      </div>
+          <aside className="space-y-5 xl:sticky xl:top-5 xl:self-start">
+            <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    {copy.lanePreview}
+                  </p>
+                  {copy.lanePreviewHint ? (
+                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                      {copy.lanePreviewHint}
+                    </p>
+                  ) : null}
+                </div>
+                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-100">
+                  {compareTargets.length}/{MAX_COMPARE_LANES}
+                </span>
+              </div>
+              {!hasEnoughTargets ? (
+                <div className="mt-4 rounded-2xl border border-dashed border-amber-300/20 bg-amber-300/10 px-4 py-4 text-sm leading-6 text-amber-100">
+                  {copy.needMoreTargets}
+                </div>
+              ) : null}
+              <div className="mt-4 space-y-3">
+                {compareTargets.map((target) => {
+                  const runtime = compareRuntimeByTargetId[target.id];
+                  const compareProgress = compareProgressByTargetId[target.id];
+                  const compareTimeline = compareProgress?.timeline || [];
+                  const loadingSeconds =
+                    typeof runtime?.loadingElapsedMs === "number"
+                      ? Math.round(runtime.loadingElapsedMs / 1000)
+                      : null;
+                  const compareLoadingSeconds =
+                    typeof compareProgress?.loadingElapsedMs === "number"
+                      ? Math.max(
+                          1,
+                          Math.round(compareProgress.loadingElapsedMs / 1000),
+                        )
+                      : null;
+                  const compareRecoveryBudgetSeconds =
+                    typeof compareProgress?.recoveryThresholdMs === "number"
+                      ? Math.max(
+                          1,
+                          Math.round(
+                            compareProgress.recoveryThresholdMs / 1000,
+                          ),
+                        )
+                      : null;
+                  const recoveryConfirmPending =
+                    compareRecoveryConfirmTargetId === target.id;
+                  const recoveryCoolingDown =
+                    (compareRecoveryCooldownByTargetId[target.id] || 0) >
+                    Date.now();
+                  const runtimeSummary =
+                    runtime?.phaseDetail || runtime?.phase || "—";
+                  const compareSummary =
+                    compareProgress?.detail ||
+                    compareProgress?.phase ||
+                    copy.compareIdleStatus;
+                  return (
+                    <article
+                      key={target.id}
+                      className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5"
+                    >
+                      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="line-clamp-1 text-sm font-medium text-white">
+                              {target.label}
+                            </p>
+                            <span
+                              className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
+                                target.execution === "local"
+                                  ? "bg-emerald-400/10 text-emerald-200"
+                                  : "bg-violet-400/10 text-violet-200"
+                              }`}
+                            >
+                              {target.execution === "local"
+                                ? copy.local
+                                : copy.remote}
+                            </span>
+                            {target.id === selectedTargetId ? (
+                              <span className="rounded-full bg-cyan-400/10 px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                                {copy.currentTarget}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 line-clamp-1 text-xs text-slate-500">
+                            {target.providerLabel} · {target.recommendedContext}
+                          </p>
+                        </div>
+                        <span className="justify-self-start rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300 xl:justify-self-end">
+                          {hasEnoughTargets ? copy.laneReady : copy.lanePending}
+                        </span>
+                      </div>
 
-		                      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] leading-5">
-		                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-slate-300">
-		                          <span className="text-slate-500">{locale.startsWith("en") ? "Runtime" : "运行时"} · </span>
-		                          <span className="text-slate-100">{runtimeSummary}</span>
-		                          {loadingSeconds !== null ? <span className="text-slate-500"> · {loadingSeconds}s</span> : null}
-		                        </span>
-		                        <span className="max-w-full truncate rounded-full border border-cyan-400/15 bg-cyan-400/5 px-2.5 py-1 text-cyan-50">
-		                          <span className="text-cyan-100">{copy.compareRuntimePhase}</span>
-		                          <span className="text-cyan-50/80"> · {compareSummary}</span>
-		                        </span>
-		                        {compareTimeline.length ? (
-		                          <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-slate-400">
-		                            {copy.compareRecoveryTimeline} · {compareTimeline.length}
-		                          </span>
-		                        ) : null}
-		                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] leading-5">
+                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-slate-300">
+                          <span className="text-slate-500">
+                            {locale.startsWith("en") ? "Runtime" : "运行时"}{" "}
+                            ·{" "}
+                          </span>
+                          <span className="text-slate-100">
+                            {runtimeSummary}
+                          </span>
+                          {loadingSeconds !== null ? (
+                            <span className="text-slate-500">
+                              {" "}
+                              · {loadingSeconds}s
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="max-w-full truncate rounded-full border border-cyan-400/15 bg-cyan-400/5 px-2.5 py-1 text-cyan-50">
+                          <span className="text-cyan-100">
+                            {copy.compareRuntimePhase}
+                          </span>
+                          <span className="text-cyan-50/80">
+                            {" "}
+                            · {compareSummary}
+                          </span>
+                        </span>
+                        {compareTimeline.length ? (
+                          <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-slate-400">
+                            {copy.compareRecoveryTimeline} ·{" "}
+                            {compareTimeline.length}
+                          </span>
+                        ) : null}
+                      </div>
 
-		                      <details
-		                        className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-xs leading-6 text-slate-300"
-		                        open={Boolean(compareTimeline.length && compareProgress?.phase !== "completed")}
-		                      >
-		                        <summary className="cursor-pointer list-none">
-		                          <span className="flex flex-wrap items-center justify-between gap-3">
-		                            <span className="inline-flex items-center gap-2 font-medium text-slate-100">
-		                              <span>{copy.compareDrawer}</span>
-		                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-[2px] text-[10px] text-slate-400">
-		                                {compareTimeline.length}
-		                              </span>
-		                            </span>
-		                            {target.execution === "local" ? (
-		                              <button
-		                                type="button"
-		                                onClick={(event) => {
-		                                  event.preventDefault();
-		                                  onRetryLocalRecovery(target.id);
-		                                }}
-		                                disabled={compareRecoveryPendingTargetId === target.id || benchmarkPending || recoveryCoolingDown}
-		                                className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-		                                  recoveryConfirmPending
-		                                    ? "border-amber-300/30 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15"
-		                                    : "border-cyan-400/20 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15"
-		                                }`}
-		                              >
-		                                {compareRecoveryPendingTargetId === target.id
-		                                  ? copy.compareManualRecoveryPending
-		                                  : recoveryCoolingDown
-		                                    ? copy.compareManualRecoveryCooldown
-		                                    : recoveryConfirmPending
-		                                      ? copy.compareManualRecoveryConfirm
-		                                      : copy.compareManualRecovery}
-		                              </button>
-		                            ) : (
-		                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-slate-400">
-		                                {locale.startsWith("en") ? "Provider retry policy" : "远端重试策略"}
-		                              </span>
-		                            )}
-		                          </span>
-		                        </summary>
-		                        <div className="mt-3">
-		                          {recoveryConfirmPending ? (
-		                            <p className="mb-2 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-[11px] leading-5 text-amber-100/85">
-		                              {copy.compareManualRecoveryConfirmHint}
-		                            </p>
-		                          ) : null}
-		                          {recoveryCoolingDown ? (
-		                            <p className="mb-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] leading-5 text-slate-400">
-		                              {copy.compareManualRecoveryCooldownHint}
-		                            </p>
-		                          ) : null}
-		                          <div className="grid gap-2 text-[11px] text-slate-400 sm:grid-cols-3">
-		                            {compareLoadingSeconds !== null ? <p>{copy.compareLoadingFor}: {compareLoadingSeconds}s</p> : null}
-		                            {compareRecoveryBudgetSeconds !== null ? <p>{copy.compareRecoveryBudget}: {compareRecoveryBudgetSeconds}s</p> : null}
-		                            {compareProgress?.recoveryAction ? <p>{copy.compareLatestRecovery}: {compareProgress.recoveryAction}</p> : null}
-		                          </div>
-		                          <p className="mt-3 text-[10px] uppercase tracking-[0.16em] text-slate-500">{copy.compareRecoveryTimeline}</p>
-		                          {compareTimeline.length ? (
-		                            <div className="mt-2 max-h-36 space-y-2 overflow-auto pr-1">
-		                              {compareTimeline.map((entry: AgentCompareLaneTimelineEntry, index) => (
-		                                <div key={`${target.id}:${entry.at}:${index}`} className="rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2">
-		                                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
-		                                    {formatTimelineTime(locale, entry.at)} · {entry.phase}
-		                                  </p>
-		                                  <p className="mt-1 text-slate-200">{entry.detail}</p>
-		                                  {typeof entry.recoveryTriggerElapsedMs === "number" ? (
-		                                    <p className="mt-1 text-slate-400">
-		                                      {copy.compareLoadingFor}: {Math.max(1, Math.round(entry.recoveryTriggerElapsedMs / 1000))}s
-		                                    </p>
-		                                  ) : null}
-		                                  {entry.recoveryAction ? (
-		                                    <p className="mt-1 text-slate-400">{entry.recoveryAction}</p>
-		                                  ) : null}
-		                                </div>
-		                              ))}
-		                            </div>
-		                          ) : (
-		                            <p className="mt-2 text-slate-400">{copy.compareNoTimeline}</p>
-		                          )}
-		                        </div>
-		                      </details>
-		                    </article>
-		                  );
-	                })}
-	              </div>
-	            </section>
+                      <details
+                        className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-xs leading-6 text-slate-300"
+                        open={Boolean(
+                          compareTimeline.length &&
+                          compareProgress?.phase !== "completed",
+                        )}
+                      >
+                        <summary className="cursor-pointer list-none">
+                          <span className="flex flex-wrap items-center justify-between gap-3">
+                            <span className="inline-flex items-center gap-2 font-medium text-slate-100">
+                              <span>{copy.compareDrawer}</span>
+                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-[2px] text-[10px] text-slate-400">
+                                {compareTimeline.length}
+                              </span>
+                            </span>
+                            {target.execution === "local" ? (
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  onRetryLocalRecovery(target.id);
+                                }}
+                                disabled={
+                                  compareRecoveryPendingTargetId ===
+                                    target.id ||
+                                  benchmarkPending ||
+                                  recoveryCoolingDown
+                                }
+                                className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                  recoveryConfirmPending
+                                    ? "border-amber-300/30 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15"
+                                    : "border-cyan-400/20 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15"
+                                }`}
+                              >
+                                {compareRecoveryPendingTargetId === target.id
+                                  ? copy.compareManualRecoveryPending
+                                  : recoveryCoolingDown
+                                    ? copy.compareManualRecoveryCooldown
+                                    : recoveryConfirmPending
+                                      ? copy.compareManualRecoveryConfirm
+                                      : copy.compareManualRecovery}
+                              </button>
+                            ) : (
+                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-slate-400">
+                                {locale.startsWith("en")
+                                  ? "Provider retry policy"
+                                  : "远端重试策略"}
+                              </span>
+                            )}
+                          </span>
+                        </summary>
+                        <div className="mt-3">
+                          {recoveryConfirmPending ? (
+                            <p className="mb-2 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-[11px] leading-5 text-amber-100/85">
+                              {copy.compareManualRecoveryConfirmHint}
+                            </p>
+                          ) : null}
+                          {recoveryCoolingDown ? (
+                            <p className="mb-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] leading-5 text-slate-400">
+                              {copy.compareManualRecoveryCooldownHint}
+                            </p>
+                          ) : null}
+                          <div className="grid gap-2 text-[11px] text-slate-400 sm:grid-cols-3">
+                            {compareLoadingSeconds !== null ? (
+                              <p>
+                                {copy.compareLoadingFor}:{" "}
+                                {compareLoadingSeconds}s
+                              </p>
+                            ) : null}
+                            {compareRecoveryBudgetSeconds !== null ? (
+                              <p>
+                                {copy.compareRecoveryBudget}:{" "}
+                                {compareRecoveryBudgetSeconds}s
+                              </p>
+                            ) : null}
+                            {compareProgress?.recoveryAction ? (
+                              <p>
+                                {copy.compareLatestRecovery}:{" "}
+                                {compareProgress.recoveryAction}
+                              </p>
+                            ) : null}
+                          </div>
+                          <p className="mt-3 text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                            {copy.compareRecoveryTimeline}
+                          </p>
+                          {compareTimeline.length ? (
+                            <div className="mt-2 max-h-36 space-y-2 overflow-auto pr-1">
+                              {compareTimeline.map(
+                                (
+                                  entry: AgentCompareLaneTimelineEntry,
+                                  index,
+                                ) => (
+                                  <div
+                                    key={`${target.id}:${entry.at}:${index}`}
+                                    className="rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2"
+                                  >
+                                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                                      {formatTimelineTime(locale, entry.at)} ·{" "}
+                                      {entry.phase}
+                                    </p>
+                                    <p className="mt-1 text-slate-200">
+                                      {entry.detail}
+                                    </p>
+                                    {typeof entry.recoveryTriggerElapsedMs ===
+                                    "number" ? (
+                                      <p className="mt-1 text-slate-400">
+                                        {copy.compareLoadingFor}:{" "}
+                                        {Math.max(
+                                          1,
+                                          Math.round(
+                                            entry.recoveryTriggerElapsedMs /
+                                              1000,
+                                          ),
+                                        )}
+                                        s
+                                      </p>
+                                    ) : null}
+                                    {entry.recoveryAction ? (
+                                      <p className="mt-1 text-slate-400">
+                                        {entry.recoveryAction}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                ),
+                              )}
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-slate-400">
+                              {copy.compareNoTimeline}
+                            </p>
+                          )}
+                        </div>
+                      </details>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
 
-	            <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-	              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-	                {locale.startsWith("en") ? "Execution handoff" : "执行交接"}
-	              </p>
-	              <div className="mt-4 space-y-3">
-	                <button
-	                  type="button"
-	                  disabled={!hasEnoughTargets || comparePending || pending}
-	                  onClick={onRunCompare}
-	                  className="w-full rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-left text-sm text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
-	                >
-	                  <span className="block font-medium">{comparePending ? copy.runningCompare : copy.runCompare}</span>
-	                  <span className="mt-1 block text-xs leading-6 text-cyan-100/80">
-	                    {hasEnoughTargets ? copy.fairnessFingerprint : copy.needMoreTargets}
-	                  </span>
-	                </button>
-	                <button
-	                  type="button"
-	                  disabled={!compareResult || benchmarkPending || comparePending}
-	                  onClick={onSendToBenchmark}
-	                  className="w-full rounded-2xl border border-violet-400/20 bg-violet-400/10 px-4 py-3 text-left text-sm text-violet-100 transition hover:bg-violet-400/15 disabled:cursor-not-allowed disabled:opacity-60"
-	                >
-	                  <span className="block font-medium">{benchmarkPending ? copy.benchmarkPending : copy.benchmarkAction}</span>
-	                  <span className="mt-1 block text-xs leading-6 text-violet-100/80">{copy.benchmarkHint}</span>
-	                </button>
-	                <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-200">
-	                  <input
-	                    type="checkbox"
-	                    checked={compareBenchmarkUseOutputContract}
-	                    onChange={(event) => onCompareBenchmarkUseOutputContractChange(event.target.checked)}
-	                    className="mt-1 rounded border-white/20 bg-slate-950"
-	                  />
-	                  <span>
-	                    <span className="block font-medium">{copy.benchmarkContractToggle}</span>
-	                    <span className="mt-1 block text-xs leading-6 text-slate-400">{copy.benchmarkContractHint}</span>
-	                  </span>
-	                </label>
-	                <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-	                  <div className="flex flex-wrap items-start justify-between gap-3">
-	                    <div>
-	                      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{copy.benchmarkPromptPreview}</p>
-	                      <p className="mt-2 text-xs leading-6 text-slate-400">{copy.benchmarkPromptPreviewHint}</p>
-	                    </div>
-	                    <div className="flex flex-wrap items-center gap-2">
-	                      <label className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-slate-200">
-	                        <input
-	                          type="checkbox"
-	                          checked={compareBenchmarkPreviewDiffOnly}
-	                          onChange={(event) => onCompareBenchmarkPreviewDiffOnlyChange(event.target.checked)}
-	                          className="rounded border-white/20 bg-slate-950"
-	                        />
-	                        {copy.benchmarkPromptDiffOnly}
-	                      </label>
-	                      <button
-	                        type="button"
-	                        onClick={() =>
-	                          onCopy(
-	                            compareBenchmarkPreviewDiffOnly
-	                              ? compareBenchmarkPromptDiffPreview
-	                              : compareBenchmarkPromptPreview,
-	                            "compare:benchmark-prompt"
-	                          )
-	                        }
-	                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-	                      >
-	                        {copyState === "compare:benchmark-prompt" ? copy.copied : copy.benchmarkPromptCopy}
-	                      </button>
-	                    </div>
-	                  </div>
-	                  <textarea
-	                    readOnly
-	                    value={compareBenchmarkPreviewDiffOnly ? compareBenchmarkPromptDiffPreview : compareBenchmarkPromptPreview}
-	                    rows={6}
-	                    className="mt-3 w-full resize-none rounded-2xl border border-white/10 bg-slate-950/90 px-4 py-3 font-mono text-xs leading-6 text-slate-200 outline-none"
-	                  />
-	                </div>
-	                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-	                  <button
-	                    type="button"
-	                    disabled={!compareResult}
-	                    onClick={onExportMarkdown}
-	                    className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
-	                  >
-	                    <span className="block font-medium">{copy.exportMarkdown}</span>
-	                    <span className="mt-1 block text-xs leading-6 text-slate-400">{compareResult ? copy.resultReviewHint : copy.noResults}</span>
-	                  </button>
-	                  <button
-	                    type="button"
-	                    disabled={!compareResult}
-	                    onClick={onCopyMarkdown}
-	                    className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
-	                  >
-	                    <span className="block font-medium">{copyState === "compare:markdown" ? copy.copied : copy.copyMarkdown}</span>
-	                    <span className="mt-1 block text-xs leading-6 text-slate-400">{compareResult ? copy.resultReviewHint : copy.noResults}</span>
-	                  </button>
-	                </div>
-	                {pending ? (
-	                  <p className="text-xs leading-6 text-cyan-200">
-	                    {locale.startsWith("en")
-	                      ? "A chat run is already in flight. Compare execution will reuse the same runtime guardrails."
-	                      : "当前已有聊天请求进行中。compare 会继续复用同一套运行时保护逻辑。"}
-	                  </p>
-	                ) : null}
-	                {compareError ? (
-	                  <div className="rounded-2xl border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm leading-6 text-rose-100">
-	                    {compareError}
-	                  </div>
-	                ) : null}
-	                {benchmarkError ? (
-	                  <div className="rounded-2xl border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm leading-6 text-rose-100">
-	                    {benchmarkError}
-	                  </div>
-	                ) : null}
-	                {compareResult?.warning ? (
-	                  <div className="rounded-2xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
-	                    <p className="text-[11px] uppercase tracking-[0.22em] text-amber-50/80">{copy.compareWarning}</p>
-	                    <p className="mt-2">{compareResult.warning}</p>
-	                  </div>
-	                ) : null}
-	                {compareResult?.results.some((lane) => !lane.ok) ? (
-	                  <div className="rounded-2xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
-	                    {copy.partialRun}
-	                  </div>
-	                ) : null}
-	                {benchmarkResult?.runId ? (
-	                  <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-100">
-	                    <p className="font-medium">{copy.benchmarkSuccess}</p>
-	                    <p className="mt-1 text-xs text-emerald-100/90">runId: {benchmarkResult.runId}</p>
-	                    {benchmarkResult.runNote ? (
-	                      <p className="mt-2 text-xs leading-6 text-emerald-100/85">{copy.benchmarkRunNoteAttached}</p>
-	                    ) : null}
-	                    <a href="/admin" className="mt-2 inline-flex text-xs font-semibold text-emerald-50 underline underline-offset-4">
-	                      {copy.benchmarkOpen}
-	                    </a>
-	                  </div>
-	                ) : null}
-	              </div>
-	            </section>
-	          </aside>
-	        </div>
-	      </div>
-	    </div>
+            <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                {locale.startsWith("en") ? "Execution handoff" : "执行交接"}
+              </p>
+              <div className="mt-4 space-y-3">
+                <button
+                  type="button"
+                  disabled={!hasEnoughTargets || comparePending || pending}
+                  onClick={onRunCompare}
+                  className="w-full rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-left text-sm text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="block font-medium">
+                    {comparePending ? copy.runningCompare : copy.runCompare}
+                  </span>
+                  <span className="mt-1 block text-xs leading-6 text-cyan-100/80">
+                    {hasEnoughTargets
+                      ? copy.fairnessFingerprint
+                      : copy.needMoreTargets}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    !compareResult || benchmarkPending || comparePending
+                  }
+                  onClick={onSendToBenchmark}
+                  className="w-full rounded-2xl border border-violet-400/20 bg-violet-400/10 px-4 py-3 text-left text-sm text-violet-100 transition hover:bg-violet-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="block font-medium">
+                    {benchmarkPending
+                      ? copy.benchmarkPending
+                      : copy.benchmarkAction}
+                  </span>
+                  <span className="mt-1 block text-xs leading-6 text-violet-100/80">
+                    {copy.benchmarkHint}
+                  </span>
+                </button>
+                <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={compareBenchmarkUseOutputContract}
+                    onChange={(event) =>
+                      onCompareBenchmarkUseOutputContractChange(
+                        event.target.checked,
+                      )
+                    }
+                    className="mt-1 rounded border-white/20 bg-slate-950"
+                  />
+                  <span>
+                    <span className="block font-medium">
+                      {copy.benchmarkContractToggle}
+                    </span>
+                    <span className="mt-1 block text-xs leading-6 text-slate-400">
+                      {copy.benchmarkContractHint}
+                    </span>
+                  </span>
+                </label>
+                <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                        {copy.benchmarkPromptPreview}
+                      </p>
+                      <p className="mt-2 text-xs leading-6 text-slate-400">
+                        {copy.benchmarkPromptPreviewHint}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-slate-200">
+                        <input
+                          type="checkbox"
+                          checked={compareBenchmarkPreviewDiffOnly}
+                          onChange={(event) =>
+                            onCompareBenchmarkPreviewDiffOnlyChange(
+                              event.target.checked,
+                            )
+                          }
+                          className="rounded border-white/20 bg-slate-950"
+                        />
+                        {copy.benchmarkPromptDiffOnly}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onCopy(
+                            compareBenchmarkPreviewDiffOnly
+                              ? compareBenchmarkPromptDiffPreview
+                              : compareBenchmarkPromptPreview,
+                            "compare:benchmark-prompt",
+                          )
+                        }
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
+                      >
+                        {copyState === "compare:benchmark-prompt"
+                          ? copy.copied
+                          : copy.benchmarkPromptCopy}
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    readOnly
+                    value={
+                      compareBenchmarkPreviewDiffOnly
+                        ? compareBenchmarkPromptDiffPreview
+                        : compareBenchmarkPromptPreview
+                    }
+                    rows={6}
+                    className="mt-3 w-full resize-none rounded-2xl border border-white/10 bg-slate-950/90 px-4 py-3 font-mono text-xs leading-6 text-slate-200 outline-none"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={!compareResult}
+                    onClick={onExportMarkdown}
+                    className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="block font-medium">
+                      {copy.exportMarkdown}
+                    </span>
+                    <span className="mt-1 block text-xs leading-6 text-slate-400">
+                      {compareResult ? copy.resultReviewHint : copy.noResults}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!compareResult}
+                    onClick={onCopyMarkdown}
+                    className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="block font-medium">
+                      {copyState === "compare:markdown"
+                        ? copy.copied
+                        : copy.copyMarkdown}
+                    </span>
+                    <span className="mt-1 block text-xs leading-6 text-slate-400">
+                      {compareResult ? copy.resultReviewHint : copy.noResults}
+                    </span>
+                  </button>
+                </div>
+                {pending ? (
+                  <p className="text-xs leading-6 text-cyan-200">
+                    {locale.startsWith("en")
+                      ? "A chat run is already in flight. Compare execution will reuse the same runtime guardrails."
+                      : "当前已有聊天请求进行中。compare 会继续复用同一套运行时保护逻辑。"}
+                  </p>
+                ) : null}
+                {compareError ? (
+                  <div className="rounded-2xl border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm leading-6 text-rose-100">
+                    {compareError}
+                  </div>
+                ) : null}
+                {benchmarkError ? (
+                  <div className="rounded-2xl border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm leading-6 text-rose-100">
+                    {benchmarkError}
+                  </div>
+                ) : null}
+                {compareResult?.warning ? (
+                  <div className="rounded-2xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-amber-50/80">
+                      {copy.compareWarning}
+                    </p>
+                    <p className="mt-2">{compareResult.warning}</p>
+                  </div>
+                ) : null}
+                {compareResult?.results.some((lane) => !lane.ok) ? (
+                  <div className="rounded-2xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
+                    {copy.partialRun}
+                  </div>
+                ) : null}
+                {benchmarkResult?.runId ? (
+                  <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-100">
+                    <p className="font-medium">{copy.benchmarkSuccess}</p>
+                    <p className="mt-1 text-xs text-emerald-100/90">
+                      runId: {benchmarkResult.runId}
+                    </p>
+                    {benchmarkResult.runNote ? (
+                      <p className="mt-2 text-xs leading-6 text-emerald-100/85">
+                        {copy.benchmarkRunNoteAttached}
+                      </p>
+                    ) : null}
+                    <a
+                      href="/admin"
+                      className="mt-2 inline-flex text-xs font-semibold text-emerald-50 underline underline-offset-4"
+                    >
+                      {copy.benchmarkOpen}
+                    </a>
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </div>
   );
 }

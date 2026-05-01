@@ -15,6 +15,7 @@ import type {
   AgentFineTuneJob,
   AgentFineTuneDatasetFormat,
   AgentFineTuneDatasetValidation,
+  AgentFineTuneReportExport,
   AgentFineTuneSummary,
   AgentFineTuneUpstreamDatasetCandidate,
   AgentTarget,
@@ -52,6 +53,7 @@ type FineTuneResponse = {
     path?: string;
     sourceUrl?: string;
   };
+  report?: AgentFineTuneReportExport;
 };
 
 const DEFAULT_DATASET_FORM = {
@@ -147,6 +149,15 @@ type TrainingChartPoint = AgentFineTuneCurvePoint & {
   normalizedLoss: number;
   x: number;
   y: number;
+};
+
+type TrainingChartOverlaySeries = {
+  jobId: string;
+  label: string;
+  trainPath: string;
+  validPath: string;
+  latestTrain?: TrainingChartPoint;
+  latestValid?: TrainingChartPoint;
 };
 
 type TrainingChartHoverState = TrainingChartPoint | null;
@@ -354,6 +365,120 @@ const COMMUNITY_DATASET_PRESETS: CommunityDatasetPreset[] = [
     },
   },
   {
+    id: "openhermes-2-5-chat",
+    label: {
+      en: "OpenHermes 2.5 chat starter",
+      zh: "OpenHermes 2.5 对话 starter",
+    },
+    description: {
+      en: "A chat-style preset inspired by OpenHermes 2.5 formats, useful for longer multi-turn assistant warmups.",
+      zh: "参考 OpenHermes 2.5 格式的对话 starter，适合更长轮次的多轮助手热身。",
+    },
+    bestFor: {
+      en: "Beginner-friendly chat SFT after the bundled project starter is stable.",
+      zh: "内置项目 starter 跑稳后，用作新手友好的聊天 SFT 升级。",
+    },
+    source: "Hugging Face",
+    sourceUrl: "https://huggingface.co/datasets/teknium/OpenHermes-2.5",
+    docsUrl: "https://huggingface.co/datasets/teknium/OpenHermes-2.5",
+    localPath: "data/fine-tune/community/openhermes-2-5-chat-sample.jsonl",
+    format: "chat-jsonl",
+    upstreamQuery: "teknium OpenHermes 2.5 chat messages",
+    sampleCount: 1000000,
+    bootstrapRows: 192,
+    recommendedSamples: 1500,
+    recommendedEpochs: 3,
+    recommendedSteps: {
+      en: "Start from the bundled 192-row slice, then sample 1k-2k upstream rows once conversion is verified.",
+      zh: "先用内置 192 行切片，转换验证通过后再抽 1k-2k 条上游样本。",
+    },
+    difficulty: {
+      en: "Chat upgrade",
+      zh: "对话升级",
+    },
+    license: "Dataset card terms, verify upstream before redistribution",
+    recipeNotes: {
+      en: "Good for longer chat behavior runs; keep validation split on and compare against the base adapter.",
+      zh: "适合更长轮次的对话行为训练；保留验证集，并与 base adapter 做 compare。",
+    },
+  },
+  {
+    id: "openassistant-oasst1",
+    label: {
+      en: "OpenAssistant OASST1 starter",
+      zh: "OpenAssistant OASST1 starter",
+    },
+    description: {
+      en: "Conversation-tree assistant data with a robust local slice using community-style `conversations` rows.",
+      zh: "对话树助手数据，本地切片使用社区常见的 `conversations` 行格式来验证自动转换。",
+    },
+    bestFor: {
+      en: "Testing community chat conversion and longer assistant-style fine-tune runs.",
+      zh: "适合测试社区对话数据转换，并跑更长的助手风格微调。",
+    },
+    source: "Hugging Face",
+    sourceUrl: "https://huggingface.co/datasets/OpenAssistant/oasst1",
+    docsUrl: "https://open-assistant.io/",
+    localPath: "data/fine-tune/community/openassistant-oasst1-sample.jsonl",
+    format: "chat-jsonl",
+    upstreamQuery: "OpenAssistant oasst1 conversations assistant dataset",
+    sampleCount: 84000,
+    bootstrapRows: 192,
+    recommendedSamples: 1200,
+    recommendedEpochs: 3,
+    recommendedSteps: {
+      en: "Use the local slice first to confirm conversation conversion, then import a filtered 1k+ sample.",
+      zh: "先用本地切片确认 conversations 转换，再导入过滤后的 1k+ 样本。",
+    },
+    difficulty: {
+      en: "Community conversion",
+      zh: "社区转换",
+    },
+    license: "Apache-2.0, verify dataset card",
+    recipeNotes: {
+      en: "Useful for validating the automatic converter because upstream rows often differ from simple messages JSONL.",
+      zh: "适合验证自动转换器，因为上游行格式通常不只是简单 messages JSONL。",
+    },
+  },
+  {
+    id: "code-alpaca-20k",
+    label: {
+      en: "Code Alpaca 20K starter",
+      zh: "Code Alpaca 20K starter",
+    },
+    description: {
+      en: "Instruction-style code tasks for a small coding adapter baseline before using larger code datasets.",
+      zh: "代码任务指令集，适合作为更大代码数据集之前的小型 coding adapter 基线。",
+    },
+    bestFor: {
+      en: "Code explanation, small patches, and coding benchmark smoke runs.",
+      zh: "适合代码解释、小补丁和 coding benchmark 冒烟。",
+    },
+    source: "GitHub",
+    sourceUrl: "https://github.com/sahil280114/codealpaca",
+    docsUrl: "https://github.com/sahil280114/codealpaca",
+    localPath: "data/fine-tune/community/code-alpaca-20k-sample.jsonl",
+    format: "instruction-jsonl",
+    upstreamQuery: "code alpaca 20k instruction code dataset GitHub",
+    sampleCount: 20000,
+    bootstrapRows: 192,
+    recommendedSamples: 1000,
+    recommendedEpochs: 4,
+    recommendedSteps: {
+      en: "Start with 1k rows for local coding adapters, then benchmark code review and patch tasks.",
+      zh: "本地 coding adapter 先从 1k 行开始，再跑代码审阅和补丁任务 benchmark。",
+    },
+    difficulty: {
+      en: "Coding beginner",
+      zh: "代码新手",
+    },
+    license: "MIT, verify upstream repository",
+    recipeNotes: {
+      en: "Pair it with compare lanes that ask for concrete code edits rather than generic explanations.",
+      zh: "建议配合要求具体代码修改的 compare lane，而不是只看泛泛解释。",
+    },
+  },
+  {
     id: "magicoder-oss-instruct-75k",
     label: {
       en: "Magicoder OSS-Instruct 75K",
@@ -499,6 +624,23 @@ function formatRatio(value?: number | null) {
   return `${value.toFixed(2)}x`;
 }
 
+function getFineTuneOverlayJobs(
+  job: AgentFineTuneJob,
+  jobs: AgentFineTuneJob[],
+) {
+  const adapterName = job.adapterName.trim();
+  if (!adapterName) return [];
+  return jobs
+    .filter(
+      (candidate) =>
+        candidate.id !== job.id &&
+        candidate.adapterName.trim() === adapterName &&
+        Boolean(candidate.curve?.length),
+    )
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    .slice(0, 3);
+}
+
 function clampPercent(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -579,6 +721,7 @@ function getLossBaseline(loss?: number) {
 function buildTrainingChart(
   job: AgentFineTuneJob,
   range: TrainingChartRangePreset = "all",
+  overlayJobs: AgentFineTuneJob[] = [],
 ) {
   const width = 360;
   const height = 180;
@@ -641,21 +784,57 @@ function buildTrainingChart(
     domainMinStep + 100,
     Math.ceil(effectiveMaxStep / 100) * 100,
   );
-  const firstTrainLoss = getLossBaseline(
-    sortedPoints.find((point) => point.split === "train")?.loss ??
-      sortedPoints[0]?.loss,
-  );
-  const firstValidLoss = getLossBaseline(
-    sortedPoints.find((point) => point.split === "valid")?.loss ??
-      firstTrainLoss,
-  );
-  const baselineBySplit = {
-    train: firstTrainLoss,
-    valid: firstValidLoss,
+  const buildBaseline = (chartPoints: AgentFineTuneCurvePoint[]) => {
+    const train = getLossBaseline(
+      chartPoints.find((point) => point.split === "train")?.loss ??
+        chartPoints[0]?.loss,
+    );
+    const valid = getLossBaseline(
+      chartPoints.find((point) => point.split === "valid")?.loss ?? train,
+    );
+    return { train, valid };
   };
-  const normalizedValues = sortedPoints.map(
-    (point) => point.loss / baselineBySplit[point.split],
-  );
+  const baselineBySplit = buildBaseline(sortedPoints);
+  const overlayInputs = overlayJobs
+    .map((overlayJob) => {
+      const overlayPoints = (overlayJob.curve || [])
+        .filter(
+          (point): point is AgentFineTuneCurvePoint =>
+            (point.split === "train" || point.split === "valid") &&
+            Number.isFinite(point.step) &&
+            Number.isFinite(point.loss),
+        )
+        .sort((left, right) => left.step - right.step);
+      if (overlayPoints.length < 2) return null;
+      return {
+        job: overlayJob,
+        points: overlayPoints,
+        baselineBySplit: buildBaseline(overlayPoints),
+      };
+    })
+    .filter(
+      (
+        entry,
+      ): entry is {
+        job: AgentFineTuneJob;
+        points: AgentFineTuneCurvePoint[];
+        baselineBySplit: { train: number; valid: number };
+      } => Boolean(entry),
+    );
+  const normalizeLoss = (
+    point: AgentFineTuneCurvePoint,
+    baseline: { train: number; valid: number },
+  ) => point.loss / baseline[point.split];
+  const normalizedValues = [
+    ...effectivePoints.map((point) => normalizeLoss(point, baselineBySplit)),
+    ...overlayInputs.flatMap((overlay) =>
+      overlay.points
+        .filter(
+          (point) => point.step >= domainMinStep && point.step <= domainMaxStep,
+        )
+        .map((point) => normalizeLoss(point, overlay.baselineBySplit)),
+    ),
+  ];
   const minNormalizedLoss = Math.min(...normalizedValues);
   const maxNormalizedLoss = Math.max(
     ...normalizedValues,
@@ -681,19 +860,20 @@ function buildTrainingChart(
       plotHeight;
   const toChartPoint = (
     point: AgentFineTuneCurvePoint,
+    baseline: { train: number; valid: number } = baselineBySplit,
   ): TrainingChartPoint => ({
     ...point,
     rawLoss: point.loss,
-    normalizedLoss: point.loss / baselineBySplit[point.split],
+    normalizedLoss: normalizeLoss(point, baseline),
     x: toX(point.step),
-    y: toY(point.loss / baselineBySplit[point.split]),
+    y: toY(normalizeLoss(point, baseline)),
   });
   const trainPoints = effectivePoints
     .filter((point) => point.split === "train")
-    .map(toChartPoint);
+    .map((point) => toChartPoint(point));
   const validPoints = effectivePoints
     .filter((point) => point.split === "valid")
-    .map(toChartPoint);
+    .map((point) => toChartPoint(point));
   const toPath = (chartPoints: TrainingChartPoint[]) =>
     chartPoints
       .map(
@@ -701,6 +881,27 @@ function buildTrainingChart(
           `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`,
       )
       .join(" ");
+  const overlaySeries: TrainingChartOverlaySeries[] = overlayInputs
+    .map((overlay) => {
+      const overlayEffectivePoints = overlay.points.filter(
+        (point) => point.step >= domainMinStep && point.step <= domainMaxStep,
+      );
+      const trainOverlayPoints = overlayEffectivePoints
+        .filter((point) => point.split === "train")
+        .map((point) => toChartPoint(point, overlay.baselineBySplit));
+      const validOverlayPoints = overlayEffectivePoints
+        .filter((point) => point.split === "valid")
+        .map((point) => toChartPoint(point, overlay.baselineBySplit));
+      return {
+        jobId: overlay.job.id,
+        label: overlay.job.adapterName || overlay.job.id,
+        trainPath: toPath(trainOverlayPoints),
+        validPath: toPath(validOverlayPoints),
+        latestTrain: trainOverlayPoints.at(-1),
+        latestValid: validOverlayPoints.at(-1),
+      };
+    })
+    .filter((series) => series.trainPath || series.validPath);
   const yTicks = Array.from({ length: 4 }, (_, index) => {
     const ratio = index / 3;
     const value = maxLoss - (maxLoss - minLoss) * ratio;
@@ -729,6 +930,7 @@ function buildTrainingChart(
     visibleEndStep: effectiveMaxStep,
     trainPath: toPath(trainPoints),
     validPath: toPath(validPoints),
+    overlaySeries,
     trainPoints,
     validPoints,
     yTicks,
@@ -852,6 +1054,9 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
         chartRangeLast300: "Last 300",
         chartRangeLast100: "Last 100",
         chartWindow: "Visible window",
+        overlayRuns: "Same-adapter overlay",
+        overlayRunsHint:
+          "Faint lines show recent runs with the same adapter name, normalized per run.",
         chartStep: "Step",
         chartSplitTrain: "Train",
         chartSplitValid: "Val",
@@ -884,6 +1089,20 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
         rerunSuccess:
           "Fine-tune job rerun started with the latest dataset strategy.",
         cancelSuccess: "Fine-tune worker cancelled.",
+        exportReport: "Export report",
+        exportMarkdownReport: "Markdown report",
+        exportManifestJson: "Manifest JSON",
+        exportMetricsCsv: "Metrics CSV",
+        latestReport: "Latest exported report",
+        reportPath: "Report path",
+        reportPoints: "curve points",
+        reportLatestStep: "latest step",
+        copyReportPath: "Copy report path",
+        openReports: "Open reports dir",
+        previewReport: "Preview report",
+        downloadFullBundle: "Download full bundle",
+        reportExportSuccess: "Fine-tune report exported.",
+        reportCopySuccess: "Fine-tune report copied.",
         handoffBenchmarkSuccess: "Adapter benchmark handoff completed.",
         handoffCompareSuccess: "Adapter compare handoff completed.",
         handoffMissingContext:
@@ -1003,6 +1222,9 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
       chartRangeLast300: "后 300 轮",
       chartRangeLast100: "后 100 轮",
       chartWindow: "当前视窗",
+      overlayRuns: "同 adapter 叠加",
+      overlayRunsHint:
+        "淡线表示同名 adapter 的最近训练记录，每次 run 单独归一化。",
       chartStep: "轮次",
       chartSplitTrain: "训练",
       chartSplitValid: "验证",
@@ -1034,6 +1256,20 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
       startSuccess: "本地 Fine-tune worker 已启动。",
       rerunSuccess: "已使用最新数据准备策略创建并启动新作业。",
       cancelSuccess: "Fine-tune worker 已取消。",
+      exportReport: "导出报告",
+      exportMarkdownReport: "Markdown 报告",
+      exportManifestJson: "Manifest JSON",
+      exportMetricsCsv: "指标 CSV",
+      latestReport: "最近导出的报告",
+      reportPath: "报告路径",
+      reportPoints: "曲线点数",
+      reportLatestStep: "最新轮次",
+      copyReportPath: "复制报告路径",
+      openReports: "打开报告目录",
+      previewReport: "预览报告",
+      downloadFullBundle: "下载完整 bundle",
+      reportExportSuccess: "Fine-tune 报告已导出。",
+      reportCopySuccess: "Fine-tune 报告已复制。",
       handoffBenchmarkSuccess: "Adapter benchmark handoff 已完成。",
       handoffCompareSuccess: "Adapter compare handoff 已完成。",
       handoffMissingContext:
@@ -1177,6 +1413,9 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
   >({});
   const [chartHoverByJobId, setChartHoverByJobId] = useState<
     Record<string, TrainingChartHoverState>
+  >({});
+  const [lastReportByJobId, setLastReportByJobId] = useState<
+    Record<string, AgentFineTuneReportExport>
   >({});
 
   const getChartRangeLabel = useCallback(
@@ -1366,7 +1605,10 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
     }
   }
 
-  async function copyValue(value?: string | null, successMessage = text.copied) {
+  async function copyValue(
+    value?: string | null,
+    successMessage = text.copied,
+  ) {
     if (!value) return;
     try {
       if (navigator.clipboard?.writeText) {
@@ -1377,6 +1619,30 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
     } catch {
       setMessageTone("error");
       setMessage("Copy failed.");
+    }
+  }
+
+  async function exportJobReport(
+    jobId: string,
+    reportFormat: "markdown" | "manifest-json" | "metrics-csv",
+    copyContent = false,
+  ) {
+    const payload = await postAction(
+      {
+        action: "export-report",
+        id: jobId,
+        reportFormat,
+      },
+      text.reportExportSuccess,
+    );
+    if (payload?.report) {
+      setLastReportByJobId((current) => ({
+        ...current,
+        [jobId]: payload.report as AgentFineTuneReportExport,
+      }));
+      if (copyContent && payload.report.content) {
+        await copyValue(payload.report.content, text.reportCopySuccess);
+      }
     }
   }
 
@@ -2832,7 +3098,9 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                     <span className="rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2">
                                       {text.upstreamRows}:{" "}
                                       <span className="text-slate-200">
-                                        {formatSampleCount(candidate.sampleCount)}
+                                        {formatSampleCount(
+                                          candidate.sampleCount,
+                                        )}
                                       </span>
                                     </span>
                                     <span className="rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2">
@@ -2995,6 +3263,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                           const totalSteps = job.progress?.totalSteps ?? 0;
                           const canStart =
                             job.status !== "queued" && job.status !== "running";
+                          const latestReport = lastReportByJobId[job.id];
                           return (
                             <div
                               key={job.id}
@@ -3099,9 +3368,14 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                   {(() => {
                                     const chartRange =
                                       chartRangeByJobId[job.id] || "all";
+                                    const overlayJobs = getFineTuneOverlayJobs(
+                                      job,
+                                      summary?.jobs || [],
+                                    );
                                     const chart = buildTrainingChart(
                                       job,
                                       chartRange,
+                                      overlayJobs,
                                     );
                                     if (!chart) return null;
                                     const hoverPoint =
@@ -3158,6 +3432,15 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                             {chart.visibleEndStep}
                                           </div>
                                         </div>
+                                        {chart.overlaySeries.length ? (
+                                          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-semibold text-slate-200">
+                                              {text.overlayRuns}:{" "}
+                                              {chart.overlaySeries.length}
+                                            </span>
+                                            <span>{text.overlayRunsHint}</span>
+                                          </div>
+                                        ) : null}
                                         <div className="relative mt-3 rounded-2xl border border-white/10 bg-slate-950/90 p-3">
                                           {visibleHoverPoint ? (
                                             <div
@@ -3315,6 +3598,37 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                                 strokeDasharray="4 4"
                                               />
                                             ) : null}
+                                            {chart.overlaySeries.map(
+                                              (series, index) => (
+                                                <g
+                                                  key={`overlay:${series.jobId}`}
+                                                  opacity={0.34 - index * 0.06}
+                                                >
+                                                  {series.trainPath ? (
+                                                    <path
+                                                      d={series.trainPath}
+                                                      fill="none"
+                                                      stroke="rgb(34 211 238)"
+                                                      strokeWidth="1.6"
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeDasharray="5 6"
+                                                    />
+                                                  ) : null}
+                                                  {series.validPath ? (
+                                                    <path
+                                                      d={series.validPath}
+                                                      fill="none"
+                                                      stroke="rgb(167 139 250)"
+                                                      strokeWidth="1.6"
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeDasharray="2 6"
+                                                    />
+                                                  ) : null}
+                                                </g>
+                                              ),
+                                            )}
                                             <path
                                               d={chart.trainPath}
                                               fill="none"
@@ -3647,7 +3961,115 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                     ? text.loading
                                     : text.openSource}
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void exportJobReport(
+                                      job.id,
+                                      "markdown",
+                                      true,
+                                    )
+                                  }
+                                  className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-100 transition hover:bg-emerald-400/15"
+                                >
+                                  {text.exportMarkdownReport}
+                                </button>
+                                <a
+                                  href={`/api/admin/finetune?action=preview-report&id=${encodeURIComponent(job.id)}&reportFormat=markdown`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/15"
+                                >
+                                  {text.previewReport}
+                                </a>
+                                <a
+                                  href={`/api/admin/finetune?action=download-bundle&id=${encodeURIComponent(job.id)}`}
+                                  className="rounded-full border border-violet-300/25 bg-violet-300/10 px-3 py-1.5 text-[11px] font-semibold text-violet-100 transition hover:bg-violet-300/15"
+                                >
+                                  {text.downloadFullBundle}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void exportJobReport(
+                                      job.id,
+                                      "manifest-json",
+                                    )
+                                  }
+                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-100 transition hover:bg-white/10"
+                                >
+                                  {text.exportManifestJson}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void exportJobReport(job.id, "metrics-csv")
+                                  }
+                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-100 transition hover:bg-white/10"
+                                >
+                                  {text.exportMetricsCsv}
+                                </button>
                               </div>
+
+                              {latestReport ? (
+                                <div className="mt-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.08] px-3 py-3 text-[11px] leading-5 text-emerald-50">
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="font-semibold text-emerald-100">
+                                        {text.latestReport} ·{" "}
+                                        {latestReport.format}
+                                      </p>
+                                      <p className="mt-1 break-all text-emerald-50/75">
+                                        {text.reportPath}:{" "}
+                                        {latestReport.filePath}
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          void copyValue(
+                                            latestReport.filePath,
+                                            text.copied,
+                                          )
+                                        }
+                                        className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-50 transition hover:bg-emerald-200/15"
+                                      >
+                                        {text.copyReportPath}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          void runSecondaryAction(
+                                            `job-reports:${job.id}`,
+                                            {
+                                              action: "open-path",
+                                              kind: "job-reports",
+                                              id: job.id,
+                                            },
+                                          )
+                                        }
+                                        className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-50 transition hover:bg-emerald-200/15"
+                                      >
+                                        {actionPending[`job-reports:${job.id}`]
+                                          ? text.loading
+                                          : text.openReports}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.14em] text-emerald-50/70">
+                                    <span className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-2 py-0.5">
+                                      {text.reportPoints}:{" "}
+                                      {latestReport.metricsSummary.pointCount}
+                                    </span>
+                                    <span className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-2 py-0.5">
+                                      {text.reportLatestStep}:{" "}
+                                      {latestReport.metricsSummary.latestStep ??
+                                        "--"}
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : null}
 
                               {job.recentLogLines?.length ? (
                                 <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">

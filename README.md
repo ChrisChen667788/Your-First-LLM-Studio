@@ -216,4 +216,4 @@ Issues and PRs are welcome.
 - Current version: [`VERSION`](./VERSION)
 - Release notes: [`docs/releases`](./docs/releases)
 - Release process: [`docs/release-process.md`](./docs/release-process.md)
-- Latest release note: [v0.3.0](./docs/releases/v0.3.0_2026-04-11.md)
+- Latest release note: [v0.3.1](./docs/releases/v0.3.1_2026-05-02.md)
