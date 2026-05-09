@@ -21,7 +21,9 @@ import {
   validateFineTuneDatasetFromPath,
 } from "@/lib/finetune/store";
 import type {
+  AgentFineTuneDataset,
   AgentFineTuneDatasetFormat,
+  AgentFineTuneDatasetQuality,
   AgentFineTuneReportFormat,
 } from "@/lib/agent/types";
 
@@ -35,6 +37,83 @@ function normalizeFormat(value: unknown): AgentFineTuneDatasetFormat {
 function normalizeReportFormat(value: unknown): AgentFineTuneReportFormat {
   if (value === "manifest-json" || value === "metrics-csv") return value;
   return "markdown";
+}
+
+function normalizeDatasetSourceType(
+  value: unknown,
+): AgentFineTuneDataset["sourceType"] | undefined {
+  if (
+    value === "local-path" ||
+    value === "bundled-preset" ||
+    value === "community-import" ||
+    value === "community-preset"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+function normalizeDatasetQuality(
+  value: unknown,
+): AgentFineTuneDatasetQuality | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Partial<AgentFineTuneDatasetQuality>;
+  const licenseRisk =
+    input.licenseRisk === "low" ||
+    input.licenseRisk === "medium" ||
+    input.licenseRisk === "high" ||
+    input.licenseRisk === "unknown"
+      ? input.licenseRisk
+      : "unknown";
+  const score = Number(input.score);
+  if (!Number.isFinite(score)) return undefined;
+
+  const normalized: AgentFineTuneDatasetQuality = {
+    score: Math.max(0, Math.min(100, Math.round(score))),
+    licenseRisk,
+  };
+  (
+    [
+      "downloadedRows",
+      "convertedRows",
+      "sampledRows",
+      "duplicateRows",
+      "skippedRows",
+      "piiRiskRows",
+    ] as const
+  ).forEach((key) => {
+    const nextValue = Number(input[key]);
+    if (Number.isFinite(nextValue)) {
+      normalized[key] = Math.max(0, Math.round(nextValue));
+    }
+  });
+  if (typeof input.schemaConversion === "string") {
+    normalized.schemaConversion = input.schemaConversion.slice(0, 240);
+  }
+  if (input.recommendedSteps && typeof input.recommendedSteps === "object") {
+    const min = Number(input.recommendedSteps.min);
+    const max = Number(input.recommendedSteps.max);
+    if (Number.isFinite(min) && Number.isFinite(max)) {
+      normalized.recommendedSteps = {
+        min: Math.max(0, Math.round(min)),
+        max: Math.max(0, Math.round(max)),
+        label:
+          typeof input.recommendedSteps.label === "string"
+            ? input.recommendedSteps.label.slice(0, 180)
+            : "",
+      };
+    }
+  }
+  return normalized;
+}
+
+function normalizeStringList(value: unknown) {
+  if (!Array.isArray(value)) return undefined;
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 12);
 }
 
 function escapeHtml(value: string) {
@@ -178,6 +257,9 @@ export async function POST(request: Request) {
       adapterId?: string;
       targetId?: string;
       reportFormat?: AgentFineTuneReportFormat;
+      sourceType?: AgentFineTuneDataset["sourceType"];
+      qualityWarnings?: string[];
+      quality?: AgentFineTuneDatasetQuality;
     };
 
     if (body.action === "validate-dataset") {
@@ -202,6 +284,14 @@ export async function POST(request: Request) {
         label: typeof body.label === "string" ? body.label : "",
         sourcePath: typeof body.sourcePath === "string" ? body.sourcePath : "",
         format: normalizeFormat(body.format),
+        sourceType: normalizeDatasetSourceType(body.sourceType),
+        sourceUrl:
+          typeof body.sourceUrl === "string" ? body.sourceUrl : undefined,
+        sourceLabel:
+          typeof body.sourceLabel === "string" ? body.sourceLabel : undefined,
+        license: typeof body.license === "string" ? body.license : undefined,
+        qualityWarnings: normalizeStringList(body.qualityWarnings),
+        quality: normalizeDatasetQuality(body.quality),
         upstreamQuery:
           typeof body.upstreamQuery === "string"
             ? body.upstreamQuery

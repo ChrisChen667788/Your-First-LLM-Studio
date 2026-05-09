@@ -4857,9 +4857,9 @@ export function AgentWorkbench() {
                           : "border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.06]"
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[15px] font-semibold text-white">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 pr-2">
+                          <p className="line-clamp-2 text-[15px] font-semibold leading-5 text-white">
                             {target.label}
                           </p>
                           <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
@@ -4873,9 +4873,9 @@ export function AgentWorkbench() {
                             )}
                           </p>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
+                        <div className="flex shrink-0 flex-col items-end gap-1">
                           <span
-                            className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] ${
+                            className={`whitespace-nowrap rounded-full px-2 py-[3px] text-[10px] uppercase leading-none tracking-[0.2em] ${
                               target.execution === "local"
                                 ? "bg-emerald-400/10 text-emerald-300"
                                 : "bg-violet-400/10 text-violet-300"
@@ -4887,7 +4887,7 @@ export function AgentWorkbench() {
                           </span>
                           {target.execution === "remote" ? (
                             <span
-                              className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] ${healthBadge.className}`}
+                              className={`whitespace-nowrap rounded-full px-2 py-[3px] text-[10px] uppercase leading-none tracking-[0.2em] ${healthBadge.className}`}
                             >
                               {healthBadge.label === "healthy"
                                 ? dictionary.agent.healthHealthy
@@ -4900,7 +4900,7 @@ export function AgentWorkbench() {
                           ) : null}
                           {loadRiskBadge ? (
                             <span
-                              className={`rounded-full px-2 py-[3px] text-[10px] font-semibold tracking-[0.08em] ${loadRiskBadge.className}`}
+                              className={`whitespace-nowrap rounded-full px-2 py-[3px] text-[10px] font-semibold leading-none tracking-[0.08em] ${loadRiskBadge.className}`}
                             >
                               {loadRiskBadge.label}
                             </span>
@@ -5713,7 +5713,13 @@ export function AgentWorkbench() {
             </div>
           </div>
 
-          <div className="grid gap-0 xl:grid-cols-[minmax(0,1.4fr)_420px] 2xl:grid-cols-[minmax(0,1.62fr)_500px]">
+          <div
+            className={`grid gap-0 ${
+              workbenchMode === "compare"
+                ? "2xl:grid-cols-[minmax(0,1fr)_400px]"
+                : "xl:grid-cols-[minmax(0,1.4fr)_420px] 2xl:grid-cols-[minmax(0,1.62fr)_500px]"
+            }`}
+          >
             <div className="border-b border-white/10 xl:border-b-0 xl:border-r xl:border-white/10">
               <div className="border-b border-white/10 bg-black/20 px-5 py-2.5">
                 {workbenchMode === "chat" ? (
@@ -8158,7 +8164,13 @@ export function AgentWorkbench() {
               )}
             </div>
 
-            <aside className="bg-white/[0.03] 2xl:max-h-[calc(100vh-15rem)] 2xl:overflow-y-auto">
+            <aside
+              className={`bg-white/[0.03] ${
+                workbenchMode === "compare"
+                  ? "hidden 2xl:block 2xl:max-h-[calc(100vh-15rem)] 2xl:overflow-y-auto"
+                  : "2xl:max-h-[calc(100vh-15rem)] 2xl:overflow-y-auto"
+              }`}
+            >
               <div className="border-b border-white/10 px-5 py-3.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

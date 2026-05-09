@@ -717,7 +717,7 @@ export function AgentCompareLab({
       };
 
   return (
-    <div className="h-[58vh] min-h-[420px] max-h-[76vh] overflow-y-auto bg-[linear-gradient(180deg,rgba(15,23,42,0.18),rgba(2,6,23,0.12))] sm:h-[62vh]">
+    <div className="min-h-[620px] bg-[linear-gradient(180deg,rgba(15,23,42,0.18),rgba(2,6,23,0.12))]">
       <div className="space-y-5 px-5 py-5">
         <section className="rounded-[28px] border border-cyan-400/15 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.85),rgba(2,6,23,0.92))] p-5 shadow-[0_30px_70px_rgba(2,6,23,0.35)]">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -837,7 +837,7 @@ export function AgentCompareLab({
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(520px,1fr)_minmax(380px,0.72fr)] 2xl:items-start">
+              <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(560px,1fr)_minmax(340px,0.52fr)] 2xl:items-start">
                 <div className="space-y-4">
                   <section className="rounded-3xl border border-white/10 bg-black/20 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">

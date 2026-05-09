@@ -25,3 +25,8 @@ body {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
+
+/* Pills should wrap as a whole unit, not split labels like "谨慎 / 加载". */
+.rounded-full {
+  white-space: nowrap;
+}

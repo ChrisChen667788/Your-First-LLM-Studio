@@ -1983,10 +1983,10 @@ export function saveFineTuneDataset(input: {
   sourceType?: AgentFineTuneDataset["sourceType"];
   sourceUrl?: string;
   sourceLabel?: string;
-    license?: string;
-    qualityWarnings?: string[];
-    quality?: AgentFineTuneDatasetQuality;
-    upstreamQuery?: string;
+  license?: string;
+  qualityWarnings?: string[];
+  quality?: AgentFineTuneDatasetQuality;
+  upstreamQuery?: string;
   refreshCadenceHours?: number;
 }) {
   const label = input.label.trim();
@@ -2014,9 +2014,9 @@ export function saveFineTuneDataset(input: {
     sourceType: input.sourceType || existing?.sourceType || "local-path",
     sourceUrl: input.sourceUrl?.trim() || existing?.sourceUrl,
     sourceLabel: input.sourceLabel?.trim() || existing?.sourceLabel,
-      license: input.license?.trim() || existing?.license,
-      qualityWarnings: input.qualityWarnings || existing?.qualityWarnings,
-      quality: input.quality || existing?.quality,
+    license: input.license?.trim() || existing?.license,
+    qualityWarnings: input.qualityWarnings || existing?.qualityWarnings,
+    quality: input.quality || existing?.quality,
     sampleCount: validation.sampleCount,
     upstreamQuery: input.upstreamQuery?.trim() || existing?.upstreamQuery,
     refreshCadenceHours:

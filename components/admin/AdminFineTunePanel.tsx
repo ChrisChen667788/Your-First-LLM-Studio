@@ -13,6 +13,7 @@ import type {
   AgentFineTuneCurvePoint,
   AgentFineTuneDataset,
   AgentFineTuneJob,
+  AgentFineTuneDatasetQuality,
   AgentFineTuneDatasetFormat,
   AgentFineTuneDatasetValidation,
   AgentFineTuneReportExport,
@@ -173,6 +174,7 @@ type TrainingChartOverlaySeries = {
 
 type TrainingChartHoverState = TrainingChartPoint | null;
 type FineTuneJobGroupKey = "active" | "needs-review" | "completed" | "staged";
+type FineTuneWorkspaceTab = "setup" | "runs" | "assets";
 
 const TRAINING_CHART_RANGE_PRESETS: TrainingChartRangePreset[] = [
   "all",
@@ -989,6 +991,20 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
           "Validate a local dataset, save a repeatable recipe, and stage a fine-tune job bundle inside the current admin workflow.",
         refresh: "Refresh",
         loading: "Loading...",
+        workspaceTabs: "Workspace",
+        tabSetup: "Setup",
+        tabRuns: "Runs & logs",
+        tabAssets: "Assets",
+        setupSummary:
+          "Dataset intake, recipe parameters, and job staging stay in one guided flow.",
+        runsSummary:
+          "Active jobs, grouped history, loss curves, exported reports, and worker logs live here.",
+        assetsSummary:
+          "Validated datasets, local targets, and ready adapters are separated from the run console.",
+        activeJobs: "Active jobs",
+        completedJobs: "Completed jobs",
+        failedJobs: "Needs review",
+        readyAdapters: "Ready adapters",
         datasetTitle: "1. Dataset",
         datasetHint:
           "Point to a local JSONL dataset and run validation before saving it into the registry.",
@@ -1193,6 +1209,20 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
         "先把本地数据集校验、可复用配方和作业 bundle 接入现有后台，不脱离当前项目框架。",
       refresh: "刷新",
       loading: "加载中...",
+      workspaceTabs: "工作区",
+      tabSetup: "配置",
+      tabRuns: "作业与日志",
+      tabAssets: "资产库",
+      setupSummary:
+        "数据接入、配方参数和作业暂存放在同一条引导式流程里，减少来回跳转。",
+      runsSummary:
+        "运行中作业、分组历史、loss 曲线、报告导出和 worker 日志集中在这里。",
+      assetsSummary:
+        "已校验数据集、本地目标和可挂载 adapter 与运行控制台分离管理。",
+      activeJobs: "运行中",
+      completedJobs: "已完成",
+      failedJobs: "需处理",
+      readyAdapters: "可挂载 adapter",
       datasetTitle: "1. 数据集",
       datasetHint:
         "填写本地 JSONL 数据路径，先做校验，再把它保存进数据集注册表。",
@@ -1480,6 +1510,8 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
   const [selectedRecipeId, setSelectedRecipeId] = useState("");
   const [datasetValidation, setDatasetValidation] =
     useState<AgentFineTuneDatasetValidation | null>(null);
+  const [datasetValidationQuality, setDatasetValidationQuality] =
+    useState<AgentFineTuneDatasetQuality | null>(null);
   const [datasetWatchDrafts, setDatasetWatchDrafts] = useState<
     Record<string, { upstreamQuery: string; refreshCadenceHours: number }>
   >({});
@@ -1503,6 +1535,8 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
   const [lastReportByJobId, setLastReportByJobId] = useState<
     Record<string, AgentFineTuneReportExport>
   >({});
+  const [activeWorkspaceTab, setActiveWorkspaceTab] =
+    useState<FineTuneWorkspaceTab>("setup");
 
   const getChartRangeLabel = useCallback(
     (range: TrainingChartRangePreset) => {
@@ -1564,6 +1598,62 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
     text.jobGroupNeedsReview,
     text.jobGroupStaged,
   ]);
+
+  const activeJobCount =
+    summary?.jobs.filter(
+      (job) => job.status === "queued" || job.status === "running",
+    ).length || 0;
+  const completedJobCount =
+    summary?.jobs.filter((job) => job.status === "completed").length || 0;
+  const failedJobCount =
+    summary?.jobs.filter(
+      (job) => job.status === "failed" || job.status === "cancelled",
+    ).length || 0;
+  const readyAdapterCount =
+    summary?.adapters.filter((adapter) => adapter.status === "ready").length ||
+    0;
+  const activeWorkspaceSummary =
+    activeWorkspaceTab === "setup"
+      ? text.setupSummary
+      : activeWorkspaceTab === "runs"
+        ? text.runsSummary
+        : text.assetsSummary;
+  const workspaceTabs = useMemo(
+    () =>
+      [
+        {
+          key: "setup" as const,
+          label: text.tabSetup,
+          count: (summary?.datasets.length || 0) + (summary?.recipes.length || 0),
+        },
+        {
+          key: "runs" as const,
+          label: text.tabRuns,
+          count: summary?.jobs.length || 0,
+        },
+        {
+          key: "assets" as const,
+          label: text.tabAssets,
+          count:
+            (summary?.localTargets.length || 0) +
+            (summary?.adapters.length || 0),
+        },
+      ] satisfies Array<{
+        key: FineTuneWorkspaceTab;
+        label: string;
+        count: number;
+      }>,
+    [
+      summary?.adapters.length,
+      summary?.datasets.length,
+      summary?.jobs.length,
+      summary?.localTargets.length,
+      summary?.recipes.length,
+      text.tabAssets,
+      text.tabRuns,
+      text.tabSetup,
+    ],
+  );
 
   const loadSummary = useCallback(async () => {
     setPending(true);
@@ -1676,6 +1766,9 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
       }
       if (payload.validation) {
         setDatasetValidation(payload.validation);
+      }
+      if (payload.dataset?.quality) {
+        setDatasetValidationQuality(payload.dataset.quality);
       }
       setMessage(successMessage);
       setMessageTone("success");
@@ -2156,6 +2249,123 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
       : "--";
   }, []);
 
+  const getPresetLicenseRiskLevel = useCallback(
+    (
+      preset: CommunityDatasetPreset,
+    ): AgentFineTuneDatasetQuality["licenseRisk"] => {
+      const license = preset.license.toLowerCase();
+      if (
+        license.includes("gpl") ||
+        license.includes("gated") ||
+        license.includes("non-commercial") ||
+        license.includes("nc")
+      ) {
+        return "high";
+      }
+      if (license.includes("verify") || license.includes("terms")) {
+        return "medium";
+      }
+      if (license.includes("project sample") || license.includes("cc by")) {
+        return "low";
+      }
+      return "unknown";
+    },
+    [],
+  );
+
+  const getLicenseRiskLabel = useCallback(
+    (risk?: AgentFineTuneDatasetQuality["licenseRisk"]) => {
+      switch (risk) {
+        case "low":
+          return isEnglish ? "Low" : "较低";
+        case "medium":
+          return isEnglish ? "Medium" : "中等";
+        case "high":
+          return isEnglish ? "Review required" : "需复核";
+        default:
+          return isEnglish ? "Unknown" : "未知";
+      }
+    },
+    [isEnglish],
+  );
+
+  const buildPresetDatasetQuality = useCallback(
+    (preset: CommunityDatasetPreset): AgentFineTuneDatasetQuality => {
+      const licenseRisk = getPresetLicenseRiskLevel(preset);
+      const score = Math.max(
+        0,
+        Math.min(
+          100,
+          96 -
+            (preset.source === "Bundled" ? 0 : 6) -
+            (preset.bootstrapRows < 128 ? 10 : 0) -
+            (preset.bootstrapRows < preset.recommendedSamples ? 4 : 0) -
+            (licenseRisk === "high"
+              ? 18
+              : licenseRisk === "medium"
+                ? 8
+                : licenseRisk === "unknown"
+                  ? 5
+                  : 0),
+        ),
+      );
+      const recommendedRange =
+        preset.recommendedSamples <= 400
+          ? { min: 200, max: 800 }
+          : preset.recommendedSamples <= 1000
+            ? { min: 600, max: 1200 }
+            : preset.recommendedSamples <= 2500
+              ? { min: 1000, max: 3000 }
+              : { min: 1500, max: 5000 };
+
+      return {
+        score,
+        licenseRisk,
+        downloadedRows: preset.sampleCount,
+        convertedRows: preset.bootstrapRows,
+        sampledRows: preset.recommendedSamples,
+        duplicateRows: 0,
+        skippedRows: Math.max(0, preset.sampleCount - preset.bootstrapRows),
+        piiRiskRows: 0,
+        schemaConversion:
+          preset.format === "chat-jsonl"
+            ? "preset rows kept as messages[] chat JSONL"
+            : "preset rows kept as instruction/input/output JSONL",
+        recommendedSteps: {
+          ...recommendedRange,
+          label: getPresetRecommendedSteps(preset),
+        },
+      };
+    },
+    [getPresetLicenseRiskLevel, getPresetRecommendedSteps],
+  );
+
+  const buildPresetDatasetSaveMetadata = useCallback(
+    (preset: CommunityDatasetPreset) => {
+      const quality = buildPresetDatasetQuality(preset);
+      const qualityWarnings = [
+        `Preset source: ${preset.source}. Verify upstream license before redistribution.`,
+        `Recommended training window: ${quality.recommendedSteps?.label || preset.recommendedSteps.en}.`,
+        quality.licenseRisk !== "low"
+          ? `License risk is ${quality.licenseRisk}; review upstream terms before publishing adapters.`
+          : undefined,
+      ].filter((item): item is string => Boolean(item));
+
+      return {
+        sourceType:
+          preset.source === "Bundled"
+            ? ("bundled-preset" as const)
+            : ("community-preset" as const),
+        sourceUrl: preset.sourceUrl,
+        sourceLabel: `${preset.source} · ${getPresetLabel(preset)}`,
+        license: preset.license,
+        quality,
+        qualityWarnings,
+      };
+    },
+    [buildPresetDatasetQuality, getPresetLabel],
+  );
+
   const buildDatasetCandidateImportPlan = useCallback(
     (
       dataset: AgentFineTuneDataset,
@@ -2222,6 +2432,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
     (preset: CommunityDatasetPreset) => {
       setDatasetSourceMode("community");
       setDatasetValidation(null);
+      setDatasetValidationQuality(buildPresetDatasetQuality(preset));
       setDatasetForm({
         label: getPresetLabel(preset),
         sourcePath: preset.localPath,
@@ -2240,7 +2451,12 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
       setMessage(text.presetLoaded);
       setMessageTone("success");
     },
-    [getPresetLabel, getPresetRecipeNotes, text.presetLoaded],
+    [
+      buildPresetDatasetQuality,
+      getPresetLabel,
+      getPresetRecipeNotes,
+      text.presetLoaded,
+    ],
   );
 
   async function importCommunityDatasetSource() {
@@ -2267,6 +2483,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
       if (payload?.dataset) {
         setDatasetSourceMode("community");
         setDatasetValidation(payload.dataset.validation);
+        setDatasetValidationQuality(payload.dataset.quality || null);
         setDatasetForm({
           label: payload.dataset.label,
           sourcePath: payload.dataset.sourcePath || "",
@@ -2302,6 +2519,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
     };
     setDatasetSourceMode("community");
     setDatasetValidation(null);
+    setDatasetValidationQuality(buildPresetDatasetQuality(preset));
     setDatasetForm(nextDatasetForm);
     setActionPending((current) => ({ ...current, [actionKey]: true }));
     try {
@@ -2312,7 +2530,11 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
       if (!validationPayload?.validation?.ok) return;
 
       const datasetPayload = await postAction(
-        { action: "save-dataset", ...nextDatasetForm },
+        {
+          action: "save-dataset",
+          ...nextDatasetForm,
+          ...buildPresetDatasetSaveMetadata(preset),
+        },
         text.saveSuccessDataset,
       );
       if (!datasetPayload?.summary) return;
@@ -2486,7 +2708,64 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
         </div>
       ) : null}
 
-      <div className="mt-5 grid gap-4 xl:grid-cols-[1.2fr_1fr_1fr]">
+      <div className="mt-5 rounded-[26px] border border-white/10 bg-slate-950/45 p-3">
+        <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-300">
+              {text.workspaceTabs}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {workspaceTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveWorkspaceTab(tab.key)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    activeWorkspaceTab === tab.key
+                      ? "border-cyan-300/40 bg-cyan-400/15 text-cyan-50"
+                      : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
+                  }`}
+                >
+                  {tab.label}
+                  <span className="ml-2 rounded-full bg-black/25 px-2 py-0.5 text-[10px] text-slate-300">
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="max-w-2xl rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-xs leading-5 text-slate-400">
+            {activeWorkspaceSummary}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+        {[
+          { label: text.activeJobs, value: activeJobCount },
+          { label: text.completedJobs, value: completedJobCount },
+          { label: text.failedJobs, value: failedJobCount },
+          { label: text.readyAdapters, value: readyAdapterCount },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="rounded-[22px] border border-white/10 bg-white/[0.035] px-4 py-3"
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              {item.label}
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-white">
+              {item.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className={`mt-5 grid gap-4 2xl:grid-cols-[1.12fr_1.28fr_0.82fr] ${
+          activeWorkspaceTab === "setup" ? "" : "hidden"
+        }`}
+      >
         <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <p className="text-sm font-semibold text-white">
             {text.datasetTitle}
@@ -2645,7 +2924,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                     />
                   </div>
                 </div>
-                <div className="mt-3 grid gap-3">
+                <div className="mt-3 grid max-h-[640px] gap-3 overflow-auto pr-1">
                   {COMMUNITY_DATASET_PRESETS.map((preset) => (
                     <div
                       key={preset.id}
@@ -2879,12 +3158,22 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  const matchingPreset = COMMUNITY_DATASET_PRESETS.find(
+                    (preset) =>
+                      preset.localPath === datasetForm.sourcePath &&
+                      preset.format === datasetForm.format,
+                  );
+                  setDatasetValidationQuality(
+                    matchingPreset
+                      ? buildPresetDatasetQuality(matchingPreset)
+                      : null,
+                  );
                   void postAction(
                     { action: "validate-dataset", ...datasetForm },
                     text.validated,
-                  )
-                }
+                  );
+                }}
                 className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/15"
               >
                 {text.datasetValidate}
@@ -2893,8 +3182,19 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                 type="button"
                 disabled={!canSaveDataset}
                 onClick={async () => {
+                  const matchingPreset = COMMUNITY_DATASET_PRESETS.find(
+                    (preset) =>
+                      preset.localPath === datasetForm.sourcePath &&
+                      preset.format === datasetForm.format,
+                  );
                   const payload = await postAction(
-                    { action: "save-dataset", ...datasetForm },
+                    {
+                      action: "save-dataset",
+                      ...datasetForm,
+                      ...(matchingPreset
+                        ? buildPresetDatasetSaveMetadata(matchingPreset)
+                        : {}),
+                    },
                     text.saveSuccessDataset,
                   );
                   if (payload?.summary?.datasets?.[0]) {
@@ -2923,6 +3223,67 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                 <span>{datasetValidation.format}</span>
                 <span>{datasetValidation.sampleCount} samples</span>
               </div>
+              {datasetValidationQuality ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] px-3 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-cyan-200/80">
+                      {text.qualityScore}
+                    </p>
+                    <p className="mt-1 text-lg font-semibold text-white">
+                      {formatQualityScore(datasetValidationQuality.score)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">
+                      {text.licenseRisk}
+                    </p>
+                    <p className="mt-1 text-lg font-semibold text-white">
+                      {getLicenseRiskLabel(
+                        datasetValidationQuality.licenseRisk,
+                      )}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">
+                      {text.convertedRows}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-100">
+                      {formatSampleCount(
+                        datasetValidationQuality.convertedRows ||
+                          datasetValidation.sampleCount,
+                      )}{" "}
+                      /{" "}
+                      {formatSampleCount(
+                        datasetValidationQuality.downloadedRows ||
+                          datasetValidation.sampleCount,
+                      )}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">
+                      {text.recommendedSteps}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-100">
+                      {datasetValidationQuality.recommendedSteps
+                        ? `${datasetValidationQuality.recommendedSteps.min}-${datasetValidationQuality.recommendedSteps.max}`
+                        : "--"}
+                    </p>
+                  </div>
+                  {datasetValidationQuality.schemaConversion ? (
+                    <p className="sm:col-span-2 rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs leading-5 text-slate-400">
+                      {datasetValidationQuality.schemaConversion}
+                    </p>
+                  ) : null}
+                  {datasetValidationQuality.piiRiskRows ||
+                  datasetValidationQuality.duplicateRows ? (
+                    <p className="sm:col-span-2 rounded-2xl border border-amber-400/15 bg-amber-400/[0.06] px-3 py-2 text-xs leading-5 text-amber-100">
+                      {isEnglish
+                        ? `PII risk rows: ${datasetValidationQuality.piiRiskRows || 0}; duplicate rows: ${datasetValidationQuality.duplicateRows || 0}.`
+                        : `疑似隐私行：${datasetValidationQuality.piiRiskRows || 0}；重复行：${datasetValidationQuality.duplicateRows || 0}。`}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               {datasetValidation.preview.length ? (
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
@@ -2981,7 +3342,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
           <p className="mt-2 text-xs leading-6 text-slate-500">
             {text.recipeHint}
           </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-2">
             <FieldShell label={text.recipeLabel} helper={recipeHelp.label}>
               <input
                 value={recipeForm.label}
@@ -3128,7 +3489,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
             <FieldShell
               label={text.notes}
               helper={recipeHelp.notes}
-              className="sm:col-span-2 xl:col-span-1"
+              className="sm:col-span-2"
             >
               <textarea
                 value={recipeForm.notes}
@@ -3143,7 +3504,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                 className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none"
               />
             </FieldShell>
-            <label className="rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-300 sm:col-span-2 xl:col-span-1">
+            <label className="rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-300 sm:col-span-2">
               <span className="flex items-center gap-2 font-semibold text-slate-100">
                 <input
                   type="checkbox"
@@ -3173,7 +3534,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                   setSelectedRecipeId(nextRecipeId);
                 }
               }}
-              className="rounded-full border border-violet-400/30 bg-violet-400/10 px-4 py-2 text-sm font-semibold text-violet-100 transition hover:bg-violet-400/15"
+              className="rounded-full border border-violet-400/30 bg-violet-400/10 px-4 py-2 text-sm font-semibold text-violet-100 transition hover:bg-violet-400/15 sm:col-span-2"
             >
               {text.recipeSave}
             </button>
@@ -3238,8 +3599,18 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_1fr_1.1fr]">
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div
+        className={`mt-5 grid gap-4 ${
+          activeWorkspaceTab === "runs"
+            ? "xl:grid-cols-1"
+            : "xl:grid-cols-[0.95fr_1.2fr_1fr]"
+        } ${activeWorkspaceTab === "setup" ? "hidden" : ""}`}
+      >
+        <div
+          className={`rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${
+            activeWorkspaceTab === "assets" ? "" : "hidden"
+          }`}
+        >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-white">
               {text.localTargets}
@@ -3306,7 +3677,11 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div
+          className={`rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${
+            activeWorkspaceTab === "assets" ? "" : "hidden"
+          }`}
+        >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-white">{text.datasets}</p>
             <span className="text-xs text-slate-500">
@@ -3589,7 +3964,11 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div
+          className={`rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${
+            activeWorkspaceTab === "runs" ? "" : "hidden"
+          }`}
+        >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-white">{text.jobs}</p>
             <span className="text-xs text-slate-500">
@@ -3842,6 +4221,17 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                               {text.overlayRuns}:{" "}
                                               {chart.overlaySeries.length}
                                             </span>
+                                            {chart.overlaySeries
+                                              .slice(0, 3)
+                                              .map((series) => (
+                                                <span
+                                                  key={`overlay-label:${series.jobId}`}
+                                                  className="max-w-[180px] truncate rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-slate-300"
+                                                  title={series.label}
+                                                >
+                                                  {series.label}
+                                                </span>
+                                              ))}
                                             <span>{text.overlayRunsHint}</span>
                                           </div>
                                         ) : null}
@@ -4429,6 +4819,20 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                       </p>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
+                                      <a
+                                        href={`/api/admin/finetune?action=preview-report&id=${encodeURIComponent(job.id)}&reportFormat=${latestReport.format}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-50 transition hover:bg-emerald-200/15"
+                                      >
+                                        {text.previewReport}
+                                      </a>
+                                      <a
+                                        href={`/api/admin/finetune?action=download-bundle&id=${encodeURIComponent(job.id)}`}
+                                        className="rounded-full border border-violet-200/25 bg-violet-200/10 px-2.5 py-1 text-[10px] font-semibold text-violet-50 transition hover:bg-violet-200/15"
+                                      >
+                                        {text.downloadFullBundle}
+                                      </a>
                                       <button
                                         type="button"
                                         onClick={() =>
@@ -4585,7 +4989,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                   <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
                                     {text.workerLog}
                                   </p>
-                                  <pre className="mt-2 whitespace-pre-wrap break-words text-[11px] leading-5 text-slate-300">
+                                  <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-slate-950/70 p-3 text-[11px] leading-5 text-slate-300">
                                     {job.recentLogLines.join("\n")}
                                   </pre>
                                 </div>
@@ -4604,7 +5008,11 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div
+          className={`rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${
+            activeWorkspaceTab === "assets" ? "" : "hidden"
+          }`}
+        >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-white">{text.adapters}</p>
             <span className="text-xs text-slate-500">

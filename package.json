@@ -30,7 +30,7 @@
     "dev": "./scripts/run-next.sh dev 3011",
     "build": "./scripts/run-next.sh build",
     "start": "./scripts/run-next.sh start 3011",
-    "lint": "next lint"
+    "lint": "./scripts/run-lint.sh"
   },
   "dependencies": {
     "next": "14.2.33",
