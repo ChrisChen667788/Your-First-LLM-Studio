@@ -588,6 +588,130 @@ function safeJsonParse(value: string) {
   }
 }
 
+export function parseOpenAICompatibleStreamText(source: string): {
+  content: string;
+  reasoningContent: string;
+  toolCalls: OpenAICompatibleToolCall[];
+  usage?: AgentUsage;
+} {
+  const contentParts: string[] = [];
+  const reasoningParts: string[] = [];
+  const toolCallParts = new Map<
+    number,
+    { id?: string; name?: string; arguments: string }
+  >();
+  let usage: AgentUsage | undefined;
+
+  for (const rawLine of source.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line.startsWith("data:")) continue;
+    const payload = line.slice("data:".length).trim();
+    if (!payload || payload === "[DONE]") continue;
+
+    try {
+      const chunk = JSON.parse(payload) as {
+        usage?: unknown;
+        choices?: Array<{
+          delta?: {
+            content?: unknown;
+            reasoning_content?: unknown;
+            tool_calls?: Array<{
+              id?: string;
+              index?: number;
+              function?: {
+                name?: string;
+                arguments?: string;
+              };
+            }>;
+          };
+        }>;
+      };
+      usage = normalizeUsage(chunk.usage) || usage;
+
+      for (const choice of chunk.choices || []) {
+        const delta = choice.delta || {};
+        if (typeof delta.content === "string") {
+          contentParts.push(delta.content);
+        }
+        if (typeof delta.reasoning_content === "string") {
+          reasoningParts.push(delta.reasoning_content);
+        }
+        for (const toolCall of delta.tool_calls || []) {
+          const index = typeof toolCall.index === "number" ? toolCall.index : 0;
+          const current = toolCallParts.get(index) || { arguments: "" };
+          if (toolCall.id) current.id = toolCall.id;
+          if (toolCall.function?.name) {
+            current.name = `${current.name || ""}${toolCall.function.name}`;
+          }
+          if (typeof toolCall.function?.arguments === "string") {
+            current.arguments += toolCall.function.arguments;
+          }
+          toolCallParts.set(index, current);
+        }
+      }
+    } catch {
+      // Ignore malformed SSE fragments and keep parsing subsequent chunks.
+    }
+  }
+
+  const toolCalls = [...toolCallParts.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([, toolCall]) => ({
+      id: toolCall.id || crypto.randomUUID(),
+      name: toolCall.name || "unknown_tool",
+      arguments: safeJsonParse(toolCall.arguments || "{}")
+    }));
+
+  return {
+    content: contentParts.join(""),
+    reasoningContent: reasoningParts.join(""),
+    toolCalls,
+    usage
+  };
+}
+
+export async function readOpenAICompatibleStreamSource(response: Response) {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    return response.text();
+  }
+
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  let buffer = "";
+
+  const inspectEventBlock = async (event: string) => {
+    chunks.push(event);
+    if (!event.split(/\r?\n/).some((line) => line.trim() === "data: [DONE]")) {
+      return false;
+    }
+    await reader.cancel().catch(() => undefined);
+    return true;
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const events = buffer.split(/\r?\n\r?\n/);
+    buffer = events.pop() || "";
+
+    for (const event of events) {
+      if (await inspectEventBlock(event)) {
+        return chunks.join("\n\n");
+      }
+    }
+  }
+
+  const tail = buffer.trim();
+  if (tail) {
+    await inspectEventBlock(tail);
+  }
+
+  return chunks.join("\n\n");
+}
+
 function shouldRetryProviderCall(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
   return /(429|500|502|503|504|timed out|timeout|connection|network|temporarily|empty)/i.test(message);
@@ -840,6 +964,7 @@ async function callOpenAICompatible(
   const toolRuns: AgentToolRun[] = [];
   let currentMessages: Array<Record<string, unknown>> = requestMessages;
   let latestUsage: AgentUsage | undefined;
+  const useRemoteStream = target.execution === "remote";
 
   for (let step = 0; step < MAX_REMOTE_TOOL_STEPS; step += 1) {
     const defaultMaxTokens = resolveSuggestedMaxTokens({
@@ -860,6 +985,10 @@ async function callOpenAICompatible(
       messages: currentMessages,
       max_tokens: defaultMaxTokens
     };
+    if (useRemoteStream) {
+      body.stream = true;
+      body.stream_options = { include_usage: true };
+    }
     if (Object.keys(requestShape.bodyExtras).length) {
       Object.assign(body, requestShape.bodyExtras);
     }
@@ -938,42 +1067,56 @@ async function callOpenAICompatible(
       }
     }
 
-    const data = (await response.json()) as {
-      tool_runs?: AgentToolRun[];
-      warning?: string;
-      usage?: unknown;
-      choices?: Array<{
-        message?: {
-          content?: unknown;
-          reasoning_content?: unknown;
-          tool_calls?: Array<{
-            id?: string;
-            function?: {
-              name?: string;
-              arguments?: string;
-            };
-          }>;
-        };
-      }>;
-    };
+    let dataToolRuns: AgentToolRun[] = [];
+    let content = "";
+    let reasoningContent = "";
+    let toolCalls: OpenAICompatibleToolCall[] = [];
 
-    warning = data.warning || warning;
-    latestUsage = normalizeUsage(data.usage) || latestUsage;
-    const assistantMessage = data.choices?.[0]?.message;
-    const content = sanitizeAssistantContent(extractTextFromContent(assistantMessage?.content));
-    const reasoningContent = extractReasoningContent(assistantMessage?.reasoning_content);
-    const toolCalls =
-      assistantMessage?.tool_calls?.map((toolCall) => ({
-        id: toolCall.id || crypto.randomUUID(),
-        name: toolCall.function?.name || "unknown_tool",
-        arguments: safeJsonParse(toolCall.function?.arguments || "{}")
-      })) || [];
+    if (useRemoteStream) {
+      const parsed = parseOpenAICompatibleStreamText(await readOpenAICompatibleStreamSource(response));
+      latestUsage = parsed.usage || latestUsage;
+      content = sanitizeAssistantContent(parsed.content);
+      reasoningContent = extractReasoningContent(parsed.reasoningContent);
+      toolCalls = parsed.toolCalls;
+    } else {
+      const data = (await response.json()) as {
+        tool_runs?: AgentToolRun[];
+        warning?: string;
+        usage?: unknown;
+        choices?: Array<{
+          message?: {
+            content?: unknown;
+            reasoning_content?: unknown;
+            tool_calls?: Array<{
+              id?: string;
+              function?: {
+                name?: string;
+                arguments?: string;
+              };
+            }>;
+          };
+        }>;
+      };
+
+      warning = data.warning || warning;
+      latestUsage = normalizeUsage(data.usage) || latestUsage;
+      dataToolRuns = data.tool_runs || [];
+      const assistantMessage = data.choices?.[0]?.message;
+      content = sanitizeAssistantContent(extractTextFromContent(assistantMessage?.content));
+      reasoningContent = extractReasoningContent(assistantMessage?.reasoning_content);
+      toolCalls =
+        assistantMessage?.tool_calls?.map((toolCall) => ({
+          id: toolCall.id || crypto.randomUUID(),
+          name: toolCall.function?.name || "unknown_tool",
+          arguments: safeJsonParse(toolCall.function?.arguments || "{}")
+        })) || [];
+    }
 
     if (!toolCalls.length) {
       return {
         content,
         toolCalls: [],
-        toolRuns: [...toolRuns, ...(data.tool_runs || [])],
+        toolRuns: [...toolRuns, ...dataToolRuns],
         usage: latestUsage,
         warning,
         resolvedModel: requestShape.model

@@ -42,8 +42,8 @@ export type FineTuneBenchmarkHandoffPlan = {
 };
 
 const REMOTE_REFERENCE_TARGET_PRIORITY = [
-  "gpt-5.4",
-  "claude-api",
+  "openai-gpt54",
+  "anthropic-claude",
   "deepseek-api",
   "openai-codex"
 ];

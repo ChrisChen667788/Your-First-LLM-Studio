@@ -1,7 +1,12 @@
 import crypto from "crypto";
 import { appendConnectionCheckLog } from "@/lib/agent/log-store";
 import { getServerAgentTarget } from "@/lib/agent/server-targets";
-import { clearProviderEnvCache, resolveTarget } from "@/lib/agent/providers";
+import {
+  clearProviderEnvCache,
+  parseOpenAICompatibleStreamText,
+  readOpenAICompatibleStreamSource,
+  resolveTarget
+} from "@/lib/agent/providers";
 import type { AgentConnectionCheckResponse, AgentConnectionCheckStage } from "@/lib/agent/types";
 
 export type RemoteConnectionCheckMode = "quick" | "full";
@@ -49,6 +54,46 @@ function buildErrorStage(
   httpStatus?: number
 ): AgentConnectionCheckStage {
   return { id, ok: false, summary, latencyMs, httpStatus };
+}
+
+async function readChatCompletionProbe(response: Response) {
+  const contentType = response.headers.get("content-type") || "";
+  const text = contentType.includes("text/event-stream")
+    ? await readOpenAICompatibleStreamSource(response)
+    : await response.text();
+  if (text.includes("data:")) {
+    const parsed = parseOpenAICompatibleStreamText(text);
+    return {
+      content: parsed.content.trim(),
+      toolCalls: parsed.toolCalls.map((toolCall) => ({ function: { name: toolCall.name } }))
+    };
+  }
+
+  try {
+    const data = JSON.parse(text) as {
+      choices?: Array<{
+        message?: {
+          content?: unknown;
+          tool_calls?: Array<{
+            function?: {
+              name?: string;
+            };
+          }>;
+        };
+      }>;
+    };
+    const message = data.choices?.[0]?.message;
+    return {
+      content: extractTextContent(message?.content).trim(),
+      toolCalls: Array.isArray(message?.tool_calls) ? message.tool_calls : []
+    };
+  } catch {
+    return {
+      content: "",
+      toolCalls: [],
+      rawText: text.slice(0, 240)
+    };
+  }
 }
 
 export async function runRemoteConnectionCheck(
@@ -117,7 +162,9 @@ export async function runRemoteConnectionCheck(
       body: JSON.stringify({
         model: resolvedTarget.resolvedModel,
         messages: [{ role: "user", content: "Reply with exactly CHAT_OK." }],
-        max_tokens: 32
+        max_tokens: 32,
+        stream: true,
+        stream_options: { include_usage: true }
       })
     });
     const httpStatus = response.status;
@@ -126,14 +173,7 @@ export async function runRemoteConnectionCheck(
       const errorText = await response.text();
       stages.push(buildErrorStage("chat", `HTTP ${httpStatus}: ${errorText.slice(0, 180)}`, latencyMs, httpStatus));
     } else {
-      const data = (await response.json()) as {
-        choices?: Array<{
-          message?: {
-            content?: unknown;
-          };
-        }>;
-      };
-      const content = extractTextContent(data.choices?.[0]?.message?.content).trim();
+      const { content } = await readChatCompletionProbe(response);
       stages.push({
         id: "chat",
         ok: content.includes("CHAT_OK"),
@@ -183,7 +223,9 @@ export async function runRemoteConnectionCheck(
             }
           ],
           tool_choice: "auto",
-          max_tokens: 128
+          max_tokens: 128,
+          stream: true,
+          stream_options: { include_usage: true }
         })
       });
       const httpStatus = response.status;
@@ -194,21 +236,7 @@ export async function runRemoteConnectionCheck(
           buildErrorStage("tool_calls", `HTTP ${httpStatus}: ${errorText.slice(0, 180)}`, latencyMs, httpStatus)
         );
       } else {
-        const data = (await response.json()) as {
-          choices?: Array<{
-            message?: {
-              content?: unknown;
-              tool_calls?: Array<{
-                function?: {
-                  name?: string;
-                };
-              }>;
-            };
-          }>;
-        };
-        const message = data.choices?.[0]?.message;
-        const toolCalls = Array.isArray(message?.tool_calls) ? message.tool_calls : [];
-        const content = extractTextContent(message?.content).trim();
+        const { content, toolCalls } = await readChatCompletionProbe(response);
 
         stages.push({
           id: "tool_calls",

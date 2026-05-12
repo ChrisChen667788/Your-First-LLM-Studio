@@ -120,16 +120,16 @@ export const agentTargets: AgentTarget[] = [
   },
   {
     id: "openai-gpt54",
-    label: "OpenAI GPT-5.4",
+    label: "OpenAI GPT-5.5",
     providerLabel: "OpenAI",
     transport: "openai-compatible",
     execution: "remote",
     description:
       "Remote flagship OpenAI target for strongest general reasoning and agent responses through your configured OpenAI-compatible endpoint.",
     modelEnv: "OPENAI_GPT54_MODEL",
-    modelDefault: "gpt-5.4",
+    modelDefault: "gpt-5.5",
     thinkingModelEnv: "OPENAI_GPT54_THINKING_MODEL",
-    thinkingModelDefault: "gpt-5.4",
+    thinkingModelDefault: "gpt-5.5",
     baseUrlEnv: "OPENAI_BASE_URL",
     baseUrlDefault: "https://api.openai.com/v1",
     apiKeyEnv: "OPENAI_API_KEY",
@@ -150,7 +150,7 @@ export const agentTargets: AgentTarget[] = [
     description:
       "Claude target backed by an OpenAI-compatible endpoint. This path is often easier to keep aligned with the shared tool loop than a separate vendor-specific SDK.",
     modelEnv: "ANTHROPIC_MODEL",
-    modelDefault: "claude-opus-4-6",
+    modelDefault: "claude-opus-4-7",
     thinkingModelEnv: "ANTHROPIC_THINKING_MODEL",
     thinkingModelDefault: "claude-opus-4-6-thinking",
     baseUrlEnv: "ANTHROPIC_BASE_URL",

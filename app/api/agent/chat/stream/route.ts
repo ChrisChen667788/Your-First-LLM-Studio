@@ -254,6 +254,26 @@ async function readOpenAISseStream(
 
   const decoder = new TextDecoder();
   let buffer = "";
+
+  const consumeEventBlock = async (event: string) => {
+    const lines = event
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("data:"));
+
+    for (const line of lines) {
+      const data = line.slice(5).trim();
+      if (!data) continue;
+      if (data === "[DONE]") {
+        await reader.cancel().catch(() => undefined);
+        return true;
+      }
+      await onObject(JSON.parse(data) as Record<string, unknown>);
+    }
+
+    return false;
+  };
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -263,17 +283,15 @@ async function readOpenAISseStream(
     buffer = events.pop() || "";
 
     for (const event of events) {
-      const lines = event
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.startsWith("data:"));
-
-      for (const line of lines) {
-        const data = line.slice(5).trim();
-        if (!data || data === "[DONE]") continue;
-        await onObject(JSON.parse(data) as Record<string, unknown>);
+      if (await consumeEventBlock(event)) {
+        return;
       }
     }
+  }
+
+  const tail = buffer.trim();
+  if (tail) {
+    await consumeEventBlock(tail);
   }
 }
 
