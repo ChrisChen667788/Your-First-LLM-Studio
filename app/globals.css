@@ -26,7 +26,37 @@ body {
   -webkit-line-clamp: 3;
 }
 
-/* Pills should wrap as a whole unit, not split labels like "谨慎 / 加载". */
-.rounded-full {
+/* Copy and chips need different wrapping behavior; do not force one rule globally. */
+.ui-nowrap {
   white-space: nowrap;
+}
+
+.ui-balance {
+  text-wrap: balance;
+}
+
+.ui-pretty {
+  text-wrap: pretty;
+}
+
+.ui-safe-break {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ui-chip {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.ui-chip-wrap {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  text-wrap: balance;
+  white-space: normal;
 }

@@ -2676,10 +2676,10 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
           <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">
             {text.eyebrow}
           </p>
-          <h3 className="mt-2 text-xl font-semibold text-white">
+          <h3 className="ui-balance mt-2 text-xl font-semibold text-white">
             {text.title}
           </h3>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+          <p className="ui-pretty mt-2 max-w-3xl text-sm leading-6 text-slate-400">
             {text.subtitle}
           </p>
           <p className="mt-3 text-xs text-slate-500">
@@ -2734,7 +2734,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
               ))}
             </div>
           </div>
-          <p className="max-w-2xl rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-xs leading-5 text-slate-400">
+          <p className="ui-pretty max-w-2xl rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-xs leading-5 text-slate-400">
             {activeWorkspaceSummary}
           </p>
         </div>
@@ -2762,11 +2762,11 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
       </div>
 
       <div
-        className={`mt-5 grid gap-4 2xl:grid-cols-[1.12fr_1.28fr_0.82fr] ${
+        className={`mt-5 grid gap-4 xl:grid-cols-[minmax(360px,1fr)_minmax(420px,1.12fr)] 2xl:grid-cols-[minmax(380px,1.02fr)_minmax(460px,1.18fr)_minmax(340px,0.84fr)] ${
           activeWorkspaceTab === "setup" ? "" : "hidden"
         }`}
       >
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="min-w-0 rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <p className="text-sm font-semibold text-white">
             {text.datasetTitle}
           </p>
@@ -3212,16 +3212,41 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
             </div>
           </div>
 
-          {datasetValidation ? (
+          {datasetValidation || datasetValidationQuality ? (
             <div className="mt-4 space-y-3 rounded-2xl border border-white/10 bg-slate-950/70 p-3">
               <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
                 <span
-                  className={`rounded-full px-2.5 py-1 ${datasetValidation.ok ? "bg-emerald-400/15 text-emerald-100" : "bg-rose-400/15 text-rose-100"}`}
+                  className={`rounded-full px-2.5 py-1 ${
+                    datasetValidation
+                      ? datasetValidation.ok
+                        ? "bg-emerald-400/15 text-emerald-100"
+                        : "bg-rose-400/15 text-rose-100"
+                      : "bg-cyan-400/15 text-cyan-100"
+                  }`}
                 >
-                  {datasetValidation.ok ? "OK" : "FAILED"}
+                  {datasetValidation
+                    ? datasetValidation.ok
+                      ? "OK"
+                      : "FAILED"
+                    : isEnglish
+                      ? "QUALITY PREFLIGHT"
+                      : "质量预检"}
                 </span>
-                <span>{datasetValidation.format}</span>
-                <span>{datasetValidation.sampleCount} samples</span>
+                <span>{datasetValidation?.format || datasetForm.format}</span>
+                <span>
+                  {formatSampleCount(
+                    datasetValidation?.sampleCount ||
+                      datasetValidationQuality?.sampledRows ||
+                      datasetValidationQuality?.convertedRows ||
+                      datasetValidationQuality?.downloadedRows,
+                  )}{" "}
+                  samples
+                </span>
+                {!datasetValidation ? (
+                  <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-amber-100">
+                    {isEnglish ? "Validate before saving" : "保存前请先校验"}
+                  </span>
+                ) : null}
               </div>
               {datasetValidationQuality ? (
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -3250,12 +3275,12 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                     <p className="mt-1 text-sm font-semibold text-slate-100">
                       {formatSampleCount(
                         datasetValidationQuality.convertedRows ||
-                          datasetValidation.sampleCount,
+                          datasetValidation?.sampleCount,
                       )}{" "}
                       /{" "}
                       {formatSampleCount(
                         datasetValidationQuality.downloadedRows ||
-                          datasetValidation.sampleCount,
+                          datasetValidation?.sampleCount,
                       )}
                     </p>
                   </div>
@@ -3284,7 +3309,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                   ) : null}
                 </div>
               ) : null}
-              {datasetValidation.preview.length ? (
+              {datasetValidation?.preview.length ? (
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
                     {text.preview}
@@ -3309,7 +3334,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                   </div>
                 </div>
               ) : null}
-              {datasetValidation.warnings.length ? (
+              {datasetValidation?.warnings.length ? (
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200">
                     {text.warnings}
@@ -3321,7 +3346,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                   </ul>
                 </div>
               ) : null}
-              {datasetValidation.errors.length ? (
+              {datasetValidation?.errors.length ? (
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.22em] text-rose-200">
                     {text.errors}
@@ -3337,7 +3362,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
           ) : null}
         </div>
 
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="min-w-0 rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <p className="text-sm font-semibold text-white">{text.recipeTitle}</p>
           <p className="mt-2 text-xs leading-6 text-slate-500">
             {text.recipeHint}

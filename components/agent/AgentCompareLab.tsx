@@ -6,6 +6,7 @@ import {
   buildCompareBenchmarkPrompt,
   buildCompareBenchmarkPromptDiff,
 } from "@/lib/agent/compare-share";
+import { getCompareContextValidatedHelper } from "@/lib/agent/context-recommendation";
 import type {
   AgentBenchmarkResponse,
   AgentCompareIntent,
@@ -598,6 +599,10 @@ export function AgentCompareLab({
   const selectedIntentMeta = COMPARE_INTENT_META[compareIntent][localeKey];
   const selectedOutputShapeMeta =
     OUTPUT_SHAPE_META[compareOutputShape][localeKey];
+  const compareContextValidated = getCompareContextValidatedHelper(
+    locale,
+    contextWindow,
+  );
 
   const fairnessFingerprint = useMemo(
     () =>
@@ -725,11 +730,11 @@ export function AgentCompareLab({
               <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-200/80">
                 /agent · compare
               </p>
-              <h3 className="mt-3 text-2xl font-semibold text-white">
+              <h3 className="ui-balance mt-3 text-2xl font-semibold text-white">
                 {copy.title}
               </h3>
               {copy.subtitle ? (
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
+                <p className="ui-pretty mt-3 max-w-2xl text-sm leading-7 text-slate-300">
                   {copy.subtitle}
                 </p>
               ) : null}
@@ -738,7 +743,7 @@ export function AgentCompareLab({
               <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
                 {copy.fairnessFingerprint}
               </p>
-              <p className="mt-2 text-sm font-medium text-white">
+              <p className="ui-safe-break mt-2 text-sm font-medium text-white">
                 {fairnessFingerprint}
               </p>
             </div>
@@ -837,7 +842,7 @@ export function AgentCompareLab({
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(560px,1fr)_minmax(340px,0.52fr)] 2xl:items-start">
+              <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(560px,1.18fr)_minmax(360px,0.82fr)] xl:items-start">
                 <div className="space-y-4">
                   <section className="rounded-3xl border border-white/10 bg-black/20 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -845,7 +850,7 @@ export function AgentCompareLab({
                         <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
                           {copy.promptFrame}
                         </p>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                        <p className="ui-pretty mt-2 max-w-2xl text-sm leading-6 text-slate-400">
                           {locale.startsWith("en")
                             ? "One shared task prompt stays primary; system framing is folded into a secondary drawer."
                             : "主任务提示词保持优先，系统提示词收进次级抽屉。"}
@@ -913,20 +918,20 @@ export function AgentCompareLab({
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] text-cyan-100">
+                      <span className="ui-chip-wrap rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] text-cyan-100">
                         {copy.targetMatrixCurrent}:{" "}
                         {targets.find(
                           (target) => target.id === selectedTargetId,
                         )?.label || "—"}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-slate-200">
+                      <span className="ui-chip-wrap rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-slate-200">
                         {copy.targetMatrixCapacity}: {compareTargets.length}/
                         {MAX_COMPARE_LANES}
                       </span>
                     </div>
                     <div className="mt-4 max-h-[420px] overflow-auto rounded-2xl border border-white/10 bg-slate-950/60">
-                      <div className="min-w-[760px]">
-                        <div className="hidden grid-cols-[40px_minmax(280px,1.5fr)_132px_118px] items-center gap-3 border-b border-white/10 bg-white/[0.03] px-4 py-3 text-[11px] uppercase tracking-[0.18em] text-slate-500 md:grid">
+                      <div className="min-w-[860px]">
+                        <div className="hidden grid-cols-[40px_minmax(280px,1.4fr)_minmax(190px,0.55fr)_118px] items-center gap-3 border-b border-white/10 bg-white/[0.03] px-4 py-3 text-[11px] uppercase tracking-[0.18em] text-slate-500 md:grid">
                           <span />
                           <span>{copy.targetMatrixTarget}</span>
                           <span>{copy.targetMatrixContext}</span>
@@ -941,7 +946,7 @@ export function AgentCompareLab({
                             return (
                               <label
                                 key={target.id}
-                                className={`grid cursor-pointer gap-3 px-4 py-4 transition md:grid-cols-[40px_minmax(280px,1.5fr)_132px_118px] md:items-center ${
+                                className={`grid cursor-pointer gap-3 px-4 py-4 transition md:grid-cols-[40px_minmax(280px,1.4fr)_minmax(190px,0.55fr)_118px] md:items-center ${
                                   checked
                                     ? "bg-cyan-400/10"
                                     : "bg-slate-950/70 hover:bg-white/[0.05]"
@@ -992,6 +997,11 @@ export function AgentCompareLab({
                                   <p className="mt-1 md:mt-0">
                                     {target.recommendedContext}
                                   </p>
+                                  {target.execution === "local" ? (
+                                    <p className="mt-1 text-[11px] leading-5 text-emerald-200/85">
+                                      {compareContextValidated}
+                                    </p>
+                                  ) : null}
                                 </div>
                                 <div className="flex items-center md:justify-end">
                                   <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-slate-200">
@@ -1748,6 +1758,11 @@ export function AgentCompareLab({
                           <p className="mt-1 line-clamp-1 text-xs text-slate-500">
                             {target.providerLabel} · {target.recommendedContext}
                           </p>
+                          {target.execution === "local" ? (
+                            <p className="mt-1 line-clamp-1 text-[11px] text-emerald-200/80">
+                              {compareContextValidated}
+                            </p>
+                          ) : null}
                         </div>
                         <span className="justify-self-start rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300 xl:justify-self-end">
                           {hasEnoughTargets ? copy.laneReady : copy.lanePending}

@@ -54,21 +54,21 @@ export function AgentRecipeGallery({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   return (
-    <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+    <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4 xl:p-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-300/80">
             {isEn ? "Studio recipe gallery" : "Studio 配方库"}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <h3 className="text-lg font-semibold text-white">
+            <h3 className="ui-balance text-lg font-semibold text-white">
               {isEn ? "Reusable compare setups" : "可复用的对比配方"}
             </h3>
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-slate-300">
               {recipes.length} {isEn ? "recipes" : "个配方"}
             </span>
           </div>
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
+          <p className="ui-pretty mt-2 max-w-4xl text-sm leading-6 text-slate-400">
             {isEn
               ? "Scan, apply, and reuse compare setups without turning the center workspace into a wall of cards."
               : "用更紧凑的矩阵方式浏览、应用和复用 compare 配置，避免中央工作区被卡片墙压垮。"}
@@ -132,9 +132,9 @@ export function AgentRecipeGallery({
       ) : null}
 
       <div className="mt-4 space-y-4">
-        <div className="hidden overflow-x-auto rounded-[22px] border border-white/10 bg-slate-950/50 xl:block">
-          <div className="min-w-[920px]">
-            <div className="grid grid-cols-[minmax(240px,1.1fr)_minmax(220px,0.9fr)_minmax(210px,0.7fr)_170px] border-b border-white/10 bg-white/[0.03] px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-slate-500">
+        <div className="hidden overflow-x-auto rounded-[22px] border border-white/10 bg-slate-950/50 2xl:block">
+          <div className="min-w-[1040px]">
+            <div className="grid grid-cols-[minmax(260px,1.15fr)_minmax(250px,1fr)_minmax(260px,0.92fr)_188px] border-b border-white/10 bg-white/[0.03] px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-slate-500">
               <span>{isEn ? "Recipe" : "配方"}</span>
               <span>{isEn ? "Controls" : "控制项"}</span>
               <span>{isEn ? "Prompt preview" : "Prompt 预览"}</span>
@@ -157,7 +157,7 @@ export function AgentRecipeGallery({
                 return (
                   <article
                     key={recipe.id}
-                    className={`grid grid-cols-[minmax(240px,1.1fr)_minmax(220px,0.9fr)_minmax(210px,0.7fr)_170px] items-center gap-3 px-4 py-4 transition ${
+                    className={`grid grid-cols-[minmax(260px,1.15fr)_minmax(250px,1fr)_minmax(260px,0.92fr)_188px] items-center gap-4 px-4 py-4 transition ${
                       isActive
                         ? "bg-cyan-400/[0.08] shadow-[inset_3px_0_0_rgba(34,211,238,0.7)]"
                         : "hover:bg-white/[0.035]"
@@ -187,10 +187,10 @@ export function AgentRecipeGallery({
                           {recipe.targetIds.length} {isEn ? "targets" : "目标"}
                         </span>
                       </div>
-                      <h4 className="mt-2 line-clamp-2 text-base font-semibold leading-snug text-white">
+                      <h4 className="ui-balance mt-2 line-clamp-2 text-base font-semibold leading-snug text-white">
                         {recipe.label}
                       </h4>
-                      <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-400">
+                      <p className="ui-pretty mt-1 line-clamp-2 text-sm leading-6 text-slate-400">
                         {recipe.description}
                       </p>
                     </div>
@@ -228,7 +228,7 @@ export function AgentRecipeGallery({
                       </div>
                     </div>
 
-                    <p className="line-clamp-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-[11px] leading-5 text-slate-300">
+                    <p className="ui-safe-break line-clamp-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-[11px] leading-5 text-slate-300">
                       {recipe.input ||
                         (isEn
                           ? "Controls-only recipe. Add prompt text after applying."
@@ -276,7 +276,7 @@ export function AgentRecipeGallery({
           </div>
         </div>
 
-        <div className="grid gap-3 xl:hidden">
+        <div className="grid gap-3 2xl:hidden">
           {recipes.map((recipe) => {
             const recipeTags = [
               ...recipe.tags,
@@ -321,10 +321,10 @@ export function AgentRecipeGallery({
                         {recipe.targetIds.length} {isEn ? "targets" : "目标"}
                       </span>
                     </div>
-                    <h4 className="mt-2 line-clamp-2 text-base font-semibold leading-snug text-white">
+                    <h4 className="ui-balance mt-2 line-clamp-2 text-base font-semibold leading-snug text-white">
                       {recipe.label}
                     </h4>
-                    <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-400">
+                    <p className="ui-pretty mt-1 line-clamp-2 text-sm leading-6 text-slate-400">
                       {recipe.description}
                     </p>
                   </div>
@@ -384,7 +384,7 @@ export function AgentRecipeGallery({
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-3 line-clamp-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-[11px] leading-5 text-slate-300">
+                <p className="ui-safe-break mt-3 line-clamp-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-[11px] leading-5 text-slate-300">
                   {recipe.input ||
                     (isEn
                       ? "Controls-only recipe. Add prompt text after applying."

@@ -11,6 +11,7 @@ import {
 } from "@/lib/agent/benchmark-datasets";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { sanitizeDisplayPath } from "@/lib/agent/path-display";
+import { getBenchmarkContextRecommendationHelper } from "@/lib/agent/context-recommendation";
 import type {
   AgentBenchmarkProgress,
   AgentBenchmarkReportPreview,
@@ -4988,6 +4989,7 @@ export function AdminDashboard() {
                       {localBenchmarkTargets.map((target) => {
                         const checked = benchmarkTargetIds.includes(target.id);
                         const version = benchmarkTargetVersionMap.get(target.id);
+                        const contextHelper = getBenchmarkContextRecommendationHelper(locale);
                         return (
                           <label key={target.id} className="flex items-start gap-2 text-sm text-slate-300">
                             <input
@@ -5009,6 +5011,9 @@ export function AdminDashboard() {
                                   version?.standard || target.modelDefault,
                                   version?.thinking || target.thinkingModelDefault
                                 )}
+                              </span>
+                              <span className="mt-1 block text-[11px] leading-5 text-emerald-200/85">
+                                {contextHelper}
                               </span>
                             </span>
                           </label>
@@ -7545,6 +7550,8 @@ export function AdminDashboard() {
                   ? describeRuntimeAlias(gatewayLoadedOtherAlias, localTargets)
                   : null;
               const recommendedContextBadge = formatRecommendedContextBadge(target.recommendedContextWindow);
+              const benchmarkContextHelper =
+                target.execution === "local" ? getBenchmarkContextRecommendationHelper(locale) : "";
               const lastSwitchMsForTarget = runtimeLastSwitchMs[target.id] ?? null;
               const lastSwitchAtForTarget = runtimeLastSwitchAt[target.id] ?? null;
               const runtimeIsIdle = runtime?.phase === "unloaded";
@@ -7672,6 +7679,11 @@ export function AdminDashboard() {
                         {recommendedContextBadge ? (
                           <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
                             {locale.startsWith("en") ? "Rec context" : "建议上下文"} · {recommendedContextBadge}
+                          </span>
+                        ) : null}
+                        {benchmarkContextHelper ? (
+                          <span className="ui-chip-wrap rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-medium text-emerald-100">
+                            {benchmarkContextHelper}
                           </span>
                         ) : null}
                         {target.sourceLabel ? (
