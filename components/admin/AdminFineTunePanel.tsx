@@ -729,6 +729,41 @@ function formatNumber(value?: number | null, digits = 2) {
   return value.toFixed(digits);
 }
 
+function formatSignedNumber(value?: number | null, digits = 2) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+  return `${value >= 0 ? "+" : ""}${value.toFixed(digits)}`;
+}
+
+function formatSignedInteger(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+  return `${value >= 0 ? "+" : ""}${Math.round(value)}`;
+}
+
+function formatSignedDurationMs(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+  return `${value >= 0 ? "+" : ""}${Math.round(value / 1000)}s`;
+}
+
+function getRunDeltaConclusionLabel(
+  conclusion: string | undefined,
+  isEnglish: boolean,
+) {
+  switch (conclusion) {
+    case "improved":
+      return isEnglish ? "Improved" : "整体改善";
+    case "regressed":
+      return isEnglish ? "Regressed" : "整体回退";
+    case "mixed":
+      return isEnglish ? "Mixed" : "有升有降";
+    case "stable":
+      return isEnglish ? "Stable" : "基本稳定";
+    case "insufficient-data":
+      return isEnglish ? "Insufficient data" : "数据不足";
+    default:
+      return "--";
+  }
+}
+
 function formatSampleCount(value?: number | null) {
   if (typeof value !== "number" || !Number.isFinite(value)) return "--";
   return value.toLocaleString();
@@ -1617,6 +1652,14 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
         runsCompared: "runs compared",
         bestValLoss: "best val loss",
         latestValLoss: "latest val loss",
+        runDelta: "Delta vs previous",
+        previousRun: "previous run",
+        deltaConclusion: "conclusion",
+        trainDelta: "train latest",
+        validDelta: "val latest",
+        bestValidDelta: "best val",
+        durationDelta: "duration",
+        stepDelta: "step",
         evidenceSummary: "Evidence summary",
         evidenceTimeline: "timeline",
         evidenceCompare: "compare",
@@ -1666,6 +1709,16 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
           "Failed or cancelled jobs can be rerun as a new job using the latest dataset preparation strategy.",
         jobGroupLatestRun: "Latest",
         rerunLatestFailed: "Rerun latest failed",
+        jobNextStep: "Recommended next step",
+        jobNextCompleted:
+          "Attach the adapter, run Compare, then send the same evidence path to Benchmark before sharing.",
+        jobNextFailed:
+          "Rerun with the latest dataset strategy. The old bundle and logs stay intact for audit.",
+        jobNextRunning:
+          "Watch the normalized loss curve and worker log; export the report after completion.",
+        jobNextStaged:
+          "Start the local worker when dataset quality, recipe, and hardware budget look safe.",
+        jobAdapterPending: "Adapter artifact is not ready yet.",
         dataDir: "Data dir",
       };
     }
@@ -1946,6 +1999,14 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
       runsCompared: "对比 run 数",
       bestValLoss: "最佳验证 loss",
       latestValLoss: "最新验证 loss",
+      runDelta: "相对上一 run",
+      previousRun: "上一 run",
+      deltaConclusion: "结论",
+      trainDelta: "训练最新",
+      validDelta: "验证最新",
+      bestValidDelta: "最佳验证",
+      durationDelta: "耗时",
+      stepDelta: "轮次",
       evidenceSummary: "证据摘要",
       evidenceTimeline: "时间线",
       evidenceCompare: "Compare",
@@ -1994,6 +2055,15 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
         "失败或取消的旧作业会按最新数据准备策略创建新作业重跑，不覆盖旧日志。",
       jobGroupLatestRun: "最近",
       rerunLatestFailed: "重跑最近失败项",
+      jobNextStep: "建议下一步",
+      jobNextCompleted:
+        "先挂载 adapter，再跑 Compare，随后沿用同一证据链送到 Benchmark，最后再分享。",
+      jobNextFailed:
+        "按最新数据策略重跑。旧 bundle 和日志会保留，方便追溯失败原因。",
+      jobNextRunning:
+        "观察归一化 loss 曲线和 worker 日志；完成后再导出报告。",
+      jobNextStaged: "确认数据质量、配方和硬件预算安全后，启动本地 worker。",
+      jobAdapterPending: "Adapter 产物还未就绪。",
       dataDir: "数据目录",
     };
   }, [isEnglish]);
@@ -3053,6 +3123,13 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
         (summary?.localTargets || []).map((target) => [target.id, target]),
       ),
     [summary?.localTargets],
+  );
+  const adapterByJobId = useMemo(
+    () =>
+      new Map(
+        (summary?.adapters || []).map((adapter) => [adapter.jobId, adapter]),
+      ),
+    [summary?.adapters],
   );
   const getDatasetWatchDraft = useCallback(
     (dataset: AgentFineTuneDataset) =>
@@ -6238,6 +6315,19 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                           const canStart =
                             job.status !== "queued" && job.status !== "running";
                           const latestReport = lastReportByJobId[job.id];
+                          const adapterForJob = adapterByJobId.get(job.id);
+                          const canUseAdapterActions =
+                            adapterForJob?.status === "ready";
+                          const jobNextStepCopy =
+                            job.status === "completed"
+                              ? text.jobNextCompleted
+                              : job.status === "failed" ||
+                                  job.status === "cancelled"
+                                ? text.jobNextFailed
+                                : job.status === "queued" ||
+                                    job.status === "running"
+                                  ? text.jobNextRunning
+                                  : text.jobNextStaged;
                           return (
                             <div
                               key={job.id}
@@ -6814,6 +6904,106 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                 </p>
                               ) : null}
 
+                              <div className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.055] px-3 py-3 text-[11px] leading-5 text-cyan-50/80">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-50/55">
+                                      {text.jobNextStep}
+                                    </p>
+                                    <p className="mt-1 max-w-3xl text-cyan-50/80">
+                                      {jobNextStepCopy}
+                                    </p>
+                                  </div>
+                                  {job.status === "completed" ? (
+                                    <span className="rounded-full border border-cyan-200/15 bg-cyan-200/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-50">
+                                      {adapterForJob?.adapterName ||
+                                        text.jobAdapterPending}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                {job.status === "completed" ? (
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {canUseAdapterActions && adapterForJob ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          disabled={Boolean(
+                                            actionPending[
+                                              `adapter-attach:${adapterForJob.id}`
+                                            ],
+                                          )}
+                                          onClick={() =>
+                                            void attachAdapterRuntime(
+                                              adapterForJob.id,
+                                            )
+                                          }
+                                          className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-100 transition enabled:hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                          {actionPending[
+                                            `adapter-attach:${adapterForJob.id}`
+                                          ]
+                                            ? text.loading
+                                            : text.attachRuntime}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={Boolean(
+                                            actionPending[
+                                              `adapter-compare:${adapterForJob.id}`
+                                            ],
+                                          )}
+                                          onClick={() =>
+                                            void runAdapterCompareHandoff(
+                                              adapterForJob.id,
+                                            )
+                                          }
+                                          className="rounded-full border border-violet-400/30 bg-violet-400/10 px-3 py-1.5 text-[11px] font-semibold text-violet-100 transition enabled:hover:bg-violet-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                          {actionPending[
+                                            `adapter-compare:${adapterForJob.id}`
+                                          ]
+                                            ? text.loading
+                                            : text.sendToCompare}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={Boolean(
+                                            actionPending[
+                                              `adapter-benchmark:${adapterForJob.id}`
+                                            ],
+                                          )}
+                                          onClick={() =>
+                                            void runAdapterBenchmarkHandoff(
+                                              adapterForJob.id,
+                                            )
+                                          }
+                                          className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-100 transition enabled:hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                          {actionPending[
+                                            `adapter-benchmark:${adapterForJob.id}`
+                                          ]
+                                            ? text.loading
+                                            : text.sendToBenchmark}
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-[11px] font-semibold text-amber-100">
+                                        {text.jobAdapterPending}
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        void exportJobReport(job.id, "markdown")
+                                      }
+                                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-100 transition hover:bg-white/10"
+                                    >
+                                      {text.exportMarkdownReport}
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </div>
+
                               <div className="mt-3 grid gap-2 text-[11px] text-slate-400">
                                 <p>
                                   {text.bundlePath}: {job.bundlePath}
@@ -7113,6 +7303,90 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                             </p>
                                           </div>
                                         </div>
+                                        {latestReport.runComparison
+                                          .deltaToPrevious ? (
+                                          <div className="mt-3 rounded-xl border border-cyan-200/15 bg-black/20 px-3 py-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-50/50">
+                                                {text.runDelta}
+                                              </p>
+                                              <span className="rounded-full border border-cyan-200/15 bg-cyan-200/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-50">
+                                                {text.deltaConclusion}:{" "}
+                                                {getRunDeltaConclusionLabel(
+                                                  latestReport.runComparison
+                                                    .deltaToPrevious.conclusion,
+                                                  isEnglish,
+                                                )}
+                                              </span>
+                                            </div>
+                                            <p className="mt-2 break-all text-[10px] text-cyan-50/60">
+                                              {text.previousRun}:{" "}
+                                              {
+                                                latestReport.runComparison
+                                                  .deltaToPrevious.previousJobId
+                                              }
+                                            </p>
+                                            <div className="mt-2 grid gap-2 sm:grid-cols-5">
+                                              {[
+                                                {
+                                                  label: text.trainDelta,
+                                                  value: formatSignedNumber(
+                                                    latestReport.runComparison
+                                                      .deltaToPrevious
+                                                      .trainLatestDelta,
+                                                    4,
+                                                  ),
+                                                },
+                                                {
+                                                  label: text.validDelta,
+                                                  value: formatSignedNumber(
+                                                    latestReport.runComparison
+                                                      .deltaToPrevious
+                                                      .validLatestDelta,
+                                                    4,
+                                                  ),
+                                                },
+                                                {
+                                                  label: text.bestValidDelta,
+                                                  value: formatSignedNumber(
+                                                    latestReport.runComparison
+                                                      .deltaToPrevious
+                                                      .validBestDelta,
+                                                    4,
+                                                  ),
+                                                },
+                                                {
+                                                  label: text.durationDelta,
+                                                  value: formatSignedDurationMs(
+                                                    latestReport.runComparison
+                                                      .deltaToPrevious
+                                                      .durationMsDelta,
+                                                  ),
+                                                },
+                                                {
+                                                  label: text.stepDelta,
+                                                  value: formatSignedInteger(
+                                                    latestReport.runComparison
+                                                      .deltaToPrevious
+                                                      .latestStepDelta,
+                                                  ),
+                                                },
+                                              ].map((item) => (
+                                                <div
+                                                  key={item.label}
+                                                  className="rounded-lg border border-cyan-200/10 bg-cyan-200/[0.04] px-2 py-1.5"
+                                                >
+                                                  <p className="text-[8px] uppercase tracking-[0.14em] text-cyan-50/45">
+                                                    {item.label}
+                                                  </p>
+                                                  <p className="mt-1 font-semibold text-cyan-50">
+                                                    {item.value}
+                                                  </p>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        ) : null}
                                       </div>
                                     ) : null}
                                     {latestReport.evidence ? (

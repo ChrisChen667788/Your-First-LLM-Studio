@@ -3196,6 +3196,37 @@ function summarizeFineTuneMetrics(
   };
 }
 
+function finiteDelta(
+  latest?: number | null,
+  previous?: number | null,
+): number | null {
+  return typeof latest === "number" &&
+    Number.isFinite(latest) &&
+    typeof previous === "number" &&
+    Number.isFinite(previous)
+    ? latest - previous
+    : null;
+}
+
+function classifyFineTuneRunDelta(
+  deltas: Array<number | null | undefined>,
+): NonNullable<
+  AgentFineTuneRunComparisonSummary["deltaToPrevious"]
+>["conclusion"] {
+  const threshold = 0.0001;
+  const comparable = deltas.filter(
+    (delta): delta is number =>
+      typeof delta === "number" && Number.isFinite(delta),
+  );
+  if (!comparable.length) return "insufficient-data";
+  const improved = comparable.filter((delta) => delta < -threshold).length;
+  const regressed = comparable.filter((delta) => delta > threshold).length;
+  if (!improved && !regressed) return "stable";
+  if (improved && !regressed) return "improved";
+  if (regressed && !improved) return "regressed";
+  return "mixed";
+}
+
 function buildFineTuneRunComparison(input: {
   job: AgentFineTuneJob;
   recipe?: AgentFineTuneRecipe;
@@ -3241,11 +3272,43 @@ function buildFineTuneRunComparison(input: {
   const latestValidValues = runs
     .map((run) => run.validLatest)
     .filter((value): value is number => typeof value === "number");
+  const latestRun = runs[0];
+  const previousRun = runs[1];
+  let deltaToPrevious: AgentFineTuneRunComparisonSummary["deltaToPrevious"] =
+    null;
+  if (latestRun && previousRun) {
+    const trainLatestDelta = finiteDelta(
+      latestRun.trainLatest,
+      previousRun.trainLatest,
+    );
+    const validLatestDelta = finiteDelta(
+      latestRun.validLatest,
+      previousRun.validLatest,
+    );
+    const validBestDelta = finiteDelta(
+      latestRun.validBest,
+      previousRun.validBest,
+    );
+    deltaToPrevious = {
+      previousJobId: previousRun.jobId,
+      trainLatestDelta,
+      validLatestDelta,
+      validBestDelta,
+      durationMsDelta: finiteDelta(latestRun.durationMs, previousRun.durationMs),
+      latestStepDelta: finiteDelta(latestRun.latestStep, previousRun.latestStep),
+      conclusion: classifyFineTuneRunDelta([
+        validLatestDelta,
+        validBestDelta,
+        trainLatestDelta,
+      ]),
+    };
+  }
   return {
     adapterName,
     runCount: runs.length,
     bestValidationLoss: validValues.length ? Math.min(...validValues) : null,
     latestValidationLoss: latestValidValues[0] ?? null,
+    deltaToPrevious,
     runs,
   };
 }
@@ -3254,6 +3317,45 @@ function formatReportNumber(value?: number | null, digits = 4) {
   return typeof value === "number" && Number.isFinite(value)
     ? value.toFixed(digits)
     : "--";
+}
+
+function formatReportSignedNumber(value?: number | null, digits = 4) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${value >= 0 ? "+" : ""}${value.toFixed(digits)}`
+    : "--";
+}
+
+function formatReportSignedInteger(value?: number | null) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${value >= 0 ? "+" : ""}${Math.round(value)}`
+    : "--";
+}
+
+function formatReportDurationDelta(value?: number | null) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${value >= 0 ? "+" : ""}${Math.round(value / 1000)}s`
+    : "--";
+}
+
+function formatFineTuneRunDeltaConclusion(
+  conclusion?: NonNullable<
+    AgentFineTuneRunComparisonSummary["deltaToPrevious"]
+  >["conclusion"],
+) {
+  switch (conclusion) {
+    case "improved":
+      return "Improved versus the previous run on every comparable loss signal.";
+    case "regressed":
+      return "Regressed versus the previous run on every comparable loss signal.";
+    case "mixed":
+      return "Mixed result: at least one loss signal improved and another regressed.";
+    case "stable":
+      return "Stable result: comparable loss changes are within the noise threshold.";
+    case "insufficient-data":
+      return "Not enough comparable loss points to judge the direction.";
+    default:
+      return "--";
+  }
 }
 
 function formatReportPct(value?: number | null) {
@@ -3534,6 +3636,22 @@ function buildFineTuneMarkdownReport(input: {
     `Compared runs: ${runComparison.runCount}`,
     `Best validation loss: ${formatReportNumber(runComparison.bestValidationLoss)}`,
     `Latest validation loss: ${formatReportNumber(runComparison.latestValidationLoss)}`,
+    runComparison.deltaToPrevious
+      ? `Delta conclusion: ${formatFineTuneRunDeltaConclusion(runComparison.deltaToPrevious.conclusion)}`
+      : "Delta conclusion: --",
+    runComparison.deltaToPrevious
+      ? `Compared with previous job: ${runComparison.deltaToPrevious.previousJobId}`
+      : "",
+    runComparison.deltaToPrevious
+      ? [
+          "Delta vs previous:",
+          `train latest ${formatReportSignedNumber(runComparison.deltaToPrevious.trainLatestDelta)}`,
+          `validation latest ${formatReportSignedNumber(runComparison.deltaToPrevious.validLatestDelta)}`,
+          `best validation ${formatReportSignedNumber(runComparison.deltaToPrevious.validBestDelta)}`,
+          `duration ${formatReportDurationDelta(runComparison.deltaToPrevious.durationMsDelta)}`,
+          `latest step ${formatReportSignedInteger(runComparison.deltaToPrevious.latestStepDelta)}.`,
+        ].join(" ")
+      : "",
     "",
     "| Job | Status | Latest train | Latest validation | Best validation | Latest step | Duration | Output dir |",
     "| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |",

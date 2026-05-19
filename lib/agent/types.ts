@@ -1087,6 +1087,20 @@ export type AgentFineTuneRunComparisonSummary = {
   runCount: number;
   bestValidationLoss?: number | null;
   latestValidationLoss?: number | null;
+  deltaToPrevious?: {
+    previousJobId: string;
+    trainLatestDelta?: number | null;
+    validLatestDelta?: number | null;
+    validBestDelta?: number | null;
+    durationMsDelta?: number | null;
+    latestStepDelta?: number | null;
+    conclusion:
+      | "improved"
+      | "regressed"
+      | "mixed"
+      | "stable"
+      | "insufficient-data";
+  } | null;
   runs: Array<{
     jobId: string;
     status: AgentFineTuneJobStatus;
