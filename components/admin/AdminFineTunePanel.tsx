@@ -794,14 +794,32 @@ function getFineTuneOverlayJobs(
   jobs: AgentFineTuneJob[],
 ) {
   const adapterName = job.adapterName.trim();
-  if (!adapterName) return [];
+  const recipeId = job.recipeId.trim();
+  const datasetId = job.datasetId.trim();
+  const baseModelRef = job.baseModelRef?.trim() || "";
   return jobs
-    .filter(
-      (candidate) =>
-        candidate.id !== job.id &&
-        candidate.adapterName.trim() === adapterName &&
-        Boolean(candidate.curve?.length),
-    )
+    .filter((candidate) => {
+      if (candidate.id === job.id || !candidate.curve?.length) return false;
+      const sameAdapter = Boolean(
+        adapterName && candidate.adapterName.trim() === adapterName,
+      );
+      const sameRecipeDataset = Boolean(
+        !sameAdapter &&
+          recipeId &&
+          datasetId &&
+          candidate.recipeId.trim() === recipeId &&
+          candidate.datasetId.trim() === datasetId,
+      );
+      const sameBaseDataset = Boolean(
+        !sameAdapter &&
+          !sameRecipeDataset &&
+          baseModelRef &&
+          datasetId &&
+          candidate.baseModelRef?.trim() === baseModelRef &&
+          candidate.datasetId.trim() === datasetId,
+      );
+      return sameAdapter || sameRecipeDataset || sameBaseDataset;
+    })
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
     .slice(0, 3);
 }
@@ -1623,9 +1641,9 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
         chartRangeLast300: "Last 300",
         chartRangeLast100: "Last 100",
         chartWindow: "Visible window",
-        overlayRuns: "Same-adapter overlay",
+        overlayRuns: "Run family overlay",
         overlayRunsHint:
-          "Faint lines show recent runs with the same adapter name, normalized per run.",
+          "Faint lines show recent runs with the same adapter, recipe/dataset, or base model family, normalized per run.",
         overlayRunTable: "Overlay summary",
         currentRun: "Current run",
         chartStep: "Step",
@@ -1983,9 +2001,9 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
       chartRangeLast300: "后 300 轮",
       chartRangeLast100: "后 100 轮",
       chartWindow: "当前视窗",
-      overlayRuns: "同 adapter 叠加",
+      overlayRuns: "同组 run 叠加",
       overlayRunsHint:
-        "淡线表示同名 adapter 的最近训练记录，每次 run 单独归一化。",
+        "淡线表示同 adapter、同配方/数据集或同基础模型组的最近训练记录，每次 run 单独归一化。",
       overlayRunTable: "叠加摘要",
       currentRun: "当前 run",
       chartStep: "轮次",
@@ -7687,6 +7705,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                 </a>
                                 <a
                                   href={`/api/admin/finetune?action=download-bundle&id=${encodeURIComponent(job.id)}`}
+                                  download
                                   title={text.completeBundleHint}
                                   className="rounded-full border border-violet-300/25 bg-violet-300/10 px-3 py-1.5 text-[11px] font-semibold text-violet-100 transition hover:bg-violet-300/15"
                                 >
@@ -7742,6 +7761,7 @@ export function AdminFineTunePanel({ locale }: FineTunePanelProps) {
                                       </a>
                                       <a
                                         href={`/api/admin/finetune?action=download-bundle&id=${encodeURIComponent(job.id)}`}
+                                        download
                                         title={text.completeBundleHint}
                                         className="rounded-full border border-violet-200/25 bg-violet-200/10 px-2.5 py-1 text-[10px] font-semibold text-violet-50 transition hover:bg-violet-200/15"
                                       >

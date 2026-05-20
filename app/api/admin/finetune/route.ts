@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { readFileSync } from "fs";
+import { createReadStream } from "node:fs";
+import { Readable } from "node:stream";
 import {
   attachFineTuneAdapterRuntime,
   cancelFineTuneJob,
@@ -163,7 +164,7 @@ function buildReportPreviewHtml(
         <p class="meta">${escapeHtml(report.generatedAt)} · ${escapeHtml(report.metricsSummary.pointCount.toString())} metric points</p>
       </div>
       <div class="actions">
-        <a class="button" href="/api/admin/finetune?action=download-bundle&id=${encodeURIComponent(report.jobId)}">Download full bundle</a>
+        <a class="button" href="/api/admin/finetune?action=download-bundle&id=${encodeURIComponent(report.jobId)}" download>Download full bundle</a>
       </div>
     </header>
     <section class="bundle">
@@ -208,9 +209,13 @@ export async function GET(request: Request) {
       );
     }
     const archive = exportFineTuneJobBundleArchive({ jobId });
-    return new Response(new Uint8Array(readFileSync(archive.filePath)), {
+    const body = Readable.toWeb(
+      createReadStream(archive.filePath),
+    ) as ReadableStream<Uint8Array>;
+    return new Response(body, {
       headers: {
         "content-type": "application/gzip",
+        "content-length": String(archive.sizeBytes),
         "content-disposition": `attachment; filename="${archive.fileName}"`,
         "cache-control": "no-store",
         "x-first-llm-studio-bundle-path": encodeURIComponent(archive.filePath),
