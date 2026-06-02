@@ -199,7 +199,7 @@ The ModelScope package script exports the committed Git tree so GitHub and Model
 - Sensitive local actions require confirmation.
 - Secrets belong in `.env.local`.
 - Public repository defaults are sanitized.
-- Historical commit identity has been rewritten to a GitHub noreply address for public release.
+- New public commits should use a GitHub noreply address where possible.
 - See [SECURITY.md](./SECURITY.md).
 
 ## Contributing
@@ -407,7 +407,7 @@ ModelScope 打包脚本会导出已提交的 Git tree，因此每次同步都可
 - 敏感本地操作默认需要确认。
 - Secret 应保存在 `.env.local`。
 - 公开仓库默认配置已经做过脱敏。
-- 公开发布前，git 历史作者信息已经统一改成 GitHub noreply 地址。
+- 新增公开提交应尽量使用 GitHub noreply 地址。
 - 见 [SECURITY.md](./SECURITY.md)。
 
 ## 贡献
