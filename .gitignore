@@ -12,6 +12,8 @@ coverage
 .venv
 .idea
 tmp
+.codex-run/
+output/
 *.pid
 *.sample.txt
 tsconfig.tsbuildinfo

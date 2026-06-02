@@ -4,17 +4,22 @@ import { useCallback, useEffect, useRef, type Dispatch, type SetStateAction } fr
 import type {
   AgentBenchmarkResponse,
   AgentCompareLaneProgress,
-  AgentCompareProgress,
   AgentCompareResponse,
   AgentCompareReviewSummaryDetail,
   AgentCompareReviewSummaryTone,
+  AgentCompareSourceSurface,
   AgentMessage,
   AgentProviderProfile,
-  AgentRuntimeActionResponse,
   AgentRuntimeStatus,
   AgentTarget,
   AgentThinkingMode
 } from "@/lib/agent/types";
+import {
+  patchCompareProgress,
+  restartCompareRuntime,
+  runCompareRequest,
+  sendCompareBenchmarkHandoff,
+} from "@/features/compare/actions";
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
 
@@ -22,8 +27,9 @@ async function loadCompareShareModule() {
   return import("@/lib/agent/compare-share");
 }
 
-type UseAgentCompareActionsInput = {
+type UseCompareActionsInput = {
   locale: string;
+  sourceSurface: AgentCompareSourceSurface;
   agentTargets: AgentTarget[];
   compareTargetIds: string[];
   compareIntent: AgentCompareResponse["compareIntent"];
@@ -63,8 +69,9 @@ type UseAgentCompareActionsInput = {
   copyText: (text: string, key: string) => Promise<void>;
 };
 
-export function useAgentCompareActions({
+export function useCompareActions({
   locale,
+  sourceSurface,
   agentTargets,
   compareTargetIds,
   compareIntent,
@@ -102,7 +109,7 @@ export function useAgentCompareActions({
   setBenchmarkError,
   setBenchmarkResult,
   copyText
-}: UseAgentCompareActionsInput) {
+}: UseCompareActionsInput) {
   const compareRecoveryConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const compareRecoveryNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -120,15 +127,7 @@ export function useAgentCompareActions({
       warning?: string;
       recordTimeline?: boolean;
     }) => {
-      const response = await fetch("/api/agent/compare/progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input)
-      });
-      const payload = (await response.json()) as AgentCompareProgress & { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to update compare progress.");
-      }
+      const payload = await patchCompareProgress(input);
       setCompareProgressByTargetId(Object.fromEntries(payload.lanes.map((lane) => [lane.targetId, lane])));
     },
     [setCompareProgressByTargetId]
@@ -227,11 +226,9 @@ export function useAgentCompareActions({
     setCompareRequestId(requestId);
     setCompareProgressByTargetId({});
     try {
-      const response = await fetch("/api/agent/compare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const payload = await runCompareRequest({
           requestId,
+          sourceSurface,
           targetIds: compareTargetIds,
           input,
           messages: historyMessages,
@@ -243,12 +240,7 @@ export function useAgentCompareActions({
           contextWindow,
           providerProfile,
           thinkingMode
-        })
       });
-      const payload = (await response.json()) as AgentCompareResponse & { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || "Compare run failed.");
-      }
       setCompareResult(payload);
       setCompareRequestId(payload.requestId || requestId);
       setCompareBaseTargetId(payload.results[0]?.targetId || "");
@@ -276,6 +268,7 @@ export function useAgentCompareActions({
     setCompareProgressByTargetId,
     setCompareRequestId,
     setCompareResult,
+    sourceSurface,
     systemPrompt,
     thinkingMode
   ]);
@@ -296,11 +289,9 @@ export function useAgentCompareActions({
         return next;
       });
       try {
-        const response = await fetch("/api/agent/compare", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const payload = await runCompareRequest({
             requestId,
+            sourceSurface,
             targetIds: [targetId],
             input,
             messages: historyMessages,
@@ -312,12 +303,7 @@ export function useAgentCompareActions({
             contextWindow,
             providerProfile,
             thinkingMode
-          })
         });
-        const payload = (await response.json()) as AgentCompareResponse & { error?: string };
-        if (!response.ok) {
-          throw new Error(payload.error || "Lane rerun failed.");
-        }
         setCompareRequestId(payload.requestId || requestId);
 
         const nextLane = payload.results[0];
@@ -358,6 +344,7 @@ export function useAgentCompareActions({
       setCompareProgressByTargetId,
       setCompareRequestId,
       setCompareResult,
+      sourceSurface,
       systemPrompt,
       thinkingMode
     ]
@@ -388,10 +375,7 @@ export function useAgentCompareActions({
     setBenchmarkError("");
     setBenchmarkResult(null);
     try {
-      const response = await fetch("/api/admin/benchmark", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const payload = await sendCompareBenchmarkHandoff({
           targetIds: compareResult.results.map((lane) => lane.targetId),
           benchmarkMode: "prompt",
           prompt: comparePrompt,
@@ -400,12 +384,7 @@ export function useAgentCompareActions({
           contextWindow,
           providerProfile,
           thinkingMode
-        })
       });
-      const payload = (await response.json()) as AgentBenchmarkResponse & { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || "Benchmark handoff failed.");
-      }
       setBenchmarkResult(payload);
     } catch (handoffError) {
       setBenchmarkError(handoffError instanceof Error ? handoffError.message : "Benchmark handoff failed.");
@@ -460,18 +439,7 @@ export function useAgentCompareActions({
           recordTimeline: true
         });
 
-        const response = await fetch("/api/agent/runtime/actions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            targetId,
-            action: "restart"
-          })
-        });
-        const payload = (await response.json()) as AgentRuntimeActionResponse & { error?: string };
-        if (!response.ok) {
-          throw new Error(payload.error || payload.message || "Manual local recovery failed.");
-        }
+        const payload = await restartCompareRuntime(targetId);
 
         if (payload.runtime) {
           setCompareRuntimeByTargetId((current) => ({

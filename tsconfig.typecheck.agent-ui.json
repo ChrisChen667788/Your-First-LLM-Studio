@@ -8,6 +8,8 @@
     "next-env.d.ts",
     "app/agent/**/*.ts",
     "app/agent/**/*.tsx",
+    "app/compare/**/*.ts",
+    "app/compare/**/*.tsx",
     "components/agent/**/*.ts",
     "components/agent/**/*.tsx",
     "components/layout/**/*.ts",

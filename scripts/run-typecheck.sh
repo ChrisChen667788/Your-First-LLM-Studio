@@ -64,6 +64,7 @@ all_partitions=("${core_partitions[@]}" "${product_partitions[@]}")
 typecheck_pathspecs=(
   app
   components
+  features
   lib
   pages
   scripts
@@ -143,6 +144,19 @@ partitions_for_changed_files() {
         needs_core_finetune=1
         needs_admin=1
         ;;
+      features/compare/*|features/compare/**/*)
+        needs_core_agent=1
+        needs_agent_api=1
+        needs_agent_ui=1
+        needs_admin=1
+        ;;
+      features/finetune/*|features/finetune/**/*)
+        needs_core_finetune=1
+        needs_admin=1
+        ;;
+      features/*|features/**/*)
+        needs_app=1
+        ;;
       lib/community/*|lib/community/**/*)
         needs_core_community=1
         needs_admin=1
@@ -163,8 +177,18 @@ partitions_for_changed_files() {
           *) needs_agent_ui=1 ;;
         esac
         ;;
+      app/compare/*|app/compare/**/*)
+        needs_agent_ui=1
+        ;;
       app/api/admin/*|app/api/admin/**/*|app/admin/*|app/admin/**/*|components/admin/*|components/admin/**/*)
         needs_admin=1
+        ;;
+      app/api/models/*|app/api/models/**/*)
+        needs_admin=1
+        ;;
+      app/fine-tune/*|app/fine-tune/**/*|components/finetune/*|components/finetune/**/*)
+        needs_admin=1
+        needs_app=1
         ;;
       components/layout/*|components/layout/**/*)
         needs_agent_ui=1

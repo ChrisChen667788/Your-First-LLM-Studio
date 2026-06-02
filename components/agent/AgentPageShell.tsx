@@ -1,10 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { AgentCompareSourceSurface } from "@/lib/agent/types";
 
 type AgentWorkbenchComponent = (typeof import("@/components/agent/AgentWorkbench"))["AgentWorkbench"];
 
-export function AgentPageShell() {
+type AgentPageShellProps = {
+  initialMode?: "chat" | "compare";
+  forceInitialMode?: boolean;
+  compareSurface?: AgentCompareSourceSurface;
+};
+
+export function AgentPageShell({
+  initialMode = "chat",
+  forceInitialMode = false,
+  compareSurface = "agent-embedded",
+}: AgentPageShellProps = {}) {
   const [AgentWorkbench, setAgentWorkbench] = useState<AgentWorkbenchComponent | null>(null);
 
   useEffect(() => {
@@ -123,5 +134,11 @@ export function AgentPageShell() {
     );
   }
 
-  return <AgentWorkbench />;
+  return (
+    <AgentWorkbench
+      initialMode={initialMode}
+      forceInitialMode={forceInitialMode}
+      compareSurface={compareSurface}
+    />
+  );
 }

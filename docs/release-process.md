@@ -30,6 +30,10 @@ Keep each stable node easy to compare, roll back, and explain.
    - `./node_modules/.bin/tsc --noEmit`
    - `./scripts/smoke-test.sh`
    - verify [http://localhost:3011/agent](http://localhost:3011/agent)
+   - verify [http://localhost:3011/compare](http://localhost:3011/compare)
+   - verify [http://localhost:3011/fine-tune](http://localhost:3011/fine-tune)
+   - verify [http://localhost:3011/models](http://localhost:3011/models)
+   - verify [http://localhost:3011/benchmarks](http://localhost:3011/benchmarks)
    - verify [http://localhost:3011/admin](http://localhost:3011/admin)
    - record one benchmark summary if the release touches runtime or benchmark behavior
 
@@ -44,6 +48,7 @@ Keep each stable node easy to compare, roll back, and explain.
 - UI order and density match the current roadmap direction
 - Local runtime can report status without crashing the page
 - Benchmark can at least run one local and one remote smoke path
+- Benchmark release evidence is visible from `/benchmarks` before a release note is cut
 - Release note contains a real verification summary, not placeholders
 
 ## Notes

@@ -10,6 +10,7 @@ import {
   benchmarkMilestoneSuites
 } from "@/lib/agent/benchmark-datasets";
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { StudioIdentityBand } from "@/components/layout/StudioPageShell";
 import { sanitizeDisplayPath } from "@/lib/agent/path-display";
 import { getBenchmarkContextRecommendationHelper } from "@/lib/agent/context-recommendation";
 import type {
@@ -4166,13 +4167,13 @@ export function AdminDashboard() {
   return (
     <section className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.14),_transparent_26%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] px-3 py-4 text-slate-100 sm:px-5 xl:px-6 2xl:px-8">
       <div className="mx-auto flex w-full max-w-[1960px] flex-col gap-4">
-        <header className="order-20 rounded-2xl border border-white/10 bg-slate-950/75 px-5 py-4 shadow-[0_20px_60px_rgba(2,6,23,0.45)]">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:gap-4">
-              <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">{dictionary.nav.dashboard}</p>
-              <h1 className="text-xl font-semibold text-white">{dictionary.admin.title}</h1>
-              <p className="max-w-3xl text-xs leading-6 text-slate-500">{dictionary.admin.subtitle}</p>
-            </div>
+        <StudioIdentityBand
+          accent="cyan"
+          className="order-20 mb-0"
+          eyebrow={dictionary.nav.dashboard}
+          title={dictionary.admin.title}
+          description={dictionary.admin.subtitle}
+          side={
             <div className="flex flex-wrap items-center gap-3">
               <select
                 value={selectedTargetId}
@@ -4275,8 +4276,8 @@ export function AdminDashboard() {
                 {pending ? "..." : dictionary.admin.refresh}
               </button>
             </div>
-          </div>
-        </header>
+          }
+        />
 
         {error ? (
           <div className="order-21 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">

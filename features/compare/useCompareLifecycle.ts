@@ -16,7 +16,7 @@ import type {
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
 
-type UseAgentCompareLifecycleInput = {
+type UseCompareLifecycleInput = {
   agentTargets: AgentTarget[];
   selectedTargetId: string;
   compareTargetIds: string[];
@@ -41,7 +41,7 @@ type UseAgentCompareLifecycleInput = {
   setCompareProgressByTargetId: Setter<Record<string, AgentCompareLaneProgress>>;
 };
 
-export function useAgentCompareLifecycle({
+export function useCompareLifecycle({
   agentTargets,
   selectedTargetId,
   compareTargetIds,
@@ -64,7 +64,7 @@ export function useAgentCompareLifecycle({
   setCompareBaseTargetId,
   setCompareRuntimeByTargetId,
   setCompareProgressByTargetId
-}: UseAgentCompareLifecycleInput) {
+}: UseCompareLifecycleInput) {
   useEffect(() => {
     setCompareError("");
     setBenchmarkError("");

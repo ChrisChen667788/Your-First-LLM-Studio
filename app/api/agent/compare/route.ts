@@ -37,6 +37,7 @@ import type {
   AgentCompareProgress,
   AgentCompareRequest,
   AgentCompareResponse,
+  AgentCompareSourceSurface,
   AgentCompareLaneResult,
   AgentMessage
 } from "@/lib/agent/types";
@@ -353,6 +354,21 @@ function buildFairnessFingerprint(params: {
   ].join(" | ");
 }
 
+function normalizeCompareSourceSurface(
+  value: unknown
+): AgentCompareSourceSurface {
+  if (
+    value === "agent-embedded" ||
+    value === "compare-studio" ||
+    value === "benchmark-handoff" ||
+    value === "fine-tune-handoff" ||
+    value === "admin-audit"
+  ) {
+    return value;
+  }
+  return "agent-embedded";
+}
+
 export async function POST(request: Request) {
   let requestId = "";
   try {
@@ -377,6 +393,7 @@ export async function POST(request: Request) {
       typeof body.requestId === "string" && body.requestId.trim()
         ? body.requestId.trim()
         : crypto.randomUUID();
+    const sourceSurface = normalizeCompareSourceSurface(body.sourceSurface);
 
     for (const targetId of targetIds) {
       if (!getServerAgentTarget(targetId)) {
@@ -402,7 +419,10 @@ export async function POST(request: Request) {
       title: "Compare run started",
       summary: `${targetIds.length} lane${targetIds.length === 1 ? "" : "s"} queued`,
       relatedId: requestId,
-      targetIds
+      targetIds,
+      metadata: {
+        sourceSurface
+      }
     });
 
     const compareIntent = normalizeCompareIntent(body.compareIntent);
@@ -601,6 +621,7 @@ export async function POST(request: Request) {
       ok: results.some((lane) => lane.ok),
       requestId,
       runId: crypto.randomUUID(),
+      sourceSurface,
       generatedAt: new Date().toISOString(),
       compareIntent,
       compareOutputShape,
@@ -636,6 +657,7 @@ export async function POST(request: Request) {
         contextWindow: requestedContextWindow,
         enableTools,
         enableRetrieval,
+        sourceSurface,
         okLanes: results.filter((lane) => lane.ok).length,
         laneCount: results.length,
         warning: response.warning,

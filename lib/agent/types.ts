@@ -362,6 +362,7 @@ export type AgentChatResponse = {
 
 export type AgentCompareRequest = {
   requestId?: string;
+  sourceSurface?: AgentCompareSourceSurface;
   targetIds: string[];
   input: string;
   messages: AgentMessage[];
@@ -376,6 +377,13 @@ export type AgentCompareRequest = {
   plannerEnabled?: boolean;
   memorySummary?: string;
 };
+
+export type AgentCompareSourceSurface =
+  | "agent-embedded"
+  | "compare-studio"
+  | "benchmark-handoff"
+  | "fine-tune-handoff"
+  | "admin-audit";
 
 export type AgentCompareLaneResult = {
   targetId: string;
@@ -401,6 +409,7 @@ export type AgentCompareResponse = {
   ok: boolean;
   requestId: string;
   runId: string;
+  sourceSurface?: AgentCompareSourceSurface;
   generatedAt: string;
   compareIntent: AgentCompareIntent;
   compareOutputShape: AgentCompareOutputShape;
@@ -872,6 +881,14 @@ export type AgentWorkbenchSessionConflict = {
   serverSessionCount: number;
   summary: string;
 };
+
+export type AgentFineTuneSourceSurface =
+  | "admin-embedded"
+  | "fine-tune-studio"
+  | "model-card"
+  | "compare-handoff"
+  | "benchmark-handoff"
+  | "experiment-timeline";
 
 export type AgentFineTuneDatasetFormat = "chat-jsonl" | "instruction-jsonl";
 

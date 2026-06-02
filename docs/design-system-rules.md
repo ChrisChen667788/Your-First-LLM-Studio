@@ -1,10 +1,31 @@
 # First LLM Studio Design System Rules
 
-Last updated: 2026-04-22
+Last updated: 2026-06-01
 
 ## Purpose
 
-This document captures the current UI system so future Figma-to-code work stays aligned with the existing product language instead of introducing one-off styles.
+This document captures the current UI system so future Figma-to-code work stays aligned with the existing product language instead of introducing one-off styles. As of 2026-06-01, the current `/agent` and `/fine-tune` modules are the canonical product-workbench standard for foreground routes and templates.
+
+## Canonical Studio Standard
+
+The current Agent workbench and Fine-tune Studio define the product direction. New templates and existing foreground routes should converge on their visual and interaction language before the remaining architecture refactor work continues.
+
+Required traits:
+
+- Use a dark-glass operational workbench language: slate/navy surfaces, translucent panels, subtle cyan primary accents, and semantic violet/emerald/amber support colors.
+- Start product routes with a compact identity band: eyebrow, clear module name, concise state/value summary, and action/status chips. Avoid marketing-style hero layouts in daily work surfaces.
+- Prefer dense, scan-friendly sections over decorative card stacks. Primary work should live in a clear main panel with secondary configuration, evidence, history, or runtime context in side rails or collapsible panels.
+- Use pills, segmented controls, compact tabs, and micro-metrics as the default control vocabulary.
+- Keep copy operational and short. Helper text should clarify state or next action, not explain the whole product.
+- Treat `/agent` and `/fine-tune` as source-of-truth references when resolving conflicts between older admin templates, route shells, or generated layouts.
+- Reuse [`components/layout/StudioPageShell.tsx`](../components/layout/StudioPageShell.tsx) for new foreground route shells and admin mirrors unless a feature needs a more specific workbench layout.
+
+Immediate convergence targets:
+
+- `/compare`: keep the foreground route aligned with the dark studio/workbench shell while its feature-owned state/actions continue to split from Agent internals.
+- `/models`: move the model discovery/install surface away from admin-template styling and toward the Agent/Fine-tune studio shell.
+- `/benchmarks`: align run controls, progress, history, and release evidence with the same dense workbench composition.
+- `/admin`: retain monitoring/configuration/audit scope, but visually become an admin mirror of the studio language rather than a separate template family.
 
 ## Design Tokens
 
@@ -59,7 +80,7 @@ Common spacing/radius patterns:
 
 ### Admin surfaces
 
-Admin feature sections follow a repeated shell:
+Admin feature sections should now be treated as mirrors of the Agent/Fine-tune studio language. Older admin-only template patterns are compatibility surfaces, not the future visual source of truth. Feature sections follow this repeated shell:
 
 - Section wrapper: dark glass card with large radius and shadow
 - Intro row: eyebrow + title + subtitle + refresh action
@@ -68,9 +89,10 @@ Admin feature sections follow a repeated shell:
 
 Relevant examples:
 
+- [`components/layout/StudioPageShell.tsx`](../components/layout/StudioPageShell.tsx)
 - [`components/admin/AdminDashboard.tsx`](../components/admin/AdminDashboard.tsx)
-- [`components/admin/AdminModelDiscoveryPanel.tsx`](../components/admin/AdminModelDiscoveryPanel.tsx)
-- [`components/admin/AdminFineTunePanel.tsx`](../components/admin/AdminFineTunePanel.tsx)
+- [`features/models/ModelDiscoveryPanel.tsx`](../features/models/ModelDiscoveryPanel.tsx)
+- [`components/finetune/FineTuneStudioPanel.tsx`](../components/finetune/FineTuneStudioPanel.tsx)
 - [`components/admin/AdminTimelinePanel.tsx`](../components/admin/AdminTimelinePanel.tsx)
 
 ### Agent surfaces
@@ -151,7 +173,7 @@ Action hierarchy should remain clear:
 
 When translating future Figma work into this repo:
 
-1. Reuse the existing dark-glass panel language for operational surfaces.
+1. Reuse the Agent/Fine-tune dark-glass studio language for operational surfaces.
 2. Keep cyan as the main orchestration accent; use violet/emerald/amber as semantic supporting accents.
 3. Prefer card-within-card hierarchy instead of free-floating blocks.
 4. Favor label chips and micro-metrics over large decorative illustrations in `/agent` and `/admin`.

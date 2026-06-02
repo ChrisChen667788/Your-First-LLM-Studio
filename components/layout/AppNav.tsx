@@ -6,6 +6,10 @@ import { APP_LOCALES, LOCALE_LABELS, useLocale } from "@/components/layout/Local
 
 const links = [
   { href: "/agent", key: "agent" },
+  { href: "/compare", key: "compare" },
+  { href: "/fine-tune", key: "fineTune" },
+  { href: "/models", key: "models" },
+  { href: "/benchmarks", key: "benchmarks" },
   { href: "/admin", key: "dashboard" }
 ];
 
@@ -18,6 +22,14 @@ export function AppNav({ version }: { version?: string }) {
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
   const { locale, setLocale, dictionary } = useLocale();
+  const navLabels: Record<string, string> = {
+    agent: dictionary.nav.agent,
+    compare: locale.startsWith("en") ? "Compare" : "对比",
+    fineTune: locale.startsWith("en") ? "Fine-tune" : "微调",
+    models: locale.startsWith("en") ? "Models" : "模型",
+    benchmarks: locale.startsWith("en") ? "Benchmarks" : "评测",
+    dashboard: dictionary.nav.dashboard
+  };
 
   return (
     <nav className="sticky top-0 z-30 w-full overflow-x-auto border-b border-slate-200/70 bg-white/92 backdrop-blur">
@@ -36,7 +48,7 @@ export function AppNav({ version }: { version?: string }) {
                       : "text-slate-700 hover:bg-white"
                   }`}
                 >
-                  {link.key === "agent" ? dictionary.nav.agent : dictionary.nav.dashboard}
+                  {navLabels[link.key]}
                 </Link>
               );
             })}

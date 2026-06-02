@@ -101,6 +101,10 @@ case "${1:-start}" in
           bash -lc "cd \"$ROOT\" && \"$ROOT/scripts/start-local-gateway.sh\"" >>"$LOGFILE" 2>&1 || true
         fi
         curl --max-time 20 -sS "http://127.0.0.1:$PORT/agent" >/dev/null 2>&1 || true
+        curl --max-time 20 -sS "http://127.0.0.1:$PORT/compare" >/dev/null 2>&1 || true
+        curl --max-time 20 -sS "http://127.0.0.1:$PORT/fine-tune" >/dev/null 2>&1 || true
+        curl --max-time 20 -sS "http://127.0.0.1:$PORT/models" >/dev/null 2>&1 || true
+        curl --max-time 20 -sS "http://127.0.0.1:$PORT/benchmarks" >/dev/null 2>&1 || true
         curl --max-time 20 -sS "http://127.0.0.1:$PORT/admin" >/dev/null 2>&1 || true
         echo "started $pid"
         exit 0

@@ -10,17 +10,18 @@ import {
   useRef,
   useState,
 } from "react";
-import dynamic from "next/dynamic";
 import { AgentGetCodePanel } from "@/components/agent/AgentGetCodePanel";
 import {
   agentTargets as builtinAgentTargets,
   agentToolSpecs,
 } from "@/lib/agent/catalog";
-import { useAgentCompareActions } from "@/components/agent/useAgentCompareActions";
+import { useComparePreferencePersistenceModel } from "@/features/compare/preference-persistence-model";
 import {
-  buildStoredComparePreferences,
-  normalizeStoredComparePreferences,
-} from "@/components/agent/comparePreferences";
+  buildStoredComparePreferenceSlice,
+  normalizeRawComparePreferenceInput,
+  type ComparePreferenceSnapshotInput,
+} from "@/features/compare/preferences";
+import { buildCompareReproduceRequestArtifacts } from "@/features/compare/reproduce-artifacts";
 import {
   buildFocusedFileExcerpt,
   buildReplayComparison,
@@ -33,10 +34,11 @@ import {
   readStringField,
   type FocusedFileExcerpt,
   type ToolReviewItem,
-} from "@/components/agent/compareReview";
-import { useAgentCompareLifecycle } from "@/components/agent/useAgentCompareLifecycle";
+} from "@/features/compare/review";
 import { useLocale } from "@/components/layout/LocaleProvider";
-import { useAgentCompareState } from "@/components/agent/useAgentCompareState";
+import { CompareWorkbenchPortal } from "@/features/compare/CompareWorkbenchPortal";
+import { useEmbeddedCompareWorkbenchAdapter } from "@/features/compare/embedded-workbench-adapter";
+import { useCompareWorkbenchStateModel } from "@/features/compare/workbench-state-model";
 import {
   getDefaultSystemPromptForLocale,
   getLocalizedStarterPrompts,
@@ -51,7 +53,6 @@ import {
 } from "@/lib/agent/reproduce-request";
 import type {
   AgentCacheMode,
-  AgentBenchmarkResponse,
   AgentChatResponse,
   AgentCompareIntent,
   AgentCompareLaneProgress,
@@ -60,6 +61,7 @@ import type {
   AgentCompareReviewSummaryDetail,
   AgentCompareReviewSummaryTone,
   AgentCompareResponse,
+  AgentCompareSourceSurface,
   AgentConnectionCheckResponse,
   AgentConnectionCheckStage,
   AgentGroundedVerification,
@@ -71,7 +73,6 @@ import type {
   AgentRuntimePrewarmAllResponse,
   AgentRuntimePrewarmResponse,
   AgentRuntimeStatus,
-  AgentStudioRecipe,
   AgentTarget,
   AgentWorkbenchMode,
   AgentWorkbenchSessionConflict,
@@ -119,6 +120,12 @@ type AgentTurn = {
   };
 };
 
+type AgentWorkbenchProps = {
+  initialMode?: AgentWorkbenchMode;
+  forceInitialMode?: boolean;
+  compareSurface?: AgentCompareSourceSurface;
+};
+
 type AgentTargetsScanResponse = {
   ok: boolean;
   targets?: AgentTarget[];
@@ -132,32 +139,6 @@ type AgentTargetsScanResponse = {
   };
   error?: string;
 };
-
-const AgentCompareLab = dynamic(
-  () =>
-    import("@/components/agent/AgentCompareLab").then(
-      (mod) => mod.AgentCompareLab,
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="space-y-4 px-5 py-5">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="h-4 w-32 rounded-full bg-cyan-400/10" />
-          <div className="mt-4 h-10 rounded-2xl bg-white/[0.05]" />
-          <div className="mt-3 h-10 rounded-2xl bg-white/[0.05]" />
-        </div>
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="h-4 w-40 rounded-full bg-white/[0.08]" />
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <div className="h-28 rounded-2xl bg-black/20" />
-            <div className="h-28 rounded-2xl bg-black/20" />
-          </div>
-        </div>
-      </div>
-    ),
-  },
-);
 
 type StoredAgentSession = {
   id: string;
@@ -280,48 +261,7 @@ function normalizeStoredWorkbenchPreferences(input: unknown) {
       candidate.workbenchMode === "compare"
         ? candidate.workbenchMode
         : undefined,
-    compareTargetIds: Array.isArray(candidate.compareTargetIds)
-      ? candidate.compareTargetIds.filter(
-          (value): value is string => typeof value === "string",
-        )
-      : undefined,
-    compareBaseTargetId:
-      typeof candidate.compareBaseTargetId === "string"
-        ? candidate.compareBaseTargetId
-        : undefined,
-    compareReviewSummaryTone:
-      candidate.compareReviewSummaryTone === "issue" ||
-      candidate.compareReviewSummaryTone === "pr" ||
-      candidate.compareReviewSummaryTone === "chat"
-        ? candidate.compareReviewSummaryTone
-        : undefined,
-    compareReviewSummaryDetail:
-      candidate.compareReviewSummaryDetail === "compact" ||
-      candidate.compareReviewSummaryDetail === "strict-review" ||
-      candidate.compareReviewSummaryDetail === "friendly-report"
-        ? candidate.compareReviewSummaryDetail
-        : undefined,
-    compareBenchmarkUseOutputContract:
-      typeof candidate.compareBenchmarkUseOutputContract === "boolean"
-        ? candidate.compareBenchmarkUseOutputContract
-        : undefined,
-    compareBenchmarkPreviewDiffOnly:
-      typeof candidate.compareBenchmarkPreviewDiffOnly === "boolean"
-        ? candidate.compareBenchmarkPreviewDiffOnly
-        : undefined,
-    compareIntent:
-      candidate.compareIntent === "model-vs-model" ||
-      candidate.compareIntent === "preset-vs-preset" ||
-      candidate.compareIntent === "template-vs-template" ||
-      candidate.compareIntent === "before-vs-after"
-        ? candidate.compareIntent
-        : undefined,
-    compareOutputShape:
-      candidate.compareOutputShape === "freeform" ||
-      candidate.compareOutputShape === "bullet-list" ||
-      candidate.compareOutputShape === "strict-json"
-        ? candidate.compareOutputShape
-        : undefined,
+    ...normalizeRawComparePreferenceInput(candidate),
     enableTools:
       typeof candidate.enableTools === "boolean"
         ? candidate.enableTools
@@ -497,15 +437,17 @@ function buildSessionExportEnvelope(
 function buildStoredWorkbenchPreferences(
   input: Omit<
     AgentWorkbenchStoredPreferences,
-    "updatedAt" | "compareBaseTargetId"
+    | "updatedAt"
+    | keyof ComparePreferenceSnapshotInput
   > & {
-    compareBaseTargetId?: string | null;
+    comparePreferences: ComparePreferenceSnapshotInput;
   },
 ) {
+  const { comparePreferences, ...workbenchPreferences } = input;
   return {
     updatedAt: new Date().toISOString(),
-    ...input,
-    compareBaseTargetId: input.compareBaseTargetId || undefined,
+    ...workbenchPreferences,
+    ...buildStoredComparePreferenceSlice(comparePreferences),
   } satisfies AgentWorkbenchStoredPreferences;
 }
 
@@ -1110,7 +1052,11 @@ function getLoadRiskBadge(target: AgentTarget, locale: string) {
   };
 }
 
-export function AgentWorkbench() {
+export function AgentWorkbench({
+  initialMode = "chat",
+  forceInitialMode = false,
+  compareSurface = "agent-embedded",
+}: AgentWorkbenchProps = {}) {
   const { locale, dictionary } = useLocale();
   const starterPrompts = useMemo(
     () => getLocalizedStarterPrompts(locale),
@@ -1119,7 +1065,7 @@ export function AgentWorkbench() {
   const [availableTargets, setAvailableTargets] =
     useState<AgentTarget[]>(builtinAgentTargets);
   const agentTargets = availableTargets;
-  const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
+  const [sessionId, setSessionId] = useState<string>(() => crypto.randomUUID());
   const [savedSessions, setSavedSessions] = useState<StoredAgentSession[]>([]);
   const [sessionSearch, setSessionSearch] = useState("");
   const [sessionTargetFilter, setSessionTargetFilter] = useState("all");
@@ -1128,61 +1074,46 @@ export function AgentWorkbench() {
   >("visible");
   const [selectedTargetId, setSelectedTargetId] = useState("anthropic-claude");
   const [workbenchMode, setWorkbenchMode] =
-    useState<AgentWorkbenchMode>("chat");
-  const [recipes, setRecipes] = useState<AgentStudioRecipe[]>([]);
-  const [recipesPending, setRecipesPending] = useState(false);
-  const [recipesError, setRecipesError] = useState("");
-  const [activeRecipeId, setActiveRecipeId] = useState("");
-  const [recipeDraftLabel, setRecipeDraftLabel] = useState("");
-  const [recipeDraftDescription, setRecipeDraftDescription] = useState("");
+    useState<AgentWorkbenchMode>(initialMode);
+  const {
+    targetState: compareTargetState,
+    promptState: comparePromptState,
+    runState: compareRunState,
+    recoveryState: compareRecoveryState,
+    benchmarkState: compareBenchmarkState,
+    recipeState: compareRecipeState,
+  } = useCompareWorkbenchStateModel({ locale });
   const [getCodeOpen, setGetCodeOpen] = useState(false);
   const [getCodeLanguage, setGetCodeLanguage] =
     useState<AgentReproduceLanguage>("curl");
   const [runtimeRailCollapsed, setRuntimeRailCollapsed] = useState(true);
   const {
     compareTargetIds,
+    setCompareTargetIds,
+  } = compareTargetState;
+  const {
     compareIntent,
     compareOutputShape,
+    setCompareIntent,
+    setCompareOutputShape,
+  } = comparePromptState;
+  const {
     comparePending,
     compareError,
     compareResult,
     compareBaseTargetId,
     compareReviewSummaryTone,
     compareReviewSummaryDetail,
-    compareRequestId,
-    compareRuntimeByTargetId,
-    compareProgressByTargetId,
-    compareBenchmarkUseOutputContract,
-    compareBenchmarkPreviewDiffOnly,
-    compareRecoveryPendingTargetId,
-    compareRecoveryConfirmTargetId,
-    compareRecoveryCooldownByTargetId,
-    compareRecoveryNotice,
-    benchmarkPending,
-    benchmarkError,
-    benchmarkResult,
-    setCompareTargetIds,
-    setCompareIntent,
-    setCompareOutputShape,
-    setComparePending,
-    setCompareError,
-    setCompareResult,
     setCompareBaseTargetId,
     setCompareReviewSummaryTone,
     setCompareReviewSummaryDetail,
-    setCompareRequestId,
-    setCompareRuntimeByTargetId,
-    setCompareProgressByTargetId,
+  } = compareRunState;
+  const {
+    compareBenchmarkUseOutputContract,
+    compareBenchmarkPreviewDiffOnly,
     setCompareBenchmarkUseOutputContract,
     setCompareBenchmarkPreviewDiffOnly,
-    setCompareRecoveryPendingTargetId,
-    setCompareRecoveryConfirmTargetId,
-    setCompareRecoveryCooldownByTargetId,
-    setCompareRecoveryNotice,
-    setBenchmarkPending,
-    setBenchmarkError,
-    setBenchmarkResult,
-  } = useAgentCompareState();
+  } = compareBenchmarkState;
   const [turns, setTurns] = useState<AgentTurn[]>([]);
   const [input, setInput] = useState(
     () => getLocalizedStarterPrompts("zh-CN")[0],
@@ -1278,31 +1209,6 @@ export function AgentWorkbench() {
     }
   }, []);
 
-  const loadStudioRecipes = useCallback(async () => {
-    setRecipesPending(true);
-    setRecipesError("");
-    try {
-      const response = await fetch("/api/agent/recipes", { cache: "no-store" });
-      const payload = (await response.json()) as {
-        ok?: boolean;
-        recipes?: AgentStudioRecipe[];
-        error?: string;
-      };
-      if (!response.ok || !Array.isArray(payload.recipes)) {
-        throw new Error(payload.error || "Failed to load studio recipes.");
-      }
-      setRecipes(payload.recipes);
-    } catch (recipeLoadError) {
-      setRecipesError(
-        recipeLoadError instanceof Error
-          ? recipeLoadError.message
-          : "Failed to load studio recipes.",
-      );
-    } finally {
-      setRecipesPending(false);
-    }
-  }, []);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -1318,10 +1224,6 @@ export function AgentWorkbench() {
       window.clearInterval(timer);
     };
   }, [loadAvailableTargets]);
-
-  useEffect(() => {
-    void loadStudioRecipes();
-  }, [loadStudioRecipes]);
 
   const selectedTarget = useMemo(
     () =>
@@ -1346,13 +1248,13 @@ export function AgentWorkbench() {
         .length,
     [agentTargets, compareTargetIds],
   );
+  const historyMessages = useMemo(() => flattenTurns(turns), [turns]);
   const reproduceRequestArtifacts = useMemo(() => {
     return workbenchMode === "compare"
-      ? buildReproduceRequestArtifacts({
-          mode: "compare",
+      ? buildCompareReproduceRequestArtifacts({
           compareTargetIds,
           input,
-          historyMessages: flattenTurns(turns),
+          historyMessages,
           systemPrompt,
           compareIntent,
           compareOutputShape,
@@ -1367,7 +1269,7 @@ export function AgentWorkbench() {
           mode: "chat",
           targetId: selectedTargetId,
           input,
-          historyMessages: flattenTurns(turns),
+          historyMessages,
           systemPrompt,
           contextWindow,
           enableTools,
@@ -1383,18 +1285,29 @@ export function AgentWorkbench() {
     contextWindow,
     enableRetrieval,
     enableTools,
+    historyMessages,
     input,
     providerProfile,
     selectedTargetId,
     systemPrompt,
     thinkingMode,
-    turns,
     workbenchMode,
   ]);
   const validTargetIds = useMemo(
     () => agentTargets.map((target) => target.id),
     [agentTargets],
   );
+  const {
+    preferenceInput: comparePreferenceInput,
+    applyStoredPreferenceInput: applyStoredComparePreferenceInput,
+  } = useComparePreferencePersistenceModel({
+    targetState: compareTargetState,
+    promptState: comparePromptState,
+    runState: compareRunState,
+    benchmarkState: compareBenchmarkState,
+    validTargetIds,
+    maxCompareLanes: MAX_COMPARE_LANES,
+  });
   const runtimePhase = useMemo(
     () => describeRuntimePhase(runtimeStatus, locale),
     [runtimeStatus, locale],
@@ -1443,7 +1356,6 @@ export function AgentWorkbench() {
     [agentTargets, savedSessions],
   );
 
-  const historyMessages = useMemo(() => flattenTurns(turns), [turns]);
   const lastTurn = turns[turns.length - 1];
   const currentSession = useMemo(
     () => savedSessions.find((session) => session.id === sessionId) || null,
@@ -2386,54 +2298,13 @@ export function AgentWorkbench() {
         setSelectedTargetId(preferences.selectedTargetId);
       }
       if (
-        preferences.workbenchMode === "chat" ||
-        preferences.workbenchMode === "compare"
+        !forceInitialMode &&
+        (preferences.workbenchMode === "chat" ||
+          preferences.workbenchMode === "compare")
       ) {
         setWorkbenchMode(preferences.workbenchMode);
       }
-      const storedComparePreferences = normalizeStoredComparePreferences(
-        preferences,
-        validTargetIds,
-        MAX_COMPARE_LANES,
-      );
-      if (storedComparePreferences.compareTargetIds?.length) {
-        setCompareTargetIds(storedComparePreferences.compareTargetIds);
-      }
-      if (storedComparePreferences.compareBaseTargetId) {
-        setCompareBaseTargetId(storedComparePreferences.compareBaseTargetId);
-      }
-      if (storedComparePreferences.compareReviewSummaryTone) {
-        setCompareReviewSummaryTone(
-          storedComparePreferences.compareReviewSummaryTone,
-        );
-      }
-      if (storedComparePreferences.compareReviewSummaryDetail) {
-        setCompareReviewSummaryDetail(
-          storedComparePreferences.compareReviewSummaryDetail,
-        );
-      }
-      if (
-        typeof storedComparePreferences.compareBenchmarkUseOutputContract ===
-        "boolean"
-      ) {
-        setCompareBenchmarkUseOutputContract(
-          storedComparePreferences.compareBenchmarkUseOutputContract,
-        );
-      }
-      if (
-        typeof storedComparePreferences.compareBenchmarkPreviewDiffOnly ===
-        "boolean"
-      ) {
-        setCompareBenchmarkPreviewDiffOnly(
-          storedComparePreferences.compareBenchmarkPreviewDiffOnly,
-        );
-      }
-      if (storedComparePreferences.compareIntent) {
-        setCompareIntent(storedComparePreferences.compareIntent);
-      }
-      if (storedComparePreferences.compareOutputShape) {
-        setCompareOutputShape(storedComparePreferences.compareOutputShape);
-      }
+      applyStoredComparePreferenceInput(preferences);
       if (typeof preferences.enableTools === "boolean") {
         setEnableTools(preferences.enableTools);
       }
@@ -2465,15 +2336,8 @@ export function AgentWorkbench() {
     },
     [
       agentTargets,
-      setCompareBaseTargetId,
-      setCompareBenchmarkPreviewDiffOnly,
-      setCompareBenchmarkUseOutputContract,
-      setCompareIntent,
-      setCompareOutputShape,
-      setCompareReviewSummaryDetail,
-      setCompareReviewSummaryTone,
-      setCompareTargetIds,
-      validTargetIds,
+      applyStoredComparePreferenceInput,
+      forceInitialMode,
     ],
   );
 
@@ -2668,31 +2532,6 @@ export function AgentWorkbench() {
     setRuntimeLogExcerpt("");
   }, [selectedTargetId]);
 
-  useAgentCompareLifecycle({
-    agentTargets,
-    selectedTargetId,
-    compareTargetIds,
-    compareIntent,
-    compareOutputShape,
-    comparePending,
-    compareRequestId,
-    compareResult,
-    contextWindow,
-    enableRetrieval,
-    enableTools,
-    input,
-    providerProfile,
-    systemPrompt,
-    thinkingMode,
-    maxCompareLanes: MAX_COMPARE_LANES,
-    setCompareTargetIds,
-    setCompareError,
-    setBenchmarkError,
-    setCompareBaseTargetId,
-    setCompareRuntimeByTargetId,
-    setCompareProgressByTargetId,
-  });
-
   useEffect(() => {
     const next = clampUiContextWindow(
       selectedTargetId,
@@ -2858,15 +2697,6 @@ export function AgentWorkbench() {
     applyHydratedWorkbenchPreferences,
     locale,
     restoreSession,
-    setCompareBaseTargetId,
-    setCompareBenchmarkPreviewDiffOnly,
-    setCompareBenchmarkUseOutputContract,
-    setCompareIntent,
-    setCompareOutputShape,
-    setCompareReviewSummaryDetail,
-    setCompareReviewSummaryTone,
-    setCompareTargetIds,
-    validTargetIds,
   ]);
 
   useEffect(() => {
@@ -2874,16 +2704,7 @@ export function AgentWorkbench() {
     const nextPreferences = buildStoredWorkbenchPreferences({
       selectedTargetId,
       workbenchMode,
-      ...buildStoredComparePreferences({
-        compareTargetIds,
-        compareBaseTargetId,
-        compareReviewSummaryTone,
-        compareReviewSummaryDetail,
-        compareBenchmarkUseOutputContract,
-        compareBenchmarkPreviewDiffOnly,
-        compareIntent,
-        compareOutputShape,
-      }),
+      comparePreferences: comparePreferenceInput,
       enableTools,
       enableRetrieval,
       contextWindow,
@@ -2895,14 +2716,7 @@ export function AgentWorkbench() {
       JSON.stringify(nextPreferences),
     );
   }, [
-    compareIntent,
-    compareOutputShape,
-    compareBaseTargetId,
-    compareReviewSummaryTone,
-    compareReviewSummaryDetail,
-    compareBenchmarkUseOutputContract,
-    compareBenchmarkPreviewDiffOnly,
-    compareTargetIds,
+    comparePreferenceInput,
     contextWindow,
     enableRetrieval,
     enableTools,
@@ -2981,16 +2795,7 @@ export function AgentWorkbench() {
         const preferences = buildStoredWorkbenchPreferences({
           selectedTargetId,
           workbenchMode,
-          ...buildStoredComparePreferences({
-            compareTargetIds,
-            compareBaseTargetId,
-            compareReviewSummaryTone,
-            compareReviewSummaryDetail,
-            compareBenchmarkUseOutputContract,
-            compareBenchmarkPreviewDiffOnly,
-            compareIntent,
-            compareOutputShape,
-          }),
+          comparePreferences: comparePreferenceInput,
           enableTools,
           enableRetrieval,
           contextWindow,
@@ -3045,14 +2850,7 @@ export function AgentWorkbench() {
       }
     };
   }, [
-    compareIntent,
-    compareOutputShape,
-    compareBaseTargetId,
-    compareReviewSummaryTone,
-    compareReviewSummaryDetail,
-    compareBenchmarkUseOutputContract,
-    compareBenchmarkPreviewDiffOnly,
-    compareTargetIds,
+    comparePreferenceInput,
     contextWindow,
     enableRetrieval,
     enableTools,
@@ -3118,16 +2916,7 @@ export function AgentWorkbench() {
       const preferences = buildStoredWorkbenchPreferences({
         selectedTargetId,
         workbenchMode,
-        ...buildStoredComparePreferences({
-          compareTargetIds,
-          compareBaseTargetId,
-          compareReviewSummaryTone,
-          compareReviewSummaryDetail,
-          compareBenchmarkUseOutputContract,
-          compareBenchmarkPreviewDiffOnly,
-          compareIntent,
-          compareOutputShape,
-        }),
+        comparePreferences: comparePreferenceInput,
         enableTools,
         enableRetrieval,
         contextWindow,
@@ -3165,14 +2954,7 @@ export function AgentWorkbench() {
       setServerSessionSyncState("error");
     }
   }, [
-    compareIntent,
-    compareOutputShape,
-    compareBaseTargetId,
-    compareReviewSummaryTone,
-    compareReviewSummaryDetail,
-    compareBenchmarkUseOutputContract,
-    compareBenchmarkPreviewDiffOnly,
-    compareTargetIds,
+    comparePreferenceInput,
     contextWindow,
     enableRetrieval,
     enableTools,
@@ -3266,436 +3048,6 @@ export function AgentWorkbench() {
     const timer = window.setTimeout(() => setScanTargetsMessage(""), 5000);
     return () => window.clearTimeout(timer);
   }, [scanTargetsMessage]);
-
-  function handleToggleCompareTarget(targetId: string) {
-    if (targetId === selectedTargetId) {
-      return;
-    }
-    setCompareTargetIds((current) => {
-      const deduped = Array.from(new Set(current));
-      if (deduped.includes(targetId)) {
-        return deduped.filter((id) => id !== targetId);
-      }
-      if (deduped.length >= MAX_COMPARE_LANES) {
-        return deduped;
-      }
-      return [...deduped, targetId];
-    });
-  }
-
-  const resolveStudioRecipeState = useCallback(
-    (
-      recipeId: string,
-    ):
-      | { error: string }
-      | {
-          recipe: AgentStudioRecipe;
-          validRecipeTargetIds: string[];
-          nextSelectedTargetId: string;
-        } => {
-      const recipe = recipes.find((entry) => entry.id === recipeId);
-      if (!recipe) {
-        return {
-          error: locale.startsWith("en")
-            ? "Recipe not found."
-            : "没有找到这个配方。",
-        };
-      }
-      const validRecipeTargetIds = Array.from(
-        new Set(
-          recipe.targetIds.filter((targetId) =>
-            agentTargets.some((target) => target.id === targetId),
-          ),
-        ),
-      );
-      const nextSelectedTargetId =
-        validRecipeTargetIds[0] ||
-        (agentTargets.some((target) => target.id === selectedTargetId)
-          ? selectedTargetId
-          : agentTargets[0]?.id);
-      if (!nextSelectedTargetId) {
-        return {
-          error: locale.startsWith("en")
-            ? "No valid targets are available for this recipe."
-            : "这个配方当前没有可用目标。",
-        };
-      }
-      return {
-        recipe,
-        validRecipeTargetIds: validRecipeTargetIds.length
-          ? validRecipeTargetIds
-          : [nextSelectedTargetId],
-        nextSelectedTargetId,
-      };
-    },
-    [agentTargets, locale, recipes, selectedTargetId],
-  );
-
-  const applyStudioRecipeState = useCallback(
-    (
-      recipe: AgentStudioRecipe,
-      nextSelectedTargetId: string,
-      validRecipeTargetIds: string[],
-    ) => {
-      setSelectedTargetId(nextSelectedTargetId);
-      setCompareTargetIds(validRecipeTargetIds);
-      setInput(recipe.input);
-      setSystemPrompt(recipe.systemPrompt);
-      setCompareIntent(recipe.compareIntent);
-      setCompareOutputShape(recipe.compareOutputShape);
-      setContextWindow(
-        clampUiContextWindow(
-          nextSelectedTargetId,
-          recipe.contextWindow,
-          recipe.enableTools,
-          recipe.enableRetrieval,
-        ),
-      );
-      setEnableTools(recipe.enableTools);
-      setEnableRetrieval(recipe.enableRetrieval);
-      setProviderProfile(recipe.providerProfile);
-      setThinkingMode(recipe.thinkingMode);
-      setWorkbenchMode("compare");
-      setActiveRecipeId(recipe.id);
-      setRecipeDraftLabel(recipe.label);
-      setRecipeDraftDescription(recipe.description);
-      setRecipesError("");
-    },
-    [setCompareIntent, setCompareOutputShape, setCompareTargetIds],
-  );
-
-  const handleApplyStudioRecipe = useCallback(
-    (recipeId: string) => {
-      const resolved = resolveStudioRecipeState(recipeId);
-      if ("error" in resolved) {
-        setRecipesError(resolved.error);
-        return;
-      }
-      applyStudioRecipeState(
-        resolved.recipe,
-        resolved.nextSelectedTargetId,
-        resolved.validRecipeTargetIds,
-      );
-    },
-    [applyStudioRecipeState, resolveStudioRecipeState],
-  );
-
-  const handleCreateStudioRecipe = useCallback(async () => {
-    const label = recipeDraftLabel.trim();
-    if (!label) {
-      setRecipesError(
-        locale.startsWith("en")
-          ? "Recipe name is required."
-          : "需要先填写配方名称。",
-      );
-      return;
-    }
-    setRecipesPending(true);
-    setRecipesError("");
-    try {
-      const response = await fetch("/api/agent/recipes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          label,
-          description: recipeDraftDescription.trim(),
-          tags: [
-            workbenchMode,
-            compareOutputShape,
-            enableTools ? "tools" : "no-tools",
-            enableRetrieval ? "retrieval" : "no-retrieval",
-          ],
-          targetIds: compareTargetIds,
-          input,
-          systemPrompt,
-          compareIntent,
-          compareOutputShape,
-          contextWindow,
-          enableTools,
-          enableRetrieval,
-          providerProfile,
-          thinkingMode,
-        }),
-      });
-      const payload = (await response.json()) as {
-        ok?: boolean;
-        recipe?: AgentStudioRecipe;
-        error?: string;
-      };
-      if (!response.ok || !payload.recipe) {
-        throw new Error(payload.error || "Failed to save recipe.");
-      }
-      await loadStudioRecipes();
-      setActiveRecipeId(payload.recipe.id);
-      setRecipeDraftLabel("");
-      setRecipeDraftDescription("");
-    } catch (recipeSaveError) {
-      setRecipesError(
-        recipeSaveError instanceof Error
-          ? recipeSaveError.message
-          : "Failed to save recipe.",
-      );
-    } finally {
-      setRecipesPending(false);
-    }
-  }, [
-    compareIntent,
-    compareOutputShape,
-    compareTargetIds,
-    contextWindow,
-    enableRetrieval,
-    enableTools,
-    input,
-    locale,
-    providerProfile,
-    recipeDraftDescription,
-    recipeDraftLabel,
-    loadStudioRecipes,
-    systemPrompt,
-    thinkingMode,
-    workbenchMode,
-  ]);
-
-  const handleDeleteStudioRecipe = useCallback(
-    async (recipeId: string) => {
-      setRecipesPending(true);
-      setRecipesError("");
-      try {
-        const response = await fetch(
-          `/api/agent/recipes?id=${encodeURIComponent(recipeId)}`,
-          {
-            method: "DELETE",
-          },
-        );
-        const payload = (await response.json()) as {
-          ok?: boolean;
-          error?: string;
-        };
-        if (!response.ok) {
-          throw new Error(payload.error || "Failed to delete recipe.");
-        }
-        await loadStudioRecipes();
-        setActiveRecipeId((current) => (current === recipeId ? "" : current));
-      } catch (recipeDeleteError) {
-        setRecipesError(
-          recipeDeleteError instanceof Error
-            ? recipeDeleteError.message
-            : "Failed to delete recipe.",
-        );
-      } finally {
-        setRecipesPending(false);
-      }
-    },
-    [loadStudioRecipes],
-  );
-
-  const handleExportStudioRecipes = useCallback(() => {
-    const payload = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      source: "first-llm-studio",
-      recipes,
-    };
-    const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `first-llm-studio-recipes-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
-  }, [recipes]);
-
-  const handleImportStudioRecipes = useCallback(
-    async (file: File) => {
-      setRecipesPending(true);
-      setRecipesError("");
-      try {
-        const text = await file.text();
-        const parsed = JSON.parse(text) as unknown;
-        const response = await fetch("/api/agent/recipes", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(parsed),
-        });
-        const payload = (await response.json()) as {
-          ok?: boolean;
-          error?: string;
-          recipes?: AgentStudioRecipe[];
-        };
-        if (!response.ok) {
-          throw new Error(payload.error || "Failed to import recipes.");
-        }
-        await loadStudioRecipes();
-        const importedRecipeId = payload.recipes?.[0]?.id;
-        if (importedRecipeId) {
-          setActiveRecipeId(importedRecipeId);
-        }
-      } catch (recipeImportError) {
-        setRecipesError(
-          recipeImportError instanceof Error
-            ? recipeImportError.message
-            : "Failed to import recipes.",
-        );
-      } finally {
-        setRecipesPending(false);
-      }
-    },
-    [loadStudioRecipes],
-  );
-
-  const handleRunStudioRecipeCompare = useCallback(
-    async (recipeId: string) => {
-      const resolved = resolveStudioRecipeState(recipeId);
-      if ("error" in resolved) {
-        setRecipesError(resolved.error);
-        return;
-      }
-      const { recipe, validRecipeTargetIds, nextSelectedTargetId } = resolved;
-      applyStudioRecipeState(
-        recipe,
-        nextSelectedTargetId,
-        validRecipeTargetIds,
-      );
-
-      const requestId = crypto.randomUUID();
-      setComparePending(true);
-      setCompareError("");
-      setBenchmarkError("");
-      setBenchmarkResult(null);
-      setCompareRequestId(requestId);
-      setCompareProgressByTargetId({});
-      try {
-        const response = await fetch("/api/agent/compare", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            requestId,
-            targetIds: validRecipeTargetIds,
-            input: recipe.input,
-            messages: historyMessages,
-            systemPrompt: recipe.systemPrompt,
-            compareIntent: recipe.compareIntent,
-            compareOutputShape: recipe.compareOutputShape,
-            enableTools: recipe.enableTools,
-            enableRetrieval: recipe.enableRetrieval,
-            contextWindow: recipe.contextWindow,
-            providerProfile: recipe.providerProfile,
-            thinkingMode: recipe.thinkingMode,
-          }),
-        });
-        const payload = (await response.json()) as AgentCompareResponse & {
-          error?: string;
-        };
-        if (!response.ok) {
-          throw new Error(payload.error || "Recipe compare run failed.");
-        }
-        setCompareResult(payload);
-        setCompareRequestId(payload.requestId || requestId);
-        setCompareBaseTargetId(payload.results[0]?.targetId || "");
-      } catch (recipeCompareError) {
-        setCompareError(
-          recipeCompareError instanceof Error
-            ? recipeCompareError.message
-            : "Recipe compare run failed.",
-        );
-      } finally {
-        setComparePending(false);
-      }
-    },
-    [
-      applyStudioRecipeState,
-      historyMessages,
-      resolveStudioRecipeState,
-      setBenchmarkError,
-      setBenchmarkResult,
-      setCompareBaseTargetId,
-      setCompareError,
-      setComparePending,
-      setCompareProgressByTargetId,
-      setCompareRequestId,
-      setCompareResult,
-    ],
-  );
-
-  const handleRunStudioRecipeBenchmark = useCallback(
-    async (recipeId: string) => {
-      const resolved = resolveStudioRecipeState(recipeId);
-      if ("error" in resolved) {
-        setRecipesError(resolved.error);
-        return;
-      }
-      const { recipe, validRecipeTargetIds, nextSelectedTargetId } = resolved;
-      applyStudioRecipeState(
-        recipe,
-        nextSelectedTargetId,
-        validRecipeTargetIds,
-      );
-
-      setBenchmarkPending(true);
-      setBenchmarkError("");
-      setBenchmarkResult(null);
-      try {
-        const compareShare = await import("@/lib/agent/compare-share");
-        const prompt = compareShare.buildCompareBenchmarkPrompt({
-          input: recipe.input,
-          systemPrompt: recipe.systemPrompt,
-          compareOutputShape: recipe.compareOutputShape,
-          compareBenchmarkUseOutputContract: true,
-        });
-        const runNote = [
-          `Recipe handoff: ${recipe.label}`,
-          recipe.description ? `Description: ${recipe.description}` : "",
-          `Targets: ${validRecipeTargetIds.join(", ")}`,
-          `Intent: ${recipe.compareIntent}`,
-          `Output: ${recipe.compareOutputShape}`,
-          `Profile: ${recipe.providerProfile}`,
-          `Thinking: ${recipe.thinkingMode}`,
-        ]
-          .filter(Boolean)
-          .join("\n");
-        const response = await fetch("/api/admin/benchmark", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            targetIds: validRecipeTargetIds,
-            benchmarkMode: "prompt",
-            prompt,
-            runNote,
-            runs: 1,
-            contextWindow: recipe.contextWindow,
-            providerProfile: recipe.providerProfile,
-            thinkingMode: recipe.thinkingMode,
-          }),
-        });
-        const payload = (await response.json()) as AgentBenchmarkResponse & {
-          error?: string;
-        };
-        if (!response.ok) {
-          throw new Error(payload.error || "Recipe benchmark handoff failed.");
-        }
-        setBenchmarkResult(payload);
-      } catch (recipeBenchmarkError) {
-        setBenchmarkError(
-          recipeBenchmarkError instanceof Error
-            ? recipeBenchmarkError.message
-            : "Recipe benchmark handoff failed.",
-        );
-      } finally {
-        setBenchmarkPending(false);
-      }
-    },
-    [
-      applyStudioRecipeState,
-      resolveStudioRecipeState,
-      setBenchmarkError,
-      setBenchmarkPending,
-      setBenchmarkResult,
-    ],
-  );
 
   const loadRuntimeStatus = useCallback(
     async (
@@ -4265,55 +3617,47 @@ export function AgentWorkbench() {
     }
   }
 
-  const {
-    handleRunCompare,
-    handleRerunCompareLane,
-    handleSendCompareToBenchmark,
-    requestRetryCompareLaneRecovery,
-    handleExportCompareMarkdown,
-    handleExportCompareLaneMarkdown,
-    handleCopyCompareMarkdown,
-    handleCopyCompareLaneMarkdown,
-    handleCopyCompareLaneReviewSummary,
-    handlePreviewCompareLaneMarkdown,
-  } = useAgentCompareActions({
+  const compareWorkbenchShellProps = useEmbeddedCompareWorkbenchAdapter({
     locale,
+    sourceSurface: compareSurface,
     agentTargets,
-    compareTargetIds,
-    compareIntent,
-    compareOutputShape,
-    comparePending,
-    compareResult,
-    compareBaseTargetId,
-    compareRequestId,
-    compareProgressByTargetId,
-    compareBenchmarkUseOutputContract,
-    compareReviewSummaryTone,
-    compareReviewSummaryDetail,
-    compareRecoveryConfirmTargetId,
-    compareRecoveryCooldownByTargetId,
     historyMessages,
-    input,
-    systemPrompt,
-    contextWindow,
-    enableTools,
-    enableRetrieval,
-    providerProfile,
-    thinkingMode,
-    setComparePending,
-    setCompareError,
-    setCompareResult,
-    setCompareBaseTargetId,
-    setCompareRequestId,
-    setCompareProgressByTargetId,
-    setCompareRuntimeByTargetId,
-    setCompareRecoveryPendingTargetId,
-    setCompareRecoveryConfirmTargetId,
-    setCompareRecoveryCooldownByTargetId,
-    setCompareRecoveryNotice,
-    setBenchmarkPending,
-    setBenchmarkError,
-    setBenchmarkResult,
+    maxCompareLanes: MAX_COMPARE_LANES,
+    pending,
+    targetState: compareTargetState,
+    promptState: comparePromptState,
+    runState: compareRunState,
+    recoveryState: compareRecoveryState,
+    benchmarkState: compareBenchmarkState,
+    recipeState: compareRecipeState,
+    prompt: {
+      input,
+      setInput,
+      systemPrompt,
+      setSystemPrompt,
+      contextWindow,
+      setContextWindow,
+      enableTools,
+      setEnableTools,
+      enableRetrieval,
+      setEnableRetrieval,
+      providerProfile,
+      setProviderProfile,
+      thinkingMode,
+      setThinkingMode,
+    },
+    workbench: {
+      workbenchMode,
+      selectedTargetId,
+      setSelectedTargetId,
+      setWorkbenchMode,
+    },
+    options: {
+      contextWindowOptions: CONTEXT_WINDOW_OPTIONS,
+      providerProfileOptions: PROVIDER_PROFILE_OPTIONS,
+      thinkingModeOptions: THINKING_MODE_OPTIONS,
+    },
+    copyState,
     copyText: handleCopy,
   });
 
@@ -8065,102 +7409,7 @@ export function AgentWorkbench() {
                   </div>
                 </>
               ) : (
-                <AgentCompareLab
-                  locale={locale}
-                  targets={agentTargets}
-                  selectedTargetId={selectedTargetId}
-                  compareTargetIds={compareTargetIds}
-                  compareIntent={compareIntent}
-                  compareOutputShape={compareOutputShape}
-                  input={input}
-                  systemPrompt={systemPrompt}
-                  enableTools={enableTools}
-                  enableRetrieval={enableRetrieval}
-                  contextWindow={contextWindow}
-                  providerProfile={providerProfile}
-                  thinkingMode={thinkingMode}
-                  pending={pending}
-                  comparePending={comparePending}
-                  compareError={compareError}
-                  compareResult={compareResult}
-                  compareBaseTargetId={compareBaseTargetId}
-                  compareReviewSummaryTone={compareReviewSummaryTone}
-                  compareReviewSummaryDetail={compareReviewSummaryDetail}
-                  compareRuntimeByTargetId={compareRuntimeByTargetId}
-                  compareProgressByTargetId={compareProgressByTargetId}
-                  compareBenchmarkUseOutputContract={
-                    compareBenchmarkUseOutputContract
-                  }
-                  compareBenchmarkPreviewDiffOnly={
-                    compareBenchmarkPreviewDiffOnly
-                  }
-                  compareRecoveryPendingTargetId={
-                    compareRecoveryPendingTargetId
-                  }
-                  compareRecoveryConfirmTargetId={
-                    compareRecoveryConfirmTargetId
-                  }
-                  compareRecoveryCooldownByTargetId={
-                    compareRecoveryCooldownByTargetId
-                  }
-                  compareRecoveryNotice={compareRecoveryNotice}
-                  benchmarkPending={benchmarkPending}
-                  benchmarkError={benchmarkError}
-                  benchmarkResult={benchmarkResult}
-                  recipes={recipes}
-                  recipesPending={recipesPending}
-                  recipesExecutionPending={comparePending || benchmarkPending}
-                  recipesError={recipesError}
-                  activeRecipeId={activeRecipeId}
-                  recipeDraftLabel={recipeDraftLabel}
-                  recipeDraftDescription={recipeDraftDescription}
-                  contextWindowOptions={CONTEXT_WINDOW_OPTIONS}
-                  providerProfileOptions={PROVIDER_PROFILE_OPTIONS}
-                  thinkingModeOptions={THINKING_MODE_OPTIONS}
-                  onToggleCompareTarget={handleToggleCompareTarget}
-                  onCompareIntentChange={setCompareIntent}
-                  onCompareOutputShapeChange={setCompareOutputShape}
-                  onInputChange={setInput}
-                  onSystemPromptChange={setSystemPrompt}
-                  onEnableToolsChange={setEnableTools}
-                  onEnableRetrievalChange={setEnableRetrieval}
-                  onContextWindowChange={setContextWindow}
-                  onProviderProfileChange={setProviderProfile}
-                  onThinkingModeChange={setThinkingMode}
-                  onRunCompare={handleRunCompare}
-                  onRerunLane={handleRerunCompareLane}
-                  onSetBaseLane={setCompareBaseTargetId}
-                  onCompareReviewSummaryToneChange={setCompareReviewSummaryTone}
-                  onCompareReviewSummaryDetailChange={
-                    setCompareReviewSummaryDetail
-                  }
-                  onSendToBenchmark={handleSendCompareToBenchmark}
-                  onExportMarkdown={handleExportCompareMarkdown}
-                  onCompareBenchmarkUseOutputContractChange={
-                    setCompareBenchmarkUseOutputContract
-                  }
-                  onCompareBenchmarkPreviewDiffOnlyChange={
-                    setCompareBenchmarkPreviewDiffOnly
-                  }
-                  onRetryLocalRecovery={requestRetryCompareLaneRecovery}
-                  onExportLaneMarkdown={handleExportCompareLaneMarkdown}
-                  onCopyMarkdown={handleCopyCompareMarkdown}
-                  onCopyLaneMarkdown={handleCopyCompareLaneMarkdown}
-                  onCopyLaneReviewSummary={handleCopyCompareLaneReviewSummary}
-                  onPreviewLaneMarkdown={handlePreviewCompareLaneMarkdown}
-                  onRecipeDraftLabelChange={setRecipeDraftLabel}
-                  onRecipeDraftDescriptionChange={setRecipeDraftDescription}
-                  onRefreshRecipes={loadStudioRecipes}
-                  onApplyRecipe={handleApplyStudioRecipe}
-                  onRunRecipeCompare={handleRunStudioRecipeCompare}
-                  onRunRecipeBenchmark={handleRunStudioRecipeBenchmark}
-                  onDeleteRecipe={handleDeleteStudioRecipe}
-                  onSaveCurrentRecipe={handleCreateStudioRecipe}
-                  onExportRecipesJson={handleExportStudioRecipes}
-                  onImportRecipesJson={handleImportStudioRecipes}
-                  onCopy={handleCopy}
-                  copyState={copyState}
-                />
+                <CompareWorkbenchPortal {...compareWorkbenchShellProps} />
               )}
             </div>
 

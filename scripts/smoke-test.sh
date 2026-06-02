@@ -39,6 +39,10 @@ check_json_field() {
 
 echo "== UI =="
 check_http_200 "Agent" "$BASE_URL/agent"
+check_http_200 "Compare" "$BASE_URL/compare"
+check_http_200 "Fine-tune" "$BASE_URL/fine-tune"
+check_http_200 "Models" "$BASE_URL/models"
+check_http_200 "Benchmarks" "$BASE_URL/benchmarks"
 check_http_200 "Admin" "$BASE_URL/admin"
 
 echo
@@ -51,6 +55,8 @@ check_json_field "Local Qwen3.5 4B runtime" "$BASE_URL/api/agent/runtime?targetI
 echo
 echo "== Admin APIs =="
 check_json_field "Knowledge base snapshot" "$BASE_URL/api/admin/knowledge-base" "Array.isArray(data.documents)"
+check_json_field "Fine-tune summary contract" "$BASE_URL/api/admin/finetune" "data.ok===true && data.summary && typeof data.summary.generatedAt==='string' && typeof data.summary.dataDir==='string' && ['localTargets','datasets','recipes','jobs','adapters','operations'].every((key)=>Array.isArray(data.summary[key]))"
+check_json_field "Models discovery contract" "$BASE_URL/api/models/discovery" "data.ok===true && data.summary && typeof data.summary.generatedAt==='string' && typeof data.summary.query==='string' && typeof data.summary.installRoot==='string' && Array.isArray(data.summary.candidates) && Array.isArray(data.summary.jobs) && data.summary.hardware && typeof data.summary.hardware==='object'"
 check_json_field "Latest benchmark progress" "$BASE_URL/api/admin/benchmark/progress?latest=1" "typeof data === 'object'"
 check_json_field "Dashboard summary" "$BASE_URL/api/admin/dashboard?targetId=anthropic-claude&windowMinutes=720" "typeof data.summary === 'object'"
 

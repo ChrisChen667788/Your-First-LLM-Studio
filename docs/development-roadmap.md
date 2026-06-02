@@ -1,6 +1,6 @@
 # Agent Lab Development Roadmap
 
-Last updated: 2026-05-17
+Last updated: 2026-06-01
 
 ## Version snapshot
 
@@ -78,6 +78,25 @@ Last updated: 2026-05-17
 - `/agent` 与 `/admin` 已改成动态加载重型 client 模块，首屏不再被大 bundle 阻塞
 - 已新增 `scripts/dev-server.sh`，并改用 `screen` 稳定托管本地前端服务
 - Compare 中段已改成更接近 studio/workbench 的矩阵布局，`Compare targets` 与 `lane preview` 不再是长卡堆叠
+- `/fine-tune` 与 `/compare` 前台产品入口已铺底，仍复用既有容器但不再要求日常 Fine-tune / Compare 从后台进入
+- Fine-tune operation service 已细拆为 evaluation / chat-adapter / export / distillation 专属服务，API route 开始直接依赖具体服务入口
+- Admin Fine-tune Train / Distillation 控制台与 Compare execution handoff 已从大组件中物理拆分
+
+
+## Architecture Refactor Track · 2026-05-20
+
+下一轮大改动不直接走大爆炸重写，而是先按“高内聚、低耦合、清晰契约、薄页面、薄 API route”的方式拆分现有工作台。重构前读本见：
+
+- [`docs/architecture-refactor-plan.md`](./architecture-refactor-plan.md)
+- [`docs/route-module-ownership-matrix.md`](./route-module-ownership-matrix.md)
+
+核心方向：
+
+- 2026-06-01 插队优先级：先以当前 `/agent` 与 `/fine-tune` 的设计风格作为标准，统一 `/compare`、`/models`、`/benchmarks`、`/admin` mirror 和后续新增模板的视觉/交互语言；这项设计收口排在剩余 Compare 脱 Agent、Benchmark runner 继续拆、Models/Admin/API 边界继续迁移之前。
+- 把 Fine-tune、Compare、Models、Benchmarks、Experiments 这类日常产品能力逐步迁到前台工作流页面。
+- `/admin` 收敛为监控、配置、管理、审核、队列和治理。
+- 先抽 contracts 和服务边界，再拆大文件，最后迁移路由，避免破坏现有可运行产品。
+- 2026-06-01 最新实现 checkpoint：Fine-tune assets/reports/runs 面板和 Compare composer/lane matrix/review drawer/lane preview 已物理拆分；`/fine-tune` 与 `/compare` 通过 `sourceSurface` 和 feature-owned action clients 注入前台 ownership，且 `/compare` 已由 `features/compare/CompareRouteWorkbench.tsx` 直接组合 target sync、preferences、state/actions、recipe orchestration 和 shell props，不再借用 `AgentWorkbench` 外层 shell；Agent 内嵌 Compare 也已通过 `features/compare/embedded-workbench-adapter.ts` 承接 orchestration 与 shell props assembly，Compare preference hydration/persistence input 与 reproduce artifacts 也已走 `features/compare/preference-persistence-model.ts`、`features/compare/preferences.ts`、`features/compare/reproduce-artifacts.ts`；Compare state/actions/lifecycle/preferences/review helper、recipe persistence、recipe apply/run orchestration、workbench state model、workbench orchestration model、workbench props assembly 已迁到 `features/compare`；Fine-tune surface/setup/run form state、setup/run/evidence view-model adapters、workflow step contracts、command/YAML preview builders、submit handlers、clipboard/report actions、chart/report cache、community preset actions/catalog metadata、training args snapshot、tab submit actions、Runs/Assets job actions、adapter runtime/handoff/proof-loop orchestration 已迁到 `features/finetune`；`/fine-tune` 现在直接组合 `FineTuneStudioPanel`，不再依赖 `AdminFineTunePanel`；`/models` 的 discovery/install UI 已物理迁入 `features/models/ModelDiscoveryPanel.tsx`，`/benchmarks` 已拥有 prompt run controls/progress display，model discovery、benchmark run、release evidence、prompt-set、benchmark progress/control、baseline 与 report routes 开始走 feature application wrapper；benchmark runner internals 已拆出 plan/build、target selection、progress plan assembly、results/delta、network/retry、control/control-response、run lifecycle runtime、local runtime lifecycle、local prewarm/prewarm-failure、concurrency、log append、payload/context、local sample runner、remote sample runner、sample orchestration、result builders、result group execution、progress lifecycle ports，后台继续收敛为 mirror。
 
 ## Latest planning additions
 
@@ -278,7 +297,8 @@ Implementation checkpoint:
 当前路线图不再按“缺什么补什么”的零散方式推进，而是围绕 4 条产品主线持续收口：
 
 1. **体验收口**
-   - `/agent`、`/admin`、Compare、Fine-tune 的信息密度继续压实。
+   - 以当前 `/agent` 与 `/fine-tune` 为标准，先统一 `/compare`、`/models`、`/benchmarks`、`/admin` mirror 和后续新增模板的视觉/交互语言。
+   - `/agent`、Fine-tune、Compare、Models、Benchmarks、Admin mirror 的信息密度继续压实。
    - 高字段、高日志、高 lane 数场景仍保持精品级可读性。
 2. **实验闭环**
    - Fine-tune、Compare、Benchmark、Export 之间形成更自然的一条链。
@@ -306,6 +326,7 @@ Implementation checkpoint:
 
 Subtasks:
 
+- P0 插队：把 Agent + Fine-tune 的 dark-glass studio/workbench 语言设为全局模板标准，先收敛 Compare、Models、Benchmarks、Admin mirror，再继续剩余重构任务。
 - 清理所有 badge、按钮、标题、状态文案的异常换行与竖排。
 - Compare 中央区固定为：
   - 主编辑器
@@ -323,7 +344,8 @@ Subtasks:
 
 Acceptance:
 
-- `/agent` 与 `/admin` 在主流桌面宽度下无明显大面积空白、断行失衡、文字被迫竖排。
+- `/agent` 与 `/fine-tune` 的现有产品风格成为验收基准；`/compare`、`/models`、`/benchmarks`、`/admin` mirror 不再呈现另一套 admin/模板化视觉语言。
+- `/agent`、`/fine-tune` 与 `/admin` 在主流桌面宽度下无明显大面积空白、断行失衡、文字被迫竖排。
 - Compare recipe gallery、lane preview、runtime rail 不再互相挤压。
 - Fine-tune 表单与日志在字段较多时仍具备清晰分区。
 

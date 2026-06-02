@@ -12,12 +12,12 @@ import type {
   AgentRuntimeStatus
 } from "@/lib/agent/types";
 
-export type AgentCompareRecoveryNotice = {
+export type CompareRecoveryNotice = {
   tone: "info" | "success" | "warning";
   message: string;
 };
 
-type AgentCompareState = {
+type CompareState = {
   compareTargetIds: string[];
   compareIntent: AgentCompareIntent;
   compareOutputShape: AgentCompareOutputShape;
@@ -35,18 +35,18 @@ type AgentCompareState = {
   compareRecoveryPendingTargetId: string;
   compareRecoveryConfirmTargetId: string;
   compareRecoveryCooldownByTargetId: Record<string, number>;
-  compareRecoveryNotice: AgentCompareRecoveryNotice | null;
+  compareRecoveryNotice: CompareRecoveryNotice | null;
   benchmarkPending: boolean;
   benchmarkError: string;
   benchmarkResult: AgentBenchmarkResponse | null;
 };
 
-type AgentCompareStateAction = {
-  key: keyof AgentCompareState;
+type CompareStateAction = {
+  key: keyof CompareState;
   value: unknown;
 };
 
-const initialAgentCompareState: AgentCompareState = {
+const initialCompareState: CompareState = {
   compareTargetIds: [],
   compareIntent: "model-vs-model",
   compareOutputShape: "freeform",
@@ -74,7 +74,10 @@ function resolveStateUpdate<T>(current: T, update: SetStateAction<T>) {
   return typeof update === "function" ? (update as (previous: T) => T)(current) : update;
 }
 
-function agentCompareStateReducer(state: AgentCompareState, action: AgentCompareStateAction): AgentCompareState {
+function compareStateReducer(
+  state: CompareState,
+  action: CompareStateAction,
+): CompareState {
   const currentValue = state[action.key] as unknown;
   const nextValue =
     typeof action.value === "function"
@@ -91,11 +94,11 @@ function agentCompareStateReducer(state: AgentCompareState, action: AgentCompare
   };
 }
 
-export function useAgentCompareState() {
-  const [state, dispatch] = useReducer(agentCompareStateReducer, initialAgentCompareState);
+export function useCompareState() {
+  const [state, dispatch] = useReducer(compareStateReducer, initialCompareState);
 
   const setField = useCallback(
-    <K extends keyof AgentCompareState>(key: K, value: SetStateAction<AgentCompareState[K]>) => {
+    <K extends keyof CompareState>(key: K, value: SetStateAction<CompareState[K]>) => {
       dispatch({ key, value });
     },
     []
@@ -120,7 +123,7 @@ export function useAgentCompareState() {
     setCompareRecoveryPendingTargetId: useCallback((value: SetStateAction<string>) => setField("compareRecoveryPendingTargetId", value), [setField]),
     setCompareRecoveryConfirmTargetId: useCallback((value: SetStateAction<string>) => setField("compareRecoveryConfirmTargetId", value), [setField]),
     setCompareRecoveryCooldownByTargetId: useCallback((value: SetStateAction<Record<string, number>>) => setField("compareRecoveryCooldownByTargetId", value), [setField]),
-    setCompareRecoveryNotice: useCallback((value: SetStateAction<AgentCompareRecoveryNotice | null>) => setField("compareRecoveryNotice", value), [setField]),
+    setCompareRecoveryNotice: useCallback((value: SetStateAction<CompareRecoveryNotice | null>) => setField("compareRecoveryNotice", value), [setField]),
     setBenchmarkPending: useCallback((value: SetStateAction<boolean>) => setField("benchmarkPending", value), [setField]),
     setBenchmarkError: useCallback((value: SetStateAction<string>) => setField("benchmarkError", value), [setField]),
     setBenchmarkResult: useCallback((value: SetStateAction<AgentBenchmarkResponse | null>) => setField("benchmarkResult", value), [setField])

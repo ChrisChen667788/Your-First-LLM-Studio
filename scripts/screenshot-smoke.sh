@@ -168,10 +168,10 @@ await browser.close();
 log("completed Playwright screenshots");
 NODE
 
-  rm -f "$OUT_DIR/agent.png" "$OUT_DIR/admin.png"
+  rm -f "$OUT_DIR/agent.png" "$OUT_DIR/compare.png" "$OUT_DIR/fine-tune.png" "$OUT_DIR/models.png" "$OUT_DIR/benchmarks.png" "$OUT_DIR/admin.png"
   PLAYWRIGHT_BASE_URL="$BASE_URL" \
     PLAYWRIGHT_OUT_DIR="$OUT_DIR" \
-    PLAYWRIGHT_ROUTES='[{"label":"agent","path":"/agent"},{"label":"admin","path":"/admin"}]' \
+    PLAYWRIGHT_ROUTES='[{"label":"agent","path":"/agent"},{"label":"compare","path":"/compare"},{"label":"fine-tune","path":"/fine-tune"},{"label":"models","path":"/models"},{"label":"benchmarks","path":"/benchmarks"},{"label":"admin","path":"/admin"}]' \
     run_with_timeout "playwright screenshots" "$NODE_BIN" "$capture_script"
   rm -f "$capture_script"
 }
@@ -283,16 +283,24 @@ NODE
 }
 
 check_route "agent" "/agent"
+check_route "compare" "/compare"
+check_route "fine-tune" "/fine-tune"
+check_route "models" "/models"
+check_route "benchmarks" "/benchmarks"
 check_route "admin" "/admin"
 
 if [[ "$DRIVER" == "playwright" ]]; then
   capture_playwright_routes
 else
   capture_route "agent" "/agent"
+  capture_route "compare" "/compare"
+  capture_route "fine-tune" "/fine-tune"
+  capture_route "models" "/models"
+  capture_route "benchmarks" "/benchmarks"
   capture_route "admin" "/admin"
 fi
 
-for required_file in "$OUT_DIR/agent.png" "$OUT_DIR/admin.png"; do
+for required_file in "$OUT_DIR/agent.png" "$OUT_DIR/compare.png" "$OUT_DIR/fine-tune.png" "$OUT_DIR/models.png" "$OUT_DIR/benchmarks.png" "$OUT_DIR/admin.png"; do
   if [[ ! -s "$required_file" ]]; then
     printf '[screenshot-smoke] expected screenshot is missing or empty: %s\n' "$required_file" >&2
     exit 1

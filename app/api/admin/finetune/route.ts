@@ -1,35 +1,50 @@
 import { NextResponse } from "next/server";
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
+import { exportFineTuneJobBundleArchive } from "@/lib/finetune/bundle-service";
 import {
-  attachFineTuneAdapterRuntime,
   cancelFineTuneJob,
-  checkFineTuneDatasetUpstream,
-  detachFineTuneAdapterRuntime,
-  exportFineTuneJobBundleArchive,
-  exportFineTuneJobReport,
-  importFineTuneCommunityDataset,
-  openFineTunePath,
-  openFineTuneSourcePage,
-  refreshDueFineTuneDatasetWatches,
-  readFineTuneSummary,
   rerunFineTuneJob,
-  runFineTuneAdapterChat,
-  runFineTuneAdapterExport,
-  runFineTuneDistillation,
-  runFineTuneEvaluation,
-  saveFineTuneDataset,
-  saveFineTuneRecipe,
-  saveFineTuneDatasetWatch,
   startFineTuneJob,
   stageFineTuneJob,
+} from "@/lib/finetune/job-service";
+import {
+  attachFineTuneAdapterRuntime,
+  detachFineTuneAdapterRuntime,
+} from "@/lib/finetune/runtime-service";
+import {
+  runFineTuneAdapterChat,
+} from "@/lib/finetune/chat-adapter-service";
+import {
+  runFineTuneAdapterExport,
+} from "@/lib/finetune/export-service";
+import {
+  runFineTuneDistillation,
+} from "@/lib/finetune/distillation-service";
+import {
+  runFineTuneEvaluation,
+} from "@/lib/finetune/evaluation-service";
+import {
+  importFineTuneCommunityDataset,
+  checkFineTuneDatasetUpstream,
+  refreshDueFineTuneDatasetWatches,
+  saveFineTuneDataset,
+  saveFineTuneDatasetWatch,
   validateFineTuneDatasetFromPath,
+} from "@/lib/finetune/dataset-service";
+import {
+  openFineTuneSourcePage,
+  openFineTunePath,
+  readFineTuneSummary,
+  saveFineTuneRecipe,
 } from "@/lib/finetune/store";
+import { exportFineTuneJobReport } from "@/lib/finetune/report-service";
 import type {
   AgentFineTuneDataset,
   AgentFineTuneDatasetFormat,
   AgentFineTuneDatasetQuality,
   AgentFineTuneReportFormat,
+  AgentFineTuneSourceSurface,
 } from "@/lib/agent/types";
 
 export const runtime = "nodejs";
@@ -229,9 +244,10 @@ export async function GET(request: Request) {
     });
   }
 
+  await refreshDueFineTuneDatasetWatches();
   return NextResponse.json({
     ok: true,
-    summary: await refreshDueFineTuneDatasetWatches(),
+    summary: readFineTuneSummary(),
   });
 }
 
@@ -304,6 +320,7 @@ export async function POST(request: Request) {
       sampleCount?: number;
       seedPrompt?: string;
       includeReasoningTrace?: boolean;
+      sourceSurface?: AgentFineTuneSourceSurface;
     };
 
     if (body.action === "validate-dataset") {

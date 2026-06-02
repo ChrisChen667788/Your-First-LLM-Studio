@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 REPO_ID = os.environ.get("MODELSCOPE_REPO_ID", "haozi667788/first-llm-studio")
-TOKEN = os.environ.get("MODELSCOPE_API_TOKEN")
+TOKEN = os.environ.get("MODELSCOPE_API_TOKEN") or os.environ.get("MODELSCOPE_TOKEN")
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = ROOT / "dist" / "modelscope-first-llm-studio"
 
@@ -43,8 +43,15 @@ api.create_repo(
     create_default_config=False,
 )
 
-commit_message = "Initial First LLM Studio open-source launch"
-commit_description = "Upload bilingual launch-ready project package for First LLM Studio."
+version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+commit_message = os.environ.get(
+    "MODELSCOPE_COMMIT_MESSAGE",
+    f"Sync First LLM Studio v{version}",
+)
+commit_description = os.environ.get(
+    "MODELSCOPE_COMMIT_DESCRIPTION",
+    "Upload the committed Git tree so ModelScope and GitHub stay file-identical.",
+)
 
 try:
     commit_info = api.upload_folder(
