@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "fs";
 import path from "path";
 import { readBenchmarkLogs } from "@/lib/agent/log-store";
-import { readTimelineEvents } from "@/lib/agent/timeline-store";
+import { readExperimentTimeline } from "@/features/experiments/timeline-service";
 import type {
   AgentFineTuneCurvePoint,
   AgentFineTuneDataset,
@@ -12,7 +12,9 @@ import type {
   AgentFineTuneReportFormat,
   AgentFineTuneReportMetricsSummary,
   AgentFineTuneRunComparisonSummary,
+  AgentTimelineEventKind,
 } from "@/lib/agent/types";
+import type { ExperimentEvent } from "@/features/experiments/contracts";
 import { listArtifactFiles } from "./bundle-service";
 import {
   averageFinite,
@@ -136,6 +138,12 @@ function buildFineTuneRunComparison(input: {
   };
 }
 
+function isLegacyAgentTimelineEvent(
+  event: ExperimentEvent,
+): event is ExperimentEvent & { kind: AgentTimelineEventKind } {
+  return ["session", "compare", "benchmark", "finetune"].includes(event.kind);
+}
+
 function buildFineTuneExperimentEvidence(input: {
   job: AgentFineTuneJob;
   recipe?: AgentFineTuneRecipe;
@@ -171,7 +179,8 @@ function buildFineTuneExperimentEvidence(input: {
       adapter?.attachedTargetId,
     ].filter((value): value is string => Boolean(value)),
   );
-  const timelineEvents = readTimelineEvents({ limit: 240 })
+  const timelineEvents = readExperimentTimeline({ limit: 240 })
+    .filter(isLegacyAgentTimelineEvent)
     .filter((event) => {
       if (event.relatedId && relatedIds.has(event.relatedId)) return true;
       if (event.targetIds?.some((targetId) => targetIds.has(targetId))) {

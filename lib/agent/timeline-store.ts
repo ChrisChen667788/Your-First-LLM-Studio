@@ -1,4 +1,10 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "fs";
 import crypto from "crypto";
 import { getLocalAgentDataDir, getLocalAgentDataPath } from "@/lib/agent/data-dir";
 import type { AgentTimelineEvent, AgentTimelineEventStatus } from "@/lib/agent/types";
@@ -59,4 +65,12 @@ export function readTimelineEvents(options?: {
 export function getTimelineFilePath() {
   ensureTimelineDir();
   return TIMELINE_FILE;
+}
+
+export function rewriteTimelineEvents(events: AgentTimelineEvent[]) {
+  ensureTimelineDir();
+  const content = events.length
+    ? `${events.map((event) => JSON.stringify(event)).join("\n")}\n`
+    : "";
+  writeFileSync(TIMELINE_FILE, content, "utf8");
 }

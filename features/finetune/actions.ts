@@ -75,7 +75,7 @@ export function normalizeFineTuneActionResponse(
 export async function postFineTuneAction(
   input: FineTuneActionRequest,
 ): Promise<FineTuneActionResponse> {
-  const response = await fetch("/api/admin/finetune", {
+  const response = await fetch("/api/finetune", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),

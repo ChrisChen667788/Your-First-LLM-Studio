@@ -1232,7 +1232,7 @@ export function FineTuneStudioPanel({
   const loadSummary = useCallback(async () => {
     setPending(true);
     try {
-      const response = await fetch("/api/admin/finetune", {
+      const response = await fetch("/api/finetune", {
         cache: "no-store",
       });
       const payload = normalizeFineTuneActionResponse(

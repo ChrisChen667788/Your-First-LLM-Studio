@@ -2,7 +2,8 @@ import crypto from "crypto";
 import { mkdirSync, writeFileSync } from "fs";
 import path from "path";
 import { listServerAgentTargets } from "@/lib/agent/server-targets";
-import { appendTimelineEvent } from "@/lib/agent/timeline-store";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
+import { buildFineTuneOperationEventReferences } from "@/features/finetune/experiment-references";
 import {
   saveFineTuneDataset,
   validateFineTuneDatasetFromPath,
@@ -161,12 +162,13 @@ export function runFineTuneDistillation(input: {
       includeReasoningTrace: Boolean(input.includeReasoningTrace),
     },
   });
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "finetune",
     status: "completed",
     title: "Distillation starter dataset generated",
     summary: operation.summary,
     relatedId: operation.id,
+    ...buildFineTuneOperationEventReferences(operation),
     targetIds: [target.id],
     metadata: {
       datasetId: dataset.id,

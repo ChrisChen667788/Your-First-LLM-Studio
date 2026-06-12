@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "fs";
 import crypto from "crypto";
 import { getLocalAgentDataDir, getLocalAgentDataPath } from "@/lib/agent/data-dir";
-import { appendTimelineEvent } from "@/lib/agent/timeline-store";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
 import type {
   AgentWorkbenchSessionConflict,
   AgentWorkbenchSessionSnapshot,
@@ -160,7 +160,7 @@ export function syncSessionSnapshot(input: {
       summary:
         "The server snapshot changed after this browser tab loaded. Reload the server copy or force overwrite with the current local state."
     };
-    appendTimelineEvent({
+    appendExperimentEvent({
       kind: "session",
       status: "conflict",
       title: "Session sync conflict",
@@ -199,7 +199,7 @@ export function syncSessionSnapshot(input: {
     conflictDetected: Boolean(serverHasAdvanced && input.force)
   };
   appendSessionVersion(version);
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "session",
     status: "saved",
     title: input.force ? "Session snapshot force-overwritten" : "Session snapshot synced",

@@ -1,7 +1,8 @@
 import crypto from "crypto";
 import { mkdirSync, writeFileSync } from "fs";
 import path from "path";
-import { appendTimelineEvent } from "@/lib/agent/timeline-store";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
+import { buildFineTuneOperationEventReferences } from "@/features/finetune/experiment-references";
 import type { AgentFineTuneOperationArtifact } from "@/lib/agent/types";
 import {
   artifactFor,
@@ -156,12 +157,13 @@ export function runFineTuneAdapterExport(input: {
       hubId: input.hubId?.trim() || "",
     },
   });
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "finetune",
     status: "completed",
     title: "Adapter export prepared",
     summary: operation.summary,
     relatedId: operation.id,
+    ...buildFineTuneOperationEventReferences(operation),
     metadata: {
       adapterId: adapter.id,
       exportDir,

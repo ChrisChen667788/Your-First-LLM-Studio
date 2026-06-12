@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { spawn } from "child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import path from "path";
-import { appendTimelineEvent } from "@/lib/agent/timeline-store";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
 import type {
   AgentFineTuneDataset,
   AgentFineTuneJob,
@@ -330,13 +330,25 @@ export function stageFineTuneJob(input: { recipeId: string; notes?: string }) {
     b.updatedAt.localeCompare(a.updatedAt),
   );
   writeStoredJobs(jobs);
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "finetune",
     status: "saved",
     title: "Fine-tune job staged",
     summary: `${recipe.label} · ${dataset.label} · ${target.label}`,
     relatedId: jobId,
     targetIds: [target.id],
+    artifacts: [
+      { kind: "directory", role: "bundle", label: "Job bundle", uri: paths.bundlePath },
+      { kind: "file", role: "manifest", label: "Job bundle JSON", uri: paths.bundleFile, mimeType: "application/json" },
+      { kind: "directory", role: "dataset", label: "Prepared dataset", uri: paths.datasetDir },
+      { kind: "file", role: "log", label: "Worker log", uri: paths.logFile, mimeType: "text/plain" },
+      { kind: "directory", role: "adapter", label: "Adapter output", uri: paths.outputDir },
+    ],
+    links: [
+      { relation: "uses", entityType: "recipe", id: recipe.id, label: recipe.label },
+      { relation: "uses", entityType: "dataset", id: dataset.id, label: dataset.label },
+      { relation: "produced", entityType: "job", id: jobId },
+    ],
     metadata: {
       recipeId: recipe.id,
       datasetId: dataset.id,
@@ -469,13 +481,23 @@ export function startFineTuneJob(input: { jobId: string }) {
     launcherPid: child.pid ?? null,
   }));
 
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "finetune",
     status: "started",
     title: "Fine-tune worker started",
     summary: `${recipe.label} · ${target.label} · ${bundle.plan.totalSteps} steps`,
     relatedId: job.id,
     targetIds: [target.id],
+    artifacts: [
+      { kind: "file", role: "manifest", label: "Job bundle JSON", uri: paths.bundleFile, mimeType: "application/json" },
+      { kind: "file", role: "log", label: "Worker log", uri: paths.logFile, mimeType: "text/plain" },
+      { kind: "directory", role: "adapter", label: "Adapter output", uri: paths.outputDir },
+    ],
+    links: [
+      { relation: "uses", entityType: "recipe", id: recipe.id, label: recipe.label },
+      { relation: "uses", entityType: "dataset", id: dataset.id, label: dataset.label },
+      { relation: "continues", entityType: "job", id: job.id },
+    ],
     metadata: {
       recipeId: recipe.id,
       datasetId: dataset.id,
@@ -539,7 +561,7 @@ export function cancelFineTuneJob(input: { jobId: string }) {
     status: "cancelled",
     updatedAt: now,
   }));
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "finetune",
     status: "cancelled",
     title: "Fine-tune job cancelled",

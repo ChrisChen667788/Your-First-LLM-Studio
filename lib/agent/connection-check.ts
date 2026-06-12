@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import { appendConnectionCheckLog } from "@/lib/agent/log-store";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
+import type { ExperimentArtifactReference } from "@/features/experiments/contracts";
 import { getServerAgentTarget } from "@/lib/agent/server-targets";
 import {
   clearProviderEnvCache,
@@ -273,10 +275,47 @@ export async function runRemoteConnectionCheck(
   };
 
   if (shouldLog) {
+    const checkId = crypto.randomUUID();
     appendConnectionCheckLog({
       kind: "connection-check",
-      id: crypto.randomUUID(),
+      id: checkId,
       ...payload
+    });
+    const artifacts: ExperimentArtifactReference[] = [
+      {
+        kind: "api",
+        role: "report",
+        label: "Connection check history",
+        uri: `/api/agent/check-history/export?targetId=${encodeURIComponent(targetId)}&format=json`,
+        mimeType: "application/json",
+      },
+    ];
+    if (payload.docsUrl) {
+      artifacts.push({
+        kind: "url",
+        role: "input",
+        label: `${target.providerLabel} documentation`,
+        uri: payload.docsUrl,
+      });
+    }
+    appendExperimentEvent({
+      kind: "provider",
+      status: payload.ok ? "completed" : "failed",
+      title: payload.ok ? "Provider health check passed" : "Provider health check failed",
+      summary: `${target.label} · ${stages.filter((stage) => stage.ok).length}/${stages.length} checks healthy`,
+      relatedId: checkId,
+      targetIds: [targetId],
+      artifacts,
+      links: [
+        { relation: "evaluates", entityType: "target", id: targetId, label: target.label },
+      ],
+      metadata: {
+        mode,
+        provider: target.providerLabel,
+        model: resolvedTarget.resolvedModel,
+        stageCount: stages.length,
+        okStages: stages.filter((stage) => stage.ok).length,
+      },
     });
   }
 

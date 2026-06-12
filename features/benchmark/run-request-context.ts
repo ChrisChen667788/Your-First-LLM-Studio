@@ -24,6 +24,7 @@ import type {
   AgentTarget,
   AgentThinkingMode,
 } from "@/lib/agent/types";
+import type { ExperimentSourceContext } from "@/features/experiments/contracts";
 
 type BenchmarkRunMode = {
   providerProfile: AgentProviderProfile;
@@ -46,6 +47,7 @@ export type BenchmarkRunRequestContext = {
   remoteComparisonTasks: PlannedSampleTask[];
   responseContext: BenchmarkRunPayloadContext;
   progressPlan: BenchmarkRunProgressPlan;
+  experimentContext?: ExperimentSourceContext;
 };
 
 export type BenchmarkRunRequestContextError = {
@@ -127,6 +129,7 @@ export function createBenchmarkRunRequestContext({
     remoteComparisonTasks,
     responseContext,
     progressPlan,
+    experimentContext: body.experimentContext,
   };
 }
 
@@ -143,5 +146,6 @@ export function initializeBenchmarkRunRequestProgress(
     totalSamples: context.progressPlan.totalSamples,
     targetIds: context.targetIds,
     pendingGroups: context.progressPlan.plannedGroups,
+    experimentContext: context.experimentContext,
   });
 }

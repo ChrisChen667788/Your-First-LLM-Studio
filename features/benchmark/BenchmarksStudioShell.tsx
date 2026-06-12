@@ -60,6 +60,19 @@ type BenchmarkDashboardResponse = {
   releaseEvidence?: BenchmarkReleaseEvidence[];
 };
 
+type BenchmarkPromptSet = {
+  id: string;
+  label: string;
+  description?: string;
+  prompts: string[];
+};
+
+type BenchmarkPromptSetResponse = {
+  promptSets?: BenchmarkPromptSet[];
+};
+
+type BenchmarkRunMode = "prompt" | "prompt-set" | "dataset" | "suite";
+
 const defaultBenchmarkTargetIds = agentTargets
   .filter((target) => target.execution === "local")
   .slice(0, 2)
@@ -105,8 +118,20 @@ export function BenchmarksStudioShell() {
       ? defaultBenchmarkTargetIds
       : agentTargets.slice(0, 2).map((target) => target.id),
   );
+  const [runMode, setRunMode] = useState<BenchmarkRunMode>("prompt");
   const [prompt, setPrompt] = useState(
     "Answer in one concise paragraph: what makes a local LLM setup production-ready?",
+  );
+  const [promptSets, setPromptSets] = useState<BenchmarkPromptSet[]>([]);
+  const [promptSetId, setPromptSetId] = useState("");
+  const [datasetId, setDatasetId] = useState(benchmarkDatasets[0]?.id || "");
+  const [datasetSampleLimit, setDatasetSampleLimit] = useState(
+    benchmarkDatasets[0]?.sampleCount || 1,
+  );
+  const [suiteId, setSuiteId] = useState(
+    benchmarkMilestoneSuites.find((suite) => suite.reportTier === "milestone")?.id ||
+      benchmarkMilestoneSuites[0]?.id ||
+      "",
   );
   const [runs, setRuns] = useState(1);
   const [contextWindow, setContextWindow] = useState(4096);
@@ -152,13 +177,45 @@ export function BenchmarksStudioShell() {
     [],
   );
 
+  const loadPromptSets = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const response = await fetch("/api/admin/benchmark/prompt-sets", {
+        cache: "no-store",
+        signal,
+      });
+      const payload = (await response.json()) as BenchmarkPromptSetResponse & {
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to load prompt sets.");
+      }
+      const nextPromptSets = payload.promptSets || [];
+      setPromptSets(nextPromptSets);
+      setPromptSetId((current) =>
+        current && nextPromptSets.some((entry) => entry.id === current)
+          ? current
+          : nextPromptSets[0]?.id || "",
+      );
+    } catch (loadError) {
+      if (!(loadError instanceof DOMException && loadError.name === "AbortError")) {
+        setError((current) =>
+          current ||
+          (loadError instanceof Error
+            ? loadError.message
+            : "Failed to load prompt sets."),
+        );
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
     void loadBenchmarks({ signal: controller.signal });
+    void loadPromptSets(controller.signal);
     return () => {
       controller.abort();
     };
-  }, [loadBenchmarks]);
+  }, [loadBenchmarks, loadPromptSets]);
 
   useEffect(() => {
     if (!activeRunId) return;
@@ -211,6 +268,10 @@ export function BenchmarksStudioShell() {
     () => agentTargets.filter((target) => selectedTargetIds.includes(target.id)),
     [selectedTargetIds],
   );
+  const selectedDataset = useMemo(
+    () => benchmarkDatasets.find((dataset) => dataset.id === datasetId) || null,
+    [datasetId],
+  );
   const progressPercent =
     runProgress && runProgress.totalSamples > 0
       ? Math.round((runProgress.completedSamples / runProgress.totalSamples) * 100)
@@ -235,8 +296,20 @@ export function BenchmarksStudioShell() {
       setRunError(isEnglish ? "Select at least one target." : "至少选择一个目标。");
       return;
     }
-    if (!normalizedPrompt) {
+    if (runMode === "prompt" && !normalizedPrompt) {
       setRunError(isEnglish ? "Prompt is required." : "需要填写 prompt。");
+      return;
+    }
+    if (runMode === "prompt-set" && !promptSetId) {
+      setRunError(isEnglish ? "Select a prompt set." : "请选择 prompt set。");
+      return;
+    }
+    if (runMode === "dataset" && !datasetId) {
+      setRunError(isEnglish ? "Select a dataset." : "请选择 dataset。");
+      return;
+    }
+    if (runMode === "suite" && !suiteId) {
+      setRunError(isEnglish ? "Select a milestone suite." : "请选择里程碑评测集。");
       return;
     }
     const runId = `bench-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -248,14 +321,19 @@ export function BenchmarksStudioShell() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           runId,
-          benchmarkMode: "prompt",
-          prompt: normalizedPrompt,
+          benchmarkMode:
+            runMode === "dataset" ? "dataset" : runMode === "suite" ? "suite" : "prompt",
+          prompt: runMode === "prompt" ? normalizedPrompt : undefined,
+          promptSetId: runMode === "prompt-set" ? promptSetId : undefined,
+          datasetId: runMode === "dataset" ? datasetId : undefined,
+          datasetSampleLimit: runMode === "dataset" ? datasetSampleLimit : undefined,
+          suiteId: runMode === "suite" ? suiteId : undefined,
           targetIds: selectedTargetIds,
           runs,
           contextWindow,
           providerProfile,
           thinkingMode,
-          runNote: "Started from /benchmarks.",
+          runNote: `Started from /benchmarks (${runMode}).`,
         }),
       });
       const payload = (await response.json()) as AgentBenchmarkResponse & {
@@ -363,6 +441,128 @@ export function BenchmarksStudioShell() {
             className="mt-5 space-y-4 border-t border-white/10 pt-5"
           >
             <div>
+              <label className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                {isEnglish ? "Workload" : "运行模式"}
+              </label>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(
+                  [
+                    ["prompt", isEnglish ? "Prompt" : "自定义"],
+                    ["prompt-set", "Prompt set"],
+                    ["dataset", "Dataset"],
+                    ["suite", isEnglish ? "Suite" : "评测集"],
+                  ] as Array<[BenchmarkRunMode, string]>
+                ).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setRunMode(mode)}
+                    className={`min-h-9 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                      runMode === mode
+                        ? "border-amber-300/35 bg-amber-300/15 text-amber-100"
+                        : "border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.07]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {runMode === "prompt" ? (
+              <div>
+                <label className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                  Prompt
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(event) => setPrompt(event.target.value)}
+                  rows={4}
+                  className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-300/40"
+                />
+              </div>
+            ) : null}
+
+            {runMode === "prompt-set" ? (
+              <label className="block text-xs uppercase tracking-[0.2em] text-slate-500">
+                Prompt set
+                <select
+                  value={promptSetId}
+                  onChange={(event) => setPromptSetId(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm normal-case text-slate-100 outline-none focus:border-amber-300/40"
+                >
+                  {promptSets.map((promptSet) => (
+                    <option key={promptSet.id} value={promptSet.id}>
+                      {promptSet.label} · {promptSet.prompts.length}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            {runMode === "dataset" ? (
+              <div className="space-y-3">
+                <label className="block text-xs uppercase tracking-[0.2em] text-slate-500">
+                  Dataset
+                  <select
+                    value={datasetId}
+                    onChange={(event) => {
+                      const nextId = event.target.value;
+                      const nextDataset = benchmarkDatasets.find((entry) => entry.id === nextId);
+                      setDatasetId(nextId);
+                      setDatasetSampleLimit(nextDataset?.sampleCount || 1);
+                    }}
+                    className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm normal-case text-slate-100 outline-none focus:border-amber-300/40"
+                  >
+                    {benchmarkDatasets.map((dataset) => (
+                      <option key={dataset.id} value={dataset.id}>
+                        {dataset.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-xs uppercase tracking-[0.2em] text-slate-500">
+                  {isEnglish ? "Samples" : "采样数"}
+                  <input
+                    type="number"
+                    min={1}
+                    max={selectedDataset?.sampleCount || 1}
+                    value={datasetSampleLimit}
+                    onChange={(event) =>
+                      setDatasetSampleLimit(
+                        Math.max(
+                          1,
+                          Math.min(
+                            selectedDataset?.sampleCount || 1,
+                            Number(event.target.value) || 1,
+                          ),
+                        ),
+                      )
+                    }
+                    className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm normal-case text-slate-100 outline-none focus:border-amber-300/40"
+                  />
+                </label>
+              </div>
+            ) : null}
+
+            {runMode === "suite" ? (
+              <label className="block text-xs uppercase tracking-[0.2em] text-slate-500">
+                {isEnglish ? "Milestone suite" : "里程碑评测集"}
+                <select
+                  value={suiteId}
+                  onChange={(event) => setSuiteId(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm normal-case text-slate-100 outline-none focus:border-amber-300/40"
+                >
+                  {benchmarkMilestoneSuites.map((suite) => (
+                    <option key={suite.id} value={suite.id}>
+                      {suite.label} · {suite.workloads.length}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            <div>
               <div className="flex items-center justify-between gap-3">
                 <label className="text-sm font-semibold text-white">
                   {isEnglish ? "Run controls" : "运行控制"}
@@ -394,18 +594,6 @@ export function BenchmarksStudioShell() {
                   </label>
                 ))}
               </div>
-            </div>
-
-            <div>
-              <label className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                Prompt
-              </label>
-              <textarea
-                value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
-                rows={4}
-                className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-300/40"
-              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

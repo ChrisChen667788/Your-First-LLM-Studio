@@ -8,6 +8,10 @@ import type {
   AgentTarget,
   AgentThinkingMode
 } from "@/lib/agent/types";
+import type {
+  ExperimentArtifactReference,
+  ExperimentSourceContext,
+} from "@/features/experiments/contracts";
 
 type HandoffContext = {
   adapter: AgentFineTuneAdapterArtifact;
@@ -25,10 +29,15 @@ type FineTuneBenchmarkRequest = {
   contextWindow: number;
   providerProfile: AgentProviderProfile;
   thinkingMode: AgentThinkingMode;
+  experimentContext: ExperimentSourceContext;
+};
+
+type FineTuneCompareRequest = AgentCompareRequest & {
+  experimentContext: ExperimentSourceContext;
 };
 
 export type FineTuneCompareHandoffPlan = {
-  request: AgentCompareRequest;
+  request: FineTuneCompareRequest;
   referenceTargetId?: string;
   referenceTargetLabel?: string;
   promptPreview: string;
@@ -98,6 +107,34 @@ function buildRunNote(context: HandoffContext, referenceTarget?: AgentTarget | n
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function buildExperimentContext(context: HandoffContext): ExperimentSourceContext {
+  const artifacts: ExperimentArtifactReference[] = [
+    {
+      kind: "directory",
+      role: "adapter",
+      label: `${context.adapter.adapterName} output`,
+      uri: context.adapter.outputDir,
+    },
+  ];
+  if (context.dataset?.sourcePath) {
+    artifacts.push({
+      kind: "file",
+      role: "dataset",
+      label: context.dataset.label,
+      uri: context.dataset.sourcePath,
+    });
+  }
+  return {
+    sourceKind: "finetune",
+    sourceId: context.adapter.id,
+    sourceLabel: context.adapter.adapterName,
+    jobId: context.adapter.jobId,
+    adapterId: context.adapter.id,
+    datasetId: context.dataset?.id,
+    artifacts,
+  };
 }
 
 function loadRiskRank(target: AgentTarget) {
@@ -183,7 +220,8 @@ export function buildFineTuneBenchmarkHandoffPlan(input: {
     runs: 1,
     contextWindow: normalizeHandoffContextWindow(context.recipe.sequenceLength),
     providerProfile: "balanced",
-    thinkingMode: "standard"
+    thinkingMode: "standard",
+    experimentContext: buildExperimentContext(context)
   };
 
   if (context.recipe.benchmarkSuiteId) {
@@ -214,7 +252,7 @@ export function buildFineTuneCompareHandoffPlan(input: {
   const baseTarget = input.targetCatalog.find((target) => target.id === context.recipe.baseTargetId) || null;
   const referenceTarget = baseTarget || pickReferenceTarget(context.recipe.baseTargetId, input.targetCatalog);
   const promptPreview = createRepresentativePrompt(context);
-  const request: AgentCompareRequest = {
+  const request: FineTuneCompareRequest = {
     targetIds: Array.from(
       new Set(
         [adapterTarget?.id || context.recipe.baseTargetId, referenceTarget?.id].filter(
@@ -233,7 +271,8 @@ export function buildFineTuneCompareHandoffPlan(input: {
     contextWindow: normalizeHandoffContextWindow(context.recipe.sequenceLength),
     providerProfile: "balanced",
     thinkingMode: "standard",
-    plannerEnabled: false
+    plannerEnabled: false,
+    experimentContext: buildExperimentContext(context)
   };
 
   return {

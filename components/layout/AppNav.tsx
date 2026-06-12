@@ -10,6 +10,8 @@ const links = [
   { href: "/fine-tune", key: "fineTune" },
   { href: "/models", key: "models" },
   { href: "/benchmarks", key: "benchmarks" },
+  { href: "/retrieval", key: "retrieval" },
+  { href: "/experiments", key: "experiments" },
   { href: "/admin", key: "dashboard" }
 ];
 
@@ -28,6 +30,8 @@ export function AppNav({ version }: { version?: string }) {
     fineTune: locale.startsWith("en") ? "Fine-tune" : "微调",
     models: locale.startsWith("en") ? "Models" : "模型",
     benchmarks: locale.startsWith("en") ? "Benchmarks" : "评测",
+    retrieval: locale.startsWith("en") ? "Retrieval" : "检索",
+    experiments: locale.startsWith("en") ? "Experiments" : "实验",
     dashboard: dictionary.nav.dashboard
   };
 

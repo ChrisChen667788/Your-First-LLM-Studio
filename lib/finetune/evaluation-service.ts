@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { mkdirSync, writeFileSync } from "fs";
-import { appendTimelineEvent } from "@/lib/agent/timeline-store";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
+import { buildFineTuneOperationEventReferences } from "@/features/finetune/experiment-references";
 import { readDatasets } from "./dataset-service";
 import {
   artifactFor,
@@ -138,12 +139,13 @@ export function runFineTuneEvaluation(input: {
       requestedMetrics: (input.metrics || ["token-overlap-f1"]).join(", "),
     },
   });
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "finetune",
     status: "completed",
     title: "Adapter evaluation completed",
     summary: operation.summary,
     relatedId: operation.id,
+    ...buildFineTuneOperationEventReferences(operation),
     targetIds: [adapter.attachedTargetId || adapter.baseTargetId || ""].filter(
       Boolean,
     ),

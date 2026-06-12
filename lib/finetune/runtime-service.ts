@@ -4,7 +4,7 @@ import {
   removeDiscoveredLocalTarget,
   upsertDiscoveredLocalTarget,
 } from "@/lib/agent/server-targets";
-import { appendTimelineEvent } from "@/lib/agent/timeline-store";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
 import type { AgentTarget } from "@/lib/agent/types";
 import {
   LOCAL_GATEWAY_BASE_URL,
@@ -153,13 +153,26 @@ export function attachFineTuneAdapterRuntime(input: { adapterId: string }) {
   const target = buildAttachedAdapterTarget(attachment);
   upsertDiscoveredLocalTarget(target);
 
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "finetune",
     status: "saved",
     title: "Adapter mounted to local runtime",
     summary: `${adapter.adapterName} -> ${target.label}`,
     relatedId: adapter.id,
     targetIds: [baseTarget.id, target.id],
+    artifacts: [
+      {
+        kind: "directory",
+        role: "adapter",
+        label: adapter.adapterName,
+        uri: adapter.outputDir,
+      },
+    ],
+    links: [
+      { relation: "attaches", entityType: "adapter", id: adapter.id, label: adapter.adapterName },
+      { relation: "derived-from", entityType: "job", id: adapter.jobId },
+      { relation: "uses", entityType: "target", id: baseTarget.id, label: baseTarget.label },
+    ],
   });
 
   return {
@@ -224,7 +237,7 @@ export async function detachFineTuneAdapterRuntime(input: {
   );
   removeDiscoveredLocalTarget(existing.alias);
 
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "finetune",
     status: "saved",
     title: releaseResult.released
@@ -235,6 +248,18 @@ export async function detachFineTuneAdapterRuntime(input: {
       : `${existing.label} was detached from the local target catalog.`,
     relatedId: input.adapterId,
     targetIds: [existing.baseTargetId, existing.alias],
+    artifacts: [
+      {
+        kind: "directory",
+        role: "adapter",
+        label: existing.label,
+        uri: existing.adapterPath,
+      },
+    ],
+    links: [
+      { relation: "source", entityType: "adapter", id: input.adapterId, label: existing.label },
+      { relation: "derived-from", entityType: "job", id: existing.jobId },
+    ],
   });
 
   return {

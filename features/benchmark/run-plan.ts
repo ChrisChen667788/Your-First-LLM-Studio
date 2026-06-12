@@ -20,6 +20,7 @@ import type {
   AgentProviderProfile,
   AgentThinkingMode,
 } from "@/lib/agent/types";
+import type { ExperimentSourceContext } from "@/features/experiments/contracts";
 
 export type BenchmarkRequestBody = {
   runId?: string;
@@ -41,6 +42,7 @@ export type BenchmarkRequestBody = {
     thinkingMode?: AgentThinkingMode;
   }>;
   profileBatchScope?: AgentBenchmarkProfileBatchScope;
+  experimentContext?: ExperimentSourceContext;
 };
 
 export type BenchmarkWorkload = {

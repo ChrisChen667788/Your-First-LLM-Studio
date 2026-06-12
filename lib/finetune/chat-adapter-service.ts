@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { mkdirSync, writeFileSync } from "fs";
-import { appendTimelineEvent } from "@/lib/agent/timeline-store";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
+import { buildFineTuneOperationEventReferences } from "@/features/finetune/experiment-references";
 import {
   artifactFor,
   getOperationPaths,
@@ -114,12 +115,13 @@ export function runFineTuneAdapterChat(input: {
       role: input.role?.trim() || "user",
     },
   });
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "finetune",
     status: "completed",
     title: "Adapter chat smoke completed",
     summary: operation.summary,
     relatedId: operation.id,
+    ...buildFineTuneOperationEventReferences(operation),
     metadata: {
       adapterId: adapter.id,
       outputDir: paths.outputDir,

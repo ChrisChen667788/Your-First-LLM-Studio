@@ -1,9 +1,6 @@
 "use client";
 
 import {
-  FormEvent,
-  KeyboardEvent as ReactKeyboardEvent,
-  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -15,45 +12,62 @@ import {
   agentTargets as builtinAgentTargets,
   agentToolSpecs,
 } from "@/lib/agent/catalog";
-import { useComparePreferencePersistenceModel } from "@/features/compare/preference-persistence-model";
 import {
-  buildStoredComparePreferenceSlice,
-  normalizeRawComparePreferenceInput,
-  type ComparePreferenceSnapshotInput,
-} from "@/features/compare/preferences";
-import { buildCompareReproduceRequestArtifacts } from "@/features/compare/reproduce-artifacts";
+  buildSessionExportEnvelope,
+  flattenTurns,
+  MAX_STORED_SESSIONS,
+  serializeSessionsAsMarkdown,
+  serializeTurnsAsMarkdown,
+  sortSessions,
+  type AgentTurn,
+  type StoredAgentSession,
+} from "@/features/agent/session-model";
+import { AgentComposerForm } from "@/features/agent/agent-composer-form";
+import { AgentSecondaryAnalysisPanel } from "@/features/agent/secondary-analysis-panel";
+import { AgentSessionToolsPanel } from "@/features/agent/session-tools-panel";
+import { AgentTranscriptPanel } from "@/features/agent/agent-transcript-panel";
+import { writeLocalAgentSessions } from "@/features/agent/session-persistence";
 import {
-  buildFocusedFileExcerpt,
-  buildReplayComparison,
-  buildReplayComparisonSummaryText,
-  collectToolReviewItems,
-  parseToolOutput,
-  readArrayField,
-  readBooleanField,
-  readNewFileLineAnchorsFromDiff,
-  readStringField,
-  type FocusedFileExcerpt,
-  type ToolReviewItem,
-} from "@/features/compare/review";
+  applyStoredAgentSession,
+  applyStoredAgentWorkbenchPreferences,
+} from "@/features/agent/session-apply";
+import { useAgentConnectionActions } from "@/features/agent/connection-actions";
+import { useAgentConnectionShellState } from "@/features/agent/connection-shell-state";
+import { useAgentCopyReplayState } from "@/features/agent/copy-replay-state";
+import { useAgentRuntimeActions } from "@/features/agent/runtime-actions";
+import { RuntimeStatusRail } from "@/features/agent/runtime-status-rail";
+import {
+  describeRuntimeAlias,
+  formatRuntimeDuration,
+  formatRuntimeTimestamp,
+} from "@/features/agent/runtime-formatters";
+import { buildAgentRuntimeViewModel } from "@/features/agent/runtime-view-model";
+import {
+  useAgentSessionHydration,
+  writeRuntimeSwitchHistory,
+} from "@/features/agent/session-hydration";
+import { useAgentSessionServerSync } from "@/features/agent/session-server-sync";
+import { useAgentSessionSidebarSelectors } from "@/features/agent/session-sidebar-selectors";
+import { TargetCatalogPanel } from "@/features/agent/target-catalog-panel";
+import { useAgentWorkbenchShellState } from "@/features/agent/workbench-shell-state";
+import { useAgentRuntimeShellState } from "@/features/agent/runtime-shell-state";
+import { useAgentTranscriptShellState } from "@/features/agent/transcript-shell-state";
+import { useAgentWorkspaceFileActions } from "@/features/agent/workspace-file-actions";
+import { useAgentTurnLifecycle } from "@/features/agent/turn-lifecycle";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { CompareWorkbenchPortal } from "@/features/compare/CompareWorkbenchPortal";
+import { useEmbeddedCompareSessionAdapter } from "@/features/compare/embedded-session-adapter";
 import { useEmbeddedCompareWorkbenchAdapter } from "@/features/compare/embedded-workbench-adapter";
 import { useCompareWorkbenchStateModel } from "@/features/compare/workbench-state-model";
 import {
   getDefaultSystemPromptForLocale,
   getLocalizedStarterPrompts,
-  getLocalizedTargetDescription,
   getLocalizedToolDescription,
 } from "@/lib/i18n";
 import { clampContextWindowForTarget } from "@/lib/agent/metrics";
 import { sanitizeDisplayPath } from "@/lib/agent/path-display";
-import {
-  buildReproduceRequestArtifacts,
-  type AgentReproduceLanguage,
-} from "@/lib/agent/reproduce-request";
+import { buildReproduceRequestArtifacts } from "@/lib/agent/reproduce-request";
 import type {
-  AgentCacheMode,
-  AgentChatResponse,
   AgentCompareIntent,
   AgentCompareLaneProgress,
   AgentCompareProgress,
@@ -63,173 +77,21 @@ import type {
   AgentCompareResponse,
   AgentCompareSourceSurface,
   AgentConnectionCheckResponse,
-  AgentConnectionCheckStage,
-  AgentGroundedVerification,
   AgentMessage,
   AgentProviderProfile,
-  AgentRetrievalSummary,
   AgentThinkingMode,
-  AgentRuntimeActionResponse,
-  AgentRuntimePrewarmAllResponse,
-  AgentRuntimePrewarmResponse,
   AgentRuntimeStatus,
   AgentTarget,
   AgentWorkbenchMode,
   AgentWorkbenchSessionConflict,
-  AgentToolDecisionResponse,
-  AgentToolRun,
-  AgentWorkbenchSessionSnapshot,
   AgentWorkbenchStoredPreferences,
 } from "@/lib/agent/types";
-
-type AgentTurn = {
-  id: string;
-  kind?: "chat" | "check";
-  targetId: string;
-  prompt: string;
-  displayPrompt?: string;
-  response: string;
-  providerLabel: string;
-  targetLabel: string;
-  resolvedModel: string;
-  resolvedBaseUrl: string;
-  providerProfile?: AgentProviderProfile;
-  thinkingMode?: AgentThinkingMode;
-  thinkingFallbackToStandard?: boolean;
-  localFallbackUsed?: boolean;
-  localFallbackTargetId?: string;
-  localFallbackTargetLabel?: string;
-  localFallbackReason?: string;
-  cacheHit?: boolean;
-  cacheMode?: AgentCacheMode;
-  plannerSteps?: string[];
-  memorySummary?: string;
-  retrieval?: AgentRetrievalSummary;
-  verification?: AgentGroundedVerification;
-  toolRuns: AgentToolRun[];
-  warning?: string;
-  connectionCheck?: AgentConnectionCheckResponse;
-  replaySource?: {
-    turnId: string;
-    targetId: string;
-    targetLabel: string;
-    resolvedModel: string;
-    response: string;
-    includeHistory: boolean;
-    targetMode: "original" | "current";
-  };
-};
 
 type AgentWorkbenchProps = {
   initialMode?: AgentWorkbenchMode;
   forceInitialMode?: boolean;
   compareSurface?: AgentCompareSourceSurface;
 };
-
-type AgentTargetsScanResponse = {
-  ok: boolean;
-  targets?: AgentTarget[];
-  remoteChecks?: Record<string, AgentConnectionCheckResponse>;
-  summary?: {
-    localNewTargetIds: string[];
-    localRemovedTargetIds: string[];
-    remoteConfiguredCount: number;
-    remoteHealthyCount: number;
-    remoteSkippedTargetIds: string[];
-  };
-  error?: string;
-};
-
-type StoredAgentSession = {
-  id: string;
-  title: string;
-  updatedAt: string;
-  pinned?: boolean;
-  selectedTargetId: string;
-  enableTools: boolean;
-  enableRetrieval: boolean;
-  contextWindow: number;
-  providerProfile: AgentProviderProfile;
-  thinkingMode: AgentThinkingMode;
-  input: string;
-  systemPrompt: string;
-  turns: AgentTurn[];
-  connectionChecksByTargetId: Record<string, AgentConnectionCheckResponse>;
-};
-
-const TRANSCRIPT_BOTTOM_THRESHOLD_PX = 96;
-
-type WorkspaceFileView = {
-  path: string;
-  absolutePath?: string;
-  content?: string;
-  truncated?: boolean;
-  loading: boolean;
-  error?: string;
-};
-
-const RUNTIME_SWITCH_HISTORY_STORAGE_KEY =
-  "local-agent-runtime-switch-history-v1";
-
-type RuntimeSwitchHistoryEntry = {
-  loadMs: number | null;
-  switchedAt: string | null;
-};
-
-type WorkspaceFileFocusState = {
-  path: string;
-  anchors: number[];
-  index: number;
-};
-type AgentStreamEvent =
-  | {
-      type: "meta";
-      targetId: string;
-      targetLabel: string;
-      providerLabel: string;
-      resolvedModel: string;
-      resolvedBaseUrl: string;
-      execution: "local" | "remote";
-      providerProfile?: AgentProviderProfile;
-      thinkingMode?: AgentThinkingMode;
-      thinkingFallbackToStandard?: boolean;
-      localFallbackUsed?: boolean;
-      localFallbackTargetId?: string;
-      localFallbackTargetLabel?: string;
-      localFallbackReason?: string;
-      cacheHit?: boolean;
-      cacheMode?: AgentCacheMode;
-      plannerSteps?: string[];
-      memorySummary?: string;
-      retrieval?: AgentRetrievalSummary;
-      verification?: AgentGroundedVerification;
-    }
-  | { type: "delta"; delta: string }
-  | {
-      type: "done";
-      content: string;
-      toolRuns?: AgentToolRun[];
-      providerProfile?: AgentProviderProfile;
-      thinkingMode?: AgentThinkingMode;
-      thinkingFallbackToStandard?: boolean;
-      localFallbackUsed?: boolean;
-      localFallbackTargetId?: string;
-      localFallbackTargetLabel?: string;
-      localFallbackReason?: string;
-      cacheHit?: boolean;
-      cacheMode?: AgentCacheMode;
-      plannerSteps?: string[];
-      memorySummary?: string;
-      retrieval?: AgentRetrievalSummary;
-      verification?: AgentGroundedVerification;
-      warning?: string;
-      usage?: {
-        promptTokens?: number;
-        completionTokens?: number;
-        totalTokens?: number;
-      };
-    }
-  | { type: "error"; error: string };
 
 const CONTEXT_WINDOW_OPTIONS = [4096, 8192, 16384, 32768];
 const PROVIDER_PROFILE_OPTIONS: AgentProviderProfile[] = [
@@ -239,53 +101,6 @@ const PROVIDER_PROFILE_OPTIONS: AgentProviderProfile[] = [
 ];
 const THINKING_MODE_OPTIONS: AgentThinkingMode[] = ["standard", "thinking"];
 const MAX_COMPARE_LANES = 4;
-const PREFERENCES_STORAGE_KEY = "agent-workbench:v1";
-const SESSIONS_STORAGE_KEY = "agent-workbench:sessions:v1";
-const MAX_STORED_SESSIONS = 12;
-const SERVER_SESSION_SYNC_DEBOUNCE_MS = 1200;
-
-function normalizeStoredWorkbenchPreferences(input: unknown) {
-  if (!input || typeof input !== "object") return null;
-  const candidate = input as Partial<AgentWorkbenchStoredPreferences>;
-  return {
-    updatedAt:
-      typeof candidate.updatedAt === "string" && candidate.updatedAt.trim()
-        ? candidate.updatedAt
-        : new Date(0).toISOString(),
-    selectedTargetId:
-      typeof candidate.selectedTargetId === "string"
-        ? candidate.selectedTargetId
-        : undefined,
-    workbenchMode:
-      candidate.workbenchMode === "chat" ||
-      candidate.workbenchMode === "compare"
-        ? candidate.workbenchMode
-        : undefined,
-    ...normalizeRawComparePreferenceInput(candidate),
-    enableTools:
-      typeof candidate.enableTools === "boolean"
-        ? candidate.enableTools
-        : undefined,
-    enableRetrieval:
-      typeof candidate.enableRetrieval === "boolean"
-        ? candidate.enableRetrieval
-        : undefined,
-    contextWindow:
-      typeof candidate.contextWindow === "number"
-        ? candidate.contextWindow
-        : undefined,
-    providerProfile: PROVIDER_PROFILE_OPTIONS.includes(
-      candidate.providerProfile as AgentProviderProfile,
-    )
-      ? (candidate.providerProfile as AgentProviderProfile)
-      : undefined,
-    thinkingMode: THINKING_MODE_OPTIONS.includes(
-      candidate.thinkingMode as AgentThinkingMode,
-    )
-      ? (candidate.thinkingMode as AgentThinkingMode)
-      : undefined,
-  } satisfies AgentWorkbenchStoredPreferences;
-}
 
 function clampUiContextWindow(
   targetId: string,
@@ -299,757 +114,9 @@ function clampUiContextWindow(
   });
 }
 
-function sortSessions(sessions: StoredAgentSession[]) {
-  return [...sessions].sort((a, b) => {
-    if (Boolean(a.pinned) !== Boolean(b.pinned)) {
-      return a.pinned ? -1 : 1;
-    }
-    return b.updatedAt.localeCompare(a.updatedAt);
-  });
-}
-
-function normalizeStoredSessions(input: unknown): StoredAgentSession[] {
-  if (!Array.isArray(input)) return [];
-  return sortSessions(
-    input.flatMap((session) => {
-      if (!session || typeof session !== "object") return [];
-      const candidate = session as Partial<StoredAgentSession>;
-      if (
-        typeof candidate.id !== "string" ||
-        typeof candidate.updatedAt !== "string"
-      )
-        return [];
-      return [
-        {
-          id: candidate.id,
-          title:
-            typeof candidate.title === "string"
-              ? candidate.title
-              : "New session",
-          updatedAt: candidate.updatedAt,
-          pinned: Boolean(candidate.pinned),
-          selectedTargetId:
-            typeof candidate.selectedTargetId === "string"
-              ? candidate.selectedTargetId
-              : "anthropic-claude",
-          enableTools: Boolean(candidate.enableTools),
-          enableRetrieval: Boolean(candidate.enableRetrieval),
-          contextWindow:
-            typeof candidate.contextWindow === "number"
-              ? candidate.contextWindow
-              : 32768,
-          providerProfile: PROVIDER_PROFILE_OPTIONS.includes(
-            candidate.providerProfile as AgentProviderProfile,
-          )
-            ? (candidate.providerProfile as AgentProviderProfile)
-            : "balanced",
-          thinkingMode: THINKING_MODE_OPTIONS.includes(
-            candidate.thinkingMode as AgentThinkingMode,
-          )
-            ? (candidate.thinkingMode as AgentThinkingMode)
-            : "standard",
-          input: typeof candidate.input === "string" ? candidate.input : "",
-          systemPrompt:
-            typeof candidate.systemPrompt === "string"
-              ? candidate.systemPrompt
-              : "",
-          turns: Array.isArray(candidate.turns)
-            ? (candidate.turns as AgentTurn[])
-            : [],
-          connectionChecksByTargetId:
-            candidate.connectionChecksByTargetId &&
-            typeof candidate.connectionChecksByTargetId === "object"
-              ? (candidate.connectionChecksByTargetId as Record<
-                  string,
-                  AgentConnectionCheckResponse
-                >)
-              : {},
-        },
-      ];
-    }),
-  ).slice(0, MAX_STORED_SESSIONS);
-}
-
-function mergeStoredSessions(
-  localSessions: StoredAgentSession[],
-  remoteSessions: StoredAgentSession[],
-) {
-  const merged = new Map<string, StoredAgentSession>();
-  for (const session of [...localSessions, ...remoteSessions]) {
-    const existing = merged.get(session.id);
-    if (!existing || session.updatedAt >= existing.updatedAt) {
-      merged.set(session.id, session);
-    }
-  }
-  return sortSessions([...merged.values()]).slice(0, MAX_STORED_SESSIONS);
-}
-
-function filterSessionsForExport(
-  sessions: StoredAgentSession[],
-  options: {
-    scope: "visible" | "pinned";
-    sessionTargetFilter: string;
-    sessionSearch: string;
-  },
-) {
-  const normalizedSearch = options.sessionSearch.trim().toLowerCase();
-  return sortSessions(
-    sessions.filter((session) => {
-      if (options.scope === "pinned") {
-        return Boolean(session.pinned);
-      }
-      if (
-        options.sessionTargetFilter !== "all" &&
-        session.selectedTargetId !== options.sessionTargetFilter
-      ) {
-        return false;
-      }
-      if (!normalizedSearch) return true;
-      return (
-        session.title.toLowerCase().includes(normalizedSearch) ||
-        session.selectedTargetId.toLowerCase().includes(normalizedSearch)
-      );
-    }),
-  );
-}
-
-function buildSessionExportEnvelope(
-  sessions: StoredAgentSession[],
-  options: {
-    scope: "visible" | "pinned";
-    sessionTargetFilter: string;
-    sessionSearch: string;
-  },
-) {
-  return {
-    kind: "agent-session-export",
-    schemaVersion: "0.2.1",
-    generatedAt: new Date().toISOString(),
-    filters: {
-      scope: options.scope,
-      sessionTargetFilter: options.sessionTargetFilter,
-      sessionSearch: options.sessionSearch,
-    },
-    sessions,
-  };
-}
-
-function buildStoredWorkbenchPreferences(
-  input: Omit<
-    AgentWorkbenchStoredPreferences,
-    | "updatedAt"
-    | keyof ComparePreferenceSnapshotInput
-  > & {
-    comparePreferences: ComparePreferenceSnapshotInput;
-  },
-) {
-  const { comparePreferences, ...workbenchPreferences } = input;
-  return {
-    updatedAt: new Date().toISOString(),
-    ...workbenchPreferences,
-    ...buildStoredComparePreferenceSlice(comparePreferences),
-  } satisfies AgentWorkbenchStoredPreferences;
-}
-
-function createSessionTitle(turns: AgentTurn[], fallback = "New session") {
-  const firstPrompt =
-    turns.find((turn) => turn.kind !== "check")?.displayPrompt ||
-    turns.find((turn) => turn.kind !== "check")?.prompt ||
-    turns[0]?.displayPrompt ||
-    turns[0]?.prompt ||
-    "";
-  const normalized = firstPrompt.replace(/\s+/g, " ").trim();
-  if (!normalized) return fallback;
-  return normalized.length > 36 ? `${normalized.slice(0, 36)}...` : normalized;
-}
-
-function flattenTurns(turns: AgentTurn[]): AgentMessage[] {
-  return turns
-    .filter((turn) => turn.kind !== "check")
-    .flatMap((turn) => [
-      { role: "user", content: turn.prompt },
-      { role: "assistant", content: turn.response },
-    ]);
-}
-
-function readVerificationField(source: Record<string, unknown> | null) {
-  const value = source?.verification;
-  return Array.isArray(value) ? value : [];
-}
-
-function describeRuntimePhase(
-  runtime: AgentRuntimeStatus | null,
-  locale: string,
-) {
-  const phase = runtime?.phase || "offline";
-  switch (phase) {
-    case "remote":
-      return {
-        label: locale.startsWith("en") ? "Remote" : "远端",
-        className: "bg-violet-400/15 text-violet-200",
-      };
-    case "unloaded":
-      return {
-        label: locale.startsWith("en") ? "Unloaded" : "空载",
-        className: "bg-slate-400/15 text-slate-200",
-      };
-    case "ready":
-      return {
-        label: locale.startsWith("en") ? "Ready" : "已就绪",
-        className: "bg-emerald-400/15 text-emerald-200",
-      };
-    case "busy":
-      return {
-        label: locale.startsWith("en") ? "Busy" : "处理中",
-        className: "bg-amber-400/15 text-amber-200",
-      };
-    case "loading":
-      return {
-        label: locale.startsWith("en") ? "Loading" : "加载中",
-        className: "bg-amber-400/15 text-amber-200",
-      };
-    case "recovering":
-      return {
-        label: locale.startsWith("en") ? "Recovering" : "恢复中",
-        className: "bg-cyan-400/15 text-cyan-200",
-      };
-    case "error":
-      return {
-        label: locale.startsWith("en") ? "Error" : "异常",
-        className: "bg-rose-400/15 text-rose-200",
-      };
-    default:
-      return {
-        label: locale.startsWith("en") ? "Offline" : "离线",
-        className: "bg-rose-400/15 text-rose-200",
-      };
-  }
-}
-
-function buildRuntimeStageItems(
-  runtime: AgentRuntimeStatus | null,
-  locale: string,
-) {
-  const labels = locale.startsWith("en")
-    ? {
-        offline: "Offline",
-        recovering: "Recovering",
-        loading: "Loading",
-        unloaded: "Unloaded",
-        busy: "Busy",
-        ready: "Ready",
-      }
-    : {
-        offline: "离线",
-        recovering: "恢复中",
-        loading: "加载中",
-        unloaded: "空载",
-        busy: "处理中",
-        ready: "已就绪",
-      };
-  const steps: Array<keyof typeof labels> = [
-    "offline",
-    "recovering",
-    "loading",
-    "unloaded",
-    "busy",
-    "ready",
-  ];
-  const phase = runtime?.phase || "offline";
-  const phaseIndex = steps.indexOf(phase as keyof typeof labels);
-  return steps.map((step, index) => ({
-    key: step,
-    label: labels[step],
-    active: step === phase,
-    completed: phase !== "error" && phaseIndex >= 0 && index < phaseIndex,
-  }));
-}
-
-function formatRuntimeDuration(ms: number | null | undefined) {
-  if (typeof ms !== "number" || !Number.isFinite(ms)) return "—";
-  if (ms >= 10_000) return `${(ms / 1000).toFixed(1)}s`;
-  if (ms >= 1000) return `${(ms / 1000).toFixed(2)}s`;
-  return `${Math.round(ms)}ms`;
-}
-
-function formatRuntimeTimestamp(
-  timestamp: string | null | undefined,
-  locale: string,
-) {
-  if (!timestamp) return "—";
-  const parsed = new Date(timestamp);
-  if (Number.isNaN(parsed.getTime())) return "—";
-  return parsed.toLocaleString(locale);
-}
-
-function describeRuntimeAlias(
-  alias: string | null | undefined,
-  targets: AgentTarget[],
-) {
-  if (!alias) return "—";
-  const matched = targets.find((target) => target.id === alias);
-  return matched ? `${matched.label}` : alias;
-}
-
-type RailDetailsSectionProps = {
-  title: string;
-  subtitle?: string;
-  badge?: string;
-  defaultOpen?: boolean;
-  children: ReactNode;
-};
-
-function RailDetailsSection({
-  title,
-  subtitle,
-  badge,
-  defaultOpen = false,
-  children,
-}: RailDetailsSectionProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  return (
-    <details
-      open={isOpen}
-      onToggle={(event) =>
-        setIsOpen((event.currentTarget as HTMLDetailsElement).open)
-      }
-      className="group rounded-2xl border border-white/10 bg-black/25 open:border-cyan-400/20 open:bg-white/[0.05]"
-    >
-      <summary className="flex cursor-pointer list-none items-start justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-            {title}
-          </p>
-          {subtitle ? (
-            <p className="mt-1.5 text-[13px] leading-6 text-slate-300">
-              {subtitle}
-            </p>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {badge ? (
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
-              {badge}
-            </span>
-          ) : null}
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-400 transition group-open:-rotate-180">
-            ↓
-          </span>
-        </div>
-      </summary>
-      <div className="border-t border-white/10 px-4 py-3">{children}</div>
-    </details>
-  );
-}
-
-function readNumberField(source: Record<string, unknown> | null, key: string) {
-  const value = source?.[key];
-  return typeof value === "number" ? value : null;
-}
-
-function formatCacheMode(mode: AgentCacheMode | undefined) {
-  switch (mode) {
-    case "exact":
-      return "exact";
-    case "semantic":
-      return "semantic";
-    default:
-      return "";
-  }
-}
-
-function formatConnectionStageLabel(stageId: AgentConnectionCheckStage["id"]) {
-  switch (stageId) {
-    case "models":
-      return "models";
-    case "chat":
-      return "chat";
-    case "tool_calls":
-      return "tool calls";
-    default:
-      return stageId;
-  }
-}
-
-function formatGroundedVerdictLabel(
-  verification: AgentGroundedVerification | undefined,
-  labels: {
-    grounded: string;
-    weaklyGrounded: string;
-    unsupported: string;
-    notApplicable: string;
-  },
-) {
-  switch (verification?.verdict) {
-    case "grounded":
-      return labels.grounded;
-    case "weakly-grounded":
-      return labels.weaklyGrounded;
-    case "unsupported":
-      return labels.unsupported;
-    case "not-applicable":
-    default:
-      return labels.notApplicable;
-  }
-}
-
-function formatGroundedFallbackReason(
-  reason: AgentGroundedVerification["fallbackReason"] | undefined,
-  labels: {
-    noEvidence: string;
-    lowConfidence: string;
-    missingCitations: string;
-    unsupportedClaims: string;
-  },
-) {
-  switch (reason) {
-    case "no-evidence":
-      return labels.noEvidence;
-    case "low-confidence":
-      return labels.lowConfidence;
-    case "missing-citations":
-      return labels.missingCitations;
-    case "unsupported-claims":
-      return labels.unsupportedClaims;
-    default:
-      return "";
-  }
-}
-
-function formatGroundedNote(
-  note: string,
-  labels: {
-    retrievalDisabled: string;
-    noEvidence: string;
-    unsupportedCitations: string;
-    missingCitations: string;
-    lowConfidence: string;
-    weakOverlap: string;
-  },
-) {
-  switch (note) {
-    case "retrieval-disabled":
-      return labels.retrievalDisabled;
-    case "no-evidence":
-      return labels.noEvidence;
-    case "unsupported-citations":
-      return labels.unsupportedCitations;
-    case "missing-citations":
-      return labels.missingCitations;
-    case "low-confidence":
-      return labels.lowConfidence;
-    case "weak-overlap":
-      return labels.weakOverlap;
-    default:
-      return note;
-  }
-}
-
-function formatLocalFallbackReason(
-  reason: string | undefined,
-  labels: {
-    loading: string;
-    health: string;
-    empty: string;
-    failure: string;
-    simple: string;
-  },
-) {
-  switch (reason) {
-    case "primary-local-still-loading":
-      return labels.loading;
-    case "primary-local-health-warning":
-      return labels.health;
-    case "empty-visible-answer":
-      return labels.empty;
-    case "primary-local-failure":
-      return labels.failure;
-    case "simple-local-route":
-      return labels.simple;
-    default:
-      return reason || "";
-  }
-}
-
-function formatTargetModelVersion(
-  modelDefault: string,
-  thinkingModelDefault?: string,
-) {
-  if (thinkingModelDefault && thinkingModelDefault !== modelDefault) {
-    return `${modelDefault} · Thinking ${thinkingModelDefault}`;
-  }
-  return modelDefault;
-}
-
-function getConnectionStageBadgeClass(ok: boolean) {
-  return ok
-    ? "bg-emerald-400/15 text-emerald-200"
-    : "bg-rose-400/15 text-rose-200";
-}
-
-function buildConnectionCheckNarrative(
-  check: AgentConnectionCheckResponse,
-  labels: {
-    title: string;
-    overall: string;
-    model: string;
-    endpoint: string;
-    ok: string;
-    failed: string;
-  },
-) {
-  const lines = [
-    `${labels.title}: ${check.targetLabel}`,
-    `${labels.overall}: ${check.ok ? labels.ok : labels.failed}`,
-    `${labels.model}: ${check.resolvedModel}`,
-    `${labels.endpoint}: ${check.resolvedBaseUrl}`,
-    "",
-    ...check.stages.map(
-      (stage) =>
-        `- ${formatConnectionStageLabel(stage.id)}: ${stage.ok ? labels.ok : labels.failed} · ${stage.latencyMs} ms · ${stage.summary}`,
-    ),
-  ];
-  return lines.join("\n");
-}
-
-function buildTurnMarkdownLines(turns: AgentTurn[]) {
-  const lines: string[] = [];
-  for (const turn of turns) {
-    lines.push(`## ${turn.targetLabel} · ${turn.providerLabel}`);
-    lines.push("");
-    lines.push(`- Resolved model: ${turn.resolvedModel}`);
-    lines.push(`- Resolved endpoint: ${turn.resolvedBaseUrl}`);
-    if (turn.providerProfile) {
-      lines.push(`- Provider profile used: ${turn.providerProfile}`);
-    }
-    if (turn.thinkingMode) {
-      lines.push(`- Thinking mode used: ${turn.thinkingMode}`);
-    }
-    if (turn.localFallbackUsed) {
-      lines.push(`- Local fallback used: yes`);
-      if (turn.localFallbackTargetLabel) {
-        lines.push(`- Fallback target: ${turn.localFallbackTargetLabel}`);
-      }
-      if (turn.localFallbackReason) {
-        lines.push(`- Fallback reason: ${turn.localFallbackReason}`);
-      }
-    }
-    if (turn.retrieval) {
-      lines.push(`- Retrieval hits: ${turn.retrieval.hitCount}`);
-      lines.push(
-        `- Retrieval confidence: ${turn.retrieval.lowConfidence ? "low" : "ok"}`,
-      );
-    }
-    if (turn.verification) {
-      lines.push(`- Grounded verdict: ${turn.verification.verdict}`);
-      lines.push(
-        `- Fallback applied: ${turn.verification.fallbackApplied ? "yes" : "no"}`,
-      );
-      lines.push(`- Citation count: ${turn.verification.citedLabels.length}`);
-    }
-    if (turn.cacheHit) {
-      lines.push(
-        `- Cache hit: yes${turn.cacheMode ? ` (${turn.cacheMode})` : ""}`,
-      );
-    }
-    if (turn.plannerSteps?.length) {
-      lines.push(`- Planner steps: ${turn.plannerSteps.length}`);
-    }
-    if (
-      turn.providerProfile ||
-      turn.thinkingMode ||
-      turn.localFallbackUsed ||
-      turn.retrieval ||
-      turn.verification
-    ) {
-      lines.push("");
-    }
-    lines.push("### User");
-    lines.push("");
-    lines.push("```text");
-    lines.push(turn.displayPrompt || turn.prompt);
-    lines.push("```");
-    lines.push("");
-
-    if (turn.toolRuns.length) {
-      lines.push("### Tool Runs");
-      lines.push("");
-      turn.toolRuns.forEach((toolRun, index) => {
-        lines.push(`#### ${index + 1}. ${toolRun.name}`);
-        lines.push("");
-        lines.push("Input:");
-        lines.push("```json");
-        lines.push(JSON.stringify(toolRun.input, null, 2));
-        lines.push("```");
-        lines.push("");
-        lines.push("Output:");
-        lines.push("```text");
-        lines.push(toolRun.output);
-        lines.push("```");
-        lines.push("");
-      });
-    }
-
-    if (turn.retrieval?.results.length) {
-      lines.push("### Retrieval");
-      lines.push("");
-      turn.retrieval.results.forEach((result) => {
-        lines.push(
-          `- ${result.citationLabel} ${result.title}${
-            result.sectionPath.length
-              ? ` > ${result.sectionPath.join(" > ")}`
-              : ""
-          }${result.source ? ` · ${result.source}` : ""} · score ${result.score.toFixed(2)}`,
-        );
-      });
-      lines.push("");
-    }
-
-    if (turn.verification) {
-      lines.push("### Grounded Verification");
-      lines.push("");
-      lines.push(`- Verdict: ${turn.verification.verdict}`);
-      lines.push(
-        `- Fallback applied: ${turn.verification.fallbackApplied ? "yes" : "no"}`,
-      );
-      lines.push(
-        `- Lexical grounding score: ${turn.verification.lexicalGroundingScore}`,
-      );
-      if (turn.verification.fallbackReason) {
-        lines.push(`- Fallback reason: ${turn.verification.fallbackReason}`);
-      }
-      if (turn.verification.citedLabels.length) {
-        lines.push(
-          `- Cited labels: ${turn.verification.citedLabels.join(", ")}`,
-        );
-      }
-      if (turn.verification.unsupportedLabels.length) {
-        lines.push(
-          `- Unsupported labels: ${turn.verification.unsupportedLabels.join(", ")}`,
-        );
-      }
-      if (turn.verification.notes.length) {
-        lines.push("- Notes:");
-        turn.verification.notes.forEach((note) => lines.push(`  - ${note}`));
-      }
-    }
-    if (turn.plannerSteps?.length) {
-      lines.push("", "### Planner", "");
-      turn.plannerSteps.forEach((step, index) =>
-        lines.push(`${index + 1}. ${step}`),
-      );
-    }
-    if (turn.memorySummary) {
-      lines.push("", "### Memory", "", turn.memorySummary);
-    }
-    lines.push("### Assistant");
-    lines.push("");
-    lines.push("```text");
-    lines.push(turn.response);
-    lines.push("```");
-    lines.push("");
-  }
-
-  return lines;
-}
-
-function serializeTurnsAsMarkdown(turns: AgentTurn[]) {
-  const lines: string[] = [
-    "# Agent Transcript",
-    "",
-    `Generated: ${new Date().toISOString()}`,
-    "Export schema: 0.2.1",
-    "",
-  ];
-  lines.push(...buildTurnMarkdownLines(turns));
-
-  return lines.join("\n");
-}
-
-function serializeSessionsAsMarkdown(sessions: StoredAgentSession[]) {
-  const lines: string[] = [
-    "# Agent Sessions",
-    "",
-    `Generated: ${new Date().toISOString()}`,
-    "Export schema: 0.2.1",
-    "",
-  ];
-  for (const session of sessions) {
-    lines.push(`## ${session.title}`);
-    lines.push("");
-    lines.push(`- Target: ${session.selectedTargetId}`);
-    lines.push(`- Updated: ${session.updatedAt}`);
-    lines.push(`- Context window: ${session.contextWindow}`);
-    lines.push(`- Tools: ${session.enableTools ? "enabled" : "disabled"}`);
-    lines.push(
-      `- Retrieval: ${session.enableRetrieval ? "enabled" : "disabled"}`,
-    );
-    lines.push(`- Provider profile: ${session.providerProfile}`);
-    lines.push(`- Thinking mode: ${session.thinkingMode}`);
-    lines.push(`- Pinned: ${session.pinned ? "yes" : "no"}`);
-    lines.push("");
-    lines.push(...buildTurnMarkdownLines(session.turns));
-    lines.push("");
-  }
-  return lines.join("\n");
-}
-
 function formatContextWindowLabel(value?: number | null) {
   if (typeof value !== "number" || Number.isNaN(value)) return "--";
   return value >= 1024 ? `${Math.round(value / 1024)}K` : `${value}`;
-}
-
-function getHealthBadge(check: AgentConnectionCheckResponse | null) {
-  if (!check) {
-    return {
-      label: "unknown",
-      className: "bg-white/5 text-slate-300",
-    };
-  }
-
-  if (check.ok) {
-    return {
-      label: "healthy",
-      className: "bg-emerald-400/15 text-emerald-200",
-    };
-  }
-
-  const hasChatFailure = check.stages.some(
-    (stage) => !stage.ok && stage.id !== "models",
-  );
-  return {
-    label: hasChatFailure ? "degraded" : "warning",
-    className: hasChatFailure
-      ? "bg-rose-400/15 text-rose-200"
-      : "bg-amber-400/15 text-amber-200",
-  };
-}
-
-function getLoadRiskBadge(target: AgentTarget, locale: string) {
-  if (target.execution !== "local" || !target.loadGuardrailLevel) {
-    return null;
-  }
-
-  if (target.loadGuardrailLevel === "blocked") {
-    return {
-      label: locale.startsWith("en") ? "Blocked load" : "阻止加载",
-      className: "bg-rose-400/15 text-rose-200 border border-rose-400/20",
-    };
-  }
-
-  if (target.loadGuardrailLevel === "caution") {
-    return {
-      label: locale.startsWith("en") ? "Use with care" : "谨慎加载",
-      className: "bg-amber-400/15 text-amber-200 border border-amber-400/20",
-    };
-  }
-
-  return {
-    label: locale.startsWith("en") ? "Recommended" : "建议加载",
-    className:
-      "bg-emerald-400/15 text-emerald-200 border border-emerald-400/20",
-  };
 }
 
 export function AgentWorkbench({
@@ -1067,11 +134,20 @@ export function AgentWorkbench({
   const agentTargets = availableTargets;
   const [sessionId, setSessionId] = useState<string>(() => crypto.randomUUID());
   const [savedSessions, setSavedSessions] = useState<StoredAgentSession[]>([]);
-  const [sessionSearch, setSessionSearch] = useState("");
-  const [sessionTargetFilter, setSessionTargetFilter] = useState("all");
-  const [sessionExportScope, setSessionExportScope] = useState<
-    "visible" | "pinned"
-  >("visible");
+  const {
+    getCodeOpen,
+    setGetCodeOpen,
+    getCodeLanguage,
+    setGetCodeLanguage,
+    runtimeRailCollapsed,
+    setRuntimeRailCollapsed,
+    sessionSearch,
+    setSessionSearch,
+    sessionTargetFilter,
+    setSessionTargetFilter,
+    sessionExportScope,
+    setSessionExportScope,
+  } = useAgentWorkbenchShellState();
   const [selectedTargetId, setSelectedTargetId] = useState("anthropic-claude");
   const [workbenchMode, setWorkbenchMode] =
     useState<AgentWorkbenchMode>(initialMode);
@@ -1083,13 +159,8 @@ export function AgentWorkbench({
     benchmarkState: compareBenchmarkState,
     recipeState: compareRecipeState,
   } = useCompareWorkbenchStateModel({ locale });
-  const [getCodeOpen, setGetCodeOpen] = useState(false);
-  const [getCodeLanguage, setGetCodeLanguage] =
-    useState<AgentReproduceLanguage>("curl");
-  const [runtimeRailCollapsed, setRuntimeRailCollapsed] = useState(true);
   const {
     compareTargetIds,
-    setCompareTargetIds,
   } = compareTargetState;
   const {
     compareIntent,
@@ -1130,51 +201,70 @@ export function AgentWorkbench({
     useState<AgentThinkingMode>("standard");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [runtimeStatus, setRuntimeStatus] = useState<AgentRuntimeStatus | null>(
-    null,
-  );
-  const [runtimeLastSwitchMsByTarget, setRuntimeLastSwitchMsByTarget] =
-    useState<Record<string, number | null>>({});
-  const [runtimeLastSwitchAtByTarget, setRuntimeLastSwitchAtByTarget] =
-    useState<Record<string, string | null>>({});
-  const [prewarmPending, setPrewarmPending] = useState(false);
-  const [prewarmAllPending, setPrewarmAllPending] = useState(false);
-  const [prewarmMessage, setPrewarmMessage] = useState("");
-  const [runtimeActionPending, setRuntimeActionPending] = useState<
-    "" | "release" | "restart" | "read_log"
-  >("");
-  const [runtimeLogExcerpt, setRuntimeLogExcerpt] = useState("");
+  const {
+    runtimeStatus,
+    setRuntimeStatus,
+    runtimeLastSwitchMsByTarget,
+    setRuntimeLastSwitchMsByTarget,
+    runtimeLastSwitchAtByTarget,
+    setRuntimeLastSwitchAtByTarget,
+    prewarmPending,
+    setPrewarmPending,
+    prewarmAllPending,
+    setPrewarmAllPending,
+    prewarmMessage,
+    setPrewarmMessage,
+    runtimeActionPending,
+    setRuntimeActionPending,
+    runtimeLogExcerpt,
+    setRuntimeLogExcerpt,
+    runtimeRequestInFlightRef,
+  } = useAgentRuntimeShellState();
   const [expandedCitationKey, setExpandedCitationKey] = useState("");
   const [expandedTraceTurnId, setExpandedTraceTurnId] = useState("");
   const [expandedReviewFileKey, setExpandedReviewFileKey] = useState("");
-  const [openWorkspaceFilePath, setOpenWorkspaceFilePath] = useState("");
-  const [focusedWorkspaceFilePath, setFocusedWorkspaceFilePath] = useState("");
-  const [workspaceFileFocusState, setWorkspaceFileFocusState] =
-    useState<WorkspaceFileFocusState | null>(null);
-  const [workspaceFileViews, setWorkspaceFileViews] = useState<
-    Record<string, WorkspaceFileView>
-  >({});
-  const [replayTargetMode, setReplayTargetMode] = useState<
-    "original" | "current"
-  >("original");
+  const {
+    openWorkspaceFilePath,
+    focusedWorkspaceFilePath,
+    workspaceFileFocusState,
+    workspaceFileViews,
+    handleStepWorkspaceFileAnchor,
+    handleOpenWorkspaceFile,
+  } = useAgentWorkspaceFileActions();
   const [toolDecisionBusyKey, setToolDecisionBusyKey] = useState("");
   const [toolDecisionStatusByToken, setToolDecisionStatusByToken] = useState<
     Record<string, "approved" | "rejected">
   >({});
-  const [copyState, setCopyState] = useState("");
-  const [transcriptPinnedToBottom, setTranscriptPinnedToBottom] =
-    useState(true);
-  const [unseenTranscriptTurns, setUnseenTranscriptTurns] = useState(0);
-  const [connectionChecksByTargetId, setConnectionChecksByTargetId] = useState<
-    Record<string, AgentConnectionCheckResponse>
-  >({});
-  const [connectionCheckPending, setConnectionCheckPending] = useState(false);
-  const [connectionCheckError, setConnectionCheckError] = useState("");
-  const [scanTargetsPending, setScanTargetsPending] = useState(false);
-  const [scanTargetsMessage, setScanTargetsMessage] = useState("");
-  const [scanTargetsMessageTone, setScanTargetsMessageTone] = useState<
-    "success" | "error"
-  >("success");
+  const {
+    transcriptRef,
+    transcriptPinnedToBottom,
+    setTranscriptPinnedToBottom,
+    unseenTranscriptTurns,
+    setUnseenTranscriptTurns,
+    scrollTranscriptToLatest,
+    handleJumpToLatestTranscript,
+    handleTranscriptScroll,
+  } = useAgentTranscriptShellState({
+    turnCount: turns.length,
+    pending,
+    toolDecisionBusyKey,
+    workbenchMode,
+    sessionId,
+  });
+  const {
+    connectionChecksByTargetId,
+    setConnectionChecksByTargetId,
+    connectionCheckPending,
+    setConnectionCheckPending,
+    connectionCheckError,
+    setConnectionCheckError,
+    scanTargetsPending,
+    setScanTargetsPending,
+    scanTargetsMessage,
+    setScanTargetsMessage,
+    scanTargetsMessageTone,
+    setScanTargetsMessageTone,
+  } = useAgentConnectionShellState();
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [serverSessionSyncState, setServerSessionSyncState] = useState<
     "" | "syncing" | "synced" | "error"
@@ -1184,14 +274,7 @@ export function AgentWorkbench({
   >(null);
   const [sessionSyncConflict, setSessionSyncConflict] =
     useState<AgentWorkbenchSessionConflict | null>(null);
-  const transcriptRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
-  const lastObservedTurnCountRef = useRef(0);
-  const runtimeRequestInFlightRef = useRef(false);
-  const sessionSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const hydrateWorkbenchStateRef = useRef(false);
 
   const loadAvailableTargets = useCallback(async () => {
     try {
@@ -1236,12 +319,7 @@ export function AgentWorkbench({
     if (!agentTargets.some((target) => target.id === selectedTargetId)) {
       setSelectedTargetId(agentTargets[0].id);
     }
-    setCompareTargetIds((current) =>
-      current.filter((targetId) =>
-        agentTargets.some((target) => target.id === targetId),
-      ),
-    );
-  }, [agentTargets, selectedTargetId, setCompareTargetIds]);
+  }, [agentTargets, selectedTargetId]);
   const compareLaneCount = useMemo(
     () =>
       agentTargets.filter((target) => compareTargetIds.includes(target.id))
@@ -1249,22 +327,30 @@ export function AgentWorkbench({
     [agentTargets, compareTargetIds],
   );
   const historyMessages = useMemo(() => flattenTurns(turns), [turns]);
+  const {
+    preferencePort: compareSessionPreferencePort,
+    reproduceRequestArtifacts: compareReproduceRequestArtifacts,
+  } = useEmbeddedCompareSessionAdapter({
+    agentTargets,
+    maxCompareLanes: MAX_COMPARE_LANES,
+    targetState: compareTargetState,
+    promptState: comparePromptState,
+    runState: compareRunState,
+    benchmarkState: compareBenchmarkState,
+    prompt: {
+      input,
+      historyMessages,
+      systemPrompt,
+      contextWindow,
+      enableTools,
+      enableRetrieval,
+      providerProfile,
+      thinkingMode,
+    },
+  });
   const reproduceRequestArtifacts = useMemo(() => {
     return workbenchMode === "compare"
-      ? buildCompareReproduceRequestArtifacts({
-          compareTargetIds,
-          input,
-          historyMessages,
-          systemPrompt,
-          compareIntent,
-          compareOutputShape,
-          contextWindow,
-          enableTools,
-          enableRetrieval,
-          providerProfile,
-          thinkingMode,
-          compareResult,
-        })
+      ? compareReproduceRequestArtifacts
       : buildReproduceRequestArtifacts({
           mode: "chat",
           targetId: selectedTargetId,
@@ -1278,10 +364,7 @@ export function AgentWorkbench({
           thinkingMode,
         });
   }, [
-    compareIntent,
-    compareOutputShape,
-    compareResult,
-    compareTargetIds,
+    compareReproduceRequestArtifacts,
     contextWindow,
     enableRetrieval,
     enableTools,
@@ -1293,45 +376,32 @@ export function AgentWorkbench({
     thinkingMode,
     workbenchMode,
   ]);
-  const validTargetIds = useMemo(
-    () => agentTargets.map((target) => target.id),
-    [agentTargets],
-  );
   const {
-    preferenceInput: comparePreferenceInput,
-    applyStoredPreferenceInput: applyStoredComparePreferenceInput,
-  } = useComparePreferencePersistenceModel({
-    targetState: compareTargetState,
-    promptState: comparePromptState,
-    runState: compareRunState,
-    benchmarkState: compareBenchmarkState,
-    validTargetIds,
-    maxCompareLanes: MAX_COMPARE_LANES,
-  });
-  const runtimePhase = useMemo(
-    () => describeRuntimePhase(runtimeStatus, locale),
-    [runtimeStatus, locale],
+    runtimePhase,
+    runtimeStageItems,
+    loadedAliasForSelectedTarget,
+    gatewayLoadedOtherAlias,
+    runtimeGuardrailBlocked,
+    runtimeGuardrailCaution,
+    selectedTargetLastSwitchMs,
+    selectedTargetLastSwitchAt,
+  } = useMemo(
+    () =>
+      buildAgentRuntimeViewModel({
+        runtimeStatus,
+        locale,
+        selectedTargetId,
+        lastSwitchMsByTarget: runtimeLastSwitchMsByTarget,
+        lastSwitchAtByTarget: runtimeLastSwitchAtByTarget,
+      }),
+    [
+      locale,
+      runtimeLastSwitchAtByTarget,
+      runtimeLastSwitchMsByTarget,
+      runtimeStatus,
+      selectedTargetId,
+    ],
   );
-  const runtimeStageItems = useMemo(
-    () => buildRuntimeStageItems(runtimeStatus, locale),
-    [runtimeStatus, locale],
-  );
-  const loadedAliasForSelectedTarget =
-    runtimeStatus?.loadedAlias === selectedTargetId
-      ? runtimeStatus.loadedAlias
-      : null;
-  const gatewayLoadedOtherAlias =
-    runtimeStatus?.loadedAlias && runtimeStatus.loadedAlias !== selectedTargetId
-      ? runtimeStatus.loadedAlias
-      : null;
-  const runtimeGuardrailBlocked =
-    runtimeStatus?.resourceGuardrailLevel === "blocked";
-  const runtimeGuardrailCaution =
-    runtimeStatus?.resourceGuardrailLevel === "caution";
-  const selectedTargetLastSwitchMs =
-    runtimeLastSwitchMsByTarget[selectedTargetId] ?? null;
-  const selectedTargetLastSwitchAt =
-    runtimeLastSwitchAtByTarget[selectedTargetId] ?? null;
   const lastChatTurn = useMemo(
     () =>
       [...turns]
@@ -1341,67 +411,7 @@ export function AgentWorkbench({
         ),
     [selectedTargetId, turns],
   );
-  const sessionTargetOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(savedSessions.map((session) => session.selectedTargetId)),
-      )
-        .map((targetId) => ({
-          id: targetId,
-          label:
-            agentTargets.find((target) => target.id === targetId)?.label ||
-            targetId,
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label)),
-    [agentTargets, savedSessions],
-  );
-
   const lastTurn = turns[turns.length - 1];
-  const currentSession = useMemo(
-    () => savedSessions.find((session) => session.id === sessionId) || null,
-    [savedSessions, sessionId],
-  );
-  const filteredHistorySessions = useMemo(() => {
-    const normalizedSearch = sessionSearch.trim().toLowerCase();
-    return savedSessions
-      .filter((session) => session.id !== sessionId)
-      .filter((session) =>
-        sessionTargetFilter === "all"
-          ? true
-          : session.selectedTargetId === sessionTargetFilter,
-      )
-      .filter((session) =>
-        normalizedSearch
-          ? session.title.toLowerCase().includes(normalizedSearch) ||
-            session.selectedTargetId.toLowerCase().includes(normalizedSearch)
-          : true,
-      );
-  }, [savedSessions, sessionId, sessionSearch, sessionTargetFilter]);
-  const exportableSessions = useMemo(
-    () =>
-      filterSessionsForExport(savedSessions, {
-        scope: sessionExportScope,
-        sessionTargetFilter,
-        sessionSearch,
-      }),
-    [savedSessions, sessionExportScope, sessionTargetFilter, sessionSearch],
-  );
-  const sessionGroups = useMemo(() => {
-    const groups = new Map<string, StoredAgentSession[]>();
-    for (const session of filteredHistorySessions) {
-      const key = session.selectedTargetId;
-      const current = groups.get(key) || [];
-      current.push(session);
-      groups.set(key, current);
-    }
-    return [...groups.entries()].map(([targetId, sessionsInGroup]) => ({
-      targetId,
-      targetLabel:
-        agentTargets.find((target) => target.id === targetId)?.label ||
-        targetId,
-      sessions: sessionsInGroup,
-    }));
-  }, [agentTargets, filteredHistorySessions]);
   const supportsConnectionCheck =
     selectedTarget.execution === "remote" && Boolean(selectedTarget.apiKeyEnv);
   const connectionCheck = connectionChecksByTargetId[selectedTargetId] || null;
@@ -2236,166 +1246,173 @@ export function AgentWorkbench({
         };
     }
   }, [locale]);
-  const activeSessionTargetLabel = useMemo(
-    () =>
-      sessionTargetFilter === "all"
-        ? uiText.allTargets
-        : sessionTargetOptions.find(
-            (option) => option.id === sessionTargetFilter,
-          )?.label || sessionTargetFilter,
-    [sessionTargetFilter, sessionTargetOptions, uiText.allTargets],
-  );
+  const {
+    replayTargetMode,
+    setReplayTargetMode,
+    copyState,
+    handleCopy,
+  } = useAgentCopyReplayState({
+    copyFailedMessage: uiText.copyFailed,
+    setError,
+  });
+  const {
+    loadRuntimeStatus,
+    handlePrewarm,
+    handlePrewarmAll,
+    handleRuntimeAction,
+  } = useAgentRuntimeActions({
+    agentTargets,
+    selectedTarget,
+    selectedTargetId,
+    thinkingMode,
+    pending,
+    runtimeStatus,
+    setRuntimeStatus,
+    runtimeRequestInFlightRef,
+    prewarmPending,
+    setPrewarmPending,
+    prewarmAllPending,
+    setPrewarmAllPending,
+    setPrewarmMessage,
+    runtimeActionPending,
+    setRuntimeActionPending,
+    setRuntimeLogExcerpt,
+    setRuntimeLastSwitchMsByTarget,
+    setRuntimeLastSwitchAtByTarget,
+    setError,
+    labels: {
+      runtimeFailed: uiText.runtimeFailed,
+      prewarmDone: uiText.prewarmDone,
+      prewarmAllDone: uiText.prewarmAllDone,
+    },
+  });
+  const { handleScanTargets, handleConnectionCheck } =
+    useAgentConnectionActions({
+      locale,
+      selectedTarget,
+      selectedTargetId,
+      pending,
+      supportsConnectionCheck,
+      scanTargetsPending,
+      setScanTargetsPending,
+      setScanTargetsMessage,
+      setScanTargetsMessageTone,
+      connectionCheckPending,
+      setConnectionCheckPending,
+      setConnectionCheckError,
+      setConnectionChecksByTargetId,
+      setAvailableTargets,
+      setTurns,
+      loadRuntimeStatus,
+      labels: {
+        scanFailed: locale.startsWith("en") ? "Scan failed." : "扫描失败。",
+        connectionCheckFailed: uiText.connectionCheckFailed,
+        attentionNeeded: uiText.attentionNeeded,
+        connectionRecord: dictionary.agent.connectionRecord,
+        latest: dictionary.common.latest,
+        model: dictionary.common.model,
+        endpoint: dictionary.common.endpoint,
+        ok: dictionary.common.ok,
+        failed: dictionary.common.failed,
+      },
+    });
+  const {
+    sessionTargetOptions,
+    currentSession,
+    exportableSessions,
+    sessionGroups,
+    activeSessionTargetLabel,
+  } = useAgentSessionSidebarSelectors({
+    savedSessions,
+    sessionId,
+    agentTargets,
+    sessionSearch,
+    sessionTargetFilter,
+    sessionExportScope,
+    allTargetsLabel: uiText.allTargets,
+  });
 
   const restoreSession = useCallback(
     (session: StoredAgentSession) => {
-      setTranscriptPinnedToBottom(true);
-      setSessionId(session.id);
-      setSelectedTargetId(
-        agentTargets.some((target) => target.id === session.selectedTargetId)
-          ? session.selectedTargetId
-          : "anthropic-claude",
-      );
-      setEnableTools(Boolean(session.enableTools));
-      setEnableRetrieval(Boolean(session.enableRetrieval));
-      setContextWindow(
-        CONTEXT_WINDOW_OPTIONS.includes(session.contextWindow)
-          ? session.contextWindow
-          : 32768,
-      );
-      setProviderProfile(
-        PROVIDER_PROFILE_OPTIONS.includes(session.providerProfile)
-          ? session.providerProfile
-          : "balanced",
-      );
-      setThinkingMode(
-        THINKING_MODE_OPTIONS.includes(session.thinkingMode)
-          ? session.thinkingMode
-          : "standard",
-      );
-      setInput(session.input || "");
-      setSystemPrompt(
-        session.systemPrompt || getDefaultSystemPromptForLocale(locale),
-      );
-      setTurns(Array.isArray(session.turns) ? session.turns : []);
-      setConnectionChecksByTargetId(session.connectionChecksByTargetId || {});
-      setError("");
-      setRuntimeLogExcerpt("");
-      setToolDecisionBusyKey("");
-      setToolDecisionStatusByToken({});
+      applyStoredAgentSession({
+        session,
+        agentTargets,
+        locale,
+        contextWindowOptions: CONTEXT_WINDOW_OPTIONS,
+        providerProfileOptions: PROVIDER_PROFILE_OPTIONS,
+        thinkingModeOptions: THINKING_MODE_OPTIONS,
+        setters: {
+          setTranscriptPinnedToBottom,
+          setSessionId,
+          setSelectedTargetId,
+          setEnableTools,
+          setEnableRetrieval,
+          setContextWindow,
+          setProviderProfile,
+          setThinkingMode,
+          setInput,
+          setSystemPrompt,
+          setTurns,
+          setConnectionChecksByTargetId,
+          setError,
+          setRuntimeLogExcerpt,
+          setToolDecisionBusyKey,
+          setToolDecisionStatusByToken,
+        },
+      });
     },
     [agentTargets, locale],
   );
 
   const applyHydratedWorkbenchPreferences = useCallback(
     (preferences: AgentWorkbenchStoredPreferences | null) => {
-      if (!preferences) return;
-      if (
-        typeof preferences.selectedTargetId === "string" &&
-        agentTargets.some(
-          (target) => target.id === preferences.selectedTargetId,
-        )
-      ) {
-        setSelectedTargetId(preferences.selectedTargetId);
-      }
-      if (
-        !forceInitialMode &&
-        (preferences.workbenchMode === "chat" ||
-          preferences.workbenchMode === "compare")
-      ) {
-        setWorkbenchMode(preferences.workbenchMode);
-      }
-      applyStoredComparePreferenceInput(preferences);
-      if (typeof preferences.enableTools === "boolean") {
-        setEnableTools(preferences.enableTools);
-      }
-      if (typeof preferences.enableRetrieval === "boolean") {
-        setEnableRetrieval(preferences.enableRetrieval);
-      }
-      if (
-        typeof preferences.contextWindow === "number" &&
-        CONTEXT_WINDOW_OPTIONS.includes(preferences.contextWindow)
-      ) {
-        setContextWindow(preferences.contextWindow);
-      }
-      if (
-        typeof preferences.providerProfile === "string" &&
-        PROVIDER_PROFILE_OPTIONS.includes(
-          preferences.providerProfile as AgentProviderProfile,
-        )
-      ) {
-        setProviderProfile(preferences.providerProfile as AgentProviderProfile);
-      }
-      if (
-        typeof preferences.thinkingMode === "string" &&
-        THINKING_MODE_OPTIONS.includes(
-          preferences.thinkingMode as AgentThinkingMode,
-        )
-      ) {
-        setThinkingMode(preferences.thinkingMode as AgentThinkingMode);
-      }
+      applyStoredAgentWorkbenchPreferences({
+        preferences,
+        agentTargets,
+        forceInitialMode,
+        contextWindowOptions: CONTEXT_WINDOW_OPTIONS,
+        providerProfileOptions: PROVIDER_PROFILE_OPTIONS,
+        thinkingModeOptions: THINKING_MODE_OPTIONS,
+        compareSessionPreferencePort,
+        setters: {
+          setSelectedTargetId,
+          setWorkbenchMode,
+          setEnableTools,
+          setEnableRetrieval,
+          setContextWindow,
+          setProviderProfile,
+          setThinkingMode,
+        },
+      });
     },
     [
       agentTargets,
-      applyStoredComparePreferenceInput,
+      compareSessionPreferencePort,
       forceInitialMode,
     ],
   );
 
-  const applyServerSessionSnapshot = useCallback(
-    (
-      payload: Partial<AgentWorkbenchSessionSnapshot> & {
-        sessions?: unknown;
-        preferences?: unknown;
-        activeSessionId?: unknown;
-        updatedAt?: unknown;
-      },
-      localSessions: StoredAgentSession[] = savedSessions,
-    ) => {
-      const mergedSessions = mergeStoredSessions(
-        localSessions,
-        normalizeStoredSessions(payload.sessions || []),
-      );
-      const preferredPreferences = normalizeStoredWorkbenchPreferences(
-        payload.preferences,
-      );
-      const activeSessionId =
-        typeof payload.activeSessionId === "string"
-          ? payload.activeSessionId
-          : null;
-      setSavedSessions(mergedSessions);
-      window.localStorage.setItem(
-        SESSIONS_STORAGE_KEY,
-        JSON.stringify(mergedSessions),
-      );
-      if (preferredPreferences) {
-        window.localStorage.setItem(
-          PREFERENCES_STORAGE_KEY,
-          JSON.stringify(preferredPreferences),
-        );
-      }
-      setServerSnapshotUpdatedAt(
-        typeof payload.updatedAt === "string" && payload.updatedAt.trim()
-          ? payload.updatedAt
-          : null,
-      );
-      setSessionSyncConflict(null);
-      applyHydratedWorkbenchPreferences(preferredPreferences);
-      if (mergedSessions.length) {
-        const preferredSession = activeSessionId
-          ? mergedSessions.find((session) => session.id === activeSessionId)
-          : null;
-        restoreSession(preferredSession || mergedSessions[0]);
-      }
-    },
-    [applyHydratedWorkbenchPreferences, restoreSession, savedSessions],
-  );
+  const {
+    handleReloadServerSessionSnapshot,
+  } = useAgentSessionHydration({
+    savedSessions,
+    setSavedSessions,
+    applyHydratedWorkbenchPreferences,
+    restoreSession,
+    setServerSessionSyncState,
+    setServerSnapshotUpdatedAt,
+    setSessionSyncConflict,
+    setRuntimeLastSwitchMsByTarget,
+    setRuntimeLastSwitchAtByTarget,
+    setPreferencesReady,
+  });
 
   function updateSessions(
     updater: (current: StoredAgentSession[]) => StoredAgentSession[],
   ) {
     setSavedSessions((current) => {
       const next = sortSessions(updater(current)).slice(0, MAX_STORED_SESSIONS);
-      window.localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(next));
+      writeLocalAgentSessions(next);
       return next;
     });
   }
@@ -2457,15 +1474,12 @@ export function AgentWorkbench({
     const remaining = savedSessions.filter(
       (item) => item.id !== targetSessionId,
     );
-    window.localStorage.setItem(
-      SESSIONS_STORAGE_KEY,
-      JSON.stringify(sortSessions(remaining)),
-    );
-    setSavedSessions(sortSessions(remaining));
+    const nextSessions = writeLocalAgentSessions(remaining);
+    setSavedSessions(nextSessions);
 
     if (targetSessionId === sessionId) {
-      if (remaining.length) {
-        restoreSession(sortSessions(remaining)[0]);
+      if (nextSessions.length) {
+        restoreSession(nextSessions[0]);
       } else {
         startNewSession();
       }
@@ -2476,15 +1490,12 @@ export function AgentWorkbench({
     const nextSessions =
       mode === "all" ? [] : savedSessions.filter((session) => session.pinned);
 
-    window.localStorage.setItem(
-      SESSIONS_STORAGE_KEY,
-      JSON.stringify(sortSessions(nextSessions)),
-    );
-    setSavedSessions(sortSessions(nextSessions));
+    const persistedSessions = writeLocalAgentSessions(nextSessions);
+    setSavedSessions(persistedSessions);
 
-    if (!nextSessions.some((session) => session.id === sessionId)) {
-      if (nextSessions.length) {
-        restoreSession(nextSessions[0]);
+    if (!persistedSessions.some((session) => session.id === sessionId)) {
+      if (persistedSessions.length) {
+        restoreSession(persistedSessions[0]);
       } else {
         startNewSession();
       }
@@ -2492,11 +1503,7 @@ export function AgentWorkbench({
   }
 
   function handleExportSessions(format: "markdown" | "json") {
-    const sessions = filterSessionsForExport(savedSessions, {
-      scope: sessionExportScope,
-      sessionTargetFilter,
-      sessionSearch,
-    });
+    const sessions = exportableSessions;
     if (!sessions.length) return;
 
     const content =
@@ -2560,1063 +1567,100 @@ export function AgentWorkbench({
     previousLocaleRef.current = locale;
   }, [locale, starterPrompts]);
 
-  useEffect(() => {
-    if (hydrateWorkbenchStateRef.current) return;
-    hydrateWorkbenchStateRef.current = true;
-    let cancelled = false;
-
-    async function hydrateWorkbenchState() {
-      try {
-        const raw = window.localStorage.getItem(PREFERENCES_STORAGE_KEY);
-        const rawSessions = window.localStorage.getItem(SESSIONS_STORAGE_KEY);
-        const localSessions = rawSessions
-          ? normalizeStoredSessions(JSON.parse(rawSessions))
-          : [];
-        const localPreferences = raw
-          ? normalizeStoredWorkbenchPreferences(JSON.parse(raw))
-          : null;
-        let mergedSessions = localSessions;
-        let activeSessionId: string | null = null;
-        let preferredPreferences = localPreferences;
-
-        if (!cancelled && localSessions.length) {
-          setSavedSessions(localSessions);
-        }
-
-        try {
-          const response = await fetch("/api/agent/sessions", {
-            cache: "no-store",
-          });
-          const payload =
-            (await response.json()) as Partial<AgentWorkbenchSessionSnapshot> & {
-              sessions?: unknown;
-              preferences?: unknown;
-              error?: string;
-            };
-          if (!response.ok) {
-            throw new Error(payload.error || "Failed to load server sessions.");
-          }
-          mergedSessions = mergeStoredSessions(
-            localSessions,
-            normalizeStoredSessions(payload.sessions || []),
-          );
-          preferredPreferences =
-            normalizeStoredWorkbenchPreferences(payload.preferences) ||
-            localPreferences;
-          activeSessionId =
-            typeof payload.activeSessionId === "string"
-              ? payload.activeSessionId
-              : null;
-          if (!cancelled) {
-            setServerSnapshotUpdatedAt(
-              typeof payload.updatedAt === "string" ? payload.updatedAt : null,
-            );
-            setSessionSyncConflict(null);
-            setSavedSessions(mergedSessions);
-            window.localStorage.setItem(
-              SESSIONS_STORAGE_KEY,
-              JSON.stringify(mergedSessions),
-            );
-            if (preferredPreferences) {
-              window.localStorage.setItem(
-                PREFERENCES_STORAGE_KEY,
-                JSON.stringify(preferredPreferences),
-              );
-            }
-            setServerSessionSyncState("synced");
-          }
-        } catch {
-          if (!cancelled) {
-            setServerSessionSyncState(
-              localSessions.length || localPreferences ? "error" : "",
-            );
-          }
-        }
-
-        applyHydratedWorkbenchPreferences(preferredPreferences);
-
-        if (mergedSessions.length && !cancelled) {
-          const preferredSession = activeSessionId
-            ? mergedSessions.find((session) => session.id === activeSessionId)
-            : null;
-          restoreSession(preferredSession || mergedSessions[0]);
-        }
-
-        if (typeof window !== "undefined") {
-          const rawRuntimeHistory = window.localStorage.getItem(
-            RUNTIME_SWITCH_HISTORY_STORAGE_KEY,
-          );
-          if (rawRuntimeHistory) {
-            const parsedRuntimeHistory = JSON.parse(
-              rawRuntimeHistory,
-            ) as Record<
-              string,
-              { loadMs?: number | null; switchedAt?: string | null }
-            >;
-            if (
-              parsedRuntimeHistory &&
-              typeof parsedRuntimeHistory === "object"
-            ) {
-              const nextLoadMs: Record<string, number | null> = {};
-              const nextSwitchedAt: Record<string, string | null> = {};
-              for (const [targetId, entry] of Object.entries(
-                parsedRuntimeHistory,
-              )) {
-                nextLoadMs[targetId] =
-                  typeof entry?.loadMs === "number" &&
-                  Number.isFinite(entry.loadMs)
-                    ? entry.loadMs
-                    : null;
-                nextSwitchedAt[targetId] =
-                  typeof entry?.switchedAt === "string"
-                    ? entry.switchedAt
-                    : null;
-              }
-              if (!cancelled) {
-                setRuntimeLastSwitchMsByTarget(nextLoadMs);
-                setRuntimeLastSwitchAtByTarget(nextSwitchedAt);
-              }
-            }
-          }
-        }
-      } catch {
-        // Ignore invalid local state and fall back to defaults.
-      } finally {
-        if (!cancelled) {
-          setPreferencesReady(true);
-        }
-      }
-    }
-
-    void hydrateWorkbenchState();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    agentTargets,
-    applyHydratedWorkbenchPreferences,
-    locale,
-    restoreSession,
-  ]);
-
-  useEffect(() => {
-    if (!preferencesReady) return;
-    const nextPreferences = buildStoredWorkbenchPreferences({
+  const agentSessionPreferenceState = useMemo(
+    () => ({
       selectedTargetId,
       workbenchMode,
-      comparePreferences: comparePreferenceInput,
+      compareSessionPreferencePort,
       enableTools,
       enableRetrieval,
       contextWindow,
       providerProfile,
       thinkingMode,
-    });
-    window.localStorage.setItem(
-      PREFERENCES_STORAGE_KEY,
-      JSON.stringify(nextPreferences),
-    );
-  }, [
-    comparePreferenceInput,
-    contextWindow,
-    enableRetrieval,
-    enableTools,
-    preferencesReady,
-    providerProfile,
-    selectedTargetId,
-    thinkingMode,
-    workbenchMode,
-  ]);
-
-  useEffect(() => {
-    if (!preferencesReady) return;
-    const hasSessionContent =
-      turns.length > 0 ||
-      Boolean(input.trim()) ||
-      Object.keys(connectionChecksByTargetId).length > 0;
-
-    setSavedSessions((current) => {
-      const existingSession =
-        current.find((session) => session.id === sessionId) || null;
-      if (
-        !hasSessionContent &&
-        !current.some((session) => session.id === sessionId)
-      ) {
-        return current;
-      }
-      const nextSession: StoredAgentSession = {
-        id: sessionId,
-        title:
-          existingSession?.title ||
-          createSessionTitle(turns, input.trim() || uiText.newSession),
-        updatedAt: new Date().toISOString(),
-        pinned: existingSession?.pinned || false,
-        selectedTargetId,
-        enableTools,
-        enableRetrieval,
-        contextWindow,
-        providerProfile,
-        thinkingMode,
-        input,
-        systemPrompt,
-        turns,
-        connectionChecksByTargetId,
-      };
-      const merged = sortSessions([
-        nextSession,
-        ...current.filter((session) => session.id !== sessionId),
-      ]).slice(0, MAX_STORED_SESSIONS);
-      window.localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(merged));
-      return merged;
-    });
-  }, [
-    connectionChecksByTargetId,
-    contextWindow,
-    enableRetrieval,
-    enableTools,
-    input,
-    preferencesReady,
-    providerProfile,
-    selectedTargetId,
-    sessionId,
-    systemPrompt,
-    thinkingMode,
-    turns,
-    uiText,
-  ]);
-
-  useEffect(() => {
-    if (!preferencesReady) return;
-    if (sessionSyncTimeoutRef.current) {
-      clearTimeout(sessionSyncTimeoutRef.current);
-    }
-    sessionSyncTimeoutRef.current = setTimeout(async () => {
-      setServerSessionSyncState("syncing");
-      try {
-        const preferences = buildStoredWorkbenchPreferences({
-          selectedTargetId,
-          workbenchMode,
-          comparePreferences: comparePreferenceInput,
-          enableTools,
-          enableRetrieval,
-          contextWindow,
-          providerProfile,
-          thinkingMode,
-        });
-        const response = await fetch("/api/agent/sessions", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            activeSessionId: sessionId,
-            baseUpdatedAt: serverSnapshotUpdatedAt,
-            force: false,
-            preferences,
-            sessions: savedSessions,
-          }),
-        });
-        const payload =
-          (await response.json()) as Partial<AgentWorkbenchSessionSnapshot> & {
-            error?: string;
-            conflict?: AgentWorkbenchSessionConflict;
-          };
-        if (response.status === 409 && payload.conflict) {
-          setSessionSyncConflict(payload.conflict);
-          setServerSnapshotUpdatedAt(
-            typeof payload.updatedAt === "string"
-              ? payload.updatedAt
-              : serverSnapshotUpdatedAt,
-          );
-          setServerSessionSyncState("error");
-          return;
-        }
-        if (!response.ok) {
-          throw new Error(payload.error || "Failed to sync server sessions.");
-        }
-        setSessionSyncConflict(null);
-        setServerSnapshotUpdatedAt(
-          typeof payload.updatedAt === "string"
-            ? payload.updatedAt
-            : new Date().toISOString(),
-        );
-        setServerSessionSyncState("synced");
-      } catch {
-        setServerSessionSyncState("error");
-      }
-    }, SERVER_SESSION_SYNC_DEBOUNCE_MS);
-
-    return () => {
-      if (sessionSyncTimeoutRef.current) {
-        clearTimeout(sessionSyncTimeoutRef.current);
-        sessionSyncTimeoutRef.current = null;
-      }
-    };
-  }, [
-    comparePreferenceInput,
-    contextWindow,
-    enableRetrieval,
-    enableTools,
-    preferencesReady,
-    providerProfile,
-    savedSessions,
-    selectedTargetId,
-    sessionId,
-    serverSnapshotUpdatedAt,
-    thinkingMode,
-    workbenchMode,
-  ]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const targetIds = new Set([
-      ...Object.keys(runtimeLastSwitchMsByTarget),
-      ...Object.keys(runtimeLastSwitchAtByTarget),
-    ]);
-    const payload: Record<string, RuntimeSwitchHistoryEntry> = {};
-    targetIds.forEach((targetId) => {
-      payload[targetId] = {
-        loadMs: runtimeLastSwitchMsByTarget[targetId] ?? null,
-        switchedAt: runtimeLastSwitchAtByTarget[targetId] ?? null,
-      };
-    });
-    window.localStorage.setItem(
-      RUNTIME_SWITCH_HISTORY_STORAGE_KEY,
-      JSON.stringify(payload),
-    );
-  }, [runtimeLastSwitchAtByTarget, runtimeLastSwitchMsByTarget]);
-
-  const scrollTranscriptToLatest = useCallback(
-    (behavior: ScrollBehavior = "auto") => {
-      const node = transcriptRef.current;
-      if (!node) return;
-      node.scrollTo({ top: node.scrollHeight, behavior });
-    },
-    [],
-  );
-
-  const handleReloadServerSessionSnapshot = useCallback(async () => {
-    try {
-      const response = await fetch("/api/agent/sessions", {
-        cache: "no-store",
-      });
-      const payload =
-        (await response.json()) as Partial<AgentWorkbenchSessionSnapshot> & {
-          error?: string;
-        };
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to load server sessions.");
-      }
-      applyServerSessionSnapshot(payload, []);
-      setServerSessionSyncState("synced");
-    } catch {
-      setServerSessionSyncState("error");
-    }
-  }, [applyServerSessionSnapshot]);
-
-  const handleForceOverwriteServerSessionSnapshot = useCallback(async () => {
-    try {
-      const preferences = buildStoredWorkbenchPreferences({
-        selectedTargetId,
-        workbenchMode,
-        comparePreferences: comparePreferenceInput,
-        enableTools,
-        enableRetrieval,
-        contextWindow,
-        providerProfile,
-        thinkingMode,
-      });
-      const response = await fetch("/api/agent/sessions", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          activeSessionId: sessionId,
-          baseUpdatedAt: serverSnapshotUpdatedAt,
-          force: true,
-          preferences,
-          sessions: savedSessions,
-        }),
-      });
-      const payload = (await response.json()) as {
-        updatedAt?: string;
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(
-          payload.error || "Failed to overwrite server sessions.",
-        );
-      }
-      setSessionSyncConflict(null);
-      setServerSnapshotUpdatedAt(
-        typeof payload.updatedAt === "string"
-          ? payload.updatedAt
-          : new Date().toISOString(),
-      );
-      setServerSessionSyncState("synced");
-    } catch {
-      setServerSessionSyncState("error");
-    }
-  }, [
-    comparePreferenceInput,
-    contextWindow,
-    enableRetrieval,
-    enableTools,
-    providerProfile,
-    savedSessions,
-    selectedTargetId,
-    serverSnapshotUpdatedAt,
-    sessionId,
-    thinkingMode,
-    workbenchMode,
-  ]);
-
-  const handleJumpToLatestTranscript = useCallback(() => {
-    setTranscriptPinnedToBottom(true);
-    setUnseenTranscriptTurns(0);
-    scrollTranscriptToLatest("smooth");
-  }, [scrollTranscriptToLatest]);
-
-  const updateTranscriptPinnedState = useCallback(() => {
-    const node = transcriptRef.current;
-    if (!node) return;
-    const distanceFromBottom =
-      node.scrollHeight - node.scrollTop - node.clientHeight;
-    setTranscriptPinnedToBottom(
-      distanceFromBottom <= TRANSCRIPT_BOTTOM_THRESHOLD_PX,
-    );
-  }, []);
-
-  const handleTranscriptScroll = useCallback(() => {
-    updateTranscriptPinnedState();
-  }, [updateTranscriptPinnedState]);
-
-  useEffect(() => {
-    if (workbenchMode !== "chat") return;
-    if (!transcriptPinnedToBottom) return;
-    setUnseenTranscriptTurns(0);
-    const rafId = window.requestAnimationFrame(() => {
-      scrollTranscriptToLatest("auto");
-    });
-    return () => window.cancelAnimationFrame(rafId);
-  }, [
-    turns,
-    pending,
-    toolDecisionBusyKey,
-    transcriptPinnedToBottom,
-    workbenchMode,
-    scrollTranscriptToLatest,
-  ]);
-
-  useEffect(() => {
-    if (workbenchMode !== "chat") return;
-    const rafId = window.requestAnimationFrame(() => {
-      scrollTranscriptToLatest("auto");
-      setTranscriptPinnedToBottom(true);
-      setUnseenTranscriptTurns(0);
-    });
-    return () => window.cancelAnimationFrame(rafId);
-  }, [sessionId, workbenchMode, scrollTranscriptToLatest]);
-
-  useEffect(() => {
-    if (workbenchMode !== "chat") {
-      lastObservedTurnCountRef.current = turns.length;
-      setUnseenTranscriptTurns(0);
-      return;
-    }
-    const previousTurnCount = lastObservedTurnCountRef.current;
-    if (!transcriptPinnedToBottom && turns.length > previousTurnCount) {
-      setUnseenTranscriptTurns(
-        (current) => current + (turns.length - previousTurnCount),
-      );
-    }
-    if (transcriptPinnedToBottom && unseenTranscriptTurns !== 0) {
-      setUnseenTranscriptTurns(0);
-    }
-    lastObservedTurnCountRef.current = turns.length;
-  }, [
-    turns.length,
-    transcriptPinnedToBottom,
-    unseenTranscriptTurns,
-    workbenchMode,
-  ]);
-
-  useEffect(() => {
-    if (!copyState) return;
-    const timer = window.setTimeout(() => setCopyState(""), 1200);
-    return () => window.clearTimeout(timer);
-  }, [copyState]);
-
-  useEffect(() => {
-    if (!scanTargetsMessage) return;
-    const timer = window.setTimeout(() => setScanTargetsMessage(""), 5000);
-    return () => window.clearTimeout(timer);
-  }, [scanTargetsMessage]);
-
-  const loadRuntimeStatus = useCallback(
-    async (
-      currentTargetId = selectedTargetId,
-      options?: { force?: boolean },
-    ) => {
-      const target =
-        agentTargets.find((item) => item.id === currentTargetId) ||
-        selectedTarget;
-
-      if (runtimeRequestInFlightRef.current && !options?.force) {
-        return;
-      }
-
-      runtimeRequestInFlightRef.current = true;
-
-      try {
-        const query = new URLSearchParams({
-          targetId: currentTargetId,
-          thinkingMode,
-        });
-        const response = await fetch(`/api/agent/runtime?${query.toString()}`, {
-          cache: "no-store",
-        });
-        const data = (await response.json()) as AgentRuntimeStatus & {
-          error?: string;
-        };
-        if (!response.ok) {
-          setRuntimeStatus({
-            targetId: currentTargetId,
-            targetLabel: target.label,
-            execution: target.execution,
-            available: false,
-            message: data.error || uiText.runtimeFailed,
-          });
-          return;
-        }
-        setRuntimeStatus(data);
-      } catch (runtimeError) {
-        setRuntimeStatus({
-          targetId: currentTargetId,
-          targetLabel: target.label,
-          execution: target.execution,
-          available: false,
-          message:
-            runtimeError instanceof Error
-              ? runtimeError.message
-              : uiText.runtimeFailed,
-        });
-      } finally {
-        runtimeRequestInFlightRef.current = false;
-      }
-    },
+    }),
     [
-      agentTargets,
-      selectedTarget,
+      compareSessionPreferencePort,
+      contextWindow,
+      enableRetrieval,
+      enableTools,
+      providerProfile,
       selectedTargetId,
       thinkingMode,
-      uiText.runtimeFailed,
+      workbenchMode,
     ],
   );
 
-  const handleScanTargets = useCallback(async () => {
-    if (scanTargetsPending) return;
+  const agentActiveSessionState = useMemo(
+    () => ({
+      sessionId,
+      input,
+      systemPrompt,
+      turns,
+      connectionChecksByTargetId,
+    }),
+    [connectionChecksByTargetId, input, sessionId, systemPrompt, turns],
+  );
 
-    setScanTargetsPending(true);
-    setScanTargetsMessage("");
-    setConnectionCheckError("");
-
-    try {
-      const response = await fetch("/api/agent/targets", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      });
-      const payload = (await response.json()) as AgentTargetsScanResponse;
-      if (!response.ok || !payload.ok) {
-        throw new Error(
-          payload.error ||
-            (locale.startsWith("en") ? "Scan failed." : "扫描失败。"),
-        );
-      }
-
-      if (Array.isArray(payload.targets) && payload.targets.length) {
-        setAvailableTargets(payload.targets);
-      }
-      if (payload.remoteChecks && typeof payload.remoteChecks === "object") {
-        setConnectionChecksByTargetId((current) => ({
-          ...current,
-          ...payload.remoteChecks,
-        }));
-      }
-
-      const summary = payload.summary;
-      const localAdded = summary?.localNewTargetIds.length || 0;
-      const localRemoved = summary?.localRemovedTargetIds.length || 0;
-      const remoteHealthy = summary?.remoteHealthyCount || 0;
-      const remoteConfigured = summary?.remoteConfiguredCount || 0;
-      const remoteSkipped = summary?.remoteSkippedTargetIds.length || 0;
-
-      setScanTargetsMessageTone("success");
-      setScanTargetsMessage(
-        locale.startsWith("en")
-          ? `Scan complete. Local +${localAdded}${localRemoved ? ` / -${localRemoved}` : ""}; remote APIs healthy ${remoteHealthy}/${remoteConfigured}${remoteSkipped ? `, skipped ${remoteSkipped}` : ""}.`
-          : `扫描完成。本地新增 ${localAdded} 个${localRemoved ? `、移除 ${localRemoved} 个` : ""}；远端 API 健康 ${remoteHealthy}/${remoteConfigured}${remoteSkipped ? `，跳过 ${remoteSkipped} 个` : ""}。`,
-      );
-      await loadRuntimeStatus(selectedTargetId, { force: true });
-    } catch (scanError) {
-      setScanTargetsMessageTone("error");
-      setScanTargetsMessage(
-        scanError instanceof Error
-          ? scanError.message
-          : locale.startsWith("en")
-            ? "Scan failed."
-            : "扫描失败。",
-      );
-    } finally {
-      setScanTargetsPending(false);
-    }
-  }, [loadRuntimeStatus, locale, scanTargetsPending, selectedTargetId]);
+  const {
+    handleForceOverwriteServerSessionSnapshot,
+  } = useAgentSessionServerSync({
+    preferencesReady,
+    preferenceState: agentSessionPreferenceState,
+    activeSessionState: agentActiveSessionState,
+    savedSessions,
+    setSavedSessions,
+    serverSnapshotUpdatedAt,
+    setServerSnapshotUpdatedAt,
+    setServerSessionSyncState,
+    setSessionSyncConflict,
+    newSessionTitle: uiText.newSession,
+  });
 
   useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof setInterval> | null = null;
+    writeRuntimeSwitchHistory({
+      runtimeLastSwitchMsByTarget,
+      runtimeLastSwitchAtByTarget,
+    });
+  }, [runtimeLastSwitchAtByTarget, runtimeLastSwitchMsByTarget]);
 
-    void loadRuntimeStatus(selectedTargetId, { force: true });
-    if (selectedTarget.execution === "local") {
-      timer = setInterval(
-        () => {
-          if (!cancelled && !document.hidden) {
-            void loadRuntimeStatus(selectedTargetId);
-          }
-        },
-        pending ? 6000 : 12000,
-      );
-    }
-
-    return () => {
-      cancelled = true;
-      if (timer) clearInterval(timer);
-    };
-  }, [
-    loadRuntimeStatus,
-    pending,
-    selectedTarget.execution,
-    selectedTarget.label,
+  const {
+    runPrompt,
+    handleSubmit,
+    handlePrepareReplayTurn,
+    handleReplayTurn,
+    handleResumeAgent,
+    handleComposerKeyDown,
+    handleToolDecision,
+  } = useAgentTurnLifecycle({
+    locale,
+    text: uiText,
+    agentTargets,
+    selectedTarget,
     selectedTargetId,
-  ]);
-
-  async function runPrompt(
-    nextPrompt: string,
-    options?: {
-      targetId?: string;
-      enableTools?: boolean;
-      enableRetrieval?: boolean;
-      providerProfile?: AgentProviderProfile;
-      thinkingMode?: AgentThinkingMode;
-      historyTurns?: AgentTurn[];
-      replaySource?: AgentTurn["replaySource"];
-      displayPrompt?: string;
-    },
-  ) {
-    const effectiveTargetId = options?.targetId || selectedTargetId;
-    const effectiveTarget =
-      agentTargets.find((target) => target.id === effectiveTargetId) ||
-      selectedTarget;
-    const effectiveEnableTools = options?.enableTools ?? enableTools;
-    const effectiveEnableRetrieval =
-      options?.enableRetrieval ?? enableRetrieval;
-    const effectiveProviderProfile =
-      options?.providerProfile ?? providerProfile;
-    const effectiveThinkingMode = options?.thinkingMode ?? thinkingMode;
-    const priorTurns = options?.historyTurns ?? turns;
-    const requestMessages = flattenTurns(priorTurns);
-    const turnId = `${Date.now()}`;
-
-    setTranscriptPinnedToBottom(true);
-    setPending(true);
-    setError("");
-    setInput("");
-    setTurns([
-      ...priorTurns,
-      {
-        id: turnId,
-        targetId: effectiveTargetId,
-        prompt: nextPrompt,
-        displayPrompt: options?.displayPrompt || nextPrompt,
-        response: "",
-        providerLabel: effectiveTarget.providerLabel,
-        targetLabel: effectiveTarget.label,
-        resolvedModel: effectiveTarget.modelDefault,
-        resolvedBaseUrl: effectiveTarget.baseUrlDefault,
-        providerProfile:
-          effectiveTarget.execution === "remote"
-            ? effectiveProviderProfile
-            : undefined,
-        thinkingMode:
-          effectiveTarget.execution === "remote"
-            ? effectiveThinkingMode
-            : undefined,
-        thinkingFallbackToStandard: false,
-        localFallbackUsed: false,
-        localFallbackTargetId: undefined,
-        localFallbackTargetLabel: undefined,
-        localFallbackReason: undefined,
-        cacheHit: false,
-        cacheMode: undefined,
-        plannerSteps: undefined,
-        memorySummary: undefined,
-        retrieval: undefined,
-        verification: undefined,
-        toolRuns: [],
-        replaySource: options?.replaySource,
-      },
-    ]);
-
-    try {
-      const response = await fetch("/api/agent/chat/stream", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetId: effectiveTargetId,
-          input: nextPrompt,
-          messages: requestMessages,
-          systemPrompt,
-          enableTools: effectiveEnableTools,
-          enableRetrieval: effectiveEnableRetrieval,
-          contextWindow,
-          providerProfile: effectiveProviderProfile,
-          thinkingMode: effectiveThinkingMode,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = (await response.json()) as { error?: string };
-        throw new Error(data.error || uiText.requestFailed);
-      }
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error(uiText.requestFailed);
-      }
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let lineBreak = buffer.indexOf("\n");
-        while (lineBreak !== -1) {
-          const line = buffer.slice(0, lineBreak).trim();
-          buffer = buffer.slice(lineBreak + 1);
-
-          if (line) {
-            const event = JSON.parse(line) as AgentStreamEvent;
-
-            if (event.type === "meta") {
-              setTurns((currentTurns) =>
-                currentTurns.map((turn) =>
-                  turn.id === turnId
-                    ? {
-                        ...turn,
-                        providerLabel: event.providerLabel,
-                        targetLabel: event.targetLabel,
-                        resolvedModel: event.resolvedModel,
-                        resolvedBaseUrl: event.resolvedBaseUrl,
-                        providerProfile: event.providerProfile,
-                        thinkingMode: event.thinkingMode,
-                        thinkingFallbackToStandard:
-                          event.thinkingFallbackToStandard,
-                        localFallbackUsed: event.localFallbackUsed,
-                        localFallbackTargetId: event.localFallbackTargetId,
-                        localFallbackTargetLabel:
-                          event.localFallbackTargetLabel,
-                        localFallbackReason: event.localFallbackReason,
-                        cacheHit: event.cacheHit,
-                        cacheMode: event.cacheMode,
-                        plannerSteps: event.plannerSteps,
-                        memorySummary: event.memorySummary,
-                        retrieval: event.retrieval,
-                        verification: event.verification,
-                      }
-                    : turn,
-                ),
-              );
-            }
-
-            if (event.type === "delta") {
-              setTurns((currentTurns) =>
-                currentTurns.map((turn) =>
-                  turn.id === turnId
-                    ? {
-                        ...turn,
-                        response: `${turn.response}${event.delta}`,
-                      }
-                    : turn,
-                ),
-              );
-            }
-
-            if (event.type === "done") {
-              setTurns((currentTurns) =>
-                currentTurns.map((turn) =>
-                  turn.id === turnId
-                    ? {
-                        ...turn,
-                        response:
-                          event.content ||
-                          turn.response ||
-                          event.warning ||
-                          uiText.noAssistantContent,
-                        toolRuns: event.toolRuns || [],
-                        providerProfile:
-                          event.providerProfile || turn.providerProfile,
-                        thinkingMode: event.thinkingMode || turn.thinkingMode,
-                        thinkingFallbackToStandard:
-                          event.thinkingFallbackToStandard ??
-                          turn.thinkingFallbackToStandard,
-                        localFallbackUsed:
-                          event.localFallbackUsed ?? turn.localFallbackUsed,
-                        localFallbackTargetId:
-                          event.localFallbackTargetId ||
-                          turn.localFallbackTargetId,
-                        localFallbackTargetLabel:
-                          event.localFallbackTargetLabel ||
-                          turn.localFallbackTargetLabel,
-                        localFallbackReason:
-                          event.localFallbackReason || turn.localFallbackReason,
-                        cacheHit: event.cacheHit ?? turn.cacheHit,
-                        cacheMode: event.cacheMode || turn.cacheMode,
-                        plannerSteps: event.plannerSteps || turn.plannerSteps,
-                        memorySummary:
-                          event.memorySummary || turn.memorySummary,
-                        retrieval: event.retrieval || turn.retrieval,
-                        verification: event.verification || turn.verification,
-                        warning: event.warning,
-                      }
-                    : turn,
-                ),
-              );
-            }
-
-            if (event.type === "error") {
-              throw new Error(event.error || uiText.requestFailed);
-            }
-          }
-
-          lineBreak = buffer.indexOf("\n");
-        }
-      }
-    } catch (submitError) {
-      const message =
-        submitError instanceof Error ? submitError.message : "Unknown error";
-      setError(message);
-      setInput(nextPrompt);
-      setTurns((currentTurns) =>
-        currentTurns.filter((turn) => turn.id !== turnId),
-      );
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!input.trim() || pending) return;
-    await runPrompt(input.trim());
-  }
-
-  function handlePrepareReplayTurn(turn: AgentTurn) {
-    if (replayTargetMode === "original") {
-      setSelectedTargetId(turn.targetId);
-      if (turn.providerProfile) {
-        setProviderProfile(turn.providerProfile);
-      }
-      if (turn.thinkingMode) {
-        setThinkingMode(turn.thinkingMode);
-      }
-      setEnableRetrieval(Boolean(turn.retrieval));
-    }
-    setInput(turn.prompt);
-    setError("");
-    requestAnimationFrame(() => {
-      composerRef.current?.focus();
-      composerRef.current?.scrollIntoView({ block: "nearest" });
-    });
-  }
-
-  async function handleReplayTurn(
-    turnIndex: number,
-    turn: AgentTurn,
-    options?: { includeHistory?: boolean },
-  ) {
-    if (pending) return;
-    const useOriginalTarget = replayTargetMode === "original";
-    const replayTargetId = useOriginalTarget ? turn.targetId : selectedTargetId;
-    const replayTargetLabel = useOriginalTarget
-      ? turn.targetLabel
-      : selectedTarget.label;
-    const replayProfile = useOriginalTarget
-      ? turn.providerProfile
-      : providerProfile;
-    const replayThinkingMode = useOriginalTarget
-      ? turn.thinkingMode
-      : thinkingMode;
-    const replayRetrieval = useOriginalTarget
-      ? Boolean(turn.retrieval)
-      : enableRetrieval;
-
-    if (useOriginalTarget) {
-      setSelectedTargetId(turn.targetId);
-      if (turn.providerProfile) {
-        setProviderProfile(turn.providerProfile);
-      }
-      if (turn.thinkingMode) {
-        setThinkingMode(turn.thinkingMode);
-      }
-      setEnableRetrieval(Boolean(turn.retrieval));
-    }
-    const includeHistory = Boolean(options?.includeHistory);
-    await runPrompt(turn.prompt, {
-      targetId: replayTargetId,
-      enableTools,
-      enableRetrieval: replayRetrieval,
-      providerProfile: replayProfile,
-      thinkingMode: replayThinkingMode,
-      historyTurns: includeHistory ? turns.slice(0, turnIndex) : [],
-      replaySource: {
-        turnId: turn.id,
-        targetId: turn.targetId,
-        targetLabel: turn.targetLabel,
-        resolvedModel: turn.resolvedModel,
-        response: turn.response,
-        includeHistory,
-        targetMode: replayTargetMode,
-      },
-      displayPrompt: includeHistory
-        ? locale.startsWith("en")
-          ? `$ context replay ${replayTargetLabel}`
-          : `$ 上下文回放 ${replayTargetLabel}`
-        : locale.startsWith("en")
-          ? `$ clean replay ${replayTargetLabel}`
-          : `$ 干净回放 ${replayTargetLabel}`,
-    });
-  }
-
-  async function handleResumeAgent(
-    turnIndex: number,
-    turnId: string,
-    turnTargetId: string,
-    sourceToolRun: AgentToolRun,
-    options?: { approvalContext?: boolean },
-  ) {
-    if (pending || toolDecisionBusyKey) return;
-
-    const resumePrompt = [
-      "Continue the current task from this point.",
-      "",
-      options?.approvalContext
-        ? "A previously blocked tool step has now been approved and executed."
-        : "Treat the following tool result as the replay point for the task.",
-      `Tool: ${sourceToolRun.name}`,
-      "Arguments:",
-      JSON.stringify(sourceToolRun.input, null, 2),
-      "",
-      "Tool result:",
-      sourceToolRun.output,
-      "",
-      "Use more tools if needed. Otherwise finish the task succinctly.",
-    ].join("\n");
-
-    const priorTurns = turns.slice(0, turnIndex + 1);
-    const requestMessages = flattenTurns(priorTurns);
-
-    const useOriginalTarget = replayTargetMode === "original";
-    const resumeTargetId = useOriginalTarget ? turnTargetId : selectedTargetId;
-
-    if (useOriginalTarget) {
-      setSelectedTargetId(turnTargetId);
-    }
-    setPending(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/agent/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetId: resumeTargetId,
-          input: resumePrompt,
-          messages: requestMessages,
-          systemPrompt,
-          enableTools: true,
-          enableRetrieval,
-          contextWindow,
-          providerProfile,
-          thinkingMode,
-        }),
-      });
-
-      const data = (await response.json()) as AgentChatResponse & {
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(data.error || uiText.resumeFailed);
-      }
-
-      const assistantContent =
-        data.content || data.warning || uiText.noAssistantContent;
-
-      setTurns((currentTurns) => [
-        ...currentTurns,
-        {
-          id: `${Date.now()}-resume`,
-          targetId: turnTargetId,
-          prompt: resumePrompt,
-          displayPrompt: `$ resume after approved tool::${sourceToolRun.name}`,
-          response: assistantContent,
-          providerLabel: data.providerLabel,
-          targetLabel: data.targetLabel,
-          resolvedModel: data.resolvedModel,
-          resolvedBaseUrl: data.resolvedBaseUrl,
-          providerProfile: data.providerProfile,
-          thinkingMode: data.thinkingMode,
-          thinkingFallbackToStandard: data.thinkingFallbackToStandard,
-          localFallbackUsed: data.localFallbackUsed,
-          localFallbackTargetId: data.localFallbackTargetId,
-          localFallbackTargetLabel: data.localFallbackTargetLabel,
-          localFallbackReason: data.localFallbackReason,
-          cacheHit: data.cacheHit,
-          cacheMode: data.cacheMode,
-          plannerSteps: data.plannerSteps,
-          memorySummary: data.memorySummary,
-          retrieval: data.retrieval,
-          verification: data.verification,
-          toolRuns: data.toolRuns,
-          warning: data.warning,
-        },
-      ]);
-    } catch (resumeError) {
-      setError(
-        resumeError instanceof Error
-          ? resumeError.message
-          : uiText.resumeFailed,
-      );
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function handleCopy(text: string, key: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyState(key);
-    } catch (copyError) {
-      setError(
-        copyError instanceof Error ? copyError.message : uiText.copyFailed,
-      );
-    }
-  }
-
+    setSelectedTargetId,
+    turns,
+    setTurns,
+    input,
+    setInput,
+    systemPrompt,
+    enableTools,
+    enableRetrieval,
+    setEnableRetrieval,
+    contextWindow,
+    providerProfile,
+    setProviderProfile,
+    thinkingMode,
+    setThinkingMode,
+    pending,
+    setPending,
+    setError,
+    replayTargetMode,
+    composerRef,
+    setTranscriptPinnedToBottom,
+    toolDecisionBusyKey,
+    setToolDecisionBusyKey,
+    setToolDecisionStatusByToken,
+  });
   const compareWorkbenchShellProps = useEmbeddedCompareWorkbenchAdapter({
     locale,
     sourceSurface: compareSurface,
@@ -3661,98 +1705,6 @@ export function AgentWorkbench({
     copyText: handleCopy,
   });
 
-  function handleStepWorkspaceFileAnchor(direction: -1 | 1) {
-    setWorkspaceFileFocusState((current) => {
-      if (!current || current.anchors.length <= 1) return current;
-      const nextIndex = current.index + direction;
-      if (nextIndex < 0 || nextIndex >= current.anchors.length) return current;
-      return {
-        ...current,
-        index: nextIndex,
-      };
-    });
-  }
-
-  async function handleOpenWorkspaceFile(
-    relativePath: string,
-    options?: { focusDiff?: boolean; anchors?: number[]; anchorIndex?: number },
-  ) {
-    if (!relativePath) return;
-
-    const nextOpenPath =
-      openWorkspaceFilePath === relativePath ? "" : relativePath;
-    setOpenWorkspaceFilePath(nextOpenPath);
-    setFocusedWorkspaceFilePath(
-      nextOpenPath && options?.focusDiff ? relativePath : "",
-    );
-    setWorkspaceFileFocusState(
-      nextOpenPath && options?.focusDiff
-        ? {
-            path: relativePath,
-            anchors: options?.anchors?.length ? options.anchors : [1],
-            index: Math.max(
-              0,
-              Math.min(
-                options?.anchorIndex ?? 0,
-                Math.max((options?.anchors?.length || 1) - 1, 0),
-              ),
-            ),
-          }
-        : null,
-    );
-    const cached = workspaceFileViews[relativePath];
-    if (!nextOpenPath || cached?.content || cached?.loading) return;
-
-    setWorkspaceFileViews((current) => ({
-      ...current,
-      [relativePath]: {
-        path: relativePath,
-        loading: true,
-      },
-    }));
-
-    try {
-      const response = await fetch(
-        `/api/agent/workspace-file?path=${encodeURIComponent(relativePath)}`,
-        {
-          cache: "no-store",
-        },
-      );
-      const payload = (await response.json()) as {
-        error?: string;
-        path?: string;
-        absolutePath?: string;
-        content?: string;
-        truncated?: boolean;
-      };
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to open workspace file.");
-      }
-      setWorkspaceFileViews((current) => ({
-        ...current,
-        [relativePath]: {
-          path: payload.path || relativePath,
-          absolutePath: payload.absolutePath,
-          content: payload.content || "",
-          truncated: Boolean(payload.truncated),
-          loading: false,
-        },
-      }));
-    } catch (workspaceFileError) {
-      setWorkspaceFileViews((current) => ({
-        ...current,
-        [relativePath]: {
-          path: relativePath,
-          loading: false,
-          error:
-            workspaceFileError instanceof Error
-              ? workspaceFileError.message
-              : "Failed to open workspace file.",
-        },
-      }));
-    }
-  }
-
   function handleExportTurns(format: "markdown" | "json") {
     if (!turns.length) return;
 
@@ -3782,354 +1734,6 @@ export function AgentWorkbench({
     URL.revokeObjectURL(url);
   }
 
-  function handleComposerKeyDown(
-    event: ReactKeyboardEvent<HTMLTextAreaElement>,
-  ) {
-    if (event.nativeEvent.isComposing) return;
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      if (!pending && input.trim()) {
-        void runPrompt(input.trim());
-      }
-    }
-  }
-
-  async function handleToolDecision(
-    turnId: string,
-    turnTargetId: string,
-    toolRunIndex: number,
-    toolName: string,
-    toolInput: Record<string, unknown>,
-    confirmationToken: string,
-    action: "approve" | "reject",
-  ) {
-    const busyKey = `${turnId}:${toolRunIndex}:${action}`;
-    if (toolDecisionBusyKey) return;
-
-    setToolDecisionBusyKey(busyKey);
-    setError("");
-
-    try {
-      const response = await fetch("/api/agent/tool/decision", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetId: turnTargetId,
-          toolName,
-          input: toolInput,
-          confirmationToken,
-          action,
-        }),
-      });
-
-      const data = (await response.json()) as AgentToolDecisionResponse & {
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(data.error || uiText.toolDecisionFailed);
-      }
-
-      const decisionOutput = parseToolOutput(data.toolRun.output);
-      const decisionStatus = readStringField(decisionOutput, "status");
-
-      setTurns((currentTurns) =>
-        currentTurns.map((turn) =>
-          turn.id !== turnId
-            ? turn
-            : {
-                ...turn,
-                toolRuns: [...turn.toolRuns, data.toolRun],
-              },
-        ),
-      );
-
-      if (action === "reject" || decisionStatus !== "confirmation_required") {
-        setToolDecisionStatusByToken((current) => ({
-          ...current,
-          [confirmationToken]: action === "approve" ? "approved" : "rejected",
-        }));
-      }
-    } catch (decisionError) {
-      setError(
-        decisionError instanceof Error
-          ? decisionError.message
-          : uiText.toolDecisionFailed,
-      );
-    } finally {
-      setToolDecisionBusyKey("");
-    }
-  }
-
-  async function handleConnectionCheck() {
-    if (!supportsConnectionCheck || connectionCheckPending || pending) return;
-
-    setConnectionCheckPending(true);
-    setConnectionCheckError("");
-
-    try {
-      const response = await fetch(
-        `/api/agent/connection-check?targetId=${encodeURIComponent(selectedTargetId)}`,
-        {
-          cache: "no-store",
-        },
-      );
-      const data = (await response.json()) as AgentConnectionCheckResponse & {
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(data.error || uiText.connectionCheckFailed);
-      }
-      setConnectionChecksByTargetId((current) => ({
-        ...current,
-        [selectedTargetId]: data,
-      }));
-      setTurns((currentTurns) => [
-        ...currentTurns,
-        {
-          id: `${Date.now()}-check`,
-          kind: "check",
-          targetId: selectedTargetId,
-          prompt: `$ connection-check ${selectedTarget.label}`,
-          displayPrompt: `$ connection-check ${selectedTarget.label}`,
-          response: buildConnectionCheckNarrative(data, {
-            title: dictionary.agent.connectionRecord,
-            overall: dictionary.common.latest,
-            model: dictionary.common.model,
-            endpoint: dictionary.common.endpoint,
-            ok: dictionary.common.ok,
-            failed: dictionary.common.failed,
-          }),
-          providerLabel: data.providerLabel,
-          targetLabel: data.targetLabel,
-          resolvedModel: data.resolvedModel,
-          resolvedBaseUrl: data.resolvedBaseUrl,
-          toolRuns: [],
-          warning: data.ok ? undefined : uiText.attentionNeeded,
-          connectionCheck: data,
-        },
-      ]);
-    } catch (checkError) {
-      setConnectionCheckError(
-        checkError instanceof Error
-          ? checkError.message
-          : uiText.connectionCheckFailed,
-      );
-    } finally {
-      setConnectionCheckPending(false);
-    }
-  }
-
-  async function handlePrewarm() {
-    if (selectedTarget.execution !== "local" || prewarmPending || pending)
-      return;
-    if (runtimeStatus?.resourceGuardrailLevel === "blocked") {
-      setError(
-        runtimeStatus.resourceGuardrailSummary ||
-          "Current memory pressure is too high for another local model load.",
-      );
-      return;
-    }
-
-    setPrewarmPending(true);
-    setPrewarmMessage("");
-    setError("");
-
-    try {
-      const response = await fetch("/api/agent/runtime/prewarm", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetId: selectedTargetId,
-        }),
-      });
-      const data = (await response.json()) as AgentRuntimePrewarmResponse & {
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(data.error || data.message || uiText.runtimeFailed);
-      }
-      const details = [
-        data.message || uiText.prewarmDone,
-        data.status === "ready" && typeof data.loadMs === "number"
-          ? `load ${data.loadMs.toFixed(1)} ms`
-          : "",
-        data.status === "ready" && typeof data.warmupMs === "number"
-          ? `warm ${data.warmupMs.toFixed(1)} ms`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
-      setPrewarmMessage(details);
-      if (data.status === "ready" && typeof data.loadMs === "number") {
-        const switchedAt = new Date().toISOString();
-        setRuntimeLastSwitchMsByTarget((current) => ({
-          ...current,
-          [selectedTargetId]: data.loadMs ?? null,
-        }));
-        setRuntimeLastSwitchAtByTarget((current) => ({
-          ...current,
-          [selectedTargetId]: switchedAt,
-        }));
-      }
-      await loadRuntimeStatus(selectedTargetId);
-    } catch (prewarmError) {
-      setError(
-        prewarmError instanceof Error
-          ? prewarmError.message
-          : uiText.runtimeFailed,
-      );
-    } finally {
-      setPrewarmPending(false);
-    }
-  }
-
-  async function handlePrewarmAll() {
-    if (
-      selectedTarget.execution !== "local" ||
-      prewarmAllPending ||
-      prewarmPending ||
-      pending
-    )
-      return;
-    if (runtimeStatus?.resourceGuardrailLevel === "blocked") {
-      setError(
-        runtimeStatus.resourceGuardrailSummary ||
-          "Current memory pressure is too high for prewarming local models.",
-      );
-      return;
-    }
-
-    setPrewarmAllPending(true);
-    setPrewarmMessage("");
-    setError("");
-
-    try {
-      const response = await fetch("/api/agent/runtime/prewarm-all", {
-        method: "POST",
-      });
-      const data = (await response.json()) as AgentRuntimePrewarmAllResponse & {
-        error?: string;
-      };
-      if (!response.ok) {
-        const failedSummary = data.results
-          ?.map((item) => item.message)
-          .filter(Boolean)
-          .join(" | ");
-        throw new Error(data.error || failedSummary || uiText.runtimeFailed);
-      }
-      const details = data.results
-        .map((item) => {
-          const statusLabel =
-            item.status === "loading"
-              ? "loading"
-              : item.status === "queued"
-                ? "queued"
-                : item.status === "skipped"
-                  ? "skipped"
-                  : item.status === "failed"
-                    ? "failed"
-                    : "ready";
-          const parts = [
-            item.targetLabel,
-            statusLabel,
-            item.status === "ready" && typeof item.loadMs === "number"
-              ? `load ${item.loadMs.toFixed(1)} ms`
-              : "",
-            item.status === "ready" && typeof item.warmupMs === "number"
-              ? `warm ${item.warmupMs.toFixed(1)} ms`
-              : "",
-          ].filter(Boolean);
-          return parts.join(" · ");
-        })
-        .join(" | ");
-      setPrewarmMessage(
-        `${data.message || uiText.prewarmAllDone}${details ? ` ${details}` : ""}`,
-      );
-      setRuntimeLastSwitchMsByTarget((current) => {
-        const next = { ...current };
-        data.results.forEach((item) => {
-          if (item.status === "ready" && typeof item.loadMs === "number") {
-            next[item.targetId] = item.loadMs;
-          }
-        });
-        return next;
-      });
-      setRuntimeLastSwitchAtByTarget((current) => {
-        const next = { ...current };
-        data.results.forEach((item) => {
-          if (item.status === "ready" && typeof item.loadMs === "number") {
-            next[item.targetId] = new Date().toISOString();
-          }
-        });
-        return next;
-      });
-      await loadRuntimeStatus(selectedTargetId);
-    } catch (prewarmError) {
-      setError(
-        prewarmError instanceof Error
-          ? prewarmError.message
-          : uiText.runtimeFailed,
-      );
-    } finally {
-      setPrewarmAllPending(false);
-    }
-  }
-
-  async function handleRuntimeAction(
-    action: "release" | "restart" | "read_log",
-  ) {
-    if (selectedTarget.execution !== "local" || runtimeActionPending || pending)
-      return;
-
-    setRuntimeActionPending(action);
-    setError("");
-    if (action !== "read_log") {
-      setRuntimeLogExcerpt("");
-    }
-
-    try {
-      const response = await fetch("/api/agent/runtime/actions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetId: selectedTargetId,
-          action,
-        }),
-      });
-      const data = (await response.json()) as AgentRuntimeActionResponse & {
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(data.error || data.message || uiText.runtimeFailed);
-      }
-      if (data.runtime) {
-        setRuntimeStatus(data.runtime);
-      } else {
-        await loadRuntimeStatus(selectedTargetId);
-      }
-      if (data.logExcerpt) {
-        setRuntimeLogExcerpt(data.logExcerpt);
-      }
-      if (data.message) {
-        setPrewarmMessage(data.message);
-      }
-    } catch (runtimeActionError) {
-      setError(
-        runtimeActionError instanceof Error
-          ? runtimeActionError.message
-          : uiText.runtimeFailed,
-      );
-    } finally {
-      setRuntimeActionPending("");
-    }
-  }
-
   return (
     <section className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.14),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(249,115,22,0.14),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] px-3 py-4 text-slate-100 sm:px-5 xl:px-6 2xl:px-8">
       <div className="mx-auto grid w-full max-w-[2100px] gap-5 xl:grid-cols-[408px_minmax(0,1fr)] 2xl:grid-cols-[456px_minmax(0,1fr)]">
@@ -4147,128 +1751,27 @@ export function AgentWorkbench({
           </div>
 
           <div className="space-y-5 px-4 py-4 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto">
-            <section>
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                  {dictionary.agent.targets}
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void handleScanTargets()}
-                    disabled={scanTargetsPending}
-                    className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {scanTargetsPending
-                      ? locale.startsWith("en")
-                        ? "Scanning..."
-                        : "扫描中..."
-                      : locale.startsWith("en")
-                        ? "Scan models / APIs"
-                        : "一键扫描新模型 / API"}
-                  </button>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300">
-                    {agentTargets.length}
-                  </span>
-                </div>
-              </div>
-              {scanTargetsMessage ? (
-                <div
-                  className={`mb-3 rounded-2xl border px-3 py-2 text-[11px] leading-5 ${
-                    scanTargetsMessageTone === "success"
-                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
-                      : "border-rose-400/20 bg-rose-400/10 text-rose-100"
-                  }`}
-                >
-                  {scanTargetsMessage}
-                </div>
-              ) : null}
-              <div className="space-y-2">
-                {agentTargets.map((target) => {
-                  const active = target.id === selectedTargetId;
-                  const targetConnectionCheck =
-                    connectionChecksByTargetId[target.id] || null;
-                  const healthBadge = getHealthBadge(targetConnectionCheck);
-                  const loadRiskBadge = getLoadRiskBadge(target, locale);
-                  return (
-                    <button
-                      key={target.id}
-                      type="button"
-                      onClick={() => setSelectedTargetId(target.id)}
-                      className={`w-full rounded-[22px] border px-3 py-2.5 text-left transition ${
-                        active
-                          ? "border-cyan-400/45 bg-cyan-400/[0.08] shadow-[0_0_0_1px_rgba(34,211,238,0.1)]"
-                          : "border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 pr-2">
-                          <p className="line-clamp-2 text-[15px] font-semibold leading-5 text-white">
-                            {target.label}
-                          </p>
-                          <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
-                            {target.providerLabel}
-                          </p>
-                          <p className="mt-1 line-clamp-1 text-[10px] text-slate-500">
-                            {dictionary.common.model}:{" "}
-                            {formatTargetModelVersion(
-                              target.modelDefault,
-                              target.thinkingModelDefault,
-                            )}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <span
-                            className={`whitespace-nowrap rounded-full px-2 py-[3px] text-[10px] uppercase leading-none tracking-[0.2em] ${
-                              target.execution === "local"
-                                ? "bg-emerald-400/10 text-emerald-300"
-                                : "bg-violet-400/10 text-violet-300"
-                            }`}
-                          >
-                            {target.execution === "local"
-                              ? dictionary.common.local
-                              : dictionary.common.remote}
-                          </span>
-                          {target.execution === "remote" ? (
-                            <span
-                              className={`whitespace-nowrap rounded-full px-2 py-[3px] text-[10px] uppercase leading-none tracking-[0.2em] ${healthBadge.className}`}
-                            >
-                              {healthBadge.label === "healthy"
-                                ? dictionary.agent.healthHealthy
-                                : healthBadge.label === "warning"
-                                  ? dictionary.agent.healthWarning
-                                  : healthBadge.label === "degraded"
-                                    ? dictionary.agent.healthDegraded
-                                    : dictionary.agent.healthUnknown}
-                            </span>
-                          ) : null}
-                          {loadRiskBadge ? (
-                            <span
-                              className={`whitespace-nowrap rounded-full px-2 py-[3px] text-[10px] font-semibold leading-none tracking-[0.08em] ${loadRiskBadge.className}`}
-                            >
-                              {loadRiskBadge.label}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <p className="mt-2 line-clamp-2 text-[12.5px] leading-6 text-slate-400">
-                        {getLocalizedTargetDescription(
-                          locale,
-                          target.id,
-                          target.description,
-                        )}
-                      </p>
-                      {target.execution === "local" &&
-                      target.loadGuardrailSummary ? (
-                        <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-slate-500">
-                          {target.loadGuardrailSummary}
-                        </p>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
+            <TargetCatalogPanel
+              locale={locale}
+              targets={agentTargets}
+              selectedTargetId={selectedTargetId}
+              connectionChecksByTargetId={connectionChecksByTargetId}
+              scanTargetsPending={scanTargetsPending}
+              scanTargetsMessage={scanTargetsMessage}
+              scanTargetsMessageTone={scanTargetsMessageTone}
+              onScanTargets={handleScanTargets}
+              onSelectTarget={setSelectedTargetId}
+              labels={{
+                targets: dictionary.agent.targets,
+                model: dictionary.common.model,
+                local: dictionary.common.local,
+                remote: dictionary.common.remote,
+                healthHealthy: dictionary.agent.healthHealthy,
+                healthWarning: dictionary.agent.healthWarning,
+                healthDegraded: dictionary.agent.healthDegraded,
+                healthUnknown: dictionary.agent.healthUnknown,
+              }}
+            />
 
             <section className="rounded-[24px] border border-white/8 bg-white/[0.035] px-4 py-3.5">
               <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
@@ -4493,323 +1996,36 @@ export function AgentWorkbench({
               </div>
             </section>
 
-            <details className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                    {uiText.sessions}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">
-                    {uiText.sessionSaved}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300">
-                    {savedSessions.length}
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200">
-                    {uiText.newSession}
-                  </span>
-                </div>
-              </summary>
-              <div className="mt-4 space-y-2">
-                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-300">
-                      {uiText.currentSession}
-                    </p>
-                    {currentSession?.pinned ? (
-                      <span className="rounded-full bg-cyan-950/70 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
-                        {uiText.pinned}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-2 text-sm font-medium text-white">
-                    {currentSession?.title ||
-                      createSessionTitle(turns, uiText.newSession)}
-                  </p>
-                  <p className="mt-1 text-xs text-cyan-100/80">
-                    {uiText.sessionSaved} ·{" "}
-                    {currentSession?.updatedAt
-                      ? new Date(currentSession.updatedAt).toLocaleString()
-                      : "--"}
-                  </p>
-                  <p className="mt-1 text-[11px] text-cyan-100/70">
-                    {sessionSyncLabel}
-                  </p>
-                  {sessionSyncConflict ? (
-                    <div className="mt-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-3 py-3 text-[11px] text-amber-50">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-amber-100">
-                            {locale.startsWith("en")
-                              ? "Server snapshot is newer than this tab"
-                              : "服务端快照比当前标签页更新"}
-                          </p>
-                          <p className="mt-1 leading-5 text-amber-100/85">
-                            {sessionSyncConflict.summary}
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em] text-amber-100/80">
-                            <span className="rounded-full border border-amber-300/20 bg-black/20 px-2 py-1">
-                              {locale.startsWith("en")
-                                ? "Local sessions"
-                                : "本地会话"}{" "}
-                              · {sessionSyncConflict.localSessionCount}
-                            </span>
-                            <span className="rounded-full border border-amber-300/20 bg-black/20 px-2 py-1">
-                              {locale.startsWith("en")
-                                ? "Server sessions"
-                                : "服务端会话"}{" "}
-                              · {sessionSyncConflict.serverSessionCount}
-                            </span>
-                            <span className="rounded-full border border-amber-300/20 bg-black/20 px-2 py-1 normal-case tracking-normal">
-                              {locale.startsWith("en")
-                                ? "Server updated"
-                                : "服务端更新时间"}{" "}
-                              ·{" "}
-                              {new Date(
-                                sessionSyncConflict.serverUpdatedAt,
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void handleReloadServerSessionSnapshot()
-                            }
-                            className="rounded-full border border-amber-300/30 bg-black/20 px-3 py-1.5 text-[11px] font-semibold text-amber-50 transition hover:bg-black/30"
-                          >
-                            {locale.startsWith("en")
-                              ? "Reload server copy"
-                              : "加载服务端副本"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void handleForceOverwriteServerSessionSnapshot()
-                            }
-                            className="rounded-full border border-amber-300/30 bg-amber-200/15 px-3 py-1.5 text-[11px] font-semibold text-amber-50 transition hover:bg-amber-200/25"
-                          >
-                            {locale.startsWith("en")
-                              ? "Overwrite server with local"
-                              : "用本地覆盖服务端"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-                  {currentSession ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleRenameSession(currentSession.id)}
-                        className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-white/15"
-                      >
-                        {uiText.renameSession}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleTogglePinSession(currentSession.id)
-                        }
-                        className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-white/15"
-                      >
-                        {currentSession.pinned
-                          ? uiText.unpinSession
-                          : uiText.pinSession}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteSession(currentSession.id)}
-                        className="rounded-full border border-rose-400/30 bg-rose-400/10 px-3 py-1.5 text-[11px] font-semibold text-rose-100 transition hover:bg-rose-400/20"
-                      >
-                        {uiText.deleteSession}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-slate-950/60 px-3 py-2">
-                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-400">
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                        {uiText.sessionTargetFilter} ·{" "}
-                        {activeSessionTargetLabel}
-                      </span>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                        {uiText.sessionExportScope} ·{" "}
-                        {sessionExportScope === "visible"
-                          ? uiText.exportVisibleSessions
-                          : uiText.exportPinnedSessions}
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-slate-500">
-                      {uiText.sessions} · {exportableSessions.length}/
-                      {savedSessions.length}
-                    </span>
-                  </div>
-                  <input
-                    value={sessionSearch}
-                    onChange={(event) => setSessionSearch(event.target.value)}
-                    placeholder={uiText.sessionSearch}
-                    className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500"
-                  />
-                  <select
-                    value={sessionTargetFilter}
-                    onChange={(event) =>
-                      setSessionTargetFilter(event.target.value)
-                    }
-                    className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none"
-                  >
-                    <option value="all">
-                      {uiText.sessionTargetFilter} · {uiText.allTargets}
-                    </option>
-                    {sessionTargetOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {uiText.sessionTargetFilter} · {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={sessionExportScope}
-                    onChange={(event) =>
-                      setSessionExportScope(
-                        event.target.value as "visible" | "pinned",
-                      )
-                    }
-                    className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none"
-                  >
-                    <option value="visible">
-                      {uiText.sessionExportScope} ·{" "}
-                      {uiText.exportVisibleSessions}
-                    </option>
-                    <option value="pinned">
-                      {uiText.sessionExportScope} ·{" "}
-                      {uiText.exportPinnedSessions}
-                    </option>
-                  </select>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleExportSessions("markdown")}
-                      disabled={!exportableSessions.length}
-                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                    >
-                      {uiText.exportSessionsMarkdown}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleExportSessions("json")}
-                      disabled={!exportableSessions.length}
-                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                    >
-                      {uiText.exportSessionsJson}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleBulkClearSessions("unpinned")}
-                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                    >
-                      {uiText.clearUnpinnedSessions}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleBulkClearSessions("all")}
-                      className="rounded-full border border-rose-400/30 bg-rose-400/10 px-3 py-1.5 text-[11px] font-semibold text-rose-100 transition hover:bg-rose-400/20"
-                    >
-                      {uiText.clearAllSessions}
-                    </button>
-                  </div>
-                </div>
-                <div className="max-h-[42vh] overflow-y-auto overscroll-contain pr-1">
-                  <div className="space-y-3">
-                    {sessionGroups.length ? (
-                      sessionGroups.map((group) => (
-                        <div key={group.targetId} className="space-y-2">
-                          <p className="px-1 text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                            {uiText.targetGroup} · {group.targetLabel}
-                          </p>
-                          {group.sessions.map((session) => (
-                            <div
-                              key={session.id}
-                              className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3"
-                            >
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm text-white">
-                                    {session.title}
-                                  </p>
-                                  <p className="mt-2 text-xs text-slate-400">
-                                    {new Date(
-                                      session.updatedAt,
-                                    ).toLocaleString()}
-                                  </p>
-                                </div>
-                                {session.pinned ? (
-                                  <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                                    {uiText.pinned}
-                                  </span>
-                                ) : null}
-                              </div>
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => restoreSession(session)}
-                                  className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/20"
-                                >
-                                  {uiText.restoreSession}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleRenameSession(session.id)
-                                  }
-                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                                >
-                                  {uiText.renameSession}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleTogglePinSession(session.id)
-                                  }
-                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                                >
-                                  {session.pinned
-                                    ? uiText.unpinSession
-                                    : uiText.pinSession}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleDeleteSession(session.id)
-                                  }
-                                  className="rounded-full border border-rose-400/30 bg-rose-400/10 px-3 py-1.5 text-[11px] font-semibold text-rose-100 transition hover:bg-rose-400/20"
-                                >
-                                  {uiText.deleteSession}
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-slate-400">
-                        {uiText.noSessions}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={startNewSession}
-                className="mt-4 w-full rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-              >
-                {uiText.newSession}
-              </button>
-            </details>
+            <AgentSessionToolsPanel
+              locale={locale}
+              uiText={uiText}
+              turns={turns}
+              savedSessions={savedSessions}
+              currentSession={currentSession}
+              sessionSyncLabel={sessionSyncLabel}
+              sessionSyncConflict={sessionSyncConflict}
+              sessionSearch={sessionSearch}
+              sessionTargetFilter={sessionTargetFilter}
+              sessionTargetOptions={sessionTargetOptions}
+              sessionExportScope={sessionExportScope}
+              exportableSessions={exportableSessions}
+              sessionGroups={sessionGroups}
+              activeSessionTargetLabel={activeSessionTargetLabel}
+              onSessionSearchChange={setSessionSearch}
+              onSessionTargetFilterChange={setSessionTargetFilter}
+              onSessionExportScopeChange={setSessionExportScope}
+              onRestoreSession={restoreSession}
+              onRenameSession={handleRenameSession}
+              onTogglePinSession={handleTogglePinSession}
+              onDeleteSession={handleDeleteSession}
+              onReloadServerSessionSnapshot={handleReloadServerSessionSnapshot}
+              onForceOverwriteServerSessionSnapshot={
+                handleForceOverwriteServerSessionSnapshot
+              }
+              onExportSessions={handleExportSessions}
+              onBulkClearSessions={handleBulkClearSessions}
+              onStartNewSession={startNewSession}
+            />
 
             <details className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
@@ -5107,3020 +2323,201 @@ export function AgentWorkbench({
 
               {workbenchMode === "chat" ? (
                 <>
-                  <div
-                    ref={transcriptRef}
-                    onScroll={handleTranscriptScroll}
-                    className="h-[58vh] min-h-[420px] max-h-[76vh] overflow-y-auto overscroll-contain bg-[linear-gradient(180deg,rgba(15,23,42,0.18),rgba(2,6,23,0.12))] px-5 py-5 font-mono text-[13px] leading-7 sm:h-[62vh]"
-                  >
-                    {turns.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-5 text-sm leading-7 text-slate-400">
-                        <p className="text-cyan-300">$ boot</p>
-                        <p className="mt-2">
-                          {dictionary.agent.transcriptReady}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {turns.map((turn, turnIndex) => {
-                          const reviewItems = collectToolReviewItems(turn);
-                          const traceOpen = expandedTraceTurnId === turn.id;
-                          const replayComparison = buildReplayComparison(
-                            turn,
-                            locale,
-                          );
-                          return (
-                            <article
-                              key={turn.id}
-                              className="space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4"
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.24em] text-slate-300">
-                                    {turn.targetLabel}
-                                  </span>
-                                  <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.24em] text-cyan-300">
-                                    {turn.providerLabel}
-                                  </span>
-                                  {turn.providerProfile ? (
-                                    <span className="rounded-full bg-violet-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.24em] text-violet-200">
-                                      {turn.providerProfile}
-                                    </span>
-                                  ) : null}
-                                  {turn.thinkingMode ? (
-                                    <span className="rounded-full bg-amber-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.24em] text-amber-200">
-                                      {turn.thinkingMode}
-                                    </span>
-                                  ) : null}
-                                  {turn.thinkingFallbackToStandard ? (
-                                    <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] uppercase tracking-[0.24em] text-amber-100">
-                                      {uiText.fallbackBadge}
-                                    </span>
-                                  ) : null}
-                                  {turn.localFallbackUsed ? (
-                                    <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] uppercase tracking-[0.24em] text-emerald-100">
-                                      {uiText.localFallbackUsed}
-                                    </span>
-                                  ) : null}
-                                  {turn.cacheHit ? (
-                                    <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] uppercase tracking-[0.24em] text-emerald-100">
-                                      cache
-                                      {turn.cacheMode
-                                        ? `:${formatCacheMode(turn.cacheMode)}`
-                                        : ""}
-                                    </span>
-                                  ) : null}
-                                  {turn.retrieval ? (
-                                    <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.24em] text-emerald-200">
-                                      {uiText.retrievalHits}:{" "}
-                                      {turn.retrieval.hitCount}
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-1 py-1">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setReplayTargetMode("original")
-                                      }
-                                      className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] transition ${
-                                        replayTargetMode === "original"
-                                          ? "bg-cyan-400/15 text-cyan-100"
-                                          : "text-slate-400 hover:text-slate-200"
-                                      }`}
-                                    >
-                                      {locale.startsWith("en")
-                                        ? "Original target"
-                                        : "保留原目标"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setReplayTargetMode("current")
-                                      }
-                                      className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] transition ${
-                                        replayTargetMode === "current"
-                                          ? "bg-cyan-400/15 text-cyan-100"
-                                          : "text-slate-400 hover:text-slate-200"
-                                      }`}
-                                    >
-                                      {locale.startsWith("en")
-                                        ? "Current target"
-                                        : "切换目标回放"}
-                                    </button>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    disabled={pending}
-                                    onClick={() =>
-                                      handlePrepareReplayTurn(turn)
-                                    }
-                                    className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                                  >
-                                    {locale.startsWith("en")
-                                      ? "Load replay"
-                                      : "载入回放"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={pending}
-                                    onClick={() =>
-                                      void handleReplayTurn(turnIndex, turn, {
-                                        includeHistory: true,
-                                      })
-                                    }
-                                    className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-40"
-                                  >
-                                    {locale.startsWith("en")
-                                      ? "Context replay"
-                                      : "上下文回放"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={pending}
-                                    onClick={() =>
-                                      void handleReplayTurn(turnIndex, turn, {
-                                        includeHistory: false,
-                                      })
-                                    }
-                                    className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                                  >
-                                    {locale.startsWith("en")
-                                      ? "Clean replay"
-                                      : "干净回放"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setExpandedTraceTurnId((current) =>
-                                        current === turn.id ? "" : turn.id,
-                                      )
-                                    }
-                                    className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300 transition hover:bg-white/10"
-                                  >
-                                    {traceOpen
-                                      ? locale.startsWith("en")
-                                        ? "Hide trace"
-                                        : "收起轨迹"
-                                      : locale.startsWith("en")
-                                        ? "Show trace"
-                                        : "查看轨迹"}
-                                  </button>
-                                  <span className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                                    {turn.resolvedModel}
-                                  </span>
-                                </div>
-                              </div>
+                  <AgentTranscriptPanel
+                    locale={locale}
+                    dictionary={dictionary}
+                    uiText={uiText}
+                    turns={turns}
+                    transcriptRef={transcriptRef}
+                    transcriptPinnedToBottom={transcriptPinnedToBottom}
+                    unseenTranscriptTurns={unseenTranscriptTurns}
+                    pending={pending}
+                    pendingTargetLabel={selectedTarget.label}
+                    onTranscriptScroll={handleTranscriptScroll}
+                    onJumpToLatestTranscript={handleJumpToLatestTranscript}
+                    replayTargetMode={replayTargetMode}
+                    expandedTraceTurnId={expandedTraceTurnId}
+                    expandedCitationKey={expandedCitationKey}
+                    expandedReviewFileKey={expandedReviewFileKey}
+                    workspaceFileViews={workspaceFileViews}
+                    openWorkspaceFilePath={openWorkspaceFilePath}
+                    focusedWorkspaceFilePath={focusedWorkspaceFilePath}
+                    workspaceFileFocusState={workspaceFileFocusState}
+                    copyState={copyState}
+                    toolDecisionBusyKey={toolDecisionBusyKey}
+                    toolDecisionStatusByToken={toolDecisionStatusByToken}
+                    setReplayTargetMode={setReplayTargetMode}
+                    setExpandedTraceTurnId={setExpandedTraceTurnId}
+                    setExpandedCitationKey={setExpandedCitationKey}
+                    setExpandedReviewFileKey={setExpandedReviewFileKey}
+                    onPrepareReplayTurn={handlePrepareReplayTurn}
+                    onReplayTurn={handleReplayTurn}
+                    onCopy={handleCopy}
+                    onOpenWorkspaceFile={handleOpenWorkspaceFile}
+                    onStepWorkspaceFileAnchor={handleStepWorkspaceFileAnchor}
+                    onToolDecision={handleToolDecision}
+                    onResumeAgent={handleResumeAgent}
+                  />
 
-                              {traceOpen ? (
-                                <div className="rounded-2xl border border-sky-400/15 bg-sky-400/5 px-3 py-3">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
-                                      {locale.startsWith("en")
-                                        ? "Tool steps"
-                                        : "工具步骤"}{" "}
-                                      {turn.toolRuns.length}
-                                    </span>
-                                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
-                                      {locale.startsWith("en")
-                                        ? "Plan steps"
-                                        : "规划步骤"}{" "}
-                                      {turn.plannerSteps?.length || 0}
-                                    </span>
-                                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
-                                      {locale.startsWith("en")
-                                        ? "Patch reviews"
-                                        : "变更审阅"}{" "}
-                                      {reviewItems.length}
-                                    </span>
-                                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
-                                      {locale.startsWith("en")
-                                        ? "Retrieval hits"
-                                        : "检索命中"}{" "}
-                                      {turn.retrieval?.hitCount || 0}
-                                    </span>
-                                  </div>
-                                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                                    <div className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-xs leading-6 text-slate-200">
-                                      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                                        {locale.startsWith("en")
-                                          ? "Replay source"
-                                          : "回放来源"}
-                                      </p>
-                                      <p className="mt-2">
-                                        {turn.targetLabel} ·{" "}
-                                        {turn.providerLabel}
-                                      </p>
-                                      <p>
-                                        {turn.providerProfile || "--"} ·{" "}
-                                        {turn.thinkingMode || "--"}
-                                      </p>
-                                      <p>{turn.resolvedModel}</p>
-                                    </div>
-                                    <div className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-xs leading-6 text-slate-200">
-                                      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                                        {locale.startsWith("en")
-                                          ? "Execution notes"
-                                          : "执行摘要"}
-                                      </p>
-                                      <p className="mt-2">
-                                        {turn.warning
-                                          ? turn.warning
-                                          : locale.startsWith("en")
-                                            ? "No extra warning on this turn."
-                                            : "该轮没有额外告警。"}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  {reviewItems.length ? (
-                                    <div className="mt-3 space-y-3">
-                                      <p className="text-[11px] uppercase tracking-[0.22em] text-sky-200">
-                                        {locale.startsWith("en")
-                                          ? "Patch / diff review"
-                                          : "Patch / Diff 审核"}
-                                      </p>
-                                      {reviewItems.map((item) => (
-                                        <div
-                                          key={item.key}
-                                          className="rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3"
-                                        >
-                                          <div className="flex flex-wrap items-center gap-2">
-                                            <span className="rounded-full bg-sky-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-sky-200">
-                                              {item.toolName}
-                                            </span>
-                                            <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                                              {item.status}
-                                            </span>
-                                            {item.confirmationRequired ? (
-                                              <span className="rounded-full bg-violet-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-violet-200">
-                                                {locale.startsWith("en")
-                                                  ? "Needs approval"
-                                                  : "待审批"}
-                                              </span>
-                                            ) : null}
-                                            {item.confirmationUsed ? (
-                                              <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-emerald-200">
-                                                {locale.startsWith("en")
-                                                  ? "Approved"
-                                                  : "已审批"}
-                                              </span>
-                                            ) : null}
-                                            {item.verified !== null ? (
-                                              <span
-                                                className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${item.verified ? "bg-emerald-400/10 text-emerald-200" : "bg-rose-400/10 text-rose-200"}`}
-                                              >
-                                                {item.verified
-                                                  ? locale.startsWith("en")
-                                                    ? "Verified"
-                                                    : "已验证"
-                                                  : locale.startsWith("en")
-                                                    ? "Needs review"
-                                                    : "待复核"}
-                                              </span>
-                                            ) : null}
-                                          </div>
-                                          {item.affectedFiles.length ? (
-                                            <div className="mt-3 flex flex-wrap gap-2">
-                                              {item.affectedFiles.map(
-                                                (filePath) => (
-                                                  <span
-                                                    key={filePath}
-                                                    className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-slate-200"
-                                                  >
-                                                    {filePath}
-                                                  </span>
-                                                ),
-                                              )}
-                                            </div>
-                                          ) : null}
-                                          {item.files.length ? (
-                                            <div className="mt-3 space-y-2">
-                                              {item.files.map((file) => {
-                                                const reviewFileKey = `${item.key}:${file.path}`;
-                                                const open =
-                                                  expandedReviewFileKey ===
-                                                  reviewFileKey;
-                                                const openedFile =
-                                                  workspaceFileViews[file.path];
-                                                const workspaceFileOpen =
-                                                  openWorkspaceFilePath ===
-                                                  file.path;
-                                                const focusAnchors =
-                                                  file.diffPreview
-                                                    ? readNewFileLineAnchorsFromDiff(
-                                                        file.diffPreview,
-                                                      )
-                                                    : [];
-                                                const focusLine =
-                                                  workspaceFileOpen &&
-                                                  workspaceFileFocusState?.path ===
-                                                    file.path &&
-                                                  workspaceFileFocusState
-                                                    .anchors.length
-                                                    ? workspaceFileFocusState
-                                                        .anchors[
-                                                        workspaceFileFocusState
-                                                          .index
-                                                      ]
-                                                    : focusAnchors[0] || null;
-                                                const focusedExcerpt =
-                                                  workspaceFileOpen &&
-                                                  focusedWorkspaceFilePath ===
-                                                    file.path &&
-                                                  focusLine &&
-                                                  openedFile?.content
-                                                    ? buildFocusedFileExcerpt(
-                                                        openedFile.content,
-                                                        focusLine,
-                                                      )
-                                                    : null;
-                                                return (
-                                                  <div
-                                                    key={reviewFileKey}
-                                                    className="rounded-xl border border-white/10 bg-black/20"
-                                                  >
-                                                    <button
-                                                      type="button"
-                                                      onClick={() =>
-                                                        setExpandedReviewFileKey(
-                                                          (current) =>
-                                                            current ===
-                                                            reviewFileKey
-                                                              ? ""
-                                                              : reviewFileKey,
-                                                        )
-                                                      }
-                                                      className="flex w-full flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-left"
-                                                    >
-                                                      <div className="flex flex-wrap items-center gap-2">
-                                                        <span className="text-xs font-semibold text-white">
-                                                          {file.path}
-                                                        </span>
-                                                        {file.changed !==
-                                                        null ? (
-                                                          <span
-                                                            className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${
-                                                              file.changed
-                                                                ? "bg-emerald-400/10 text-emerald-200"
-                                                                : "bg-white/5 text-slate-300"
-                                                            }`}
-                                                          >
-                                                            {file.changed
-                                                              ? locale.startsWith(
-                                                                  "en",
-                                                                )
-                                                                ? "Changed"
-                                                                : "已变更"
-                                                              : locale.startsWith(
-                                                                    "en",
-                                                                  )
-                                                                ? "No diff"
-                                                                : "无差异"}
-                                                          </span>
-                                                        ) : null}
-                                                        {file.existedBefore ===
-                                                        false ? (
-                                                          <span className="rounded-full bg-cyan-400/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-200">
-                                                            {locale.startsWith(
-                                                              "en",
-                                                            )
-                                                              ? "Created"
-                                                              : "新建"}
-                                                          </span>
-                                                        ) : null}
-                                                        {file.existsAfter ===
-                                                        false ? (
-                                                          <span className="rounded-full bg-rose-400/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-rose-200">
-                                                            {locale.startsWith(
-                                                              "en",
-                                                            )
-                                                              ? "Removed"
-                                                              : "已删除"}
-                                                          </span>
-                                                        ) : null}
-                                                      </div>
-                                                      <span className="text-[11px] text-slate-400">
-                                                        {open
-                                                          ? locale.startsWith(
-                                                              "en",
-                                                            )
-                                                            ? "Collapse"
-                                                            : "收起"
-                                                          : locale.startsWith(
-                                                                "en",
-                                                              )
-                                                            ? "Expand"
-                                                            : "展开"}
-                                                      </span>
-                                                    </button>
-                                                    <div className="flex flex-wrap gap-2 px-3 pb-2">
-                                                      <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                          handleCopy(
-                                                            file.diffPreview ||
-                                                              file.contentPreview ||
-                                                              file.path,
-                                                            `${reviewFileKey}:file`,
-                                                          )
-                                                        }
-                                                        className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200 transition hover:bg-white/10"
-                                                      >
-                                                        {copyState ===
-                                                        `${reviewFileKey}:file`
-                                                          ? dictionary.common
-                                                              .copied
-                                                          : locale.startsWith(
-                                                                "en",
-                                                              )
-                                                            ? "Copy file diff"
-                                                            : "复制文件 diff"}
-                                                      </button>
-                                                      <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                          void handleOpenWorkspaceFile(
-                                                            file.path,
-                                                          )
-                                                        }
-                                                        className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-400/20"
-                                                      >
-                                                        {workspaceFileOpen
-                                                          ? locale.startsWith(
-                                                              "en",
-                                                            )
-                                                            ? "Hide file"
-                                                            : "收起文件"
-                                                          : locale.startsWith(
-                                                                "en",
-                                                              )
-                                                            ? "Open file"
-                                                            : "打开文件"}
-                                                      </button>
-                                                      {focusLine ? (
-                                                        <button
-                                                          type="button"
-                                                          onClick={() =>
-                                                            void handleOpenWorkspaceFile(
-                                                              file.path,
-                                                              {
-                                                                focusDiff: true,
-                                                                anchors:
-                                                                  focusAnchors,
-                                                                anchorIndex: 0,
-                                                              },
-                                                            )
-                                                          }
-                                                          className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-violet-100 transition hover:bg-violet-400/20"
-                                                        >
-                                                          {locale.startsWith(
-                                                            "en",
-                                                          )
-                                                            ? "Jump to diff"
-                                                            : "跳到 diff"}
-                                                        </button>
-                                                      ) : null}
-                                                    </div>
-                                                    {open ? (
-                                                      <div className="border-t border-white/10 px-3 py-3">
-                                                        {file.diffPreview ? (
-                                                          <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-cyan-400/15 bg-cyan-400/5 px-3 py-3 text-xs leading-6 text-cyan-50">
-                                                            {file.diffPreview}
-                                                          </pre>
-                                                        ) : file.contentPreview ? (
-                                                          <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-xs leading-6 text-slate-200">
-                                                            {
-                                                              file.contentPreview
-                                                            }
-                                                          </pre>
-                                                        ) : (
-                                                          <p className="text-xs leading-6 text-slate-400">
-                                                            {locale.startsWith(
-                                                              "en",
-                                                            )
-                                                              ? "No file-level preview available."
-                                                              : "当前没有文件级预览内容。"}
-                                                          </p>
-                                                        )}
-                                                        {workspaceFileOpen ? (
-                                                          <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3">
-                                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                                              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                                                {locale.startsWith(
-                                                                  "en",
-                                                                )
-                                                                  ? "Workspace file"
-                                                                  : "工作区文件"}
-                                                              </p>
-                                                              <div className="flex flex-wrap items-center justify-end gap-2">
-                                                                {workspaceFileOpen &&
-                                                                workspaceFileFocusState?.path ===
-                                                                  file.path &&
-                                                                workspaceFileFocusState
-                                                                  .anchors
-                                                                  .length ? (
-                                                                  <>
-                                                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                                                                      {workspaceFileFocusState.index +
-                                                                        1}
-                                                                      /
-                                                                      {
-                                                                        workspaceFileFocusState
-                                                                          .anchors
-                                                                          .length
-                                                                      }
-                                                                    </span>
-                                                                    {focusedExcerpt ? (
-                                                                      <button
-                                                                        type="button"
-                                                                        onClick={() =>
-                                                                          handleCopy(
-                                                                            focusedExcerpt.content,
-                                                                            `${reviewFileKey}:segment`,
-                                                                          )
-                                                                        }
-                                                                        className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-violet-100 transition hover:bg-violet-400/20"
-                                                                      >
-                                                                        {copyState ===
-                                                                        `${reviewFileKey}:segment`
-                                                                          ? dictionary
-                                                                              .common
-                                                                              .copied
-                                                                          : locale.startsWith(
-                                                                                "en",
-                                                                              )
-                                                                            ? "Copy current hunk"
-                                                                            : "复制当前变更段"}
-                                                                      </button>
-                                                                    ) : null}
-                                                                    <button
-                                                                      type="button"
-                                                                      disabled={
-                                                                        workspaceFileFocusState.index ===
-                                                                        0
-                                                                      }
-                                                                      onClick={() =>
-                                                                        handleStepWorkspaceFileAnchor(
-                                                                          -1,
-                                                                        )
-                                                                      }
-                                                                      className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
-                                                                    >
-                                                                      {locale.startsWith(
-                                                                        "en",
-                                                                      )
-                                                                        ? "Prev change"
-                                                                        : "上一处变更"}
-                                                                    </button>
-                                                                    <button
-                                                                      type="button"
-                                                                      disabled={
-                                                                        workspaceFileFocusState.index >=
-                                                                        workspaceFileFocusState
-                                                                          .anchors
-                                                                          .length -
-                                                                          1
-                                                                      }
-                                                                      onClick={() =>
-                                                                        handleStepWorkspaceFileAnchor(
-                                                                          1,
-                                                                        )
-                                                                      }
-                                                                      className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
-                                                                    >
-                                                                      {locale.startsWith(
-                                                                        "en",
-                                                                      )
-                                                                        ? "Next change"
-                                                                        : "下一处变更"}
-                                                                    </button>
-                                                                  </>
-                                                                ) : null}
-                                                                {openedFile?.absolutePath ? (
-                                                                  <span className="text-[11px] text-slate-500">
-                                                                    {
-                                                                      openedFile.absolutePath
-                                                                    }
-                                                                  </span>
-                                                                ) : null}
-                                                              </div>
-                                                            </div>
-                                                            {openedFile?.loading ? (
-                                                              <p className="mt-2 text-xs leading-6 text-slate-400">
-                                                                {locale.startsWith(
-                                                                  "en",
-                                                                )
-                                                                  ? "Loading file..."
-                                                                  : "正在读取文件..."}
-                                                              </p>
-                                                            ) : openedFile?.error ? (
-                                                              <p className="mt-2 text-xs leading-6 text-rose-100">
-                                                                {
-                                                                  openedFile.error
-                                                                }
-                                                              </p>
-                                                            ) : (
-                                                              <>
-                                                                {focusedExcerpt ? (
-                                                                  <p className="mt-2 text-[11px] text-violet-200">
-                                                                    {locale.startsWith(
-                                                                      "en",
-                                                                    )
-                                                                      ? `Focused near line ${focusLine}`
-                                                                      : `已定位到第 ${focusLine} 行附近`}
-                                                                  </p>
-                                                                ) : null}
-                                                                <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-slate-200">
-                                                                  {focusedExcerpt?.content ||
-                                                                    openedFile?.content ||
-                                                                    ""}
-                                                                </pre>
-                                                                {openedFile?.truncated ? (
-                                                                  <p className="mt-2 text-[11px] text-amber-100">
-                                                                    {locale.startsWith(
-                                                                      "en",
-                                                                    )
-                                                                      ? "Preview truncated to keep the trace panel responsive."
-                                                                      : "为保持轨迹面板响应速度，文件预览已截断。"}
-                                                                  </p>
-                                                                ) : null}
-                                                              </>
-                                                            )}
-                                                          </div>
-                                                        ) : null}
-                                                      </div>
-                                                    ) : null}
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          ) : null}
-                                          {item.diffPreview ? (
-                                            <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-cyan-400/15 bg-cyan-400/5 px-3 py-3 text-xs leading-6 text-cyan-50">
-                                              {item.diffPreview}
-                                            </pre>
-                                          ) : item.contentPreview ? (
-                                            <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-xs leading-6 text-slate-200">
-                                              {item.contentPreview}
-                                            </pre>
-                                          ) : null}
-                                          {item.errorText ? (
-                                            <p className="mt-3 text-xs leading-6 text-rose-100">
-                                              {item.errorText}
-                                            </p>
-                                          ) : null}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : null}
-                                </div>
-                              ) : null}
-
-                              <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                                    {dictionary.agent.user}
-                                  </p>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleCopy(
-                                        turn.displayPrompt || turn.prompt,
-                                        `${turn.id}:user`,
-                                      )
-                                    }
-                                    className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300 transition hover:bg-white/10"
-                                  >
-                                    {copyState === `${turn.id}:user`
-                                      ? dictionary.common.copied
-                                      : dictionary.common.copy}
-                                  </button>
-                                </div>
-                                <pre className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-100">{`> ${turn.displayPrompt || turn.prompt}`}</pre>
-                              </div>
-
-                              {turn.toolRuns.length ? (
-                                <div className="space-y-3">
-                                  {turn.toolRuns.map((toolRun, index) =>
-                                    (() => {
-                                      const parsedOutput = parseToolOutput(
-                                        toolRun.output,
-                                      );
-                                      const status = readStringField(
-                                        parsedOutput,
-                                        "status",
-                                      );
-                                      const policyLevel = readStringField(
-                                        parsedOutput,
-                                        "policyLevel",
-                                      );
-                                      const diffPreview = readStringField(
-                                        parsedOutput,
-                                        "diffPreview",
-                                      );
-                                      const contentPreview = readStringField(
-                                        parsedOutput,
-                                        "contentPreview",
-                                      );
-                                      const stdout = readStringField(
-                                        parsedOutput,
-                                        "stdout",
-                                      );
-                                      const stderr = readStringField(
-                                        parsedOutput,
-                                        "stderr",
-                                      );
-                                      const errorText = readStringField(
-                                        parsedOutput,
-                                        "error",
-                                      );
-                                      const message = readStringField(
-                                        parsedOutput,
-                                        "message",
-                                      );
-                                      const confirmationToken = readStringField(
-                                        parsedOutput,
-                                        "confirmationToken",
-                                      );
-                                      const repairPatch = readStringField(
-                                        parsedOutput,
-                                        "repairPatch",
-                                      );
-                                      const verified = readBooleanField(
-                                        parsedOutput,
-                                        "verified",
-                                      );
-                                      const expiresAt = readNumberField(
-                                        parsedOutput,
-                                        "expiresAt",
-                                      );
-                                      const verification =
-                                        readVerificationField(parsedOutput);
-                                      const rejectArtifacts = readArrayField(
-                                        parsedOutput,
-                                        "rejectArtifacts",
-                                      );
-                                      const initialFailure =
-                                        parsedOutput?.initialFailure;
-                                      const repairAttempt =
-                                        parsedOutput?.repairAttempt;
-                                      const decisionState = confirmationToken
-                                        ? toolDecisionStatusByToken[
-                                            confirmationToken
-                                          ]
-                                        : undefined;
-                                      const decisionBusy =
-                                        toolDecisionBusyKey ===
-                                          `${turn.id}:${index}:approve` ||
-                                        toolDecisionBusyKey ===
-                                          `${turn.id}:${index}:reject`;
-                                      const confirmationUsed = readBooleanField(
-                                        parsedOutput,
-                                        "confirmationUsed",
-                                      );
-                                      const policyReason = readStringField(
-                                        parsedOutput,
-                                        "policyReason",
-                                      );
-
-                                      return (
-                                        <div
-                                          key={`${turn.id}-tool-${index}`}
-                                          className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-3"
-                                        >
-                                          <div className="flex flex-wrap items-center justify-between gap-3">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                              <p className="text-[11px] uppercase tracking-[0.24em] text-amber-300">
-                                                tool::{toolRun.name}
-                                              </p>
-                                              {status ? (
-                                                <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-amber-50">
-                                                  {status}
-                                                </span>
-                                              ) : null}
-                                              {policyLevel ? (
-                                                <span className="rounded-full bg-slate-950/70 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-slate-200">
-                                                  {policyLevel}
-                                                </span>
-                                              ) : null}
-                                              {verified !== null ? (
-                                                <span
-                                                  className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.2em] ${
-                                                    verified
-                                                      ? "bg-emerald-400/15 text-emerald-200"
-                                                      : "bg-rose-400/15 text-rose-200"
-                                                  }`}
-                                                >
-                                                  {verified
-                                                    ? uiText.verified
-                                                    : uiText.unverified}
-                                                </span>
-                                              ) : null}
-                                              {decisionState ? (
-                                                <span
-                                                  className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.2em] ${
-                                                    decisionState === "approved"
-                                                      ? "bg-emerald-400/15 text-emerald-200"
-                                                      : "bg-rose-400/15 text-rose-200"
-                                                  }`}
-                                                >
-                                                  {decisionState}
-                                                </span>
-                                              ) : null}
-                                            </div>
-                                            <span className="text-[11px] uppercase tracking-[0.24em] text-amber-200/70">
-                                              {uiText.step} {index + 1}
-                                            </span>
-                                          </div>
-
-                                          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-xs leading-6 text-amber-100">
-                                            {JSON.stringify(
-                                              toolRun.input,
-                                              null,
-                                              2,
-                                            )}
-                                          </pre>
-
-                                          {diffPreview ? (
-                                            <div className="mt-3 rounded-xl border border-cyan-400/20 bg-cyan-400/5 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-300">
-                                                {uiText.diffPreview}
-                                              </p>
-                                              <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-cyan-50">
-                                                {diffPreview}
-                                              </pre>
-                                            </div>
-                                          ) : null}
-
-                                          {policyReason ? (
-                                            <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                                Policy
-                                              </p>
-                                              <p className="mt-2 text-xs leading-6 text-slate-200">
-                                                {policyReason}
-                                              </p>
-                                            </div>
-                                          ) : null}
-
-                                          {confirmationToken ? (
-                                            <div className="mt-3 rounded-xl border border-violet-400/25 bg-violet-400/10 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-violet-300">
-                                                {uiText.confirmationRequired}
-                                              </p>
-                                              <p className="mt-2 break-all text-xs leading-6 text-violet-100">
-                                                {uiText.token}:{" "}
-                                                {confirmationToken}
-                                              </p>
-                                              {expiresAt ? (
-                                                <p className="mt-2 text-xs leading-6 text-violet-200/80">
-                                                  {uiText.expires}:{" "}
-                                                  {new Date(
-                                                    expiresAt,
-                                                  ).toLocaleString()}
-                                                </p>
-                                              ) : null}
-                                              {message ? (
-                                                <p className="mt-2 text-xs leading-6 text-violet-100">
-                                                  {message}
-                                                </p>
-                                              ) : null}
-                                              {!decisionState ? (
-                                                <div className="mt-3 flex flex-wrap gap-2">
-                                                  <button
-                                                    type="button"
-                                                    disabled={
-                                                      Boolean(decisionBusy) ||
-                                                      pending
-                                                    }
-                                                    onClick={() =>
-                                                      handleToolDecision(
-                                                        turn.id,
-                                                        turn.targetId,
-                                                        index,
-                                                        toolRun.name,
-                                                        toolRun.input,
-                                                        confirmationToken,
-                                                        "approve",
-                                                      )
-                                                    }
-                                                    className="rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
-                                                  >
-                                                    {toolDecisionBusyKey ===
-                                                    `${turn.id}:${index}:approve`
-                                                      ? uiText.approving
-                                                      : uiText.approve}
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    disabled={
-                                                      Boolean(decisionBusy) ||
-                                                      pending
-                                                    }
-                                                    onClick={() =>
-                                                      handleToolDecision(
-                                                        turn.id,
-                                                        turn.targetId,
-                                                        index,
-                                                        toolRun.name,
-                                                        toolRun.input,
-                                                        confirmationToken,
-                                                        "reject",
-                                                      )
-                                                    }
-                                                    className="rounded-full border border-rose-400/30 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                                                  >
-                                                    {toolDecisionBusyKey ===
-                                                    `${turn.id}:${index}:reject`
-                                                      ? uiText.rejecting
-                                                      : uiText.reject}
-                                                  </button>
-                                                </div>
-                                              ) : (
-                                                <p className="mt-3 text-xs leading-6 text-violet-200/80">
-                                                  {decisionState === "approved"
-                                                    ? uiText.confirmationApproved
-                                                    : uiText.confirmationRejected}
-                                                </p>
-                                              )}
-                                            </div>
-                                          ) : null}
-
-                                          <div className="mt-3 flex flex-wrap gap-2">
-                                            {confirmationUsed ? (
-                                              <button
-                                                type="button"
-                                                disabled={
-                                                  pending ||
-                                                  Boolean(toolDecisionBusyKey)
-                                                }
-                                                onClick={() =>
-                                                  handleResumeAgent(
-                                                    turnIndex,
-                                                    turn.id,
-                                                    turn.targetId,
-                                                    toolRun,
-                                                    {
-                                                      approvalContext: true,
-                                                    },
-                                                  )
-                                                }
-                                                className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                                              >
-                                                {uiText.resumeAgent}
-                                              </button>
-                                            ) : null}
-                                            <button
-                                              type="button"
-                                              disabled={
-                                                pending ||
-                                                Boolean(toolDecisionBusyKey)
-                                              }
-                                              onClick={() =>
-                                                handleResumeAgent(
-                                                  turnIndex,
-                                                  turn.id,
-                                                  turn.targetId,
-                                                  toolRun,
-                                                  {
-                                                    approvalContext: false,
-                                                  },
-                                                )
-                                              }
-                                              className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                                            >
-                                              {locale.startsWith("en")
-                                                ? "Replay from here"
-                                                : "从该步骤继续"}
-                                            </button>
-                                          </div>
-
-                                          {contentPreview ? (
-                                            <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                                {uiText.contentPreview}
-                                              </p>
-                                              <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-slate-200">
-                                                {contentPreview}
-                                              </pre>
-                                            </div>
-                                          ) : null}
-
-                                          {verification.length ? (
-                                            <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                                {uiText.verification}
-                                              </p>
-                                              <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-slate-200">
-                                                {JSON.stringify(
-                                                  verification,
-                                                  null,
-                                                  2,
-                                                )}
-                                              </pre>
-                                            </div>
-                                          ) : null}
-
-                                          {repairPatch ? (
-                                            <div className="mt-3 rounded-xl border border-sky-400/20 bg-sky-400/10 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-sky-300">
-                                                {uiText.repairPatch}
-                                              </p>
-                                              <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-sky-50">
-                                                {repairPatch}
-                                              </pre>
-                                            </div>
-                                          ) : null}
-
-                                          {rejectArtifacts.length ? (
-                                            <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-amber-300">
-                                                {uiText.rejectArtifacts}
-                                              </p>
-                                              <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-amber-50">
-                                                {JSON.stringify(
-                                                  rejectArtifacts,
-                                                  null,
-                                                  2,
-                                                )}
-                                              </pre>
-                                            </div>
-                                          ) : null}
-
-                                          {initialFailure &&
-                                          typeof initialFailure === "object" ? (
-                                            <div className="mt-3 rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-rose-300">
-                                                {uiText.initialFailure}
-                                              </p>
-                                              <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-rose-100">
-                                                {JSON.stringify(
-                                                  initialFailure,
-                                                  null,
-                                                  2,
-                                                )}
-                                              </pre>
-                                            </div>
-                                          ) : null}
-
-                                          {repairAttempt &&
-                                          typeof repairAttempt === "object" ? (
-                                            <div className="mt-3 rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-rose-300">
-                                                {uiText.repairAttempt}
-                                              </p>
-                                              <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-rose-100">
-                                                {JSON.stringify(
-                                                  repairAttempt,
-                                                  null,
-                                                  2,
-                                                )}
-                                              </pre>
-                                            </div>
-                                          ) : null}
-
-                                          {stdout ? (
-                                            <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                                {uiText.standardOutput}
-                                              </p>
-                                              <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-slate-200">
-                                                {stdout}
-                                              </pre>
-                                            </div>
-                                          ) : null}
-
-                                          {stderr ? (
-                                            <div className="mt-3 rounded-xl border border-rose-400/20 bg-rose-400/5 px-3 py-3">
-                                              <p className="text-[11px] uppercase tracking-[0.22em] text-rose-300">
-                                                {uiText.standardError}
-                                              </p>
-                                              <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-rose-100">
-                                                {stderr}
-                                              </pre>
-                                            </div>
-                                          ) : null}
-
-                                          {errorText ? (
-                                            <div className="mt-3 rounded-xl border border-rose-400/20 bg-rose-400/5 px-3 py-3 text-xs leading-6 text-rose-100">
-                                              {errorText}
-                                            </div>
-                                          ) : null}
-
-                                          <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-xs leading-6 text-slate-200">
-                                            {toolRun.output}
-                                          </pre>
-                                        </div>
-                                      );
-                                    })(),
-                                  )}
-                                </div>
-                              ) : null}
-
-                              {turn.warning ? (
-                                <div className="rounded-2xl border border-amber-300/25 bg-amber-300/10 px-3 py-3 text-sm leading-6 text-amber-100">
-                                  {turn.warning}
-                                </div>
-                              ) : null}
-
-                              {replayComparison ? (
-                                <div className="rounded-2xl border border-violet-400/20 bg-violet-400/[0.06] px-3 py-3">
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-violet-100">
-                                        {locale.startsWith("en")
-                                          ? "Replay compare"
-                                          : "回放对比"}
-                                      </span>
-                                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
-                                        {replayComparison.replayModeLabel}
-                                      </span>
-                                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
-                                        {replayComparison.targetModeLabel}
-                                      </span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleCopy(
-                                          buildReplayComparisonSummaryText(
-                                            replayComparison,
-                                            locale,
-                                          ),
-                                          `${turn.id}:replay-compare`,
-                                        )
-                                      }
-                                      className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-violet-100 transition hover:bg-violet-400/20"
-                                    >
-                                      {copyState === `${turn.id}:replay-compare`
-                                        ? dictionary.common.copied
-                                        : locale.startsWith("en")
-                                          ? "Copy diff summary"
-                                          : "复制差异摘要"}
-                                    </button>
-                                  </div>
-                                  <p className="mt-2 text-xs leading-6 text-slate-200">
-                                    {replayComparison.sourceLabel}
-                                  </p>
-                                  <p className="mt-1 text-xs leading-6 text-slate-300">
-                                    {locale.startsWith("en")
-                                      ? "Response delta"
-                                      : "响应长度变化"}
-                                    :{" "}
-                                    {replayComparison.responseDelta > 0
-                                      ? "+"
-                                      : ""}
-                                    {replayComparison.responseDelta}
-                                  </p>
-                                  <p className="mt-2 text-xs leading-6 text-violet-100">
-                                    {replayComparison.summary}
-                                  </p>
-                                  {replayComparison.keyDiffs.length ? (
-                                    <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-3">
-                                      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                        {locale.startsWith("en")
-                                          ? "Top 3 key differences"
-                                          : "前 3 处关键差异"}
-                                      </p>
-                                      <ul className="mt-2 space-y-1 text-xs leading-6 text-slate-200">
-                                        {replayComparison.keyDiffs.map(
-                                          (diff, index) => (
-                                            <li
-                                              key={`${turn.id}:replay-diff:${index}`}
-                                            >
-                                              - {diff}
-                                            </li>
-                                          ),
-                                        )}
-                                      </ul>
-                                    </div>
-                                  ) : null}
-                                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                                    <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
-                                      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                        {locale.startsWith("en")
-                                          ? "Original"
-                                          : "原轮"}
-                                      </p>
-                                      <pre className="mt-2 whitespace-pre-wrap break-words text-xs leading-6 text-slate-200">
-                                        {(turn.replaySource?.response || "")
-                                          .trim()
-                                          .slice(0, 240) ||
-                                          (locale.startsWith("en")
-                                            ? "No original response."
-                                            : "没有原轮响应。")}
-                                        {(
-                                          turn.replaySource?.response || ""
-                                        ).trim().length > 240
-                                          ? "…"
-                                          : ""}
-                                      </pre>
-                                    </div>
-                                    <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
-                                      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                        {locale.startsWith("en")
-                                          ? "Replay"
-                                          : "回放"}
-                                      </p>
-                                      <pre className="mt-2 whitespace-pre-wrap break-words text-xs leading-6 text-slate-200">
-                                        {turn.response.trim().slice(0, 240) ||
-                                          (locale.startsWith("en")
-                                            ? "No replay response."
-                                            : "没有回放响应。")}
-                                        {turn.response.trim().length > 240
-                                          ? "…"
-                                          : ""}
-                                      </pre>
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : null}
-
-                              {turn.plannerSteps?.length ? (
-                                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 px-3 py-3">
-                                  <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200">
-                                    plan
-                                  </p>
-                                  <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs leading-6 text-slate-200">
-                                    {turn.plannerSteps.map((step, index) => (
-                                      <li key={`${turn.id}:plan:${index}`}>
-                                        {step}
-                                      </li>
-                                    ))}
-                                  </ol>
-                                </div>
-                              ) : null}
-
-                              {turn.memorySummary ? (
-                                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3">
-                                  <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
-                                    memory
-                                  </p>
-                                  <pre className="mt-2 whitespace-pre-wrap break-words text-xs leading-6 text-slate-200">
-                                    {turn.memorySummary}
-                                  </pre>
-                                </div>
-                              ) : null}
-
-                              {turn.retrieval ? (
-                                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/5 px-3 py-3">
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <p className="text-[11px] uppercase tracking-[0.24em] text-emerald-200">
-                                      {uiText.retrievalGrounding}
-                                    </p>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-emerald-100">
-                                        {uiText.retrievalHits}:{" "}
-                                        {turn.retrieval.hitCount}
-                                      </span>
-                                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
-                                        {turn.retrieval.strategy ===
-                                        "hybrid-rerank"
-                                          ? locale.startsWith("en")
-                                            ? "Hybrid rerank"
-                                            : "二阶段检索"
-                                          : locale.startsWith("en")
-                                            ? "Lexical"
-                                            : "词法检索"}
-                                      </span>
-                                      {typeof turn.retrieval.candidateCount ===
-                                      "number" ? (
-                                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
-                                          {locale.startsWith("en")
-                                            ? "Candidates"
-                                            : "候选"}
-                                          : {turn.retrieval.candidateCount}
-                                        </span>
-                                      ) : null}
-                                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
-                                        {turn.retrieval.bypassGrounding
-                                          ? locale.startsWith("en")
-                                            ? "General answer"
-                                            : "常识直答"
-                                          : locale.startsWith("en")
-                                            ? "Evidence-backed"
-                                            : "证据回答"}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  {turn.retrieval.lowConfidence ? (
-                                    <p className="mt-2 text-xs leading-6 text-amber-100">
-                                      {uiText.retrievalLowConfidence}
-                                    </p>
-                                  ) : null}
-                                  {turn.retrieval.bypassGrounding ? (
-                                    <div className="mt-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs leading-6 text-slate-200">
-                                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                                        {locale.startsWith("en")
-                                          ? "General answer mode"
-                                          : "常识直答模式"}
-                                      </span>
-                                      <p className="mt-2">
-                                        {turn.retrieval.bypassReason ===
-                                        "general-question-no-evidence"
-                                          ? locale.startsWith("en")
-                                            ? "No local evidence was required for this question, so the answer could rely on general knowledge."
-                                            : "这个问题不依赖本地知识证据，因此允许直接按常识回答。"
-                                          : locale.startsWith("en")
-                                            ? "Retrieval confidence was too low, so the answer stayed conservative and separated evidence from general guidance."
-                                            : "检索信心偏低，因此回答会把本地证据与一般性建议分开表达。"}
-                                      </p>
-                                    </div>
-                                  ) : null}
-                                  {turn.retrieval.results.length ? (
-                                    <div className="mt-3 space-y-2.5">
-                                      {turn.retrieval.results
-                                        .slice(
-                                          0,
-                                          Math.max(
-                                            2,
-                                            turn.retrieval.results.findIndex(
-                                              (result) =>
-                                                `${turn.id}:${result.chunkId}` ===
-                                                expandedCitationKey,
-                                            ) + 1,
-                                          ),
-                                        )
-                                        .map((result) => (
-                                          <button
-                                            key={`${turn.id}:${result.chunkId}`}
-                                            id={`citation:${turn.id}:${result.chunkId}`}
-                                            type="button"
-                                            onClick={() =>
-                                              setExpandedCitationKey(
-                                                (current) =>
-                                                  current ===
-                                                  `${turn.id}:${result.chunkId}`
-                                                    ? ""
-                                                    : `${turn.id}:${result.chunkId}`,
-                                              )
-                                            }
-                                            className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2.5 text-left transition hover:border-white/20 hover:bg-slate-950/80"
-                                          >
-                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                              <p className="text-xs font-semibold text-white">
-                                                {result.citationLabel}{" "}
-                                                {result.title}
-                                              </p>
-                                              <div className="flex flex-wrap items-center gap-2">
-                                                <span className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                                                  {result.score.toFixed(1)}
-                                                </span>
-                                                {result.scoring ? (
-                                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                                                    R{" "}
-                                                    {result.scoring.rerank.toFixed(
-                                                      0,
-                                                    )}
-                                                  </span>
-                                                ) : null}
-                                              </div>
-                                            </div>
-                                            <p className="mt-1 text-xs leading-5 text-slate-400">
-                                              {result.sectionPath.length
-                                                ? result.sectionPath.join(" > ")
-                                                : "--"}
-                                              {result.source
-                                                ? ` · ${result.source}`
-                                                : ""}
-                                            </p>
-                                            {result.matchedTerms?.length ? (
-                                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                                {result.matchedTerms
-                                                  .slice(0, 5)
-                                                  .map((term) => (
-                                                    <span
-                                                      key={`${result.chunkId}:${term}`}
-                                                      className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] text-cyan-100"
-                                                    >
-                                                      {term}
-                                                    </span>
-                                                  ))}
-                                              </div>
-                                            ) : null}
-                                            <p className="mt-2 text-xs leading-6 text-slate-200">
-                                              {expandedCitationKey ===
-                                              `${turn.id}:${result.chunkId}`
-                                                ? result.evidencePreview ||
-                                                  result.content
-                                                : (
-                                                      result.evidencePreview ||
-                                                      result.content
-                                                    ).length > 220
-                                                  ? `${(result.evidencePreview || result.content).slice(0, 220)}…`
-                                                  : result.evidencePreview ||
-                                                    result.content}
-                                            </p>
-                                            {expandedCitationKey ===
-                                              `${turn.id}:${result.chunkId}` &&
-                                            result.evidenceSpans?.length ? (
-                                              <div className="mt-2 space-y-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                                                {result.evidenceSpans.map(
-                                                  (span) => (
-                                                    <div
-                                                      key={`${result.chunkId}:${span.label}`}
-                                                    >
-                                                      <p className="text-[10px] uppercase tracking-[0.18em] text-cyan-200">
-                                                        {span.label}
-                                                      </p>
-                                                      <p className="mt-1 text-xs leading-6 text-slate-200">
-                                                        {span.preview}
-                                                      </p>
-                                                    </div>
-                                                  ),
-                                                )}
-                                              </div>
-                                            ) : null}
-                                            <p className="mt-2 text-[11px] text-cyan-300">
-                                              {expandedCitationKey ===
-                                              `${turn.id}:${result.chunkId}`
-                                                ? locale.startsWith("en")
-                                                  ? "Click again to collapse"
-                                                  : "再次点击可收起"
-                                                : locale.startsWith("en")
-                                                  ? "Click to inspect full citation"
-                                                  : "点击查看完整引用"}
-                                            </p>
-                                          </button>
-                                        ))}
-                                      {turn.retrieval.results.length > 2 ? (
-                                        <p className="px-1 text-xs leading-6 text-slate-400">
-                                          +{turn.retrieval.results.length - 2}{" "}
-                                          条额外证据已命中
-                                        </p>
-                                      ) : null}
-                                    </div>
-                                  ) : (
-                                    <p className="mt-2 text-xs leading-6 text-slate-400">
-                                      {uiText.retrievalNoEvidence}
-                                    </p>
-                                  )}
-                                  {turn.retrieval.stageNotes?.length ? (
-                                    <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                                      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                                        {locale.startsWith("en")
-                                          ? "Retrieval stages"
-                                          : "检索阶段"}
-                                      </p>
-                                      <ul className="mt-2 space-y-1 text-xs leading-6 text-slate-300">
-                                        {turn.retrieval.stageNotes.map(
-                                          (note) => (
-                                            <li key={`${turn.id}:${note}`}>
-                                              - {note}
-                                            </li>
-                                          ),
-                                        )}
-                                      </ul>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              ) : null}
-
-                              {turn.verification ? (
-                                <div
-                                  className={`rounded-2xl border px-3 py-3 ${
-                                    turn.verification.verdict === "grounded"
-                                      ? "border-emerald-400/20 bg-emerald-400/5"
-                                      : turn.verification.verdict ===
-                                          "weakly-grounded"
-                                        ? "border-amber-400/20 bg-amber-400/10"
-                                        : "border-rose-400/20 bg-rose-400/10"
-                                  }`}
-                                >
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <p className="text-[11px] uppercase tracking-[0.24em] text-slate-200">
-                                      {uiText.groundedVerification}
-                                    </p>
-                                    <span
-                                      className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${
-                                        turn.verification.verdict === "grounded"
-                                          ? "bg-emerald-400/15 text-emerald-100"
-                                          : turn.verification.verdict ===
-                                              "weakly-grounded"
-                                            ? "bg-amber-400/15 text-amber-100"
-                                            : "bg-rose-400/15 text-rose-100"
-                                      }`}
-                                    >
-                                      {formatGroundedVerdictLabel(
-                                        turn.verification,
-                                        {
-                                          grounded:
-                                            uiText.groundedVerdictGrounded,
-                                          weaklyGrounded:
-                                            uiText.groundedVerdictWeak,
-                                          unsupported:
-                                            uiText.groundedVerdictUnsupported,
-                                          notApplicable:
-                                            uiText.groundedVerdictNotApplicable,
-                                        },
-                                      )}
-                                    </span>
-                                  </div>
-                                  <div className="mt-3 grid gap-2 text-xs leading-6 text-slate-200">
-                                    <p>
-                                      {uiText.groundedLexicalScore}:{" "}
-                                      {turn.verification.lexicalGroundingScore.toFixed(
-                                        3,
-                                      )}
-                                    </p>
-                                    <div>
-                                      <p>{uiText.groundedCitations}</p>
-                                      <div className="mt-2 flex flex-wrap gap-2">
-                                        {turn.verification.citedLabels
-                                          .length ? (
-                                          turn.verification.citedLabels.map(
-                                            (label) => {
-                                              const matchedResult =
-                                                turn.retrieval?.results.find(
-                                                  (result) =>
-                                                    result.citationLabel ===
-                                                    label,
-                                                );
-                                              return (
-                                                <button
-                                                  key={`${turn.id}:cited:${label}`}
-                                                  type="button"
-                                                  onClick={() => {
-                                                    if (!matchedResult) return;
-                                                    const nextKey = `${turn.id}:${matchedResult.chunkId}`;
-                                                    setExpandedCitationKey(
-                                                      nextKey,
-                                                    );
-                                                    window.requestAnimationFrame(
-                                                      () => {
-                                                        document
-                                                          .getElementById(
-                                                            `citation:${turn.id}:${matchedResult.chunkId}`,
-                                                          )
-                                                          ?.scrollIntoView({
-                                                            behavior: "smooth",
-                                                            block: "nearest",
-                                                          });
-                                                      },
-                                                    );
-                                                  }}
-                                                  className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-100 transition hover:bg-white/[0.08]"
-                                                >
-                                                  {label}
-                                                </button>
-                                              );
-                                            },
-                                          )
-                                        ) : (
-                                          <span className="text-slate-500">
-                                            --
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    {turn.verification.unsupportedLabels
-                                      .length ? (
-                                      <p>
-                                        {uiText.groundedUnsupportedCitations}:{" "}
-                                        {turn.verification.unsupportedLabels.join(
-                                          ", ",
-                                        )}
-                                      </p>
-                                    ) : null}
-                                    {turn.verification.fallbackApplied ? (
-                                      <p className="text-amber-100">
-                                        {uiText.groundedFallbackApplied}
-                                        {turn.verification.fallbackReason
-                                          ? ` · ${uiText.groundedFallbackReason}: ${formatGroundedFallbackReason(
-                                              turn.verification.fallbackReason,
-                                              {
-                                                noEvidence:
-                                                  uiText.groundedReasonNoEvidence,
-                                                lowConfidence:
-                                                  uiText.groundedReasonLowConfidence,
-                                                missingCitations:
-                                                  uiText.groundedReasonMissingCitations,
-                                                unsupportedClaims:
-                                                  uiText.groundedReasonUnsupportedClaims,
-                                              },
-                                            )}`
-                                          : ""}
-                                      </p>
-                                    ) : null}
-                                  </div>
-                                  {turn.verification.notes.length ? (
-                                    <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3">
-                                      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                        {uiText.groundedNotes}
-                                      </p>
-                                      <ul className="mt-2 space-y-1 text-xs leading-6 text-slate-200">
-                                        {turn.verification.notes
-                                          .slice(0, 2)
-                                          .map((note, noteIndex) => (
-                                            <li
-                                              key={`${turn.id}:verification-note:${noteIndex}`}
-                                            >
-                                              -{" "}
-                                              {formatGroundedNote(note, {
-                                                retrievalDisabled:
-                                                  uiText.groundedNoteRetrievalDisabled,
-                                                noEvidence:
-                                                  uiText.groundedNoteNoEvidence,
-                                                unsupportedCitations:
-                                                  uiText.groundedNoteUnsupportedCitations,
-                                                missingCitations:
-                                                  uiText.groundedNoteMissingCitations,
-                                                lowConfidence:
-                                                  uiText.groundedNoteLowConfidence,
-                                                weakOverlap:
-                                                  uiText.groundedNoteWeakOverlap,
-                                              })}
-                                            </li>
-                                          ))}
-                                        {turn.verification.notes.length > 2 ? (
-                                          <li className="text-slate-500">
-                                            +
-                                            {turn.verification.notes.length - 2}{" "}
-                                            条补充说明
-                                          </li>
-                                        ) : null}
-                                      </ul>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              ) : null}
-
-                              {turn.thinkingFallbackToStandard ? (
-                                <div className="rounded-2xl border border-amber-300/25 bg-amber-300/10 px-3 py-3 text-sm leading-6 text-amber-100">
-                                  {uiText.thinkingModelFallback}{" "}
-                                  {turn.resolvedModel}
-                                </div>
-                              ) : null}
-
-                              {turn.localFallbackUsed ? (
-                                <div className="rounded-2xl border border-emerald-300/25 bg-emerald-300/10 px-3 py-3 text-sm leading-6 text-emerald-50">
-                                  <p>
-                                    {uiText.localFallbackUsed}
-                                    {turn.localFallbackTargetLabel
-                                      ? ` · ${uiText.localFallbackTarget}: ${turn.localFallbackTargetLabel}`
-                                      : ""}
-                                  </p>
-                                  {turn.localFallbackReason ? (
-                                    <p className="mt-1 text-emerald-100/90">
-                                      {uiText.localFallbackReason}:{" "}
-                                      {formatLocalFallbackReason(
-                                        turn.localFallbackReason,
-                                        {
-                                          loading:
-                                            uiText.localFallbackReasonLoading,
-                                          health:
-                                            uiText.localFallbackReasonHealth,
-                                          empty:
-                                            uiText.localFallbackReasonEmpty,
-                                          failure:
-                                            uiText.localFallbackReasonFailure,
-                                          simple:
-                                            uiText.localFallbackReasonSimple,
-                                        },
-                                      )}
-                                    </p>
-                                  ) : null}
-                                </div>
-                              ) : null}
-
-                              {turn.connectionCheck ? (
-                                <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span
-                                      className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${
-                                        turn.connectionCheck.ok
-                                          ? "bg-emerald-400/15 text-emerald-200"
-                                          : "bg-amber-400/15 text-amber-200"
-                                      }`}
-                                    >
-                                      {dictionary.agent.connectionRecord}
-                                    </span>
-                                    <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
-                                      {new Date(
-                                        turn.connectionCheck.checkedAt,
-                                      ).toLocaleString()}
-                                    </span>
-                                  </div>
-                                  <div className="mt-3 grid gap-3">
-                                    {turn.connectionCheck.stages.map(
-                                      (stage) => (
-                                        <div
-                                          key={`${turn.id}-${stage.id}`}
-                                          className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3"
-                                        >
-                                          <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                              <span
-                                                className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${getConnectionStageBadgeClass(stage.ok)}`}
-                                              >
-                                                {formatConnectionStageLabel(
-                                                  stage.id,
-                                                )}
-                                              </span>
-                                              {typeof stage.httpStatus ===
-                                              "number" ? (
-                                                <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
-                                                  http {stage.httpStatus}
-                                                </span>
-                                              ) : null}
-                                            </div>
-                                            <span className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                                              {stage.latencyMs} ms
-                                            </span>
-                                          </div>
-                                          <p className="mt-2 text-sm leading-6 text-slate-300">
-                                            {stage.summary}
-                                          </p>
-                                        </div>
-                                      ),
-                                    )}
-                                  </div>
-                                </div>
-                              ) : null}
-
-                              <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] p-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-300">
-                                    {dictionary.agent.assistant}
-                                  </p>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleCopy(
-                                        turn.response,
-                                        `${turn.id}:assistant`,
-                                      )
-                                    }
-                                    className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-400/20"
-                                  >
-                                    {copyState === `${turn.id}:assistant`
-                                      ? dictionary.common.copied
-                                      : dictionary.common.copy}
-                                  </button>
-                                </div>
-                                <pre className="mt-2 whitespace-pre-wrap break-words text-sm leading-7 text-slate-100">
-                                  {turn.response}
-                                </pre>
-                              </div>
-                            </article>
-                          );
-                        })}
-
-                        {pending ? (
-                          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-slate-400">
-                            <p className="text-cyan-300">$ agent.run</p>
-                            <p className="mt-2">
-                              {dictionary.agent.processingWith}{" "}
-                              {selectedTarget.label}...
-                            </p>
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-
-                  {!transcriptPinnedToBottom ? (
-                    <div className="border-t border-cyan-400/15 bg-slate-950/80 px-5 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] px-3 py-3">
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
-                            {locale.startsWith("en")
-                              ? "Reading history"
-                              : "正在查看历史"}
-                          </p>
-                          <p className="mt-1 text-xs leading-6 text-slate-300">
-                            {pending
-                              ? locale.startsWith("en")
-                                ? "Live output is still streaming below. We paused auto-follow so you can keep reading."
-                                : "底部仍有新内容在继续生成。为了不打断阅读，自动跟随已暂停。"
-                              : unseenTranscriptTurns > 0
-                                ? locale.startsWith("en")
-                                  ? `${unseenTranscriptTurns} new turn${unseenTranscriptTurns > 1 ? "s" : ""} arrived while you were reading earlier messages.`
-                                  : `你查看较早消息时，已有 ${unseenTranscriptTurns} 条新轮次到达。`
-                                : locale.startsWith("en")
-                                  ? "Auto-follow is paused until you jump back to the latest turn."
-                                  : "自动跟随已暂停，回到最新内容后会恢复。"}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleJumpToLatestTranscript}
-                          className="shrink-0 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-400/20"
-                        >
-                          {locale.startsWith("en")
-                            ? `Jump to latest${unseenTranscriptTurns > 0 ? ` (${unseenTranscriptTurns})` : ""}`
-                            : `回到最新${unseenTranscriptTurns > 0 ? ` (${unseenTranscriptTurns})` : ""}`}
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <form
+                  <AgentComposerForm
+                    locale={locale}
+                    dictionary={dictionary}
+                    uiText={{
+                      activeLabel: uiText.activeLabel,
+                      contextWindow: uiText.contextWindow,
+                      enableRetrieval: uiText.enableRetrieval,
+                      enterHint: uiText.enterHint,
+                      prewarmAllModels: uiText.prewarmAllModels,
+                      prewarmModel: uiText.prewarmModel,
+                      prewarming: uiText.prewarming,
+                      prewarmingAll: uiText.prewarmingAll,
+                      queueLabel: uiText.queueLabel,
+                      runtimeCurrentLoaded:
+                        uiText.runtimeCurrentLoaded ||
+                        (locale.startsWith("en") ? "Loaded" : "已加载"),
+                      runtimeDowngradeHint: uiText.runtimeDowngradeHint,
+                      runtimeLoadingElapsed: uiText.runtimeLoadingElapsed,
+                      runtimeLoadingError: uiText.runtimeLoadingError,
+                      runtimeReady: uiText.runtimeReady,
+                      runtimeSerializing: uiText.runtimeSerializing,
+                      runtimeSwitchingNow:
+                        uiText.runtimeSwitchingNow ||
+                        (locale.startsWith("en") ? "Switching" : "切换中"),
+                      runtimeUnavailable: uiText.runtimeUnavailable,
+                      submit: uiText.submit,
+                      submitting: uiText.submitting,
+                    }}
+                    composerRef={composerRef}
+                    input={input}
+                    placeholder={starterPrompts[0]}
+                    pending={pending}
+                    error={error}
+                    turnsLength={turns.length}
+                    enableTools={enableTools}
+                    enableRetrieval={enableRetrieval}
+                    contextWindow={contextWindow}
+                    contextWindowOptions={CONTEXT_WINDOW_OPTIONS}
+                    agentTargets={agentTargets}
+                    selectedTarget={selectedTarget}
+                    runtimeStatus={runtimeStatus}
+                    runtimePhase={runtimePhase}
+                    loadedAliasForSelectedTarget={loadedAliasForSelectedTarget}
+                    gatewayLoadedOtherAlias={gatewayLoadedOtherAlias}
+                    runtimeGuardrailBlocked={runtimeGuardrailBlocked}
+                    runtimeGuardrailCaution={runtimeGuardrailCaution}
+                    prewarmAllPending={prewarmAllPending}
+                    prewarmPending={prewarmPending}
+                    prewarmMessage={prewarmMessage}
+                    runtimeActionPending={runtimeActionPending}
                     onSubmit={handleSubmit}
-                    className="border-t border-white/10 bg-slate-950/90 px-5 py-4"
-                  >
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <label className="flex items-center gap-2 text-sm text-slate-300">
-                          <input
-                            type="checkbox"
-                            checked={enableTools}
-                            onChange={(event) =>
-                              setEnableTools(event.target.checked)
-                            }
-                            className="rounded border-white/20 bg-slate-950"
-                          />
-                          {dictionary.agent.enableToolLoop}
-                        </label>
-                        <label className="flex items-center gap-2 text-sm text-slate-300">
-                          <input
-                            type="checkbox"
-                            checked={enableRetrieval}
-                            onChange={(event) =>
-                              setEnableRetrieval(event.target.checked)
-                            }
-                            className="rounded border-white/20 bg-slate-950"
-                          />
-                          {uiText.enableRetrieval}
-                        </label>
-                        <label className="flex items-center gap-2 text-sm text-slate-300">
-                          <span>{uiText.contextWindow}</span>
-                          <select
-                            value={contextWindow}
-                            onChange={(event) =>
-                              setContextWindow(Number(event.target.value))
-                            }
-                            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-100 outline-none"
-                          >
-                            {CONTEXT_WINDOW_OPTIONS.map((value) => (
-                              <option key={value} value={value}>
-                                {value >= 1024
-                                  ? `${Math.round(value / 1024)}K`
-                                  : value}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={!turns.length}
-                          onClick={() => handleExportTurns("markdown")}
-                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs uppercase tracking-[0.22em] text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {dictionary.agent.exportMarkdown}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={!turns.length}
-                          onClick={() => handleExportTurns("json")}
-                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs uppercase tracking-[0.22em] text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {dictionary.agent.exportJson}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            startNewSession();
-                          }}
-                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs uppercase tracking-[0.22em] text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08]"
-                        >
-                          {dictionary.agent.clearSession}
-                        </button>
-                      </div>
-                    </div>
-
-                    <textarea
-                      ref={composerRef}
-                      value={input}
-                      onChange={(event) => setInput(event.target.value)}
-                      onKeyDown={handleComposerKeyDown}
-                      rows={5}
-                      placeholder={starterPrompts[0]}
-                      className="min-h-[150px] w-full resize-y rounded-3xl border border-white/10 bg-black/25 px-4 py-4 font-mono text-sm leading-7 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400/40 focus:bg-black/35"
-                    />
-                    <p className="mt-2 text-xs text-slate-500">
-                      {uiText.enterHint}
-                    </p>
-
-                    {selectedTarget.execution === "local" && runtimeStatus ? (
-                      <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${runtimePhase.className}`}
-                            >
-                              {runtimePhase.label}
-                            </span>
-                            {typeof runtimeStatus.queueDepth === "number" ? (
-                              <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
-                                {uiText.queueLabel} {runtimeStatus.queueDepth}
-                              </span>
-                            ) : null}
-                            {typeof runtimeStatus.activeRequests ===
-                            "number" ? (
-                              <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
-                                {uiText.activeLabel}{" "}
-                                {runtimeStatus.activeRequests}
-                              </span>
-                            ) : null}
-                            {loadedAliasForSelectedTarget ? (
-                              <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-cyan-300">
-                                {describeRuntimeAlias(
-                                  loadedAliasForSelectedTarget,
-                                  agentTargets,
-                                )}
-                              </span>
-                            ) : null}
-                            {gatewayLoadedOtherAlias ? (
-                              <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
-                                {uiText.runtimeCurrentLoaded}{" "}
-                                {describeRuntimeAlias(
-                                  gatewayLoadedOtherAlias,
-                                  agentTargets,
-                                )}
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              disabled={
-                                prewarmAllPending ||
-                                prewarmPending ||
-                                pending ||
-                                Boolean(runtimeActionPending) ||
-                                runtimeGuardrailBlocked
-                              }
-                              onClick={handlePrewarmAll}
-                              className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                            >
-                              {prewarmAllPending
-                                ? uiText.prewarmingAll
-                                : uiText.prewarmAllModels}
-                            </button>
-                            <button
-                              type="button"
-                              disabled={
-                                prewarmAllPending ||
-                                prewarmPending ||
-                                pending ||
-                                Boolean(runtimeActionPending) ||
-                                runtimeGuardrailBlocked
-                              }
-                              onClick={handlePrewarm}
-                              className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                            >
-                              {prewarmPending
-                                ? uiText.prewarming
-                                : uiText.prewarmModel}
-                            </button>
-                          </div>
-                        </div>
-                        <p className="mt-2 text-xs leading-6 text-slate-400">
-                          {runtimeStatus.phaseDetail ||
-                            (runtimeStatus.available
-                              ? runtimeStatus.busy
-                                ? uiText.runtimeSerializing
-                                : uiText.runtimeReady
-                              : runtimeStatus.message ||
-                                uiText.runtimeUnavailable)}
-                        </p>
-                        {runtimeStatus.loadingAlias ? (
-                          <div className="mt-2 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-6 text-amber-100">
-                            <p>
-                              {uiText.runtimeSwitchingNow}:{" "}
-                              {describeRuntimeAlias(
-                                runtimeStatus.loadingAlias,
-                                agentTargets,
-                              )}
-                              {typeof runtimeStatus.loadingElapsedMs ===
-                              "number"
-                                ? ` · ${uiText.runtimeLoadingElapsed} ${Math.max(1, Math.round(runtimeStatus.loadingElapsedMs / 1000))}s`
-                                : ""}
-                            </p>
-                            {selectedTarget.id === "local-qwen3-4b-4bit" ||
-                            selectedTarget.id === "local-qwen35-4b-4bit" ? (
-                              <p className="mt-1 text-amber-50/90">
-                                {uiText.runtimeDowngradeHint}
-                              </p>
-                            ) : null}
-                          </div>
-                        ) : null}
-                        {runtimeStatus.loadingError ? (
-                          <div className="mt-2 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs leading-6 text-rose-100">
-                            {uiText.runtimeLoadingError}:{" "}
-                            {runtimeStatus.loadingError}
-                          </div>
-                        ) : null}
-                        {runtimeStatus.resourceGuardrailSummary ? (
-                          <div
-                            className={`mt-2 rounded-2xl border px-3 py-2 text-xs leading-6 ${
-                              runtimeGuardrailBlocked
-                                ? "border-rose-400/20 bg-rose-400/10 text-rose-100"
-                                : runtimeGuardrailCaution
-                                  ? "border-amber-400/20 bg-amber-400/10 text-amber-100"
-                                  : "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
-                            }`}
-                          >
-                            <p>
-                              {runtimeGuardrailBlocked
-                                ? locale.startsWith("en")
-                                  ? "High-risk load"
-                                  : "高风险加载"
-                                : runtimeGuardrailCaution
-                                  ? locale.startsWith("en")
-                                    ? "Memory caution"
-                                    : "内存风险提醒"
-                                  : locale.startsWith("en")
-                                    ? "Load budget looks healthy"
-                                    : "加载预算健康"}
-                              : {runtimeStatus.resourceGuardrailSummary}
-                            </p>
-                            {typeof runtimeStatus.estimatedPeakMemoryMb ===
-                              "number" &&
-                            typeof runtimeStatus.systemTotalMemoryMb ===
-                              "number" ? (
-                              <p className="mt-1">
-                                {locale.startsWith("en")
-                                  ? "Estimated peak"
-                                  : "预估峰值"}{" "}
-                                {Math.round(
-                                  runtimeStatus.estimatedPeakMemoryMb / 1024,
-                                )}{" "}
-                                GB /{" "}
-                                {Math.round(
-                                  runtimeStatus.systemTotalMemoryMb / 1024,
-                                )}{" "}
-                                GB
-                              </p>
-                            ) : null}
-                            {runtimeStatus.resourceGuardrailRecommendations
-                              ?.length ? (
-                              <ul className="mt-1 space-y-1 text-[11px] text-current/90">
-                                {runtimeStatus.resourceGuardrailRecommendations
-                                  .slice(0, 3)
-                                  .map((item) => (
-                                    <li key={item}>- {item}</li>
-                                  ))}
-                              </ul>
-                            ) : null}
-                          </div>
-                        ) : null}
-                        {prewarmMessage ? (
-                          <p className="mt-1 text-xs leading-6 text-cyan-200">
-                            {prewarmMessage}
-                          </p>
-                        ) : null}
-                      </div>
-                    ) : null}
-
-                    {error ? (
-                      <div className="mt-3 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-3 py-3 text-sm text-rose-100">
-                        {error}
-                      </div>
-                    ) : null}
-
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                      <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                        {dictionary.common.endpoint} {selectedTarget.baseUrlEnv}{" "}
-                        · {dictionary.common.model} {selectedTarget.modelEnv}
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={pending}
-                        className="rounded-full bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300"
-                      >
-                        {pending ? uiText.submitting : uiText.submit}
-                      </button>
-                    </div>
-                  </form>
-                  <div className="border-t border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.28),rgba(2,6,23,0.16))] px-5 py-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                          {locale.startsWith("en")
-                            ? "Secondary analysis cards"
-                            : "次级分析卡片"}
-                        </p>
-                        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-                          {locale.startsWith("en")
-                            ? "Use the transcript and composer as the primary surface. The cards below keep prompt framing, launch hints, and provider checks nearby without stretching the workspace into a long single strip."
-                            : "把对话记录和输入区作为主内容面，下面这组卡片专门承接提示词框架、启动提示和 provider 自检，避免工作区继续被拉成长条单列。"}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2 text-[11px]">
-                        <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
-                          {locale.startsWith("en")
-                            ? "Primary: transcript + compose"
-                            : "主内容：记录 + 输入"}
-                        </span>
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-slate-300">
-                          {locale.startsWith("en")
-                            ? "Secondary: analysis cards"
-                            : "次级：分析卡片"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)] 2xl:grid-cols-[minmax(0,1.32fr)_minmax(420px,0.78fr)]">
-                      <div className="space-y-4">
-                        <div className="rounded-3xl border border-white/10 bg-black/25 px-4 py-4">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                                {dictionary.agent.promptFrame}
-                              </p>
-                              <p className="mt-1.5 text-sm leading-6 text-slate-300">
-                                {locale.startsWith("en")
-                                  ? "Prompt framing stays beside the main workspace so you can refine agent behavior without burying the transcript."
-                                  : "系统提示词直接放在主工作区旁边，边看输出边收口行为，不再把核心记录挤到侧栏里。"}
-                              </p>
-                            </div>
-                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                              {locale.startsWith("en")
-                                ? "Live prompt frame"
-                                : "实时提示框架"}
-                            </span>
-                          </div>
-                          <textarea
-                            value={systemPrompt}
-                            onChange={(event) =>
-                              setSystemPrompt(event.target.value)
-                            }
-                            rows={12}
-                            className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 font-mono text-xs leading-6 text-slate-200 outline-none transition focus:border-cyan-400/40"
-                          />
-                        </div>
-
-                        <div className="rounded-3xl border border-white/10 bg-black/25 px-4 py-4">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                                {dictionary.agent.launchHints}
-                              </p>
-                              <p className="mt-1.5 text-sm leading-6 text-slate-300">
-                                {locale.startsWith("en")
-                                  ? "Keep deployment and fallback hints in a card grid instead of a long sidebar, so high-density sessions remain easier to scan."
-                                  : "把部署与 fallback 提示放进卡片网格，而不是继续堆在长侧栏里，高信息密度时更容易扫读。"}
-                              </p>
-                            </div>
-                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                              {selectedTarget.execution === "local"
-                                ? dictionary.common.local
-                                : dictionary.common.remote}
-                            </span>
-                          </div>
-                          <div className="mt-3 grid gap-3 2xl:grid-cols-2">
-                            {(
-                              selectedTarget.launchHints || [
-                                uiText.fallbackLaunchHint,
-                              ]
-                            ).map((hint) => (
-                              <pre
-                                key={hint}
-                                className="overflow-x-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 font-mono text-xs leading-6 text-slate-200"
-                              >
-                                {hint}
-                              </pre>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="rounded-3xl border border-white/10 bg-black/25 px-4 py-4">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                                {dictionary.agent.providerSelfCheck}
-                              </p>
-                              <p className="mt-1.5 text-sm leading-6 text-slate-300">
-                                {dictionary.agent.selfCheckDescription}
-                              </p>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <button
-                                type="button"
-                                disabled={
-                                  !supportsConnectionCheck ||
-                                  connectionCheckPending ||
-                                  pending
-                                }
-                                onClick={handleConnectionCheck}
-                                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                              >
-                                {connectionCheckPending
-                                  ? dictionary.agent.checking
-                                  : dictionary.agent.runCheck}
-                              </button>
-                              <a
-                                href={`/api/agent/check-history/export?targetId=${encodeURIComponent(selectedTargetId)}&format=markdown`}
-                                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
-                              >
-                                {dictionary.agent.exportMarkdown}
-                              </a>
-                              <a
-                                href={`/api/agent/check-history/export?targetId=${encodeURIComponent(selectedTargetId)}&format=json`}
-                                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
-                              >
-                                {dictionary.agent.exportJson}
-                              </a>
-                            </div>
-                          </div>
-
-                          {!supportsConnectionCheck ? (
-                            <p className="mt-3 text-sm leading-6 text-slate-400">
-                              {dictionary.agent.checkOnlyRemote}
-                            </p>
-                          ) : null}
-
-                          {connectionCheckError ? (
-                            <div className="mt-3 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-3 py-3 text-sm text-rose-100">
-                              {connectionCheckError}
-                            </div>
-                          ) : null}
-
-                          <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-3 text-xs leading-6 text-slate-300">
-                            <p>
-                              {dictionary.common.model}:{" "}
-                              {runtimeStatus?.resolvedModel ||
-                                lastTurn?.resolvedModel ||
-                                selectedTarget.modelDefault}
-                            </p>
-                            <p className="break-all">
-                              {dictionary.common.endpoint}:{" "}
-                              {lastTurn?.resolvedBaseUrl ||
-                                selectedTarget.baseUrlDefault}
-                            </p>
-                            <p className="mt-2 text-slate-500">
-                              {dictionary.agent.historySavedAt}:{" "}
-                              <span className="text-slate-300">
-                                data/agent-observability
-                              </span>
-                            </p>
-                            {connectionCheck?.docsUrl ? (
-                              <a
-                                href={connectionCheck.docsUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-2 inline-block text-cyan-300 underline decoration-cyan-300/40 underline-offset-4"
-                              >
-                                {dictionary.agent.openDocs}
-                              </a>
-                            ) : null}
-                          </div>
-
-                          {connectionCheck ? (
-                            <div className="mt-3 grid gap-2">
-                              {connectionCheck.stages.map((stage) => (
-                                <div
-                                  key={stage.id}
-                                  className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5"
-                                >
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span
-                                        className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${getConnectionStageBadgeClass(stage.ok)}`}
-                                      >
-                                        {formatConnectionStageLabel(stage.id)}
-                                      </span>
-                                      {typeof stage.httpStatus === "number" ? (
-                                        <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                                          http {stage.httpStatus}
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                    <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                                      {stage.latencyMs} ms
-                                    </span>
-                                  </div>
-                                  <p className="mt-1.5 text-[13px] leading-6 text-slate-300">
-                                    {stage.summary}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    onComposerKeyDown={handleComposerKeyDown}
+                    onInputChange={setInput}
+                    onEnableToolsChange={setEnableTools}
+                    onEnableRetrievalChange={setEnableRetrieval}
+                    onContextWindowChange={setContextWindow}
+                    onExportTurns={handleExportTurns}
+                    onStartNewSession={startNewSession}
+                    onPrewarmAll={handlePrewarmAll}
+                    onPrewarm={handlePrewarm}
+                  />
+                  <AgentSecondaryAnalysisPanel
+                    locale={locale}
+                    dictionary={dictionary}
+                    systemPrompt={systemPrompt}
+                    setSystemPrompt={setSystemPrompt}
+                    selectedTarget={selectedTarget}
+                    selectedTargetId={selectedTargetId}
+                    runtimeStatus={runtimeStatus}
+                    lastTurn={lastTurn}
+                    supportsConnectionCheck={supportsConnectionCheck}
+                    connectionCheckPending={connectionCheckPending}
+                    connectionCheckError={connectionCheckError}
+                    connectionCheck={connectionCheck}
+                    pending={pending}
+                    fallbackLaunchHint={uiText.fallbackLaunchHint}
+                    onConnectionCheck={handleConnectionCheck}
+                  />
                 </>
               ) : (
                 <CompareWorkbenchPortal {...compareWorkbenchShellProps} />
               )}
             </div>
 
-            <aside
-              className={`bg-white/[0.03] ${
-                workbenchMode === "compare"
-                  ? "hidden 2xl:block 2xl:max-h-[calc(100vh-15rem)] 2xl:overflow-y-auto"
-                  : "2xl:max-h-[calc(100vh-15rem)] 2xl:overflow-y-auto"
-              }`}
-            >
-              <div className="border-b border-white/10 px-5 py-3.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">
-                      {dictionary.nav.agent}
-                    </p>
-                    <h3 className="mt-1.5 text-base font-semibold text-white">
-                      {dictionary.agent.localRuntime} /{" "}
-                      {locale.startsWith("en") ? "Status rail" : "状态侧栏"}
-                    </h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-400">
-                      {locale.startsWith("en")
-                        ? "Keep the right rail high-signal: a compact status strip first, then expand model, process, and compare details only when needed."
-                        : "右侧只保留高信号状态条；模型、进程和 compare 细节按需展开，避免一整列长条同权堆叠。"}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setRuntimeRailCollapsed((current) => !current)
-                    }
-                    className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 xl:hidden"
-                    aria-expanded={!runtimeRailCollapsed}
-                  >
-                    {runtimeRailCollapsed
-                      ? locale.startsWith("en")
-                        ? "Show"
-                        : "展开"
-                      : locale.startsWith("en")
-                        ? "Hide"
-                        : "收起"}
-                  </button>
-                </div>
-              </div>
-
-              <div
-                className={`${runtimeRailCollapsed ? "hidden xl:block" : "block"} space-y-3 px-5 py-4`}
-              >
-                <div className="rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(12,18,35,0.96),rgba(4,8,22,0.9))] px-4 py-4 shadow-[0_24px_80px_-44px_rgba(34,211,238,0.35)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                        {selectedTarget.execution === "local"
-                          ? dictionary.agent.localRuntime
-                          : locale.startsWith("en")
-                            ? "Remote target"
-                            : "远端目标"}
-                      </p>
-                      <p className="mt-1.5 text-sm leading-6 text-slate-200">
-                        {selectedTarget.execution === "local"
-                          ? runtimeStatus?.phaseDetail ||
-                            (runtimeStatus?.available
-                              ? runtimeStatus.busy
-                                ? uiText.runtimeSerializing
-                                : uiText.runtimeReady
-                              : runtimeStatus?.message ||
-                                uiText.runtimeUnavailable)
-                          : `${runtimeStatus?.resolvedModel || lastTurn?.resolvedModel || selectedTarget.modelDefault} · ${selectedTarget.label}`}
-                      </p>
-                    </div>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${
-                        selectedTarget.execution === "local"
-                          ? runtimePhase.className
-                          : "bg-violet-400/15 text-violet-200"
-                      }`}
-                    >
-                      {selectedTarget.execution === "local"
-                        ? runtimePhase.label
-                        : locale.startsWith("en")
-                          ? "Remote"
-                          : "远端"}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {typeof runtimeStatus?.queueDepth === "number" ? (
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
-                        {uiText.queueLabel} {runtimeStatus.queueDepth}
-                      </span>
-                    ) : null}
-                    {typeof runtimeStatus?.activeRequests === "number" ? (
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
-                        {uiText.activeLabel} {runtimeStatus.activeRequests}
-                      </span>
-                    ) : null}
-                    {loadedAliasForSelectedTarget ? (
-                      <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-cyan-200">
-                        {describeRuntimeAlias(
-                          loadedAliasForSelectedTarget,
-                          agentTargets,
-                        )}
-                      </span>
-                    ) : null}
-                    {gatewayLoadedOtherAlias ? (
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
-                        {uiText.runtimeCurrentLoaded}{" "}
-                        {describeRuntimeAlias(
-                          gatewayLoadedOtherAlias,
-                          agentTargets,
-                        )}
-                      </span>
-                    ) : null}
-                    {runtimeStatus?.loadingAlias ? (
-                      <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-amber-200">
-                        {uiText.runtimeSwitchingNow}:{" "}
-                        {describeRuntimeAlias(
-                          runtimeStatus.loadingAlias,
-                          agentTargets,
-                        )}
-                      </span>
-                    ) : null}
-                    {selectedTarget.execution === "remote" ? (
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">
-                        {lastTurn?.resolvedBaseUrl ||
-                          selectedTarget.baseUrlDefault}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                        {dictionary.common.model}
-                      </p>
-                      <p className="mt-1 break-all text-[13px] leading-6 text-slate-200">
-                        {runtimeStatus?.resolvedModel ||
-                          lastTurn?.resolvedModel ||
-                          selectedTarget.modelDefault}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                        {selectedTarget.execution === "local"
-                          ? uiText.runtimeLastSwitchLoad
-                          : dictionary.common.endpoint}
-                      </p>
-                      <p className="mt-1 break-all text-[13px] leading-6 text-slate-200">
-                        {selectedTarget.execution === "local"
-                          ? formatRuntimeDuration(selectedTargetLastSwitchMs)
-                          : lastTurn?.resolvedBaseUrl ||
-                            selectedTarget.baseUrlDefault}
-                      </p>
-                    </div>
-                  </div>
-
-                  {selectedTarget.execution === "local" ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        disabled={
-                          prewarmAllPending ||
-                          prewarmPending ||
-                          pending ||
-                          Boolean(runtimeActionPending) ||
-                          runtimeGuardrailBlocked
-                        }
-                        onClick={handlePrewarmAll}
-                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                      >
-                        {prewarmAllPending
-                          ? uiText.prewarmingAll
-                          : uiText.prewarmAllModels}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={
-                          prewarmAllPending ||
-                          prewarmPending ||
-                          pending ||
-                          Boolean(runtimeActionPending) ||
-                          runtimeGuardrailBlocked
-                        }
-                        onClick={handlePrewarm}
-                        className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                      >
-                        {prewarmPending
-                          ? uiText.prewarming
-                          : uiText.prewarmModel}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={
-                          prewarmAllPending ||
-                          prewarmPending ||
-                          pending ||
-                          Boolean(runtimeActionPending)
-                        }
-                        onClick={() => void handleRuntimeAction("release")}
-                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                      >
-                        {runtimeActionPending === "release"
-                          ? uiText.releasingModel
-                          : uiText.releaseModel}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={
-                          prewarmAllPending ||
-                          prewarmPending ||
-                          pending ||
-                          Boolean(runtimeActionPending)
-                        }
-                        onClick={() => void handleRuntimeAction("restart")}
-                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                      >
-                        {runtimeActionPending === "restart"
-                          ? uiText.restartingGateway
-                          : uiText.restartGateway}
-                      </button>
-                    </div>
-                  ) : null}
-
-                  {runtimeStatus?.loadingError ? (
-                    <div className="mt-3 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs leading-6 text-rose-100">
-                      {uiText.runtimeLoadingError}: {runtimeStatus.loadingError}
-                    </div>
-                  ) : null}
-                  {runtimeStatus?.resourceGuardrailSummary ? (
-                    <div
-                      className={`mt-3 rounded-2xl border px-3 py-2 text-xs leading-6 ${
-                        runtimeGuardrailBlocked
-                          ? "border-rose-400/20 bg-rose-400/10 text-rose-100"
-                          : runtimeGuardrailCaution
-                            ? "border-amber-400/20 bg-amber-400/10 text-amber-100"
-                            : "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
-                      }`}
-                    >
-                      <p>{runtimeStatus.resourceGuardrailSummary}</p>
-                      {typeof runtimeStatus.estimatedPeakMemoryMb ===
-                        "number" &&
-                      typeof runtimeStatus.systemTotalMemoryMb === "number" ? (
-                        <p className="mt-1">
-                          {locale.startsWith("en")
-                            ? "Estimated peak"
-                            : "预估峰值"}{" "}
-                          {Math.round(
-                            runtimeStatus.estimatedPeakMemoryMb / 1024,
-                          )}{" "}
-                          GB /{" "}
-                          {Math.round(runtimeStatus.systemTotalMemoryMb / 1024)}{" "}
-                          GB
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {prewarmMessage ? (
-                    <p className="mt-3 text-xs leading-6 text-cyan-200">
-                      {prewarmMessage}
-                    </p>
-                  ) : null}
-                </div>
-
-                <RailDetailsSection
-                  title={dictionary.agent.resolvedModel}
-                  badge={
-                    selectedTarget.execution === "local"
-                      ? dictionary.common.local
-                      : "remote"
-                  }
-                  defaultOpen={true}
-                >
-                  <div className="space-y-3 text-sm text-slate-300">
-                    <div>
-                      <p className="text-slate-500">
-                        {dictionary.common.model}
-                      </p>
-                      <p className="mt-1 break-all text-[13px] leading-6 text-slate-200">
-                        {runtimeStatus?.resolvedModel ||
-                          lastTurn?.resolvedModel ||
-                          selectedTarget.modelDefault}
-                      </p>
-                    </div>
-                    {selectedTarget.execution === "remote" ? (
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <p className="text-slate-500">
-                            {uiText.thinkingModeStandard}
-                          </p>
-                          <p className="mt-1 break-all text-[13px] leading-6 text-slate-200">
-                            {runtimeStatus?.standardResolvedModel ||
-                              selectedTarget.modelDefault}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500">
-                            {uiText.thinkingModeThinking}
-                          </p>
-                          <p className="mt-1 break-all text-[13px] leading-6 text-slate-200">
-                            {runtimeStatus?.thinkingResolvedModel ||
-                              selectedTarget.thinkingModelDefault ||
-                              selectedTarget.modelDefault}
-                          </p>
-                        </div>
-                      </div>
-                    ) : null}
-                    <div>
-                      <p className="text-slate-500">
-                        {dictionary.common.endpoint}
-                      </p>
-                      <p className="mt-1 break-all text-[13px] leading-6 text-slate-200">
-                        {lastTurn?.resolvedBaseUrl ||
-                          selectedTarget.baseUrlDefault}
-                      </p>
-                    </div>
-                    {connectionCheck?.docsUrl ? (
-                      <div>
-                        <a
-                          href={connectionCheck.docsUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-block text-cyan-300 underline decoration-cyan-300/40 underline-offset-4"
-                        >
-                          {dictionary.agent.openDocs}
-                        </a>
-                      </div>
-                    ) : null}
-                    <div>
-                      <p className="text-slate-500">
-                        {dictionary.agent.historySavedAt}
-                      </p>
-                      <p className="mt-1 text-xs leading-6 text-slate-400">
-                        data/agent-observability
-                      </p>
-                    </div>
-                  </div>
-                </RailDetailsSection>
-
-                {selectedTarget.execution === "local" ? (
-                  <RailDetailsSection
-                    title={dictionary.agent.localRuntime}
-                    subtitle={
-                      locale.startsWith("en")
-                        ? "Expand for process ids, runtime stage, switch history, load errors, and the current log excerpt."
-                        : "展开后看进程号、运行阶段、切换历史、加载错误和当前日志摘录。"
-                    }
-                    badge={runtimePhase.label}
-                  >
-                    {runtimeStatus ? (
-                      <div className="space-y-3 text-sm text-slate-200">
-                        <div>
-                          <p className="text-slate-500">
-                            {locale.startsWith("en")
-                              ? "Runtime stage"
-                              : "运行阶段"}
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {runtimeStageItems.map((step) => (
-                              <span
-                                key={`runtime-stage:${step.key}`}
-                                className={`rounded-full border px-2 py-[3px] text-[10px] uppercase tracking-[0.2em] ${
-                                  step.active
-                                    ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
-                                    : step.completed
-                                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-                                      : "border-white/10 bg-white/[0.04] text-slate-400"
-                                }`}
-                              >
-                                {step.label}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div>
-                            <p className="text-slate-500">
-                              {uiText.supervisor}
-                            </p>
-                            <p className="mt-1 break-all text-white">
-                              {runtimeStatus.supervisorPid ??
-                                dictionary.common.unknown}{" "}
-                              ·{" "}
-                              {runtimeStatus.supervisorAlive
-                                ? dictionary.common.ok
-                                : dictionary.common.failed}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-slate-500">
-                              {uiText.gatewayProcess}
-                            </p>
-                            <p className="mt-1 break-all text-white">
-                              {runtimeStatus.gatewayPid ??
-                                dictionary.common.unknown}{" "}
-                              ·{" "}
-                              {runtimeStatus.gatewayAlive
-                                ? dictionary.common.ok
-                                : dictionary.common.failed}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-slate-500">
-                              {uiText.runtimeCurrentLoaded}
-                            </p>
-                            <p className="mt-1 break-all text-white">
-                              {describeRuntimeAlias(
-                                runtimeStatus.loadedAlias,
-                                agentTargets,
-                              )}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-slate-500">
-                              {uiText.runtimeLastSwitchLoad}
-                            </p>
-                            <p className="mt-1 break-all text-white">
-                              {formatRuntimeDuration(
-                                selectedTargetLastSwitchMs,
-                              )}
-                            </p>
-                          </div>
-                          <div className="sm:col-span-2">
-                            <p className="text-slate-500">
-                              {uiText.runtimeLastSwitchAt}
-                            </p>
-                            <p className="mt-1 break-all text-white">
-                              {formatRuntimeTimestamp(
-                                selectedTargetLastSwitchAt,
-                                locale,
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        {runtimeStatus.loadingAlias ||
-                        runtimeStatus.loadingError ? (
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            {runtimeStatus.loadingAlias ? (
-                              <div>
-                                <p className="text-slate-500">
-                                  {uiText.runtimeSwitchingNow}
-                                </p>
-                                <p className="mt-1 break-all text-white">
-                                  {describeRuntimeAlias(
-                                    runtimeStatus.loadingAlias,
-                                    agentTargets,
-                                  )}
-                                  {typeof runtimeStatus.loadingElapsedMs ===
-                                  "number"
-                                    ? ` · ${uiText.runtimeLoadingElapsed} ${Math.max(1, Math.round(runtimeStatus.loadingElapsedMs / 1000))}s`
-                                    : ""}
-                                </p>
-                              </div>
-                            ) : null}
-                            {runtimeStatus.loadingError ? (
-                              <div>
-                                <p className="text-slate-500">
-                                  {uiText.runtimeLoadingError}
-                                </p>
-                                <p className="mt-1 break-all text-rose-200">
-                                  {runtimeStatus.loadingError}
-                                </p>
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : null}
-                        {runtimeLogExcerpt ? (
-                          <div>
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-slate-500">
-                                {uiText.logExcerpt}
-                              </p>
-                              <button
-                                type="button"
-                                disabled={
-                                  prewarmAllPending ||
-                                  prewarmPending ||
-                                  pending ||
-                                  Boolean(runtimeActionPending)
-                                }
-                                onClick={() =>
-                                  void handleRuntimeAction("read_log")
-                                }
-                                className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                              >
-                                {runtimeActionPending === "read_log"
-                                  ? uiText.loadingRuntimeLog
-                                  : uiText.viewRuntimeLog}
-                              </button>
-                            </div>
-                            <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 font-mono text-xs leading-6 text-slate-300">
-                              {runtimeLogExcerpt}
-                            </pre>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={
-                              prewarmAllPending ||
-                              prewarmPending ||
-                              pending ||
-                              Boolean(runtimeActionPending)
-                            }
-                            onClick={() => void handleRuntimeAction("read_log")}
-                            className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                          >
-                            {runtimeActionPending === "read_log"
-                              ? uiText.loadingRuntimeLog
-                              : uiText.viewRuntimeLog}
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm leading-6 text-slate-400">
-                        {dictionary.agent.checking}
-                      </p>
-                    )}
-                  </RailDetailsSection>
-                ) : null}
-
-                {workbenchMode === "compare" ? (
-                  <>
-                    <RailDetailsSection
-                      title={dictionary.agent.promptFrame}
-                      subtitle={
-                        locale.startsWith("en")
-                          ? "Only expand when you need to adjust the compare prompt frame from the side."
-                          : "需要从侧边改 compare 提示框架时再展开，不让它默认常驻占位。"
-                      }
-                    >
-                      <textarea
-                        value={systemPrompt}
-                        onChange={(event) =>
-                          setSystemPrompt(event.target.value)
-                        }
-                        rows={12}
-                        className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 font-mono text-xs leading-6 text-slate-200 outline-none transition focus:border-cyan-400/40"
-                      />
-                    </RailDetailsSection>
-
-                    <RailDetailsSection
-                      title={dictionary.agent.launchHints}
-                      subtitle={
-                        locale.startsWith("en")
-                          ? "Deployment and fallback hints stay tucked away until you need operational context."
-                          : "部署与 fallback 提示折叠收纳，需要运维上下文时再展开。"
-                      }
-                      badge={
-                        selectedTarget.execution === "local"
-                          ? dictionary.common.local
-                          : "remote"
-                      }
-                    >
-                      <div className="space-y-2">
-                        {(
-                          selectedTarget.launchHints || [
-                            uiText.fallbackLaunchHint,
-                          ]
-                        ).map((hint) => (
-                          <pre
-                            key={hint}
-                            className="overflow-x-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 font-mono text-xs leading-6 text-slate-200"
-                          >
-                            {hint}
-                          </pre>
-                        ))}
-                      </div>
-                    </RailDetailsSection>
-
-                    <RailDetailsSection
-                      title={dictionary.agent.providerSelfCheck}
-                      subtitle={
-                        locale.startsWith("en")
-                          ? "Run connection checks and inspect stage-by-stage latency without keeping the whole report visible."
-                          : "把连接自检和分阶段耗时折叠起来，需要时再展开查看，不让整份报告一直占据右栏。"
-                      }
-                      badge={
-                        connectionCheck
-                          ? connectionCheck.ok
-                            ? dictionary.common.ok
-                            : dictionary.common.failed
-                          : locale.startsWith("en")
-                            ? "Idle"
-                            : "未运行"
-                      }
-                    >
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            disabled={
-                              !supportsConnectionCheck ||
-                              connectionCheckPending ||
-                              pending
-                            }
-                            onClick={handleConnectionCheck}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                          >
-                            {connectionCheckPending
-                              ? dictionary.agent.checking
-                              : dictionary.agent.runCheck}
-                          </button>
-                          <a
-                            href={`/api/agent/check-history/export?targetId=${encodeURIComponent(selectedTargetId)}&format=markdown`}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
-                          >
-                            {dictionary.agent.exportMarkdown}
-                          </a>
-                          <a
-                            href={`/api/agent/check-history/export?targetId=${encodeURIComponent(selectedTargetId)}&format=json`}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
-                          >
-                            {dictionary.agent.exportJson}
-                          </a>
-                        </div>
-
-                        {!supportsConnectionCheck ? (
-                          <p className="text-sm leading-6 text-slate-400">
-                            {dictionary.agent.checkOnlyRemote}
-                          </p>
-                        ) : null}
-
-                        {connectionCheckError ? (
-                          <div className="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-3 py-3 text-sm text-rose-100">
-                            {connectionCheckError}
-                          </div>
-                        ) : null}
-
-                        {connectionCheck ? (
-                          <div className="space-y-2.5">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
-                                  connectionCheck.ok
-                                    ? "bg-emerald-400/15 text-emerald-200"
-                                    : "bg-amber-400/15 text-amber-200"
-                                }`}
-                              >
-                                {connectionCheck.ok
-                                  ? dictionary.agent.allChecksPassed
-                                  : dictionary.agent.checkAttention}
-                              </span>
-                              <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                                {new Date(
-                                  connectionCheck.checkedAt,
-                                ).toLocaleTimeString()}
-                              </span>
-                            </div>
-
-                            <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-xs leading-6 text-slate-300">
-                              <p>
-                                {dictionary.common.model}:{" "}
-                                {connectionCheck.resolvedModel}
-                              </p>
-                              <p className="break-all">
-                                {dictionary.common.endpoint}:{" "}
-                                {connectionCheck.resolvedBaseUrl}
-                              </p>
-                              {connectionCheck.docsUrl ? (
-                                <a
-                                  href={connectionCheck.docsUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="mt-1 inline-block text-cyan-300 underline decoration-cyan-300/40 underline-offset-4"
-                                >
-                                  {dictionary.agent.openDocs}
-                                </a>
-                              ) : null}
-                              <p className="mt-2 text-slate-500">
-                                {dictionary.agent.historySavedAt}:{" "}
-                                <span className="text-slate-300">
-                                  data/agent-observability
-                                </span>
-                              </p>
-                            </div>
-
-                            {connectionCheck.stages.map((stage) => (
-                              <div
-                                key={stage.id}
-                                className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5"
-                              >
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span
-                                      className={`rounded-full px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${getConnectionStageBadgeClass(stage.ok)}`}
-                                    >
-                                      {formatConnectionStageLabel(stage.id)}
-                                    </span>
-                                    {typeof stage.httpStatus === "number" ? (
-                                      <span className="rounded-full bg-white/[0.04] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                                        http {stage.httpStatus}
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                  <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                                    {stage.latencyMs} ms
-                                  </span>
-                                </div>
-                                <p className="mt-1.5 text-[13px] leading-6 text-slate-300">
-                                  {stage.summary}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </RailDetailsSection>
-                  </>
-                ) : null}
-              </div>
-            </aside>
+            <RuntimeStatusRail
+              locale={locale}
+              dictionary={dictionary}
+              uiText={{
+                runtimeSerializing: uiText.runtimeSerializing,
+                runtimeReady: uiText.runtimeReady,
+                runtimeUnavailable: uiText.runtimeUnavailable,
+                runtimeCurrentLoaded:
+                  uiText.runtimeCurrentLoaded ||
+                  (locale.startsWith("en") ? "Loaded" : "已加载"),
+                runtimeSwitchingNow:
+                  uiText.runtimeSwitchingNow ||
+                  (locale.startsWith("en") ? "Switching" : "切换中"),
+                runtimeLastSwitchLoad:
+                  uiText.runtimeLastSwitchLoad ||
+                  (locale.startsWith("en") ? "Last load" : "最近加载"),
+                runtimeLastSwitchAt:
+                  uiText.runtimeLastSwitchAt ||
+                  (locale.startsWith("en") ? "Last switch at" : "最近切换"),
+                runtimeLoadingElapsed: uiText.runtimeLoadingElapsed,
+                runtimeLoadingError: uiText.runtimeLoadingError,
+                queueLabel: uiText.queueLabel,
+                activeLabel: uiText.activeLabel,
+                prewarmingAll: uiText.prewarmingAll,
+                prewarmAllModels: uiText.prewarmAllModels,
+                prewarming: uiText.prewarming,
+                prewarmModel: uiText.prewarmModel,
+                releasingModel: uiText.releasingModel,
+                releaseModel: uiText.releaseModel,
+                restartingGateway: uiText.restartingGateway,
+                restartGateway: uiText.restartGateway,
+                thinkingModeStandard: uiText.thinkingModeStandard,
+                thinkingModeThinking: uiText.thinkingModeThinking,
+                supervisor: uiText.supervisor,
+                gatewayProcess: uiText.gatewayProcess,
+                logExcerpt: uiText.logExcerpt,
+                loadingRuntimeLog: uiText.loadingRuntimeLog,
+                viewRuntimeLog: uiText.viewRuntimeLog,
+                fallbackLaunchHint: uiText.fallbackLaunchHint,
+              }}
+              workbenchMode={workbenchMode}
+              runtimeRailCollapsed={runtimeRailCollapsed}
+              onToggleRuntimeRail={() =>
+                setRuntimeRailCollapsed((current) => !current)
+              }
+              agentTargets={agentTargets}
+              selectedTarget={selectedTarget}
+              selectedTargetId={selectedTargetId}
+              runtimeStatus={runtimeStatus}
+              runtimePhase={runtimePhase}
+              runtimeStageItems={runtimeStageItems}
+              lastTurn={lastTurn}
+              loadedAliasForSelectedTarget={loadedAliasForSelectedTarget}
+              gatewayLoadedOtherAlias={gatewayLoadedOtherAlias}
+              selectedTargetLastSwitchMs={selectedTargetLastSwitchMs}
+              selectedTargetLastSwitchAt={selectedTargetLastSwitchAt}
+              runtimeGuardrailBlocked={runtimeGuardrailBlocked}
+              runtimeGuardrailCaution={runtimeGuardrailCaution}
+              pending={pending}
+              prewarmAllPending={prewarmAllPending}
+              prewarmPending={prewarmPending}
+              prewarmMessage={prewarmMessage}
+              runtimeActionPending={runtimeActionPending}
+              runtimeLogExcerpt={runtimeLogExcerpt}
+              systemPrompt={systemPrompt}
+              onSystemPromptChange={setSystemPrompt}
+              supportsConnectionCheck={supportsConnectionCheck}
+              connectionCheckPending={connectionCheckPending}
+              connectionCheckError={connectionCheckError}
+              connectionCheck={connectionCheck}
+              onConnectionCheck={handleConnectionCheck}
+              onPrewarmAll={handlePrewarmAll}
+              onPrewarm={handlePrewarm}
+              onRuntimeAction={handleRuntimeAction}
+            />
           </div>
         </div>
       </div>

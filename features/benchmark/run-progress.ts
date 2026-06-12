@@ -9,7 +9,11 @@ import {
   startBenchmarkProgressGroup,
   touchBenchmarkProgressWorker,
 } from "@/lib/agent/benchmark-progress-store";
-import { appendTimelineEvent } from "@/lib/agent/timeline-store";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
+import {
+  buildExperimentSourceLinks,
+  inheritExperimentSourceArtifacts,
+} from "@/features/experiments/source-context";
 import { setLocalBenchmarkPrewarmState } from "@/features/benchmark/run-local-prewarm";
 import type {
   AgentBenchmarkProgress,
@@ -20,6 +24,7 @@ import type {
   AgentThinkingMode,
 } from "@/lib/agent/types";
 import type { BenchmarkPlan } from "@/features/benchmark/run-plan";
+import type { ExperimentSourceContext } from "@/features/experiments/contracts";
 
 export type PlannedBenchmarkProgressGroup = {
   key: string;
@@ -44,6 +49,7 @@ export function initializeBenchmarkRunProgress(input: {
   totalSamples: number;
   pendingGroups: PlannedBenchmarkProgressGroup[];
   targetIds: string[];
+  experimentContext?: ExperimentSourceContext;
 }) {
   createBenchmarkProgress({
     runId: input.runId,
@@ -56,13 +62,23 @@ export function initializeBenchmarkRunProgress(input: {
     totalSamples: input.totalSamples,
     pendingGroups: input.pendingGroups,
   });
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "benchmark",
     status: "started",
     title: "Benchmark run started",
     summary: `${input.plan.suiteLabel || input.plan.promptSetLabel || input.plan.datasetLabel || input.plan.prompt} · ${input.targetIds.length} target${input.targetIds.length === 1 ? "" : "s"}`,
     relatedId: input.runId,
     targetIds: input.targetIds,
+    artifacts: [
+      ...inheritExperimentSourceArtifacts(input.experimentContext),
+      {
+        kind: "api",
+        role: "progress",
+        label: "Benchmark progress",
+        uri: `/api/admin/benchmark/progress?runId=${encodeURIComponent(input.runId)}`,
+      },
+    ],
+    links: buildExperimentSourceLinks(input.experimentContext),
     metadata: {
       benchmarkMode: input.plan.benchmarkMode,
       suiteId: input.plan.suiteId,
@@ -137,14 +153,38 @@ export function completeBenchmarkRunProgress(input: {
   runId: string;
   payload: AgentBenchmarkResponse;
   targetIds: string[];
+  experimentContext?: ExperimentSourceContext;
 }) {
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "benchmark",
     status: input.payload.ok ? "completed" : "failed",
     title: input.payload.ok ? "Benchmark run completed" : "Benchmark run failed",
     summary: `${input.payload.results.length} result groups · ${input.payload.benchmarkMode}`,
     relatedId: input.runId,
     targetIds: input.targetIds,
+    artifacts: [
+      {
+        kind: "api",
+        role: "report",
+        label: "Benchmark report",
+        uri: `/api/admin/benchmark/report?runId=${encodeURIComponent(input.runId)}`,
+      },
+      {
+        kind: "api",
+        role: "progress",
+        label: "Benchmark progress",
+        uri: `/api/admin/benchmark/progress?runId=${encodeURIComponent(input.runId)}`,
+      },
+    ],
+    links: [
+      ...buildExperimentSourceLinks(input.experimentContext),
+      {
+        relation: "produced",
+        entityType: "report",
+        id: input.runId,
+        label: "Benchmark report",
+      },
+    ],
     metadata: {
       benchmarkMode: input.payload.benchmarkMode,
       suiteId: input.payload.suiteId,
@@ -164,7 +204,7 @@ export function finalizeBenchmarkControlProgress(input: {
   message: string;
 }) {
   finalizeBenchmarkProgressControl(input.runId, input.action, input.message);
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "benchmark",
     status: input.action === "stop" ? "cancelled" : "failed",
     title: input.action === "stop" ? "Benchmark run stopped" : "Benchmark run abandoned",
@@ -178,7 +218,7 @@ export function failBenchmarkRunProgress(input: {
   message: string;
 }) {
   failBenchmarkProgress(input.runId, input.message);
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "benchmark",
     status: "failed",
     title: "Benchmark run failed",

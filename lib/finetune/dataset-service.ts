@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
-import { appendTimelineEvent } from "@/lib/agent/timeline-store";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
 import { discoverFineTuneUpstreamDatasets } from "@/lib/community/dataset-discovery";
 import type {
   AgentFineTuneDataset,
@@ -1012,12 +1012,30 @@ export async function importFineTuneCommunityDataset(input: {
       truncatedDownload: truncated,
     }),
   });
-  appendTimelineEvent({
+  appendExperimentEvent({
     kind: "finetune",
     status: "saved",
     title: "Community dataset imported",
     summary: `${dataset.label} · ${dataset.sampleCount} rows`,
     relatedId: dataset.id,
+    artifacts: [
+      {
+        kind: "file",
+        role: "dataset",
+        label: dataset.label,
+        uri: localFile,
+        mimeType: "application/jsonl",
+      },
+      {
+        kind: "url",
+        role: "input",
+        label: dataset.sourceLabel || "Community source",
+        uri: sourceResolution.sourcePageUrl,
+      },
+    ],
+    links: [
+      { relation: "produced", entityType: "dataset", id: dataset.id, label: dataset.label },
+    ],
     metadata: {
       sourceUrl,
       sourcePageUrl: sourceResolution.sourcePageUrl,

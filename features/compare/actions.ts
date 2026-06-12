@@ -9,6 +9,11 @@ import type {
   AgentRuntimeActionResponse,
   AgentThinkingMode,
 } from "@/lib/agent/types";
+import type { ExperimentSourceContext } from "@/features/experiments/contracts";
+
+export type ExperimentAwareCompareRequest = AgentCompareRequest & {
+  experimentContext?: ExperimentSourceContext;
+};
 
 export type CompareProgressPatch = {
   requestId: string;
@@ -33,10 +38,11 @@ export type CompareBenchmarkHandoffRequest = {
   contextWindow: number;
   providerProfile: AgentProviderProfile;
   thinkingMode: AgentThinkingMode;
+  experimentContext?: ExperimentSourceContext;
 };
 
 export async function runCompareRequest(
-  input: AgentCompareRequest,
+  input: ExperimentAwareCompareRequest,
 ): Promise<AgentCompareResponse> {
   const response = await fetch("/api/agent/compare", {
     method: "POST",
