@@ -106,9 +106,17 @@ Fine-tune Studio with workflow tabs, training controls, and report/evidence pane
 
 ![Fine-tune Studio](./docs/assets/screenshots/fine-tune-studio.png)
 
+Fine-tune completed run with live loss curves, train/validation traces, and handoff actions:
+
+![Fine-tune training curve](./docs/assets/screenshots/fine-tune-training-curve.png)
+
 Benchmark Studio with run controls and historical evidence cards:
 
 ![Benchmark Studio](./docs/assets/screenshots/benchmarks-studio.png)
+
+Benchmark run evidence from a real local smoke run:
+
+![Benchmark run evidence](./docs/assets/screenshots/benchmark-run-evidence.png)
 
 Models Studio with hardware-fit chips and one-click community discovery:
 
@@ -119,6 +127,7 @@ Compare, Retrieval, and Admin surfaces:
 ![Compare Studio](./docs/assets/screenshots/compare-studio.png)
 ![Retrieval Studio](./docs/assets/screenshots/retrieval-studio.png)
 ![Admin dashboard](./docs/assets/screenshots/admin-dashboard.png)
+![Admin benchmark heatmap](./docs/assets/screenshots/admin-benchmark-heatmap.png)
 
 ## Quick Start
 
@@ -330,9 +339,17 @@ Fine-tune Studio：工作流 tab、训练控制与 report/evidence 面板：
 
 ![Fine-tune Studio](./docs/assets/screenshots/fine-tune-studio.png)
 
+Fine-tune 完成作业：真实 loss 曲线、训练/验证轨迹与 handoff 操作：
+
+![Fine-tune 训练曲线](./docs/assets/screenshots/fine-tune-training-curve.png)
+
 Benchmark Studio：运行控制与历史证据卡片：
 
 ![Benchmark Studio](./docs/assets/screenshots/benchmarks-studio.png)
+
+Benchmark：本地 smoke run 生成的真实评测证据：
+
+![Benchmark 运行证据](./docs/assets/screenshots/benchmark-run-evidence.png)
 
 Models Studio：硬件适配 chips 与社区模型扫描：
 
@@ -343,6 +360,7 @@ Compare、Retrieval 与 Admin：
 ![Compare Studio](./docs/assets/screenshots/compare-studio.png)
 ![Retrieval Studio](./docs/assets/screenshots/retrieval-studio.png)
 ![Admin dashboard](./docs/assets/screenshots/admin-dashboard.png)
+![Admin benchmark 热力图](./docs/assets/screenshots/admin-benchmark-heatmap.png)
 
 ## 快速开始
 
