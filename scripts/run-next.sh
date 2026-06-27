@@ -42,7 +42,7 @@ fi
 
 COMMAND="${1:-dev}"
 PORT="${2:-3011}"
-NEXT_DEV_DIST_DIR="${NEXT_DEV_DIST_DIR:-.next-dev}"
+NEXT_DEV_DIST_DIR="${NEXT_DEV_DIST_DIR:-.next-local-dev}"
 NEXT_BUILD_DIST_DIR="${NEXT_BUILD_DIST_DIR:-.next-build}"
 
 cd "$ROOT"

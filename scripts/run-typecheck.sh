@@ -29,7 +29,7 @@ export NODE="$NODE_BIN"
 export npm_node_execpath="$NODE_BIN"
 export NODE_BINARY="$NODE_BIN"
 export NEXT_TELEMETRY_DISABLED=1
-export NEXT_DIST_DIR="${NEXT_DIST_DIR:-.next-dev}"
+export NEXT_DIST_DIR="${NEXT_DIST_DIR:-.next-local-dev}"
 
 MODE="${1:-full}"
 TARGET="${2:-}"

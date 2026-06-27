@@ -13,6 +13,9 @@ coverage
 .idea
 tmp
 .codex-run/
+.dataless-backups/
+.git.dataless-backup-*/
+.env.local.dataless-backup-*
 output/
 *.pid
 *.sample.txt

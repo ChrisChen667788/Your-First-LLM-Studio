@@ -29,20 +29,34 @@
     }
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
+    ".next-build/types/**/*.ts",
     ".next-dev/types/**/*.ts",
-    ".next-build/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-local-dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "node_modules 2",
+    ".codex-run",
+    ".dataless-backups",
+    ".git.dataless-backup-*",
     ".venv",
     "data",
     "tmp",
+    ".next",
+    ".next-*",
+    ".next.*",
     ".next.bak.*",
-    ".next.empty.*"
+    ".next.empty.*",
+    "deploy",
+    "docs",
+    "experiments",
+    "platform",
+    "scripts",
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ]
 }

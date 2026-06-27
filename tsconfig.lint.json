@@ -25,8 +25,13 @@
     "dist",
     "output",
     ".codex-run",
+    ".dataless-backups",
+    ".git.dataless-backup-*",
     ".next",
+    ".next-*",
+    ".next.*",
     ".next-dev",
+    ".next-local-dev",
     ".next-build",
     ".next.bak.*",
     ".next.empty.*"
