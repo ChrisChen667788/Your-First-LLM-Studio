@@ -36,6 +36,7 @@
     "typecheck:changed": "./scripts/run-typecheck.sh changed",
     "smoke:routes": "./scripts/route-smoke.sh",
     "smoke:screenshots": "./scripts/screenshot-smoke.sh",
+    "screenshots:readme": "node scripts/capture-readme-screenshots.mjs",
     "typecheck:validate": "./scripts/run-typecheck.sh validate",
     "typecheck:changed:dry": "TYPECHECK_DRY_RUN=1 ./scripts/run-typecheck.sh changed",
     "typecheck:core": "./scripts/run-typecheck.sh core",
