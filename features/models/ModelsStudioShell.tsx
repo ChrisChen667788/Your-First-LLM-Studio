@@ -7,6 +7,7 @@ import {
   StudioSurface,
 } from "@/components/layout/StudioPageShell";
 import { ModelDiscoveryPanel } from "@/features/models/ModelDiscoveryPanel";
+import { ModelHubRuntimePanel } from "@/features/models/ModelHubRuntimePanel";
 
 export function ModelsStudioShell() {
   const { locale } = useLocale();
@@ -41,6 +42,7 @@ export function ModelsStudioShell() {
           </div>
         }
       />
+      <ModelHubRuntimePanel embedded />
       <ModelDiscoveryPanel locale={locale} />
     </StudioSurface>
   );

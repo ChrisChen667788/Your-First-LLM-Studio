@@ -4,6 +4,24 @@ const distDir = process.env.NEXT_DIST_DIR || ".next";
 const nextConfig = {
   distDir,
   typedRoutes: false,
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        ...(config.watchOptions || {}),
+        ignored: [
+          "**/.dataless-backups/**",
+          "**/.git.dataless-backup-*/**",
+          "**/deploy/**",
+          "**/dist/**",
+          "**/experiments/**",
+          "**/node_modules 2/**",
+          "**/node_modules 3/**",
+          "**/platform/**",
+        ],
+      };
+    }
+    return config;
+  },
   eslint: {
     ignoreDuringBuilds: true
   },
