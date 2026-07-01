@@ -51,3 +51,27 @@ export function isFatalLocalBenchmarkSampleFailure(sample: AgentBenchmarkSample)
     warning.includes("offline")
   );
 }
+
+export function isFatalRemoteBenchmarkSampleFailure(sample: AgentBenchmarkSample) {
+  if (sample.ok) return false;
+  const warning = (sample.warning || "").toLowerCase();
+  return (
+    (warning.includes("missing") && warning.includes("api") && warning.includes("key")) ||
+    warning.includes("not configured") ||
+    warning.includes("invalid api key") ||
+    warning.includes("invalid_api_key") ||
+    warning.includes("unauthorized") ||
+    warning.includes("authentication") ||
+    warning.includes("401") ||
+    warning.includes("403") ||
+    warning.includes("404") ||
+    warning.includes("model not found") ||
+    warning.includes("model_not_found") ||
+    warning.includes("does not exist") ||
+    warning.includes("unsupported model") ||
+    warning.includes("insufficient quota") ||
+    warning.includes("insufficient_quota") ||
+    warning.includes("billing") ||
+    warning.includes("account balance")
+  );
+}

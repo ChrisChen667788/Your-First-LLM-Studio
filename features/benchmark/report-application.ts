@@ -215,7 +215,9 @@ function buildAnomalies(current: AgentBenchmarkResponse, deltas: ReturnType<type
   const lines: string[] = [];
   const failures = current.results.filter((result) => result.okRuns < result.runs);
   for (const failed of failures) {
-    lines.push(`- ${failed.targetLabel} · ${failed.providerProfile || current.providerProfile || "default"} · ${failed.thinkingMode || current.thinkingMode || "standard"}: ${failed.runs - failed.okRuns} failed samples.`);
+    const skipped = failed.skippedRuns || 0;
+    const failedSamples = Math.max(0, failed.runs - failed.okRuns - skipped);
+    lines.push(`- ${failed.targetLabel} · ${failed.providerProfile || current.providerProfile || "default"} · ${failed.thinkingMode || current.thinkingMode || "standard"}: ${failedSamples} failed samples${skipped ? `, ${skipped} skipped` : ""}.${failed.skipSummary ? ` ${failed.skipSummary}` : ""}`);
   }
   for (const delta of deltas) {
     if (delta.deltaLatencyMs !== null && delta.deltaLatencyMs > 500) {
@@ -292,9 +294,9 @@ function renderMarkdown(input: {
     }
   }
 
-  lines.push("", "## Current results", "", "| Target | Profile | Thinking | Success | Avg first token (ms) | Avg total latency (ms) | Avg throughput (tps) | Avg score | Pass rate |", "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |");
+  lines.push("", "## Current results", "", "| Target | Profile | Thinking | Success | Skipped | Avg first token (ms) | Avg total latency (ms) | Avg throughput (tps) | Avg score | Pass rate |", "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
   for (const result of input.latest.results) {
-    lines.push(`| ${result.targetLabel} | ${result.providerProfile || input.latest.providerProfile || "default"} | ${result.thinkingMode || input.latest.thinkingMode || "standard"} | ${result.okRuns}/${result.runs} | ${result.avgFirstTokenLatencyMs.toFixed(2)} | ${result.avgLatencyMs.toFixed(2)} | ${result.avgTokenThroughputTps.toFixed(2)} | ${typeof result.avgScore === "number" ? result.avgScore.toFixed(2) : "--"} | ${typeof result.passRate === "number" ? `${result.passRate.toFixed(2)}%` : "--"} |`);
+    lines.push(`| ${result.targetLabel} | ${result.providerProfile || input.latest.providerProfile || "default"} | ${result.thinkingMode || input.latest.thinkingMode || "standard"} | ${result.okRuns}/${result.runs} | ${result.skippedRuns || 0} | ${result.avgFirstTokenLatencyMs.toFixed(2)} | ${result.avgLatencyMs.toFixed(2)} | ${result.avgTokenThroughputTps.toFixed(2)} | ${typeof result.avgScore === "number" ? result.avgScore.toFixed(2) : "--"} | ${typeof result.passRate === "number" ? `${result.passRate.toFixed(2)}%` : "--"} |`);
   }
 
   lines.push("", "## Baseline", "");

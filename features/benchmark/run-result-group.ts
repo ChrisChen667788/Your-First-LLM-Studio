@@ -13,12 +13,12 @@ import {
   prewarmTarget,
   restartLocalBenchmarkGateway,
 } from "@/features/benchmark/run-local-prewarm";
-import { runBenchmarkTasksWithConcurrency } from "@/features/benchmark/run-concurrency";
 import {
   buildBenchmarkResultFromSamples,
   createSkippedBenchmarkSample,
 } from "@/features/benchmark/run-result-builders";
 import {
+  isFatalRemoteBenchmarkSampleFailure,
   isFatalLocalBenchmarkSampleFailure,
   isRetryableLocalBenchmarkSampleFailure,
   runBenchmarkSample,
@@ -39,7 +39,6 @@ import type {
 
 const LOCAL_BENCHMARK_MAX_CONSECUTIVE_FATAL_FAILURES = 3;
 const LOCAL_BENCHMARK_MAX_CONSECUTIVE_FATAL_FAILURES_PER_WORKLOAD = 2;
-const REMOTE_BENCHMARK_SAMPLE_CONCURRENCY = 1;
 
 export type BenchmarkResultGroupMode = {
   providerProfile: AgentProviderProfile;
@@ -183,14 +182,13 @@ export async function runBenchmarkResultGroup(
 
   let samples: AgentBenchmarkSample[];
   if (target.execution === "remote") {
-    samples = await runBenchmarkTasksWithConcurrency(
+    samples = await runRemoteBenchmarkResultGroupSamples({
+      runId,
+      target,
       tasksForGroup,
-      REMOTE_BENCHMARK_SAMPLE_CONCURRENCY,
       runPlannedSample,
-      {
-        beforeEach: () => assertBenchmarkRunActive(runId),
-      },
-    );
+      mode,
+    });
   } else {
     samples = await runLocalBenchmarkResultGroupSamples({
       runId,
@@ -212,6 +210,42 @@ export async function runBenchmarkResultGroup(
   });
   completeBenchmarkRunGroup(runId, groupKey);
   return result;
+}
+
+async function runRemoteBenchmarkResultGroupSamples(input: {
+  runId: string;
+  target: AgentTarget;
+  tasksForGroup: PlannedSampleTask[];
+  runPlannedSample: (task: PlannedSampleTask) => Promise<AgentBenchmarkSample>;
+  mode: BenchmarkResultGroupMode;
+}) {
+  const collected: AgentBenchmarkSample[] = [];
+
+  for (let taskIndex = 0; taskIndex < input.tasksForGroup.length; taskIndex += 1) {
+    assertBenchmarkRunActive(input.runId);
+    const task = input.tasksForGroup[taskIndex];
+    const sample = await input.runPlannedSample(task);
+    collected.push(sample);
+
+    if (isFatalRemoteBenchmarkSampleFailure(sample)) {
+      const remainingTasks = input.tasksForGroup.slice(taskIndex + 1);
+      const warning = `Skipped remaining ${input.target.label} samples after fatal remote target failure: ${sample.warning || "remote target unavailable"}`;
+      for (const skippedTask of remainingTasks) {
+        const skippedSample = createSkippedBenchmarkSample(skippedTask, warning);
+        collected.push(skippedSample);
+        advanceBenchmarkRunSampleProgress(input.runId, {
+          ok: false,
+          targetLabel: input.target.label,
+          providerProfile: input.mode.providerProfile,
+          thinkingMode: input.mode.thinkingMode,
+          workloadLabel: skippedTask.workloadLabel,
+        });
+      }
+      break;
+    }
+  }
+
+  return collected;
 }
 
 async function runLocalBenchmarkResultGroupSamples(input: {
