@@ -28,7 +28,7 @@ export const agentTargets: AgentTarget[] = [
       "Native tool loop is enabled in the Python gateway, so file inspection happens inside one local process."
     ],
     launchHints: [
-      "python3.12 -m venv .venv && source .venv/bin/activate",
+      "python3 -m venv .venv && source .venv/bin/activate",
       "pip install mlx mlx-lm",
       "python scripts/local_model_gateway_supervisor.py"
     ]

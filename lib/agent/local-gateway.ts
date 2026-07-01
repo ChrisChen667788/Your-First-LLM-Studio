@@ -35,6 +35,19 @@ export type GatewayEnsureResult = {
 };
 
 let ensurePromise: Promise<GatewayEnsureResult> | null = null;
+let pythonResolutionCache:
+  | {
+      resolvedAt: number;
+      value: LocalGatewayPythonInfo;
+    }
+  | null = null;
+
+export type LocalGatewayPythonInfo = {
+  executable: string | null;
+  source: "env" | "venv" | "path" | "missing";
+  reason: string;
+  checked: string[];
+};
 
 function ensureDataDir() {
   mkdirSync(DATA_DIR, { recursive: true });
@@ -69,9 +82,86 @@ function readSupervisorState(): SupervisorState {
   }
 }
 
-function choosePythonExecutable() {
-  if (existsSync(VENV_PYTHON)) return VENV_PYTHON;
-  return "python3.12";
+function canExecutePython(candidate: string) {
+  try {
+    execFileSync(candidate, ["--version"], {
+      stdio: "ignore",
+      timeout: 2500
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function pushPythonCandidate(
+  candidates: Array<{ executable: string; source: LocalGatewayPythonInfo["source"] }>,
+  executable: string | undefined,
+  source: LocalGatewayPythonInfo["source"]
+) {
+  const value = executable?.trim();
+  if (!value) return;
+  if (candidates.some((candidate) => candidate.executable === value)) return;
+  candidates.push({ executable: value, source });
+}
+
+function resolvePythonExecutable(): LocalGatewayPythonInfo {
+  const candidates: Array<{ executable: string; source: LocalGatewayPythonInfo["source"] }> = [];
+  pushPythonCandidate(candidates, process.env.LOCAL_AGENT_PYTHON_BIN, "env");
+  pushPythonCandidate(candidates, VENV_PYTHON, "venv");
+  pushPythonCandidate(candidates, path.join(process.cwd(), ".venv", "bin", "python3.12"), "venv");
+  pushPythonCandidate(candidates, "python3.12", "path");
+  pushPythonCandidate(candidates, "python3.11", "path");
+  pushPythonCandidate(candidates, "python3", "path");
+
+  const checked: string[] = [];
+  for (const candidate of candidates) {
+    checked.push(candidate.executable);
+    if (candidate.executable.includes(path.sep) && !existsSync(candidate.executable)) {
+      continue;
+    }
+    if (canExecutePython(candidate.executable)) {
+      return {
+        executable: candidate.executable,
+        source: candidate.source,
+        reason: `Using Python runtime ${candidate.executable}.`,
+        checked
+      };
+    }
+  }
+
+  return {
+    executable: null,
+    source: "missing",
+    reason:
+      "Local gateway Python runtime was not found. Set LOCAL_AGENT_PYTHON_BIN or install python3.12, python3.11, or python3 on PATH.",
+    checked
+  };
+}
+
+export function getLocalGatewayPythonInfo() {
+  const now = Date.now();
+  if (pythonResolutionCache && now - pythonResolutionCache.resolvedAt < 10000) {
+    return pythonResolutionCache.value;
+  }
+  const value = resolvePythonExecutable();
+  pythonResolutionCache = {
+    resolvedAt: now,
+    value
+  };
+  return value;
+}
+
+function appendGatewayBootstrapLog(message: string) {
+  try {
+    ensureDataDir();
+    writeFileSync(SUPERVISOR_LOG_FILE, `[${new Date().toISOString()}] ${message}\n`, {
+      encoding: "utf8",
+      flag: "a"
+    });
+  } catch {
+    // ignore diagnostics write failures
+  }
 }
 
 function findGatewayListenPid() {
@@ -212,16 +302,28 @@ function spawnSupervisorProcess() {
     return existingPid;
   }
 
-  const child = spawn(choosePythonExecutable(), [SUPERVISOR_SCRIPT], {
+  const python = getLocalGatewayPythonInfo();
+  if (!python.executable) {
+    appendGatewayBootstrapLog(python.reason);
+    return null;
+  }
+
+  const child = spawn(python.executable, [SUPERVISOR_SCRIPT], {
     cwd: process.cwd(),
     detached: true,
     stdio: "ignore"
+  });
+  child.on("error", (error) => {
+    appendGatewayBootstrapLog(`Supervisor spawn failed: ${error.message}`);
   });
   child.unref();
   return child.pid ?? null;
 }
 
-function buildGatewayHelperEnv(options?: { autoPrewarmModel?: string | null }) {
+function buildGatewayHelperEnv(
+  options?: { autoPrewarmModel?: string | null },
+  pythonExecutable?: string | null
+) {
   const helperEnv: NodeJS.ProcessEnv = {
     ...process.env,
     HOME: process.env.HOME || "",
@@ -229,7 +331,7 @@ function buildGatewayHelperEnv(options?: { autoPrewarmModel?: string | null }) {
     SHELL: process.env.SHELL || "/bin/zsh",
     TMPDIR: process.env.TMPDIR || "/tmp",
     LOCAL_AGENT_DATA_DIR: DATA_DIR,
-    LOCAL_AGENT_PYTHON_BIN: choosePythonExecutable()
+    LOCAL_AGENT_PYTHON_BIN: pythonExecutable || ""
   };
   if (options && "autoPrewarmModel" in options) {
     helperEnv.LOCAL_AGENT_AUTO_PREWARM_MODEL = options.autoPrewarmModel ?? "false";
@@ -252,7 +354,13 @@ function spawnGatewayProcessDirect(options?: { autoPrewarmModel?: string | null 
     return existingPid;
   }
 
-  const helperEnv = buildGatewayHelperEnv(options);
+  const python = getLocalGatewayPythonInfo();
+  if (!python.executable) {
+    appendGatewayBootstrapLog(python.reason);
+    return null;
+  }
+
+  const helperEnv = buildGatewayHelperEnv(options, python.executable);
 
   try {
     const output = execFileSync("/bin/bash", [GATEWAY_START_HELPER], {
@@ -270,11 +378,23 @@ function spawnGatewayProcessDirect(options?: { autoPrewarmModel?: string | null 
   }
 
   const logFd = openSync(SUPERVISOR_LOG_FILE, "a");
-  const child = spawn(choosePythonExecutable(), ["-u", GATEWAY_SCRIPT], {
-    cwd: process.cwd(),
-    detached: true,
-    stdio: ["ignore", logFd, logFd],
-    env: helperEnv
+  let child;
+  try {
+    child = spawn(python.executable, ["-u", GATEWAY_SCRIPT], {
+      cwd: process.cwd(),
+      detached: true,
+      stdio: ["ignore", logFd, logFd],
+      env: helperEnv
+    });
+  } catch (error) {
+    closeSync(logFd);
+    appendGatewayBootstrapLog(
+      `Gateway spawn failed: ${error instanceof Error ? error.message : "unknown spawn error"}`
+    );
+    return null;
+  }
+  child.on("error", (error) => {
+    appendGatewayBootstrapLog(`Gateway spawn failed: ${error.message}`);
   });
   closeSync(logFd);
   child.unref();
@@ -325,6 +445,16 @@ export async function ensureLocalGatewayAvailableDetailed(
     return {
       ok: true,
       reason: "Gateway health endpoint is already reachable.",
+      attempts: 0
+    };
+  }
+
+  const python = getLocalGatewayPythonInfo();
+  if (!python.executable) {
+    appendGatewayBootstrapLog(python.reason);
+    return {
+      ok: false,
+      reason: python.reason,
       attempts: 0
     };
   }

@@ -160,19 +160,38 @@ export function deriveTrainingPlan(
     stepsPerReport: Math.max(1, Math.min(10, Math.ceil(totalSteps / 20))),
     stepsPerEval:
       datasetStats.validSamples > 0
-        ? Math.max(
-            1,
-            Math.min(
-              totalSteps,
-              Math.ceil(totalSteps / Math.max(1, recipe.epochs)),
-            ),
-          )
+        ? Math.max(1, Math.min(totalSteps, recipe.evalEverySteps || 100))
         : totalSteps,
     saveEvery:
       recipe.saveEverySteps > 0
         ? Math.max(1, Math.min(totalSteps, recipe.saveEverySteps))
         : Math.max(1, Math.min(totalSteps, Math.ceil(totalSteps / 2))),
   };
+}
+
+function buildMlxLoraConfig(recipe: AgentFineTuneRecipe) {
+  const toMlxLayerKey = (moduleName: string) => {
+    if (moduleName.includes(".")) return moduleName;
+    if (["q_proj", "k_proj", "v_proj", "o_proj"].includes(moduleName)) {
+      return `self_attn.${moduleName}`;
+    }
+    if (["gate_proj", "up_proj", "down_proj"].includes(moduleName)) {
+      return `mlp.${moduleName}`;
+    }
+    return moduleName;
+  };
+  const mlxKeys = Array.from(new Set(recipe.targetModules.map(toMlxLayerKey)));
+  return [
+    `# First LLM Studio policy: scheduler=${recipe.scheduler}, warmup_ratio=${recipe.warmupRatio}, packing=${recipe.packingPolicy}`,
+    `# Best checkpoint: metric=${recipe.bestCheckpointMetric}, load_at_end=${recipe.loadBestCheckpointAtEnd ? "true" : "false"}`,
+    `# UI target modules: ${recipe.targetModules.join(", ")}`,
+    "lora_parameters:",
+    `  rank: ${recipe.loraRank}`,
+    "  dropout: 0.0",
+    `  scale: ${recipe.loraAlpha}`,
+    "  keys:",
+    ...mlxKeys.map((moduleName) => `    - ${moduleName}`),
+  ].join("\n") + "\n";
 }
 
 export function buildJobBundle(
@@ -220,6 +239,12 @@ export function buildJobBundle(
       stepsPerReport: trainingPlan.stepsPerReport,
       stepsPerEval: trainingPlan.stepsPerEval,
       saveEvery: trainingPlan.saveEvery,
+      targetModules: recipe.targetModules,
+      scheduler: recipe.scheduler,
+      warmupRatio: recipe.warmupRatio,
+      packingPolicy: recipe.packingPolicy,
+      bestCheckpointMetric: recipe.bestCheckpointMetric,
+      loadBestCheckpointAtEnd: recipe.loadBestCheckpointAtEnd,
       maxSeqLength: recipe.sequenceLength,
       batchSize: recipe.batchSize,
       validationDisabledReason: datasetStats.validationDisabledReason,
@@ -268,12 +293,7 @@ export function stageFineTuneJob(input: { recipeId: string; notes?: string }) {
   });
   writeFileSync(
     paths.configFile,
-    [
-      "lora_parameters:",
-      `  rank: ${recipe.loraRank}`,
-      "  dropout: 0.0",
-      `  scale: ${recipe.loraAlpha}`,
-    ].join("\n") + "\n",
+    buildMlxLoraConfig(recipe),
     "utf8",
   );
   const bundle = buildJobBundle(recipe, dataset, target, paths, datasetStats);
@@ -303,6 +323,8 @@ export function stageFineTuneJob(input: { recipeId: string; notes?: string }) {
       : "Job bundle staged. Start the local worker when ready.",
     baseModelRef,
     curve: [],
+    checkpointEvents: [],
+    bestCheckpoint: undefined,
   });
 
   const job: AgentFineTuneJob = {
@@ -357,6 +379,9 @@ export function stageFineTuneJob(input: { recipeId: string; notes?: string }) {
       sourceUrl: dataset.sourceUrl,
       sampleCount: dataset.sampleCount,
       totalSteps: bundle.plan.totalSteps,
+      evalEverySteps: bundle.plan.stepsPerEval,
+      saveEverySteps: bundle.plan.saveEvery,
+      bestCheckpointMetric: bundle.plan.bestCheckpointMetric,
       outputDir: paths.outputDir,
     },
   });
@@ -395,12 +420,7 @@ export function startFineTuneJob(input: { jobId: string }) {
   });
   writeFileSync(
     paths.configFile,
-    [
-      "lora_parameters:",
-      `  rank: ${recipe.loraRank}`,
-      "  dropout: 0.0",
-      `  scale: ${recipe.loraAlpha}`,
-    ].join("\n") + "\n",
+    buildMlxLoraConfig(recipe),
     "utf8",
   );
   const bundle = buildJobBundle(recipe, dataset, target, paths, datasetStats);
@@ -437,6 +457,8 @@ export function startFineTuneJob(input: { jobId: string }) {
       percent: 0,
     },
     curve: [],
+    checkpointEvents: [],
+    bestCheckpoint: undefined,
     baseModelRef: bundle.plan.modelRef,
   });
 
@@ -507,6 +529,9 @@ export function startFineTuneJob(input: { jobId: string }) {
       workerScript: WORKER_SCRIPT,
       bundleFile: paths.bundleFile,
       totalSteps: bundle.plan.totalSteps,
+      evalEverySteps: bundle.plan.stepsPerEval,
+      saveEverySteps: bundle.plan.saveEvery,
+      bestCheckpointMetric: bundle.plan.bestCheckpointMetric,
       launcherPid: child.pid ?? null,
     },
   });

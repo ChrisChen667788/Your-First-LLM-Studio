@@ -503,6 +503,12 @@ export type AgentRuntimeStatus = {
   loadingAlias?: string | null;
   loadingElapsedMs?: number | null;
   loadingError?: string | null;
+  pythonRuntime?: {
+    executable: string | null;
+    source: "env" | "venv" | "path" | "missing";
+    reason: string;
+    checked: string[];
+  };
   workspaceRoot?: string;
   message?: string;
   supervisorPid?: number | null;
@@ -624,6 +630,8 @@ export type AgentBenchmarkResult = {
   thinkingMode?: AgentThinkingMode;
   runs: number;
   okRuns: number;
+  skippedRuns?: number;
+  skipSummary?: string | null;
   avgFirstTokenLatencyMs: number;
   avgLatencyMs: number;
   avgTokenThroughputTps: number;
@@ -988,7 +996,14 @@ export type AgentFineTuneRecipe = {
   loraAlpha: number;
   gradientCheckpointing: boolean;
   validationSplitPct: number;
+  targetModules: string[];
+  scheduler: "cosine" | "linear" | "constant-with-warmup";
+  warmupRatio: number;
+  packingPolicy: "disabled" | "pack-by-length" | "chat-boundary-safe";
+  evalEverySteps: number;
   saveEverySteps: number;
+  bestCheckpointMetric: "eval_loss" | "win_rate" | "exact_match";
+  loadBestCheckpointAtEnd: boolean;
   seed: number;
   benchmarkSuiteId?: string;
   notes?: string;
@@ -1015,6 +1030,24 @@ export type AgentFineTuneCurvePoint = {
   trainedTokens?: number | null;
   durationSec?: number | null;
   at: string;
+};
+
+export type AgentFineTuneCheckpointEvent = {
+  step: number;
+  path?: string;
+  metric?: "eval_loss" | "win_rate" | "exact_match";
+  value?: number | null;
+  at: string;
+};
+
+export type AgentFineTuneBestCheckpointSelection = {
+  step: number;
+  metric: "eval_loss" | "win_rate" | "exact_match";
+  value?: number | null;
+  path?: string;
+  source: "validation" | "final" | "manual";
+  loadBestCheckpointAtEnd: boolean;
+  selectedAt: string;
 };
 
 export type AgentFineTuneJobProgress = {
@@ -1054,6 +1087,8 @@ export type AgentFineTuneJob = {
   errorMessage?: string;
   progress?: AgentFineTuneJobProgress;
   curve?: AgentFineTuneCurvePoint[];
+  checkpointEvents?: AgentFineTuneCheckpointEvent[];
+  bestCheckpoint?: AgentFineTuneBestCheckpointSelection;
   recentLogLines?: string[];
   benchmarkSuiteId?: string;
   notes?: string;
@@ -1229,6 +1264,7 @@ export type AgentFineTuneAdapterArtifact = {
   status: "ready" | "checkpointing" | "incomplete";
   checkpointCount: number;
   latestCheckpointAt?: string;
+  bestCheckpoint?: AgentFineTuneBestCheckpointSelection;
   files: string[];
   benchmarkSuiteId?: string;
   attachedTargetId?: string;
