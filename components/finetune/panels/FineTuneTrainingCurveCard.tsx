@@ -8,6 +8,7 @@ import type {
   TrainingChartHoverState,
   TrainingChartPoint,
   TrainingChartRangePreset,
+  TrainingChartSmoothingMode,
 } from "@/features/finetune/ui-cache-state";
 
 type TrainingChartOverlaySeries = {
@@ -21,15 +22,29 @@ type TrainingChartOverlaySeries = {
   latestValid?: TrainingChartPoint;
 };
 
+type TrainingChartMarker = {
+  kind: "save" | "eval" | "best";
+  step: number;
+  x: number;
+  y: number;
+  label: string;
+  value?: number | null;
+  path?: string;
+};
+
 type FineTuneTrainingCurveCardProps = {
   job: AgentFineTuneJob;
   jobs: AgentFineTuneJob[];
   text: Record<string, string>;
   isEnglish: boolean;
   chartRange: TrainingChartRangePreset;
+  smoothingMode: TrainingChartSmoothingMode;
+  selectedOverlayJobIds: string[];
   hoverPoint: TrainingChartHoverState;
   formatNumber: (value?: number | null, digits?: number) => string;
   onChartRangeChange: (range: TrainingChartRangePreset) => void;
+  onSmoothingModeChange: (mode: TrainingChartSmoothingMode) => void;
+  onToggleOverlayJob: (jobId: string) => void;
   onHoverPointChange: (point: TrainingChartHoverState) => void;
 };
 
@@ -50,6 +65,10 @@ function getLossBaseline(loss?: number) {
     return loss;
   }
   return 1;
+}
+
+function chartClamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(value, max));
 }
 
 function getChartRangeLabel(
@@ -111,10 +130,29 @@ function getFineTuneOverlayJobs(
     .slice(0, 4);
 }
 
+function smoothTrainingPoints(points: TrainingChartPoint[], windowSize = 5) {
+  if (points.length < windowSize) return points;
+  const halfWindow = Math.floor(windowSize / 2);
+  return points.map((point, index) => {
+    const window = points.slice(
+      Math.max(0, index - halfWindow),
+      Math.min(points.length, index + halfWindow + 1),
+    );
+    const normalizedLoss =
+      window.reduce((total, item) => total + item.normalizedLoss, 0) /
+      Math.max(1, window.length);
+    return {
+      ...point,
+      normalizedLoss,
+    };
+  });
+}
+
 function buildTrainingChart(
   job: AgentFineTuneJob,
   range: TrainingChartRangePreset = "all",
   overlayJobs: AgentFineTuneJob[] = [],
+  smoothingMode: TrainingChartSmoothingMode = "raw",
 ) {
   const width = 360;
   const height = 180;
@@ -252,12 +290,21 @@ function buildTrainingChart(
     x: toX(point.step),
     y: toY(normalizeLoss(point, baseline)),
   });
+  const toSmoothedChartPoints = (chartPoints: TrainingChartPoint[]) =>
+    smoothingMode === "smooth-5"
+      ? smoothTrainingPoints(chartPoints).map((point) => ({
+          ...point,
+          y: toY(point.normalizedLoss),
+        }))
+      : chartPoints;
   const trainPoints = effectivePoints
     .filter((point) => point.split === "train")
     .map((point) => toChartPoint(point));
   const validPoints = effectivePoints
     .filter((point) => point.split === "valid")
     .map((point) => toChartPoint(point));
+  const trainPathPoints = toSmoothedChartPoints(trainPoints);
+  const validPathPoints = toSmoothedChartPoints(validPoints);
   const toPath = (chartPoints: TrainingChartPoint[]) =>
     chartPoints
       .map(
@@ -276,13 +323,15 @@ function buildTrainingChart(
       const validOverlayPoints = overlayEffectivePoints
         .filter((point) => point.split === "valid")
         .map((point) => toChartPoint(point, overlay.baselineBySplit));
+      const trainOverlayPathPoints = toSmoothedChartPoints(trainOverlayPoints);
+      const validOverlayPathPoints = toSmoothedChartPoints(validOverlayPoints);
       return {
         jobId: overlay.job.id,
         label: overlay.job.adapterName || overlay.job.id,
         status: overlay.job.status,
         latestStep: overlayEffectivePoints.at(-1)?.step,
-        trainPath: toPath(trainOverlayPoints),
-        validPath: toPath(validOverlayPoints),
+        trainPath: toPath(trainOverlayPathPoints),
+        validPath: toPath(validOverlayPathPoints),
         latestTrain: trainOverlayPoints.at(-1),
         latestValid: validOverlayPoints.at(-1),
       };
@@ -297,6 +346,50 @@ function buildTrainingChart(
     { length: Math.floor((domainMaxStep - domainMinStep) / 100) + 1 },
     (_, index) => domainMinStep + index * 100,
   ).map((step) => ({ step, x: toX(step) }));
+  const saveMarkers = (job.checkpointEvents || [])
+    .filter(
+      (event) => event.step >= domainMinStep && event.step <= domainMaxStep,
+    )
+    .map((event): TrainingChartMarker => ({
+      kind: "save",
+      step: event.step,
+      x: toX(event.step),
+      y: plot.top + 12,
+      label: `save ${event.step}`,
+      value: event.value,
+      path: event.path,
+    }));
+  const evalMarkers = validPoints.map(
+    (point): TrainingChartMarker => ({
+      kind: "eval",
+      step: point.step,
+      x: point.x,
+      y: chartClamp(point.y - 10, plot.top + 8, plot.top + plotHeight - 8),
+      label: `eval ${point.step}`,
+      value: point.rawLoss,
+    }),
+  );
+  const bestPoint =
+    job.bestCheckpoint &&
+    job.bestCheckpoint.step >= domainMinStep &&
+    job.bestCheckpoint.step <= domainMaxStep
+      ? validPoints.find((point) => point.step === job.bestCheckpoint?.step) ||
+        trainPoints.find((point) => point.step === job.bestCheckpoint?.step)
+      : undefined;
+  const bestMarker =
+    job.bestCheckpoint &&
+    job.bestCheckpoint.step >= domainMinStep &&
+    job.bestCheckpoint.step <= domainMaxStep
+      ? ({
+          kind: "best",
+          step: job.bestCheckpoint.step,
+          x: toX(job.bestCheckpoint.step),
+          y: bestPoint?.y ?? plot.top + 20,
+          label: `best ${job.bestCheckpoint.step}`,
+          value: job.bestCheckpoint.value,
+          path: job.bestCheckpoint.path,
+        } satisfies TrainingChartMarker)
+      : null;
 
   return {
     width,
@@ -306,11 +399,16 @@ function buildTrainingChart(
     plotHeight,
     visibleStartStep: effectiveMinStep,
     visibleEndStep: effectiveMaxStep,
-    trainPath: toPath(trainPoints),
-    validPath: toPath(validPoints),
+    trainPath: toPath(trainPathPoints),
+    validPath: toPath(validPathPoints),
     overlaySeries,
     trainPoints,
     validPoints,
+    trainPathPoints,
+    validPathPoints,
+    saveMarkers,
+    evalMarkers,
+    bestMarker,
     yTicks,
     xTicks,
     latestTrain: trainPoints.at(-1),
@@ -326,17 +424,28 @@ export function FineTuneTrainingCurveCard({
   text,
   isEnglish,
   chartRange,
+  smoothingMode,
+  selectedOverlayJobIds,
   hoverPoint,
   formatNumber,
   onChartRangeChange,
+  onSmoothingModeChange,
+  onToggleOverlayJob,
   onHoverPointChange,
 }: FineTuneTrainingCurveCardProps) {
   if (!job.curve?.length) return null;
 
+  const overlayCandidates = getFineTuneOverlayJobs(job, jobs);
+  const selectedOverlayJobs = selectedOverlayJobIds.length
+    ? overlayCandidates.filter((candidate) =>
+        selectedOverlayJobIds.includes(candidate.id),
+      )
+    : overlayCandidates.slice(0, 4);
   const chart = buildTrainingChart(
     job,
     chartRange,
-    getFineTuneOverlayJobs(job, jobs),
+    selectedOverlayJobs,
+    smoothingMode,
   );
   if (!chart) return null;
 
@@ -366,6 +475,35 @@ export function FineTuneTrainingCurveCard({
       current: false,
     })),
   ];
+  const exportChartEvidence = () => {
+    const payload = {
+      kind: "first-llm-studio-finetune-chart-evidence",
+      exportedAt: new Date().toISOString(),
+      jobId: job.id,
+      adapterName: job.adapterName,
+      range: chartRange,
+      smoothingMode,
+      visibleWindow: {
+        startStep: chart.visibleStartStep,
+        endStep: chart.visibleEndStep,
+      },
+      bestCheckpoint: job.bestCheckpoint || null,
+      checkpointEvents: job.checkpointEvents || [],
+      overlayJobIds: selectedOverlayJobs.map((entry) => entry.id),
+      curve: job.curve || [],
+    };
+    const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${job.id}-chart-evidence.json`;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
@@ -413,21 +551,68 @@ export function FineTuneTrainingCurveCard({
             {text.chartWindow}: {chart.visibleStartStep} -{" "}
             {chart.visibleEndStep}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+              {isEnglish ? "Trend" : "趋势"}
+            </span>
+            <div className="inline-flex rounded-full border border-white/10 bg-white/[0.04] p-1">
+              {(["raw", "smooth-5"] as const).map((mode) => (
+                <button
+                  key={`${job.id}:smooth:${mode}`}
+                  type="button"
+                  onClick={() => onSmoothingModeChange(mode)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                    smoothingMode === mode
+                      ? "bg-violet-400/15 text-violet-100"
+                      : "text-slate-300 hover:bg-white/[0.08]"
+                  }`}
+                >
+                  {mode === "raw"
+                    ? isEnglish
+                      ? "Raw"
+                      : "原始"
+                    : isEnglish
+                      ? "Smooth 5"
+                      : "平滑 5"}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={exportChartEvidence}
+              className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold text-emerald-100 transition hover:bg-emerald-400/15"
+            >
+              {isEnglish ? "Export chart evidence" : "导出图表证据"}
+            </button>
+          </div>
         </div>
 
-        {chart.overlaySeries.length ? (
+        {overlayCandidates.length ? (
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-semibold text-slate-200">
               {text.overlayRuns}: {chart.overlaySeries.length}
             </span>
-            {chart.overlaySeries.slice(0, 3).map((series) => (
-              <span
-                key={`overlay-label:${series.jobId}`}
-                className="max-w-[180px] truncate rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-slate-300"
-                title={series.label}
+            {overlayCandidates.slice(0, 6).map((candidate) => (
+              <label
+                key={`overlay-choice:${candidate.id}`}
+                className={`inline-flex max-w-[220px] items-center gap-1.5 truncate rounded-full border px-2.5 py-1 ${
+                  selectedOverlayJobs.some((entry) => entry.id === candidate.id)
+                    ? "border-cyan-300/25 bg-cyan-300/[0.08] text-cyan-100"
+                    : "border-white/10 bg-black/20 text-slate-300"
+                }`}
+                title={candidate.adapterName || candidate.id}
               >
-                {series.label}
-              </span>
+                <input
+                  type="checkbox"
+                  checked={selectedOverlayJobs.some(
+                    (entry) => entry.id === candidate.id,
+                  )}
+                  onChange={() => onToggleOverlayJob(candidate.id)}
+                />
+                <span className="truncate">
+                  {candidate.adapterName || candidate.id}
+                </span>
+              </label>
             ))}
             <span>{text.overlayRunsHint}</span>
           </div>
@@ -549,6 +734,34 @@ export function FineTuneTrainingCurveCard({
                 strokeDasharray="4 4"
               />
             ) : null}
+            {chart.saveMarkers.map((marker) => (
+              <g key={`save-marker:${marker.step}`}>
+                <line
+                  x1={marker.x}
+                  x2={marker.x}
+                  y1={chart.plot.top}
+                  y2={chart.plot.top + chart.plotHeight}
+                  stroke="rgba(250,204,21,0.34)"
+                  strokeDasharray="2 5"
+                />
+                <circle
+                  cx={marker.x}
+                  cy={marker.y}
+                  r="3"
+                  fill="rgb(250 204 21)"
+                />
+              </g>
+            ))}
+            {chart.evalMarkers.map((marker) => (
+              <circle
+                key={`eval-marker:${marker.step}`}
+                cx={marker.x}
+                cy={marker.y}
+                r="2.4"
+                fill="rgb(167 139 250)"
+                opacity="0.75"
+              />
+            ))}
             {chart.overlaySeries.map((series, index) => (
               <g key={`overlay:${series.jobId}`} opacity={0.34 - index * 0.06}>
                 {series.trainPath ? (
@@ -607,6 +820,31 @@ export function FineTuneTrainingCurveCard({
               strokeLinecap="round"
               strokeLinejoin="round"
             />
+            {chart.bestMarker ? (
+              <g>
+                <line
+                  x1={chart.bestMarker.x}
+                  x2={chart.bestMarker.x}
+                  y1={chart.plot.top}
+                  y2={chart.plot.top + chart.plotHeight}
+                  stroke="rgba(16,185,129,0.55)"
+                  strokeDasharray="5 4"
+                />
+                <path
+                  d={`M ${chart.bestMarker.x.toFixed(1)} ${(chart.bestMarker.y - 6).toFixed(1)} L ${(chart.bestMarker.x + 6).toFixed(1)} ${chart.bestMarker.y.toFixed(1)} L ${chart.bestMarker.x.toFixed(1)} ${(chart.bestMarker.y + 6).toFixed(1)} L ${(chart.bestMarker.x - 6).toFixed(1)} ${chart.bestMarker.y.toFixed(1)} Z`}
+                  fill="rgb(16 185 129)"
+                  stroke="rgba(209,250,229,0.9)"
+                  strokeWidth="1"
+                />
+                <text
+                  x={Math.min(chart.bestMarker.x + 8, chart.width - 80)}
+                  y={Math.max(chart.plot.top + 12, chart.bestMarker.y - 8)}
+                  className="fill-emerald-100 text-[9px]"
+                >
+                  best {formatNumber(chart.bestMarker.value)}
+                </text>
+              </g>
+            ) : null}
             {chart.trainPoints.map((point) => (
               <g key={`train:${point.step}:${point.loss}`}>
                 <circle
@@ -668,6 +906,33 @@ export function FineTuneTrainingCurveCard({
               </text>
             ) : null}
           </svg>
+
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
+            <span className="inline-flex items-center gap-1 rounded-full border border-yellow-300/20 bg-yellow-300/[0.08] px-2 py-0.5 text-yellow-100">
+              <span className="h-2 w-2 rounded-full bg-yellow-300" />
+              {isEnglish ? "save" : "保存"} {chart.saveMarkers.length}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-violet-300/20 bg-violet-300/[0.08] px-2 py-0.5 text-violet-100">
+              <span className="h-2 w-2 rounded-full bg-violet-300" />
+              eval {chart.evalMarkers.length}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/20 bg-emerald-300/[0.08] px-2 py-0.5 text-emerald-100">
+              <span className="h-2 w-2 rotate-45 bg-emerald-300" />
+              {chart.bestMarker
+                ? `${isEnglish ? "best" : "最佳"} ${chart.bestMarker.step}`
+                : isEnglish
+                  ? "best --"
+                  : "最佳 --"}
+            </span>
+            {job.bestCheckpoint?.path ? (
+              <span
+                className="max-w-full truncate rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-slate-300"
+                title={job.bestCheckpoint.path}
+              >
+                {job.bestCheckpoint.path}
+              </span>
+            ) : null}
+          </div>
 
           <div className="mt-2 grid gap-2 text-[11px] text-slate-400 sm:grid-cols-2">
             <p>
