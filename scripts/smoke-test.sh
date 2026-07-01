@@ -3,13 +3,14 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_URL="${BASE_URL:-http://localhost:3011}"
+CURL_MAX_TIME="${SMOKE_CURL_MAX_TIME:-20}"
 FAILURES=0
 
 check_http_200() {
   local label="$1"
   local url="$2"
   local code
-  code="$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)"
+  code="$(curl --max-time "$CURL_MAX_TIME" -s -o /dev/null -w "%{http_code}" "$url" || true)"
   if [[ "$code" == "200" ]]; then
     echo "[ok] $label -> $code"
   else
@@ -23,7 +24,7 @@ check_json_field() {
   local url="$2"
   local js="$3"
   local body
-  body="$(curl -fsS "$url" || true)"
+  body="$(curl --max-time "$CURL_MAX_TIME" -fsS "$url" || true)"
   if [[ -z "$body" ]]; then
     echo "[fail] $label -> empty response"
     FAILURES=$((FAILURES + 1))
@@ -42,7 +43,7 @@ check_deprecated_route() {
   local url="$2"
   local successor="$3"
   local headers
-  headers="$(curl -fsS -D - -o /dev/null "$url" || true)"
+  headers="$(curl --max-time "$CURL_MAX_TIME" -fsS -D - -o /dev/null "$url" || true)"
   if printf "%s" "$headers" | grep -qi '^deprecation: true' && printf "%s" "$headers" | grep -Fqi "<$successor>; rel=\"successor-version\""; then
     echo "[ok] $label compatibility headers"
   else
@@ -67,6 +68,7 @@ check_json_field "Sessions route" "$BASE_URL/api/agent/sessions" "Array.isArray(
 check_json_field "Local 0.6B runtime" "$BASE_URL/api/agent/runtime?targetId=local-qwen3-0.6b" "data.targetId==='local-qwen3-0.6b'"
 check_json_field "Local 4B runtime" "$BASE_URL/api/agent/runtime?targetId=local-qwen3-4b-4bit" "data.targetId==='local-qwen3-4b-4bit'"
 check_json_field "Local Qwen3.5 4B runtime" "$BASE_URL/api/agent/runtime?targetId=local-qwen35-4b-4bit" "data.targetId==='local-qwen35-4b-4bit'"
+check_json_field "Remote runtime status" "$BASE_URL/api/agent/runtime?targetId=anthropic-claude" "data.targetId==='anthropic-claude' && data.execution==='remote' && data.phase==='remote' && typeof data.available==='boolean'"
 
 echo
 echo "== Admin APIs =="
@@ -74,8 +76,10 @@ check_json_field "Retrieval foreground snapshot" "$BASE_URL/api/retrieval" "data
 check_json_field "Experiments timeline" "$BASE_URL/api/experiments?limit=5" "data.ok===true && Array.isArray(data.events)"
 check_json_field "Fine-tune summary contract" "$BASE_URL/api/finetune" "data.ok===true && data.summary && typeof data.summary.generatedAt==='string' && typeof data.summary.dataDir==='string' && ['localTargets','datasets','recipes','jobs','adapters','operations'].every((key)=>Array.isArray(data.summary[key]))"
 check_json_field "Models discovery contract" "$BASE_URL/api/models/discovery" "data.ok===true && data.summary && typeof data.summary.generatedAt==='string' && typeof data.summary.query==='string' && typeof data.summary.installRoot==='string' && Array.isArray(data.summary.candidates) && Array.isArray(data.summary.jobs) && data.summary.hardware && typeof data.summary.hardware==='object'"
+check_json_field "Models runtime operations contract" "$BASE_URL/api/models/runtime-operations?limit=5" "data.ok===true && data.operations && data.operations.registry && Array.isArray(data.operations.registry.profiles) && data.operations.idleUnload && data.operations.requestLogs && Array.isArray(data.operations.requestLogs.entries)"
 check_json_field "Latest benchmark progress" "$BASE_URL/api/admin/benchmark/progress?latest=1" "typeof data === 'object'"
-check_json_field "Dashboard summary" "$BASE_URL/api/admin/dashboard?targetId=anthropic-claude&windowMinutes=720" "typeof data.summary === 'object'"
+check_json_field "Dashboard summary" "$BASE_URL/api/admin/dashboard?targetId=anthropic-claude&windowMinutes=720" "typeof data.summary === 'object' && data.adminCompatibilityUsage && typeof data.adminCompatibilityUsage.totalHits==='number' && Array.isArray(data.adminCompatibilityUsage.routes)"
+check_json_field "Admin compatibility usage contract" "$BASE_URL/api/admin/compatibility-usage" "data.ok===true && data.summary && typeof data.summary.totalHits==='number' && Array.isArray(data.summary.routes)"
 check_deprecated_route "Knowledge base Admin API" "$BASE_URL/api/admin/knowledge-base" "/api/retrieval"
 check_deprecated_route "Fine-tune Admin API" "$BASE_URL/api/admin/finetune" "/api/finetune"
 check_deprecated_route "Model discovery Admin API" "$BASE_URL/api/admin/model-discovery" "/api/models/discovery"
@@ -84,7 +88,7 @@ check_deprecated_route "Timeline Admin API" "$BASE_URL/api/admin/timeline" "/api
 if [[ "${SMOKE_RUN_REMOTE_BENCHMARK:-0}" == "1" ]]; then
   echo
   echo "== Optional remote benchmark smoke =="
-  curl -fsS "$BASE_URL/api/admin/benchmark" \
+  curl --max-time "$CURL_MAX_TIME" -fsS "$BASE_URL/api/admin/benchmark" \
     -H "Content-Type: application/json" \
     -d '{
       "benchmarkMode":"prompt",

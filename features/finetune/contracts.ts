@@ -145,7 +145,14 @@ export type FineTuneRecipeDraft = {
   loraAlpha: number;
   gradientCheckpointing: boolean;
   validationSplitPct: number;
+  targetModules: string[];
+  scheduler: AgentFineTuneRecipe["scheduler"];
+  warmupRatio: number;
+  packingPolicy: AgentFineTuneRecipe["packingPolicy"];
+  evalEverySteps: number;
   saveEverySteps: number;
+  bestCheckpointMetric: AgentFineTuneRecipe["bestCheckpointMetric"];
+  loadBestCheckpointAtEnd: boolean;
   seed: number;
   benchmarkSuiteId?: string;
   notes?: string;

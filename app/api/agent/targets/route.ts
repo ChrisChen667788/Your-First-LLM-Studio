@@ -5,6 +5,7 @@ import { clearProviderEnvCache } from "@/lib/agent/providers";
 import { getLocalGatewaySupervisorInfo } from "@/lib/agent/local-gateway";
 import { readRuntimeProcessMetrics } from "@/lib/agent/runtime-process-metrics";
 import { buildRuntimeResourceGuardrail } from "@/lib/agent/runtime-safety";
+import { appendExperimentEvent } from "@/features/experiments/timeline-service";
 import type { AgentConnectionCheckResponse, AgentTarget } from "@/lib/agent/types";
 
 export const runtime = "nodejs";
@@ -104,20 +105,61 @@ export async function POST() {
       }
     }
 
+    const summary = {
+      scannedAt: new Date().toISOString(),
+      localNewTargetIds,
+      localRemovedTargetIds,
+      remoteConfiguredCount,
+      remoteHealthyCount,
+      remoteSkippedTargetIds
+    };
+    appendExperimentEvent({
+      kind: "model",
+      status:
+        remoteConfiguredCount > 0 && remoteHealthyCount < remoteConfiguredCount
+          ? "failed"
+          : "completed",
+      title: "Agent target scan completed",
+      summary: `Local +${localNewTargetIds.length} / -${localRemovedTargetIds.length}; remote healthy ${remoteHealthyCount}/${remoteConfiguredCount}${remoteSkippedTargetIds.length ? `; skipped ${remoteSkippedTargetIds.length}` : ""}.`,
+      targetIds: targets.map((target) => target.id),
+      artifacts: [
+        {
+          kind: "api",
+          role: "manifest",
+          label: "Agent target catalog",
+          uri: "/api/agent/targets",
+        },
+      ],
+      metadata: {
+        localAdded: localNewTargetIds.length,
+        localRemoved: localRemovedTargetIds.length,
+        remoteConfigured: remoteConfiguredCount,
+        remoteHealthy: remoteHealthyCount,
+        remoteSkipped: remoteSkippedTargetIds.length,
+      },
+    });
+
     return NextResponse.json({
       ok: true,
       targets: decorateTargetsWithLoadGuardrails(targets),
       remoteChecks,
-      summary: {
-        scannedAt: new Date().toISOString(),
-        localNewTargetIds,
-        localRemovedTargetIds,
-        remoteConfiguredCount,
-        remoteHealthyCount,
-        remoteSkippedTargetIds
-      }
+      summary
     } satisfies ScanTargetsResponse);
   } catch (error) {
+    appendExperimentEvent({
+      kind: "model",
+      status: "failed",
+      title: "Agent target scan failed",
+      summary: error instanceof Error ? error.message : "Failed to scan agent targets.",
+      artifacts: [
+        {
+          kind: "api",
+          role: "manifest",
+          label: "Agent target catalog",
+          uri: "/api/agent/targets",
+        },
+      ],
+    });
     return NextResponse.json({
       ok: false,
       error: error instanceof Error ? error.message : "Failed to scan agent targets.",

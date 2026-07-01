@@ -39,17 +39,23 @@ type LoadRuntimeStatus = (
   options?: { force?: boolean },
 ) => Promise<void>;
 
-type UseAgentConnectionActionsInput = {
+type AgentConnectionActionContextInput = {
   locale: string;
   selectedTarget: AgentTarget;
   selectedTargetId: string;
   pending: boolean;
   supportsConnectionCheck: boolean;
+};
+
+type AgentConnectionActionStateInput = {
   scanTargetsPending: boolean;
+  connectionCheckPending: boolean;
+};
+
+type AgentConnectionActionMutationInput = {
   setScanTargetsPending: Dispatch<SetStateAction<boolean>>;
   setScanTargetsMessage: Dispatch<SetStateAction<string>>;
   setScanTargetsMessageTone: Dispatch<SetStateAction<"success" | "error">>;
-  connectionCheckPending: boolean;
   setConnectionCheckPending: Dispatch<SetStateAction<boolean>>;
   setConnectionCheckError: Dispatch<SetStateAction<string>>;
   setConnectionChecksByTargetId: Dispatch<
@@ -58,6 +64,12 @@ type UseAgentConnectionActionsInput = {
   setAvailableTargets: Dispatch<SetStateAction<AgentTarget[]>>;
   setTurns: Dispatch<SetStateAction<AgentTurn[]>>;
   loadRuntimeStatus: LoadRuntimeStatus;
+};
+
+type UseAgentConnectionActionsInput = {
+  context: AgentConnectionActionContextInput;
+  state: AgentConnectionActionStateInput;
+  mutations: AgentConnectionActionMutationInput;
   labels: AgentConnectionActionsLabels;
 };
 
@@ -98,24 +110,33 @@ function buildConnectionCheckNarrative(
 }
 
 export function useAgentConnectionActions({
-  locale,
-  selectedTarget,
-  selectedTargetId,
-  pending,
-  supportsConnectionCheck,
-  scanTargetsPending,
-  setScanTargetsPending,
-  setScanTargetsMessage,
-  setScanTargetsMessageTone,
-  connectionCheckPending,
-  setConnectionCheckPending,
-  setConnectionCheckError,
-  setConnectionChecksByTargetId,
-  setAvailableTargets,
-  setTurns,
-  loadRuntimeStatus,
+  context,
+  state,
+  mutations,
   labels,
 }: UseAgentConnectionActionsInput) {
+  const {
+    locale,
+    selectedTarget,
+    selectedTargetId,
+    pending,
+    supportsConnectionCheck,
+  } = context;
+  const {
+    scanTargetsPending,
+    connectionCheckPending,
+  } = state;
+  const {
+    setScanTargetsPending,
+    setScanTargetsMessage,
+    setScanTargetsMessageTone,
+    setConnectionCheckPending,
+    setConnectionCheckError,
+    setConnectionChecksByTargetId,
+    setAvailableTargets,
+    setTurns,
+    loadRuntimeStatus,
+  } = mutations;
   const handleScanTargets = useCallback(async () => {
     if (scanTargetsPending) return;
 

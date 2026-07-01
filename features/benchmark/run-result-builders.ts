@@ -45,6 +45,12 @@ export function buildBenchmarkResultFromSamples(input: {
   const okSamples = input.samples.filter((sample) => sample.ok);
   const scoredSamples = input.samples.filter((sample) => typeof sample.score === "number");
   const passSamples = input.samples.filter((sample) => typeof sample.passed === "boolean");
+  const skippedSamples = input.samples.filter((sample) =>
+    !sample.ok &&
+    sample.latencyMs === 0 &&
+    (sample.warning || "").toLowerCase().includes("skipped")
+  );
+  const firstSkipWarning = skippedSamples.find((sample) => sample.warning)?.warning || null;
 
   return {
     targetId: input.target.id,
@@ -57,6 +63,8 @@ export function buildBenchmarkResultFromSamples(input: {
     thinkingMode: input.thinkingMode,
     runs: input.samples.length,
     okRuns: okSamples.length,
+    skippedRuns: skippedSamples.length,
+    skipSummary: firstSkipWarning,
     avgFirstTokenLatencyMs: average(okSamples.map((sample) => sample.firstTokenLatencyMs)),
     avgLatencyMs: average(okSamples.map((sample) => sample.latencyMs)),
     avgTokenThroughputTps: average(okSamples.map((sample) => sample.tokenThroughputTps)),
@@ -92,6 +100,8 @@ export function buildFailedBenchmarkResult(input: {
     thinkingMode: input.thinkingMode,
     runs: input.tasks.length,
     okRuns: 0,
+    skippedRuns: input.tasks.length,
+    skipSummary: input.warning,
     avgFirstTokenLatencyMs: 0,
     avgLatencyMs: 0,
     avgTokenThroughputTps: 0,

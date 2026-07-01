@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, statSync } from "fs";
 import path from "path";
 import type {
+  AgentFineTuneBestCheckpointSelection,
+  AgentFineTuneCheckpointEvent,
   AgentFineTuneCurvePoint,
   AgentFineTuneDataset,
   AgentFineTuneJob,
@@ -25,6 +27,12 @@ import {
   type FineTuneJobRuntimeState,
   type FineTuneRuntimeAttachment,
 } from "./store-internal";
+import {
+  getLoraPackingPolicy,
+  getLoraSchedulerPreset,
+  normalizeLoraBestCheckpointMetric,
+  normalizeLoraTargetModules,
+} from "./lora-config";
 
 export function readStoredDatasets() {
   return readJsonFile<AgentFineTuneDataset[]>(DATASETS_FILE, []);
@@ -47,6 +55,8 @@ export function writeRecipes(recipes: AgentFineTuneRecipe[]) {
 export function normalizeRecipeRecord(
   recipe: AgentFineTuneRecipe,
 ): AgentFineTuneRecipe {
+  const scheduler = getLoraSchedulerPreset(recipe.scheduler);
+  const packing = getLoraPackingPolicy(recipe.packingPolicy);
   return {
     ...recipe,
     fineTuneMethod: recipe.fineTuneMethod === "dora" ? "dora" : "lora",
@@ -67,11 +77,34 @@ export function normalizeRecipeRecord(
       Number.isFinite(recipe.validationSplitPct)
         ? recipe.validationSplitPct
         : 10,
+    targetModules: normalizeLoraTargetModules(
+      recipe.targetModules,
+      recipe.baseTargetId,
+    ),
+    scheduler: scheduler.id,
+    warmupRatio:
+      typeof recipe.warmupRatio === "number" &&
+      Number.isFinite(recipe.warmupRatio)
+        ? Math.max(0, Math.min(recipe.warmupRatio, 0.25))
+        : scheduler.warmupRatio,
+    packingPolicy: packing.id,
+    evalEverySteps:
+      typeof recipe.evalEverySteps === "number" &&
+      Number.isFinite(recipe.evalEverySteps)
+        ? Math.max(1, Math.min(recipe.evalEverySteps, 5000))
+        : 100,
     saveEverySteps:
       typeof recipe.saveEverySteps === "number" &&
       Number.isFinite(recipe.saveEverySteps)
-        ? recipe.saveEverySteps
-        : 0,
+        ? Math.max(0, Math.min(recipe.saveEverySteps, 5000))
+        : 100,
+    bestCheckpointMetric: normalizeLoraBestCheckpointMetric(
+      recipe.bestCheckpointMetric,
+    ),
+    loadBestCheckpointAtEnd:
+      typeof recipe.loadBestCheckpointAtEnd === "boolean"
+        ? recipe.loadBestCheckpointAtEnd
+        : true,
     seed:
       typeof recipe.seed === "number" && Number.isFinite(recipe.seed)
         ? recipe.seed
@@ -268,6 +301,52 @@ export function readFineTuneMetricsFile(metricsFile: string) {
     .sort((a, b) => a.step - b.step || a.split.localeCompare(b.split));
 }
 
+function normalizeCheckpointEvent(value: unknown): AgentFineTuneCheckpointEvent | null {
+  if (!value || typeof value !== "object") return null;
+  const entry = value as Partial<AgentFineTuneCheckpointEvent>;
+  if (typeof entry.step !== "number" || !Number.isFinite(entry.step)) {
+    return null;
+  }
+  return {
+    step: entry.step,
+    path: typeof entry.path === "string" ? entry.path : undefined,
+    metric: normalizeLoraBestCheckpointMetric(entry.metric),
+    value:
+      typeof entry.value === "number" && Number.isFinite(entry.value)
+        ? entry.value
+        : null,
+    at: typeof entry.at === "string" ? entry.at : new Date().toISOString(),
+  };
+}
+
+function normalizeBestCheckpointSelection(
+  value: unknown,
+): AgentFineTuneBestCheckpointSelection | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const entry = value as Partial<AgentFineTuneBestCheckpointSelection>;
+  if (typeof entry.step !== "number" || !Number.isFinite(entry.step)) {
+    return undefined;
+  }
+  return {
+    step: entry.step,
+    metric: normalizeLoraBestCheckpointMetric(entry.metric),
+    value:
+      typeof entry.value === "number" && Number.isFinite(entry.value)
+        ? entry.value
+        : null,
+    path: typeof entry.path === "string" ? entry.path : undefined,
+    source:
+      entry.source === "manual" || entry.source === "final"
+        ? entry.source
+        : "validation",
+    loadBestCheckpointAtEnd: Boolean(entry.loadBestCheckpointAtEnd),
+    selectedAt:
+      typeof entry.selectedAt === "string"
+        ? entry.selectedAt
+        : new Date().toISOString(),
+  };
+}
+
 export function mergeJobState(job: AgentFineTuneJob) {
   const paths = getJobPaths(job.id);
   const runtime = readJobRuntimeState(job.id) || {};
@@ -279,6 +358,13 @@ export function mergeJobState(job: AgentFineTuneJob) {
     : [];
   const metricsCurve = readFineTuneMetricsFile(paths.metricsFile);
   const curve = metricsCurve.length ? metricsCurve : runtimeCurve;
+  const checkpointEvents = Array.isArray(runtime.checkpointEvents)
+    ? runtime.checkpointEvents
+        .map(normalizeCheckpointEvent)
+        .filter((entry): entry is AgentFineTuneCheckpointEvent => Boolean(entry))
+        .slice(-200)
+    : [];
+  const bestCheckpoint = normalizeBestCheckpointSelection(runtime.bestCheckpoint);
 
   return {
     ...job,
@@ -304,6 +390,8 @@ export function mergeJobState(job: AgentFineTuneJob) {
     baseModelRef: runtime.baseModelRef || job.baseModelRef,
     progress: runtime.progress as AgentFineTuneJobProgress | undefined,
     curve,
+    checkpointEvents,
+    bestCheckpoint,
     recentLogLines: tailLines(paths.logFile),
   } satisfies AgentFineTuneJob;
 }

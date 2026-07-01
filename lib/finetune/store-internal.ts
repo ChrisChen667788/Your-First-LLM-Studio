@@ -122,6 +122,12 @@ export type FineTuneJobBundle = {
     stepsPerReport: number;
     stepsPerEval: number;
     saveEvery: number;
+    targetModules: string[];
+    scheduler: AgentFineTuneRecipe["scheduler"];
+    warmupRatio: number;
+    packingPolicy: AgentFineTuneRecipe["packingPolicy"];
+    bestCheckpointMetric: AgentFineTuneRecipe["bestCheckpointMetric"];
+    loadBestCheckpointAtEnd: boolean;
     maxSeqLength: number;
     batchSize: number;
     validationDisabledReason?: string;

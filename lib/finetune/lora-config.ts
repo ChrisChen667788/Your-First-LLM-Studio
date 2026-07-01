@@ -38,6 +38,11 @@ export type LoraTrainingDefaults = {
   loadBestCheckpointAtEnd: boolean;
 };
 
+export type LoraSchedulerId = LoraSchedulerPreset["id"];
+export type LoraPackingPolicyId = LoraPackingPolicy["id"];
+export type LoraBestCheckpointMetric =
+  LoraTrainingDefaults["bestCheckpointMetric"];
+
 export const LORA_TARGET_MODULE_PRESETS: LoraTargetModulePreset[] = [
   {
     family: "qwen",
@@ -120,6 +125,28 @@ export const LORA_PACKING_POLICIES: LoraPackingPolicy[] = [
   },
 ];
 
+export const LORA_BEST_CHECKPOINT_METRICS: Array<{
+  id: LoraBestCheckpointMetric;
+  label: string;
+  rationale: string;
+}> = [
+  {
+    id: "eval_loss",
+    label: "Validation loss",
+    rationale: "Default for supervised LoRA because it is available during every local run.",
+  },
+  {
+    id: "win_rate",
+    label: "Win rate",
+    rationale: "Use after a Compare/Benchmark proof loop has pairwise preference evidence.",
+  },
+  {
+    id: "exact_match",
+    label: "Exact match",
+    rationale: "Use for structured extraction or coding tasks with deterministic expected output.",
+  },
+];
+
 export function inferLoraModelFamily(modelId: string): LoraModelFamily {
   const normalized = modelId.toLowerCase();
   if (normalized.includes("qwen")) return "qwen";
@@ -136,6 +163,48 @@ export function getLoraTargetModulePreset(modelId: string) {
     LORA_TARGET_MODULE_PRESETS.find((preset) => preset.family === family) ||
     LORA_TARGET_MODULE_PRESETS[LORA_TARGET_MODULE_PRESETS.length - 1]
   );
+}
+
+export function getLoraSchedulerPreset(id?: string) {
+  return (
+    LORA_SCHEDULER_PRESETS.find((preset) => preset.id === id) ||
+    LORA_SCHEDULER_PRESETS[0]
+  );
+}
+
+export function getLoraPackingPolicy(id?: string) {
+  return (
+    LORA_PACKING_POLICIES.find((policy) => policy.id === id) ||
+    LORA_PACKING_POLICIES[0]
+  );
+}
+
+export function normalizeLoraTargetModules(
+  value: unknown,
+  modelId: string,
+) {
+  const defaults = getLoraTargetModulePreset(modelId).targetModules;
+  const rawValues = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/[\s,]+/)
+      : [];
+  const modules = Array.from(
+    new Set(
+      rawValues
+        .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+        .filter((entry) => /^[A-Za-z0-9_.-]+$/.test(entry)),
+    ),
+  );
+  return modules.length ? modules.slice(0, 32) : defaults;
+}
+
+export function normalizeLoraBestCheckpointMetric(
+  value: unknown,
+): LoraBestCheckpointMetric {
+  return LORA_BEST_CHECKPOINT_METRICS.some((metric) => metric.id === value)
+    ? (value as LoraBestCheckpointMetric)
+    : "eval_loss";
 }
 
 export function buildLoraTrainingDefaults(modelId: string): LoraTrainingDefaults {

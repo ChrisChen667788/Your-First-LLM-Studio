@@ -5,6 +5,7 @@ import json
 import os
 import re
 import signal
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -17,7 +18,9 @@ TRAIN_RE = re.compile(
 VAL_RE = re.compile(
     r"Iter\s+(?P<step>\d+):\s+Val loss\s+(?P<loss>[0-9.]+),\s+Val took\s+(?P<duration>[0-9.]+)s"
 )
-SAVE_RE = re.compile(r"Iter\s+(?P<step>\d+):\s+Saved adapter weights to")
+SAVE_RE = re.compile(
+    r"Iter\s+(?P<step>\d+):\s+Saved adapter weights to(?:\s+(?P<path>.+?))?\.?$"
+)
 
 CHILD_PROCESS: Optional[subprocess.Popen[str]] = None
 CANCEL_REQUESTED = False
@@ -71,6 +74,20 @@ def append_curve_point(state_file: Path, point: Dict[str, Any]) -> None:
     current["curve"] = curve[-120:]
     current["updatedAt"] = iso_now()
     write_json(state_file, current)
+
+
+def update_checkpoint_state(
+    state_file: Path,
+    checkpoint_events: list[Dict[str, Any]],
+    best_checkpoint: Optional[Dict[str, Any]],
+) -> None:
+    patch: Dict[str, Any] = {
+        "checkpointEvents": checkpoint_events[-200:],
+        "workerHeartbeatAt": iso_now(),
+    }
+    if best_checkpoint:
+        patch["bestCheckpoint"] = best_checkpoint
+    update_state(state_file, patch)
 
 
 def iso_now() -> str:
@@ -135,6 +152,95 @@ def build_command(bundle: Dict[str, Any]) -> list[str]:
     return command
 
 
+def split_saved_adapter_paths(raw_path: Optional[str]) -> list[Path]:
+    if not raw_path:
+        return []
+    return [
+        Path(part.strip().strip('"').strip("'")).expanduser()
+        for part in raw_path.split(" and ")
+        if part.strip().strip('"').strip("'")
+    ]
+
+
+def materialize_checkpoint_dir(
+    raw_path: Optional[str],
+    step: int,
+    plan: Dict[str, Any],
+) -> str:
+    output_dir = Path(plan.get("adapterPath") or plan.get("outputDir") or "")
+    candidates = split_saved_adapter_paths(raw_path)
+    checkpoint_file = next(
+        (
+            candidate
+            for candidate in reversed(candidates)
+            if candidate.exists() and candidate.name != "adapters.safetensors"
+        ),
+        None,
+    )
+    if not checkpoint_file:
+        checkpoint_file = next(
+            (candidate for candidate in reversed(candidates) if candidate.exists()),
+            None,
+        )
+    if not checkpoint_file:
+        return str(output_dir)
+
+    checkpoint_dir = output_dir / f"checkpoint-{step:07d}"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    adapter_config = output_dir / "adapter_config.json"
+    if adapter_config.exists():
+        shutil.copy2(adapter_config, checkpoint_dir / "adapter_config.json")
+    shutil.copy2(checkpoint_file, checkpoint_dir / "adapters.safetensors")
+    write_json(
+        checkpoint_dir / "checkpoint-manifest.json",
+        {
+            "step": step,
+            "sourceFile": str(checkpoint_file),
+            "materializedAt": iso_now(),
+            "adapterPath": str(checkpoint_dir),
+        },
+    )
+    return str(checkpoint_dir)
+
+
+def normalize_checkpoint_path(raw_path: Optional[str], plan: Dict[str, Any]) -> str:
+    paths = split_saved_adapter_paths(raw_path)
+    for candidate in reversed(paths):
+        if candidate.exists():
+            return str(candidate)
+    return str(plan.get("adapterPath") or plan.get("outputDir") or "")
+
+
+def attach_best_checkpoint_path(
+    best_checkpoint: Optional[Dict[str, Any]],
+    checkpoint_events: list[Dict[str, Any]],
+    plan: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    if not best_checkpoint:
+        return None
+    if best_checkpoint.get("path"):
+        return best_checkpoint
+    best_step = int(best_checkpoint.get("step") or 0)
+    total_steps = int(plan.get("totalSteps") or 0)
+    if total_steps > 0 and best_step >= total_steps:
+        return {
+            **best_checkpoint,
+            "path": str(plan.get("adapterPath") or plan.get("outputDir") or ""),
+        }
+    if checkpoint_events:
+        nearest = min(
+            checkpoint_events,
+            key=lambda event: abs(int(event.get("step") or 0) - best_step),
+        )
+        best_checkpoint = {**best_checkpoint, "path": nearest.get("path")}
+    if not best_checkpoint.get("path"):
+        best_checkpoint = {
+            **best_checkpoint,
+            "path": str(plan.get("adapterPath") or plan.get("outputDir") or ""),
+        }
+    return best_checkpoint
+
+
 def set_progress(
     state_file: Path,
     step: int,
@@ -193,6 +299,10 @@ def run_bundle(job_bundle_path: Path) -> int:
     log_file = Path(plan["logFile"])
     metrics_file = Path(plan["metricsFile"])
     total_steps = int(plan["totalSteps"])
+    best_metric = str(plan.get("bestCheckpointMetric") or "eval_loss")
+    load_best_at_end = bool(plan.get("loadBestCheckpointAtEnd", True))
+    checkpoint_events: list[Dict[str, Any]] = []
+    best_checkpoint: Optional[Dict[str, Any]] = None
 
     append_log(log_file, f"[{iso_now()}] Starting local fine-tune worker for {job_id}")
     update_state(
@@ -204,6 +314,8 @@ def run_bundle(job_bundle_path: Path) -> int:
             "latestMessage": "Loading MLX LoRA trainer.",
             "errorMessage": None,
             "curve": read_json(state_file, {}).get("curve", []),
+            "checkpointEvents": [],
+            "bestCheckpoint": None,
         },
     )
 
@@ -265,10 +377,11 @@ def run_bundle(job_bundle_path: Path) -> int:
         val_match = VAL_RE.search(line)
         if val_match:
             step = int(val_match.group("step"))
+            val_loss = float(val_match.group("loss"))
             point = {
                 "step": step,
                 "split": "valid",
-                "loss": float(val_match.group("loss")),
+                "loss": val_loss,
                 "learningRate": None,
                 "tokensPerSecond": None,
                 "peakMemoryGb": None,
@@ -285,11 +398,53 @@ def run_bundle(job_bundle_path: Path) -> int:
                 val_loss=point["loss"],
                 latest_message=f"Validation after step {step}: loss {point['loss']:.3f}",
             )
+            if best_metric == "eval_loss" and (
+                best_checkpoint is None
+                or best_checkpoint.get("value") is None
+                or val_loss < float(best_checkpoint["value"])
+            ):
+                best_checkpoint = {
+                    "step": step,
+                    "metric": "eval_loss",
+                    "value": val_loss,
+                    "path": None,
+                    "source": "validation",
+                    "loadBestCheckpointAtEnd": load_best_at_end,
+                    "selectedAt": iso_now(),
+                }
+                best_checkpoint = attach_best_checkpoint_path(
+                    best_checkpoint,
+                    checkpoint_events,
+                    plan,
+                )
+                update_checkpoint_state(state_file, checkpoint_events, best_checkpoint)
             continue
 
         save_match = SAVE_RE.search(line)
         if save_match:
             step = int(save_match.group("step"))
+            checkpoint_path = materialize_checkpoint_dir(
+                save_match.group("path"),
+                step,
+                plan,
+            )
+            event = {
+                "step": step,
+                "path": checkpoint_path,
+                "metric": best_metric,
+                "value": None,
+                "at": iso_now(),
+            }
+            checkpoint_events.append(event)
+            if best_checkpoint:
+                if int(best_checkpoint.get("step") or 0) == step:
+                    best_checkpoint = {**best_checkpoint, "path": checkpoint_path}
+                best_checkpoint = attach_best_checkpoint_path(
+                    best_checkpoint,
+                    checkpoint_events,
+                    plan,
+                )
+            update_checkpoint_state(state_file, checkpoint_events, best_checkpoint)
             set_progress(
                 state_file,
                 step,
@@ -314,14 +469,36 @@ def run_bundle(job_bundle_path: Path) -> int:
         return 1
 
     if exit_code == 0:
+        if best_checkpoint is None:
+            latest_checkpoint = checkpoint_events[-1] if checkpoint_events else None
+            best_checkpoint = {
+                "step": int(latest_checkpoint.get("step")) if latest_checkpoint else total_steps,
+                "metric": best_metric,
+                "value": latest_checkpoint.get("value") if latest_checkpoint else None,
+                "path": latest_checkpoint.get("path") if latest_checkpoint else str(plan.get("adapterPath") or plan.get("outputDir") or ""),
+                "source": "final",
+                "loadBestCheckpointAtEnd": load_best_at_end,
+                "selectedAt": completed_at,
+            }
+        best_checkpoint = attach_best_checkpoint_path(
+            best_checkpoint,
+            checkpoint_events,
+            plan,
+        )
         update_state(
             state_file,
             {
                 "status": "completed",
                 "completedAt": completed_at,
                 "workerHeartbeatAt": completed_at,
-                "latestMessage": "Fine-tune worker completed successfully.",
+                "latestMessage": (
+                    "Fine-tune worker completed successfully. "
+                    f"Selected checkpoint step {best_checkpoint.get('step')} "
+                    f"by {best_checkpoint.get('metric')}."
+                ),
                 "errorMessage": None,
+                "checkpointEvents": checkpoint_events[-200:],
+                "bestCheckpoint": best_checkpoint,
             },
         )
         append_log(log_file, f"[{completed_at}] Worker completed successfully")

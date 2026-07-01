@@ -34,9 +34,20 @@ PYTHON_BIN="${LOCAL_AGENT_PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
   if [[ -x "$VENV_PYTHON" ]]; then
     PYTHON_BIN="$VENV_PYTHON"
+  elif command -v python3.12 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3.12)"
+  elif command -v python3.11 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3.11)"
+  elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3)"
   else
-    PYTHON_BIN="python3.12"
+    echo "No Python runtime found. Set LOCAL_AGENT_PYTHON_BIN or install python3.12, python3.11, or python3." >&2
+    exit 127
   fi
+fi
+if ! "$PYTHON_BIN" --version >/dev/null 2>&1; then
+  echo "Python runtime is not executable: $PYTHON_BIN" >&2
+  exit 127
 fi
 
 existing_pid=""
@@ -49,7 +60,11 @@ if [[ -n "$existing_pid" ]] && kill -0 "$existing_pid" >/dev/null 2>&1; then
 fi
 screen -S "$SCREEN_NAME" -X quit >/dev/null 2>&1 || true
 
-BASE_PATH="$(dirname "$PYTHON_BIN"):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+RESOLVED_PYTHON_BIN="$PYTHON_BIN"
+if [[ "$RESOLVED_PYTHON_BIN" != */* ]]; then
+  RESOLVED_PYTHON_BIN="$(command -v "$RESOLVED_PYTHON_BIN")"
+fi
+BASE_PATH="$(dirname "$RESOLVED_PYTHON_BIN"):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 ENV_VARS=(
   "HOME=$HOME"
   "PATH=$BASE_PATH"

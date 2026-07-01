@@ -24,21 +24,27 @@ type AgentRuntimeActionsLabels = {
   prewarmAllDone: string;
 };
 
-type UseAgentRuntimeActionsInput = {
+type AgentRuntimeActionsTargetInput = {
   agentTargets: AgentTarget[];
   selectedTarget: AgentTarget;
   selectedTargetId: string;
   thinkingMode: AgentThinkingMode;
+};
+
+type AgentRuntimeActionsStateInput = {
   pending: boolean;
   runtimeStatus: AgentRuntimeStatus | null;
-  setRuntimeStatus: Dispatch<SetStateAction<AgentRuntimeStatus | null>>;
   runtimeRequestInFlightRef: MutableRefObject<boolean>;
   prewarmPending: boolean;
-  setPrewarmPending: Dispatch<SetStateAction<boolean>>;
   prewarmAllPending: boolean;
+  runtimeActionPending: AgentRuntimeActionPending;
+};
+
+type AgentRuntimeActionsMutationInput = {
+  setRuntimeStatus: Dispatch<SetStateAction<AgentRuntimeStatus | null>>;
+  setPrewarmPending: Dispatch<SetStateAction<boolean>>;
   setPrewarmAllPending: Dispatch<SetStateAction<boolean>>;
   setPrewarmMessage: Dispatch<SetStateAction<string>>;
-  runtimeActionPending: AgentRuntimeActionPending;
   setRuntimeActionPending: Dispatch<SetStateAction<AgentRuntimeActionPending>>;
   setRuntimeLogExcerpt: Dispatch<SetStateAction<string>>;
   setRuntimeLastSwitchMsByTarget: Dispatch<
@@ -48,31 +54,46 @@ type UseAgentRuntimeActionsInput = {
     SetStateAction<Record<string, string | null>>
   >;
   setError: Dispatch<SetStateAction<string>>;
+};
+
+type UseAgentRuntimeActionsInput = {
+  target: AgentRuntimeActionsTargetInput;
+  state: AgentRuntimeActionsStateInput;
+  mutations: AgentRuntimeActionsMutationInput;
   labels: AgentRuntimeActionsLabels;
 };
 
 export function useAgentRuntimeActions({
-  agentTargets,
-  selectedTarget,
-  selectedTargetId,
-  thinkingMode,
-  pending,
-  runtimeStatus,
-  setRuntimeStatus,
-  runtimeRequestInFlightRef,
-  prewarmPending,
-  setPrewarmPending,
-  prewarmAllPending,
-  setPrewarmAllPending,
-  setPrewarmMessage,
-  runtimeActionPending,
-  setRuntimeActionPending,
-  setRuntimeLogExcerpt,
-  setRuntimeLastSwitchMsByTarget,
-  setRuntimeLastSwitchAtByTarget,
-  setError,
+  target,
+  state,
+  mutations,
   labels,
 }: UseAgentRuntimeActionsInput) {
+  const {
+    agentTargets,
+    selectedTarget,
+    selectedTargetId,
+    thinkingMode,
+  } = target;
+  const {
+    pending,
+    runtimeStatus,
+    runtimeRequestInFlightRef,
+    prewarmPending,
+    prewarmAllPending,
+    runtimeActionPending,
+  } = state;
+  const {
+    setRuntimeStatus,
+    setPrewarmPending,
+    setPrewarmAllPending,
+    setPrewarmMessage,
+    setRuntimeActionPending,
+    setRuntimeLogExcerpt,
+    setRuntimeLastSwitchMsByTarget,
+    setRuntimeLastSwitchAtByTarget,
+    setError,
+  } = mutations;
   const loadRuntimeStatus = useCallback(
     async (
       currentTargetId = selectedTargetId,

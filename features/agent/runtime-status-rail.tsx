@@ -546,6 +546,31 @@ export function RuntimeStatusRail({
                         : dictionary.common.failed}
                     </p>
                   </div>
+                  {runtimeStatus.pythonRuntime ? (
+                    <div className="sm:col-span-2">
+                      <p className="text-slate-500">
+                        {locale.startsWith("en") ? "Python runtime" : "Python 运行时"}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-white">
+                        <span className="break-all font-mono">
+                          {runtimeStatus.pythonRuntime.executable ||
+                            dictionary.common.unknown}
+                        </span>
+                        <span
+                          className={`rounded-full border px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] ${
+                            runtimeStatus.pythonRuntime.source === "missing"
+                              ? "border-rose-300/20 bg-rose-400/10 text-rose-100"
+                              : "border-cyan-300/20 bg-cyan-400/10 text-cyan-100"
+                          }`}
+                        >
+                          {runtimeStatus.pythonRuntime.source}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                        {runtimeStatus.pythonRuntime.reason}
+                      </p>
+                    </div>
+                  ) : null}
                   <div>
                     <p className="text-slate-500">
                       {uiText.runtimeCurrentLoaded}

@@ -56,6 +56,12 @@ export function FineTuneAdapterCard({
           {text.latestCheckpoint}: {formatDateTime(adapter.latestCheckpointAt)}
         </p>
         <p>
+          {text.bestCheckpointMetric}:{" "}
+          {adapter.bestCheckpoint
+            ? `${adapter.bestCheckpoint.metric} @ ${adapter.bestCheckpoint.step}`
+            : "--"}
+        </p>
+        <p>
           {text.outputDir}: {adapter.outputDir}
         </p>
         <p>
@@ -68,6 +74,14 @@ export function FineTuneAdapterCard({
           {text.attachedAt}: {formatDateTime(adapter.attachedAt)}
         </p>
       </div>
+      {adapter.bestCheckpoint?.path ? (
+        <p
+          className="mt-2 truncate rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.06] px-3 py-2 text-[11px] text-emerald-100"
+          title={adapter.bestCheckpoint.path}
+        >
+          {adapter.bestCheckpoint.path}
+        </p>
+      ) : null}
       <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
         <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
           {text.adapterArtifacts}

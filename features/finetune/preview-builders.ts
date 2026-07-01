@@ -56,6 +56,7 @@ export function buildTrainingCommandPreview({
   const command = [
     "python -m mlx_lm.lora",
     "--train",
+    '--config "mlx-lora-config.yaml"',
     `--model "${targetModel || recipe.baseTargetId || "<base-model>"}"`,
     `--data "${datasetPath || recipe.datasetId || "<dataset-jsonl>"}"`,
     `--adapter-path "adapters/${adapterName || recipe.adapterName || "<adapter-name>"}"`,
@@ -65,6 +66,8 @@ export function buildTrainingCommandPreview({
     `--learning-rate ${recipe.learningRate}`,
     `--lora-layers ${recipe.numLayers}`,
     `--grad-accumulation ${recipe.gradientAccumulationSteps}`,
+    `--save-every ${recipe.saveEverySteps}`,
+    `--steps-per-eval ${recipe.evalEverySteps}`,
     `--seed ${recipe.seed}`,
   ];
   if (recipe.gradientCheckpointing) {
@@ -111,12 +114,20 @@ export function buildTrainingYamlPreview({
     `  rank: ${recipe.loraRank}`,
     `  alpha: ${recipe.loraAlpha}`,
     `  layers: ${recipe.numLayers}`,
+    "  target_modules:",
+    ...recipe.targetModules.map((moduleName) => `    - ${moduleName}`),
     "runtime:",
     `  optimizer: ${recipe.optimizer}`,
     `  gradient_accumulation_steps: ${recipe.gradientAccumulationSteps}`,
     `  gradient_checkpointing: ${recipe.gradientCheckpointing ? "true" : "false"}`,
+    `  scheduler: ${recipe.scheduler}`,
+    `  warmup_ratio: ${recipe.warmupRatio}`,
+    `  packing_policy: ${recipe.packingPolicy}`,
     `  validation_split_pct: ${recipe.validationSplitPct}`,
+    `  eval_every_steps: ${recipe.evalEverySteps}`,
     `  save_every_steps: ${recipe.saveEverySteps}`,
+    `  best_checkpoint_metric: ${recipe.bestCheckpointMetric}`,
+    `  load_best_checkpoint_at_end: ${recipe.loadBestCheckpointAtEnd ? "true" : "false"}`,
     `  seed: ${recipe.seed}`,
     `  benchmark_suite: ${recipe.benchmarkSuiteId || "none"}`,
   ].join("\n");

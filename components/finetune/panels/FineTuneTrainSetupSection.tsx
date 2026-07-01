@@ -43,6 +43,21 @@ export function FineTuneTrainSetupSection({
             <p>
               {text.optimizer}: {selectedRecipe.optimizer}
             </p>
+            <p>
+              {text.scheduler}: {selectedRecipe.scheduler} ·{" "}
+              {text.warmupRatio}: {selectedRecipe.warmupRatio}
+            </p>
+            <p>
+              {text.targetModules}: {selectedRecipe.targetModules.join(", ")}
+            </p>
+            <p>
+              {text.evalEverySteps}: {selectedRecipe.evalEverySteps} ·{" "}
+              {text.saveEverySteps}: {selectedRecipe.saveEverySteps}
+            </p>
+            <p>
+              {text.bestCheckpointMetric}:{" "}
+              {selectedRecipe.bestCheckpointMetric}
+            </p>
           </div>
         ) : null}
         <button

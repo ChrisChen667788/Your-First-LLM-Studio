@@ -6,6 +6,12 @@ import type {
   AgentFineTuneSummary,
 } from "@/lib/agent/types";
 import { FINETUNE_DIR, ensureFineTuneDir } from "./store-internal";
+import {
+  getLoraPackingPolicy,
+  getLoraSchedulerPreset,
+  normalizeLoraBestCheckpointMetric,
+  normalizeLoraTargetModules,
+} from "./lora-config";
 import { buildFineTuneAdapterArtifacts } from "./bundle-service";
 export { exportFineTuneJobReport } from "./report-service";
 export { exportFineTuneJobBundleArchive } from "./bundle-service";
@@ -76,7 +82,14 @@ export function saveFineTuneRecipe(input: {
   loraAlpha: number;
   gradientCheckpointing: boolean;
   validationSplitPct: number;
+  targetModules?: unknown;
+  scheduler?: string;
+  warmupRatio?: number;
+  packingPolicy?: string;
+  evalEverySteps?: number;
   saveEverySteps: number;
+  bestCheckpointMetric?: unknown;
+  loadBestCheckpointAtEnd?: boolean;
   seed: number;
   benchmarkSuiteId?: string;
   notes?: string;
@@ -111,6 +124,8 @@ export function saveFineTuneRecipe(input: {
           recipe.baseTargetId === target.id &&
           recipe.adapterName === adapterName,
       );
+  const scheduler = getLoraSchedulerPreset(input.scheduler);
+  const packing = getLoraPackingPolicy(input.packingPolicy);
   const recipe: AgentFineTuneRecipe = {
     id: existing?.id || `ft-recipe-${crypto.randomUUID()}`,
     label,
@@ -137,7 +152,29 @@ export function saveFineTuneRecipe(input: {
     loraAlpha: Math.max(4, Math.min(input.loraAlpha, 256)),
     gradientCheckpointing: Boolean(input.gradientCheckpointing),
     validationSplitPct: Math.max(5, Math.min(input.validationSplitPct, 30)),
+    targetModules: normalizeLoraTargetModules(
+      input.targetModules,
+      target.modelDefault || target.id,
+    ),
+    scheduler: scheduler.id,
+    warmupRatio:
+      typeof input.warmupRatio === "number" && Number.isFinite(input.warmupRatio)
+        ? Math.max(0, Math.min(input.warmupRatio, 0.25))
+        : scheduler.warmupRatio,
+    packingPolicy: packing.id,
+    evalEverySteps:
+      typeof input.evalEverySteps === "number" &&
+      Number.isFinite(input.evalEverySteps)
+        ? Math.max(1, Math.min(input.evalEverySteps, 5000))
+        : 100,
     saveEverySteps: Math.max(0, Math.min(input.saveEverySteps, 5000)),
+    bestCheckpointMetric: normalizeLoraBestCheckpointMetric(
+      input.bestCheckpointMetric,
+    ),
+    loadBestCheckpointAtEnd:
+      typeof input.loadBestCheckpointAtEnd === "boolean"
+        ? input.loadBestCheckpointAtEnd
+        : true,
     seed: Math.max(1, Math.min(input.seed, 999999)),
     benchmarkSuiteId: input.benchmarkSuiteId?.trim() || undefined,
     notes: input.notes?.trim() || undefined,

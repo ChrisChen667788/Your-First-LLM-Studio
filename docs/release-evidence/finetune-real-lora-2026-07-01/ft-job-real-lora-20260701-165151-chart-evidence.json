@@ -1,0 +1,465 @@
+{
+  "kind": "first-llm-studio-finetune-chart-evidence",
+  "exportedAt": "2026-07-01T08:57:56.725307Z",
+  "jobId": "ft-job-real-lora-20260701-165151",
+  "adapterName": "release-real-lora-qwen06-384",
+  "range": "all",
+  "smoothingMode": "smooth-5",
+  "visibleWindow": {
+    "startStep": 1,
+    "endStep": 327
+  },
+  "bestCheckpoint": {
+    "step": 327,
+    "metric": "eval_loss",
+    "value": 0.06,
+    "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts",
+    "source": "validation",
+    "loadBestCheckpointAtEnd": true,
+    "selectedAt": "2026-07-01T08:54:28.806135Z"
+  },
+  "checkpointEvents": [
+    {
+      "step": 100,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000100",
+      "metric": "eval_loss",
+      "value": null,
+      "at": "2026-07-01T08:53:52.551250Z"
+    },
+    {
+      "step": 200,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000200",
+      "metric": "eval_loss",
+      "value": null,
+      "at": "2026-07-01T08:54:07.886797Z"
+    },
+    {
+      "step": 300,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000300",
+      "metric": "eval_loss",
+      "value": null,
+      "at": "2026-07-01T08:54:23.375668Z"
+    }
+  ],
+  "overlayJobIds": [],
+  "curve": [
+    {
+      "step": 1,
+      "split": "valid",
+      "loss": 5.607,
+      "learningRate": null,
+      "tokensPerSecond": null,
+      "peakMemoryGb": null,
+      "trainedTokens": null,
+      "durationSec": 2.107,
+      "at": "2026-07-01T08:53:33.721271Z"
+    },
+    {
+      "step": 10,
+      "split": "train",
+      "loss": 3.953,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 193.773,
+      "peakMemoryGb": 0.781,
+      "trainedTokens": 961,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:38.686137Z"
+    },
+    {
+      "step": 20,
+      "split": "train",
+      "loss": 2.26,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 772.17,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 2030,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:40.076776Z"
+    },
+    {
+      "step": 30,
+      "split": "train",
+      "loss": 1.311,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 811.372,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 3193,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:41.516822Z"
+    },
+    {
+      "step": 40,
+      "split": "train",
+      "loss": 1.429,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 790.6,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 4268,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:42.881908Z"
+    },
+    {
+      "step": 50,
+      "split": "train",
+      "loss": 0.758,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 787.715,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 5282,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:44.174617Z"
+    },
+    {
+      "step": 60,
+      "split": "train",
+      "loss": 0.312,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 792.251,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 6320,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:45.490456Z"
+    },
+    {
+      "step": 70,
+      "split": "train",
+      "loss": 0.7,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 766.158,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 7284,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:46.754102Z"
+    },
+    {
+      "step": 80,
+      "split": "train",
+      "loss": 0.229,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 783.4,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 8271,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:48.020560Z"
+    },
+    {
+      "step": 90,
+      "split": "train",
+      "loss": 0.117,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 777.272,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 9262,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:49.300481Z"
+    },
+    {
+      "step": 100,
+      "split": "valid",
+      "loss": 0.145,
+      "learningRate": null,
+      "tokensPerSecond": null,
+      "peakMemoryGb": null,
+      "trainedTokens": null,
+      "durationSec": 1.907,
+      "at": "2026-07-01T08:53:52.405290Z"
+    },
+    {
+      "step": 100,
+      "split": "train",
+      "loss": 0.349,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 790.949,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 10313,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:52.542047Z"
+    },
+    {
+      "step": 110,
+      "split": "train",
+      "loss": 0.151,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 806.067,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 11354,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:53.848716Z"
+    },
+    {
+      "step": 120,
+      "split": "train",
+      "loss": 0.096,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 776.262,
+      "peakMemoryGb": 0.84,
+      "trainedTokens": 12387,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:55.185181Z"
+    },
+    {
+      "step": 130,
+      "split": "train",
+      "loss": 0.125,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 807.213,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 13474,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:56.538493Z"
+    },
+    {
+      "step": 140,
+      "split": "train",
+      "loss": 0.127,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 817.81,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 14574,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:57.889042Z"
+    },
+    {
+      "step": 150,
+      "split": "train",
+      "loss": 0.087,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 797.932,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 15661,
+      "durationSec": null,
+      "at": "2026-07-01T08:53:59.257023Z"
+    },
+    {
+      "step": 160,
+      "split": "train",
+      "loss": 0.081,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 798.366,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 16768,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:00.649334Z"
+    },
+    {
+      "step": 170,
+      "split": "train",
+      "loss": 0.065,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 771.47,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 17767,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:01.952214Z"
+    },
+    {
+      "step": 180,
+      "split": "train",
+      "loss": 0.043,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 756.091,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 18747,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:03.252975Z"
+    },
+    {
+      "step": 190,
+      "split": "train",
+      "loss": 0.054,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 791.813,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 19776,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:04.558008Z"
+    },
+    {
+      "step": 200,
+      "split": "valid",
+      "loss": 0.077,
+      "learningRate": null,
+      "tokensPerSecond": null,
+      "peakMemoryGb": null,
+      "trainedTokens": null,
+      "durationSec": 1.938,
+      "at": "2026-07-01T08:54:07.727516Z"
+    },
+    {
+      "step": 200,
+      "split": "train",
+      "loss": 0.069,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 818.477,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 20895,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:07.868852Z"
+    },
+    {
+      "step": 210,
+      "split": "train",
+      "loss": 0.069,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 800.271,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 21955,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:09.217126Z"
+    },
+    {
+      "step": 220,
+      "split": "train",
+      "loss": 0.102,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 779.586,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 23055,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:10.634917Z"
+    },
+    {
+      "step": 230,
+      "split": "train",
+      "loss": 0.074,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 771.422,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 24084,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:11.974284Z"
+    },
+    {
+      "step": 240,
+      "split": "train",
+      "loss": 0.074,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 793.551,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 25188,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:13.371133Z"
+    },
+    {
+      "step": 250,
+      "split": "train",
+      "loss": 0.069,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 807.649,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 26277,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:14.725071Z"
+    },
+    {
+      "step": 260,
+      "split": "train",
+      "loss": 0.06,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 773.77,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 27310,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:16.073277Z"
+    },
+    {
+      "step": 270,
+      "split": "train",
+      "loss": 0.053,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 720.623,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 28239,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:17.360805Z"
+    },
+    {
+      "step": 280,
+      "split": "train",
+      "loss": 0.084,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 798.437,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 29362,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:18.773465Z"
+    },
+    {
+      "step": 290,
+      "split": "train",
+      "loss": 0.061,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 792.251,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 30349,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:20.024374Z"
+    },
+    {
+      "step": 300,
+      "split": "valid",
+      "loss": 0.068,
+      "learningRate": null,
+      "tokensPerSecond": null,
+      "peakMemoryGb": null,
+      "trainedTokens": null,
+      "durationSec": 1.966,
+      "at": "2026-07-01T08:54:23.207634Z"
+    },
+    {
+      "step": 300,
+      "split": "train",
+      "loss": 0.078,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 818.355,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 31456,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:23.348659Z"
+    },
+    {
+      "step": 310,
+      "split": "train",
+      "loss": 0.064,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 782.945,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 32520,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:24.741150Z"
+    },
+    {
+      "step": 320,
+      "split": "train",
+      "loss": 0.085,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 805.169,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 33610,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:26.099806Z"
+    },
+    {
+      "step": 327,
+      "split": "valid",
+      "loss": 0.06,
+      "learningRate": null,
+      "tokensPerSecond": null,
+      "peakMemoryGb": null,
+      "trainedTokens": null,
+      "durationSec": 1.937,
+      "at": "2026-07-01T08:54:28.804252Z"
+    },
+    {
+      "step": 327,
+      "split": "train",
+      "loss": 0.083,
+      "learningRate": 0.0001,
+      "tokensPerSecond": 790.239,
+      "peakMemoryGb": 0.846,
+      "trainedTokens": 34321,
+      "durationSec": null,
+      "at": "2026-07-01T08:54:28.940337Z"
+    }
+  ]
+}

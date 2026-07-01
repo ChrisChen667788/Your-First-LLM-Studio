@@ -118,6 +118,12 @@ export function attachFineTuneAdapterRuntime(input: { adapterId: string }) {
   const current = readRuntimeAttachments();
   const existing = current.find((entry) => entry.adapterId === adapter.id);
   const now = new Date().toISOString();
+  const selectedAdapterPath =
+    adapter.bestCheckpoint?.loadBestCheckpointAtEnd &&
+    adapter.bestCheckpoint.path &&
+    existsSync(adapter.bestCheckpoint.path)
+      ? adapter.bestCheckpoint.path
+      : adapter.outputDir;
   const alias =
     existing?.alias ||
     buildFineTuneAdapterAlias(adapter.adapterName, adapter.jobId);
@@ -138,7 +144,7 @@ export function attachFineTuneAdapterRuntime(input: { adapterId: string }) {
     baseRecommendedContextWindow: baseTarget.recommendedContextWindow,
     baseRecommendedContext: baseTarget.recommendedContext,
     baseMemoryProfile: baseTarget.memoryProfile,
-    adapterPath: adapter.outputDir,
+    adapterPath: selectedAdapterPath,
     attachedAt: existing?.attachedAt || now,
     updatedAt: now,
   };
@@ -165,7 +171,7 @@ export function attachFineTuneAdapterRuntime(input: { adapterId: string }) {
         kind: "directory",
         role: "adapter",
         label: adapter.adapterName,
-        uri: adapter.outputDir,
+        uri: selectedAdapterPath,
       },
     ],
     links: [
