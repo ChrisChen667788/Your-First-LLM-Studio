@@ -213,10 +213,16 @@ export type FineTuneOperationRequest =
       exportFormat?: "adapter-bundle" | "merged-mlx" | "gguf";
       quantization?: "none" | "q8" | "q4";
       maxShardSizeGb?: number;
-      outputDir?: string;
-      hubId?: string;
-      includeDatasetCard?: boolean;
-    }
+	      outputDir?: string;
+	      hubId?: string;
+	      includeDatasetCard?: boolean;
+	      publishTarget?: "local" | "huggingface" | "modelscope";
+	      licenseReviewed?: boolean;
+	      datasetAttributionReviewed?: boolean;
+	      secretScanStatus?: "not-run" | "passed" | "needs-review";
+	      samplePrompts?: string;
+	      knownLimitations?: string;
+	    }
   | {
       kind: "distillation";
       teacherTargetId: string;
