@@ -1,4 +1,6 @@
-type RouteHandler = (...args: never[]) => Response | Promise<Response>;
+import { recordAdminCompatibilityUsage } from "@/features/admin/compatibility-usage";
+
+type RouteHandler = (...args: any[]) => Response | Promise<Response>;
 
 const ADMIN_COMPATIBILITY_SUNSET = "Wed, 30 Sep 2026 00:00:00 GMT";
 
@@ -7,6 +9,7 @@ export function withAdminCompatibilityHeaders<T extends RouteHandler>(
   canonicalPath: string,
 ) {
   return (async (...args: Parameters<T>) => {
+    recordAdminCompatibilityUsage(args[0], canonicalPath);
     const response = await handler(...args);
     response.headers.set("Deprecation", "true");
     response.headers.set("Sunset", ADMIN_COMPATIBILITY_SUNSET);

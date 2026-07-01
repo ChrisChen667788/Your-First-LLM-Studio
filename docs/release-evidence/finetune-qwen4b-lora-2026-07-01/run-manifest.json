@@ -1,0 +1,197 @@
+{
+  "kind": "first-llm-studio-finetune-release-evidence",
+  "generatedAt": "2026-07-01T10:09:40.872477Z",
+  "jobId": "ft-job-qwen4b-lora-20260701-175225",
+  "status": "completed",
+  "baseModel": "/Users/chenhaorui/.cache/huggingface/hub/models--mlx-community--Qwen3-4B-Instruct-2507-4bit/snapshots/50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b",
+  "dataset": {
+    "id": "ft-dataset-first-llm-studio-starter-960",
+    "label": "First LLM Studio starter 960",
+    "sampleCount": 960,
+    "train": 816,
+    "valid": 96,
+    "test": 48
+  },
+  "recipe": {
+    "adapterName": "release-qwen4b-lora-starter960",
+    "sequenceLength": 1024,
+    "batchSize": 1,
+    "epochs": 1,
+    "learningRate": 3e-05,
+    "fineTuneMethod": "lora",
+    "optimizer": "adamw",
+    "numLayers": 8,
+    "gradientAccumulationSteps": 1,
+    "loraRank": 8,
+    "loraAlpha": 16,
+    "gradientCheckpointing": true,
+    "targetModules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "scheduler": "cosine",
+    "warmupRatio": 0.03,
+    "packingPolicy": "disabled",
+    "evalEverySteps": 100,
+    "saveEverySteps": 100,
+    "bestCheckpointMetric": "eval_loss",
+    "loadBestCheckpointAtEnd": true,
+    "seed": 42
+  },
+  "metricsSummary": {
+    "train": {
+      "first": 3.88,
+      "latest": 0.045,
+      "best": 0.044,
+      "delta": -3.835,
+      "relativeDeltaPct": -98.84020618556701
+    },
+    "valid": {
+      "first": 5.275,
+      "latest": 0.066,
+      "best": 0.066,
+      "delta": -5.2090000000000005,
+      "relativeDeltaPct": -98.74881516587678
+    },
+    "pointCount": 92,
+    "firstStep": 1,
+    "latestStep": 816,
+    "peakMemoryGb": 3.316,
+    "latestTokensPerSecond": 247.374
+  },
+  "validationSeries": [
+    {
+      "step": 1,
+      "loss": 5.275
+    },
+    {
+      "step": 100,
+      "loss": 0.25
+    },
+    {
+      "step": 200,
+      "loss": 0.132
+    },
+    {
+      "step": 300,
+      "loss": 0.079
+    },
+    {
+      "step": 400,
+      "loss": 0.08
+    },
+    {
+      "step": 500,
+      "loss": 0.071
+    },
+    {
+      "step": 600,
+      "loss": 0.072
+    },
+    {
+      "step": 700,
+      "loss": 0.077
+    },
+    {
+      "step": 800,
+      "loss": 0.066
+    },
+    {
+      "step": 816,
+      "loss": 0.066
+    }
+  ],
+  "checkpointEvents": [
+    {
+      "step": 100,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000100",
+      "metric": "eval_loss",
+      "value": 0.25,
+      "at": "2026-07-01T09:54:33.253613Z"
+    },
+    {
+      "step": 200,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000200",
+      "metric": "eval_loss",
+      "value": 0.132,
+      "at": "2026-07-01T09:56:10.737967Z"
+    },
+    {
+      "step": 300,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000300",
+      "metric": "eval_loss",
+      "value": 0.079,
+      "at": "2026-07-01T09:57:54.431113Z"
+    },
+    {
+      "step": 400,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000400",
+      "metric": "eval_loss",
+      "value": 0.08,
+      "at": "2026-07-01T09:59:42.482979Z"
+    },
+    {
+      "step": 500,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000500",
+      "metric": "eval_loss",
+      "value": 0.071,
+      "at": "2026-07-01T10:01:21.256139Z"
+    },
+    {
+      "step": 600,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000600",
+      "metric": "eval_loss",
+      "value": 0.072,
+      "at": "2026-07-01T10:02:59.305776Z"
+    },
+    {
+      "step": 700,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000700",
+      "metric": "eval_loss",
+      "value": 0.077,
+      "at": "2026-07-01T10:04:37.084503Z"
+    },
+    {
+      "step": 800,
+      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000800",
+      "metric": "eval_loss",
+      "value": 0.066,
+      "at": "2026-07-01T10:06:16.694109Z"
+    }
+  ],
+  "bestCheckpoint": {
+    "step": 800,
+    "metric": "eval_loss",
+    "value": 0.066,
+    "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000800",
+    "source": "validation",
+    "loadBestCheckpointAtEnd": true,
+    "selectedAt": "2026-07-01T10:06:15.758825Z"
+  },
+  "artifacts": {
+    "jobBundle": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/job-bundle.json",
+    "mlxConfig": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/mlx-lora-config.yaml",
+    "metricsJsonl": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/metrics.jsonl",
+    "workerLog": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/worker.log",
+    "adapterDir": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts",
+    "reportsDir": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/reports",
+    "chartEvidenceJson": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/reports/ft-job-qwen4b-lora-20260701-175225-chart-evidence.json",
+    "chartEvidenceSvg": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/reports/ft-job-qwen4b-lora-20260701-175225-chart-evidence.svg",
+    "chartEvidencePng": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/reports/ft-job-qwen4b-lora-20260701-175225-chart-evidence.png",
+    "trainingReport": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/reports/training-report.md",
+    "runManifest": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/reports/run-manifest.json",
+    "metricsCsv": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/reports/metrics.csv",
+    "fullArchive": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/reports/ft-job-qwen4b-lora-20260701-175225-full-release-evidence.tar.gz",
+    "docsEvidenceDir": "/Users/chenhaorui/Documents/New project/docs/release-evidence/finetune-qwen4b-lora-2026-07-01"
+  },
+  "notes": [
+    "This is a real local MLX LoRA run over a 4B model, not a synthetic UI fixture.",
+    "Compared with the 0.6B evidence run, the 4B run produced a longer and more expressive validation curve with checkpoint-level differences after step 100.",
+    "Quality deltas are workflow evidence over a compact curated starter dataset, not a broad benchmark claim."
+  ]
+}

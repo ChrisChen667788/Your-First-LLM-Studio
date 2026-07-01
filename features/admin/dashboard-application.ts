@@ -6,6 +6,7 @@ import { getObservabilityPaths, readBenchmarkLogs, readChatLogs } from "@/lib/ag
 import { resolveTargetWithMode } from "@/lib/agent/providers";
 import { buildProviderHealthDesk } from "@/lib/agent/provider-health-desk";
 import { readBenchmarkReleaseEvidence } from "@/lib/agent/benchmark-release-evidence-store";
+import { readAdminCompatibilityUsageSummary } from "@/features/admin/compatibility-usage";
 
 export const runtime = "nodejs";
 
@@ -430,6 +431,7 @@ export async function GET(request: Request) {
     releaseEvidence,
     benchmarkTrends,
     providerHealthDesk,
+    adminCompatibilityUsage: readAdminCompatibilityUsageSummary(),
     benchmarkHeatmap,
     paths: getObservabilityPaths()
   });
