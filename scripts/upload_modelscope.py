@@ -5,6 +5,12 @@ from pathlib import Path
 
 REPO_ID = os.environ.get("MODELSCOPE_REPO_ID", "haozi667788/first-llm-studio")
 TOKEN = os.environ.get("MODELSCOPE_API_TOKEN") or os.environ.get("MODELSCOPE_TOKEN")
+REVISION = os.environ.get("MODELSCOPE_REVISION")
+SYNC_REMOTE_REPO = os.environ.get("MODELSCOPE_SYNC_REMOTE", "1").lower() not in {
+    "0",
+    "false",
+    "no",
+}
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = ROOT / "dist" / "modelscope-first-llm-studio"
 
@@ -63,6 +69,8 @@ try:
         commit_description=commit_description,
         token=TOKEN,
         repo_type="model",
+        revision=REVISION,
+        sync_remote_repo=SYNC_REMOTE_REPO,
     )
     print(getattr(commit_info, "commit_url", commit_info))
 except Exception as exc:
