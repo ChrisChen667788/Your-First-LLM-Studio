@@ -24,10 +24,6 @@ if not PACKAGE_DIR.exists():
     print("Run ./scripts/prepare-modelscope-package.sh first.", file=sys.stderr)
     sys.exit(1)
 
-if not TOKEN:
-    print("MODELSCOPE_API_TOKEN is required.", file=sys.stderr)
-    sys.exit(1)
-
 try:
     from modelscope.hub.api import HubApi
 except Exception as exc:
@@ -36,6 +32,14 @@ except Exception as exc:
     sys.exit(1)
 
 api = HubApi()
+TOKEN = TOKEN or getattr(api, "token", None)
+
+if not TOKEN:
+    print(
+        "MODELSCOPE_API_TOKEN is required when the ModelScope SDK is not logged in.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 if hasattr(api, "session") and hasattr(api.session, "request"):
     _original_request = api.session.request
