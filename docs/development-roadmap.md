@@ -107,6 +107,7 @@ Last updated: 2026-06-12
 - 2026-06-12 v0.4 release checkpoint：Agent submit/replay/resume/tool-decision lifecycle 已迁入 `features/agent/turn-lifecycle.ts`，secondary prompt/hints/provider panels 已迁入 `secondary-analysis-panel.tsx`；Admin runtime API 操作与 provider/telemetry read-model 已迁入 `features/admin`。`/api/finetune` 成为 canonical transport，旧 Fine-tune/Retrieval/Models/Timeline Admin API 返回 deprecation/sunset/successor headers。当前进入 v0.4.0 正式验证、tag 和 GitHub/ModelScope 同步。
 - 2026-06-30 stability/control-plane checkpoint：本地 Agent runtime gateway 解释器解析从硬编码 `python3.12` 改为 `LOCAL_AGENT_PYTHON_BIN` / `.venv` / `python3.12` / `python3.11` / `python3` 分层探测，并把 `pythonRuntime` 诊断返回到 `/api/agent/runtime` 与 runtime rail；route smoke 全部请求加超时，Benchmark latest progress 空历史返回 idle snapshot；旧 Admin compatibility wrapper 增加 usage evidence store、Dashboard 面板与 `/api/admin/compatibility-usage` 管理契约；Agent runtime/connection actions 输入继续收成 feature-owned `target/context/state/mutations` 对象；Benchmark 远端目标遇到缺 key、认证、model not found、quota/billing 等 fatal unavailable 时跳过剩余样本并把 `skippedRuns` / `skipSummary` 写入 report/Admin read-model；Agent target scan 成为 Experiments timeline producer；Model Hub 新增 `/api/models/runtime-operations` 统一返回 runtime profiles、idle-unload、request logs 与 storage paths，作为后续把 runtime 面板完全并回 `/models` 的基础。
 - 2026-07-01 v0.4.1 release/evidence checkpoint：完成后续 10 段发布收尾：1) LoRA recipe contract 把 `targetModules`、scheduler、warmup、packing、eval/save cadence、best-checkpoint policy 从 UI 表单贯通到保存 API、YAML/command preview 与 worker bundle；2) `saveEverySteps` 专业默认与 recipe form 对齐到 100；3) worker 物化 checkpoint 目录、`checkpointEvents` 和 best checkpoint selection；4) 真实跑通 `mlx-community/Qwen3-4B-Instruct-2507-4bit` 的 816-step LoRA release run；5) 归档 manifest、metrics、report、chart evidence 与 full evidence tarball；6) Fine-tune 图表证据加入 eval/save/best markers、smoothing 与 raw metrics export；7) README/ModelScope 补齐双语大版本叙事与真实 LoRA evidence；8) README 截图保持 3200x2000，LoRA 图表从 SVG 重新导出 3360x1960 PNG 并保留矢量版，Benchmark 截图补入真实 local smoke run 与 pinned release evidence；9) release note 固化 v0.4.1 稳定基线，远端 runtime status 缺 key 改为 HTTP 200 + `available=false` 并纳入 route smoke；10) 依赖声明对齐到 `next@15.5.18` / `postcss@8.5.16`，`npm audit --omit=dev` 为 0，再以 committed Git tree 作为 GitHub/ModelScope 同步源，避免两端文件漂移。
+- 2026-07-02 v0.4.2 evidence patch + v0.5.0 entry checkpoint：把 GitHub/ModelScope 高清截图同步、README 截图 LFS 阈值修复、双语 release note 与 ModelScope README 正式固化为 v0.4.2 稳定证据；同时启动 v0.5.0 第一段：Provider Health Desk v2 read-model 增加 provider/model/profile 维度、success/failure rate、4h trend buckets、rough cost 与 policy recommendation；Fine-tune Adapter Export wizard 增加 publish target、license/dataset attribution checklist、secret scan status、sample prompts、known limitations，并贯通 command preview、submit payload、application contract、export service、model card、publish checklist 与 manifest。
 
 ## Latest planning additions
 
@@ -689,6 +690,7 @@ Subtasks:
   - first-token latency 变化
   - rough cost 变化
 - 增加“上次异常后发生了什么变化”的摘要。
+- 2026-07-02 第一段已完成：provider health read-model 已输出 status、success/failure rate、4h trend buckets、model/profile breakdown、rough cost 与 policy recommendation；Admin 面板增加状态 chip、趋势条、模型成本/延迟卡片、profile policy 卡片和建议操作区。
 
 Acceptance:
 
@@ -742,6 +744,7 @@ Subtasks:
   - sample prompt list
   - known limitations
 - 支持导出完整 bundle 与 report preview。
+- 2026-07-02 第一段已完成：Fine-tune `Export` 表单新增 publish target、secret scan、license/dataset attribution、sample prompts、known limitations；导出命令 preview、operation request、application wrapper、export service、model card、publish checklist 与 manifest 已接通。
 
 Acceptance:
 
