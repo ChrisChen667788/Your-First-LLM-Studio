@@ -11,6 +11,11 @@ SYNC_REMOTE_REPO = os.environ.get("MODELSCOPE_SYNC_REMOTE", "1").lower() not in 
     "false",
     "no",
 }
+USE_UPLOAD_CACHE = os.environ.get("MODELSCOPE_USE_CACHE", "0").lower() not in {
+    "0",
+    "false",
+    "no",
+}
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = ROOT / "dist" / "modelscope-first-llm-studio"
 
@@ -71,6 +76,7 @@ try:
         repo_type="model",
         revision=REVISION,
         sync_remote_repo=SYNC_REMOTE_REPO,
+        use_cache=USE_UPLOAD_CACHE,
     )
     print(getattr(commit_info, "commit_url", commit_info))
 except Exception as exc:
