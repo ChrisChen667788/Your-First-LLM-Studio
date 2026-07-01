@@ -322,6 +322,12 @@ export async function POST(request: Request) {
       outputDir?: string;
       hubId?: string;
       includeDatasetCard?: boolean;
+      publishTarget?: string;
+      licenseReviewed?: boolean;
+      datasetAttributionReviewed?: boolean;
+      secretScanStatus?: string;
+      samplePrompts?: string;
+      knownLimitations?: string;
       teacherTargetId?: string;
       outputPath?: string;
       sampleCount?: number;
@@ -745,6 +751,24 @@ export async function POST(request: Request) {
           typeof body.outputDir === "string" ? body.outputDir : undefined,
         hubId: typeof body.hubId === "string" ? body.hubId : undefined,
         includeDatasetCard: Boolean(body.includeDatasetCard),
+        publishTarget:
+          typeof body.publishTarget === "string"
+            ? body.publishTarget
+            : undefined,
+        licenseReviewed: Boolean(body.licenseReviewed),
+        datasetAttributionReviewed: Boolean(body.datasetAttributionReviewed),
+        secretScanStatus:
+          typeof body.secretScanStatus === "string"
+            ? body.secretScanStatus
+            : undefined,
+        samplePrompts:
+          typeof body.samplePrompts === "string"
+            ? body.samplePrompts
+            : undefined,
+        knownLimitations:
+          typeof body.knownLimitations === "string"
+            ? body.knownLimitations
+            : undefined,
       });
       return NextResponse.json({
         ok: true,

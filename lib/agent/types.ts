@@ -822,9 +822,12 @@ export type AgentProviderHealthDeskItem = {
   targetLabel: string;
   providerLabel: string;
   resolvedModel?: string;
+  status: "healthy" | "degraded" | "unhealthy" | "no-traffic";
   totalRequests: number;
   successCount: number;
   failureCount: number;
+  successRatePct: number;
+  failureRatePct: number;
   timeoutCount: number;
   rateLimitCount: number;
   authFailureCount: number;
@@ -842,6 +845,37 @@ export type AgentProviderHealthDeskItem = {
   lastConnectionOk?: boolean | null;
   lastConnectionAt?: string | null;
   lastConnectionSummary?: string | null;
+  trendBuckets: Array<{
+    bucketStart: string;
+    bucketLabel: string;
+    totalRequests: number;
+    failureCount: number;
+    timeoutCount: number;
+    rateLimitCount: number;
+    authFailureCount: number;
+    avgFirstTokenLatencyMs?: number | null;
+    estimatedCostUsd?: number | null;
+  }>;
+  modelBreakdown: Array<{
+    resolvedModel: string;
+    totalRequests: number;
+    failureCount: number;
+    avgFirstTokenLatencyMs?: number | null;
+    estimatedCostUsd?: number | null;
+  }>;
+  profileBreakdown: Array<{
+    providerProfile: AgentProviderProfile | "unknown";
+    thinkingMode: AgentThinkingMode | "unknown";
+    totalRequests: number;
+    failureCount: number;
+    avgFirstTokenLatencyMs?: number | null;
+    estimatedCostUsd?: number | null;
+  }>;
+  policyRecommendation: {
+    severity: "ok" | "watch" | "action";
+    summary: string;
+    actions: string[];
+  };
 };
 
 export type AgentWorkbenchStoredPreferences = {

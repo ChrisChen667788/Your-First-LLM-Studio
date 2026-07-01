@@ -278,8 +278,22 @@ export function buildExportAdapterCommandPreview({
   if (exportForm.hubId.trim()) {
     command.push(`--hub-id "${exportForm.hubId.trim()}"`);
   }
+  command.push(`--publish-target ${exportForm.publishTarget}`);
+  command.push(`--secret-scan-status ${exportForm.secretScanStatus}`);
   if (exportForm.includeDatasetCard) {
     command.push("--include-dataset-card");
+  }
+  if (exportForm.licenseReviewed) {
+    command.push("--license-reviewed");
+  }
+  if (exportForm.datasetAttributionReviewed) {
+    command.push("--dataset-attribution-reviewed");
+  }
+  if (exportForm.samplePrompts.trim()) {
+    command.push("--include-sample-prompts");
+  }
+  if (exportForm.knownLimitations.trim()) {
+    command.push("--include-known-limitations");
   }
   return command.join(" \\\n  ");
 }

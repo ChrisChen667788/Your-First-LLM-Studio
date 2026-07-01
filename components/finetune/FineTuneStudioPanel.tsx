@@ -339,6 +339,12 @@ export function FineTuneStudioPanel({
         exportOutputDir: "Export output dir",
         exportHubId: "HF Hub ID",
         exportIncludeDatasetCard: "Include dataset/model card",
+        exportPublishTarget: "Publish target",
+        exportSecretScanStatus: "Secret scan status",
+        exportLicenseReviewed: "License reviewed",
+        exportDatasetAttribution: "Dataset attribution reviewed",
+        exportSamplePrompts: "Sample prompts",
+        exportKnownLimitations: "Known limitations",
         exportReadiness: "Export readiness",
         exportReady:
           "Ready to package adapter metadata, model card, dataset card, and manifest.",
@@ -711,6 +717,12 @@ export function FineTuneStudioPanel({
       exportOutputDir: "导出目录",
       exportHubId: "HF Hub ID",
       exportIncludeDatasetCard: "包含数据集 / 模型卡",
+      exportPublishTarget: "发布目标",
+      exportSecretScanStatus: "Secret scan 状态",
+      exportLicenseReviewed: "许可证已复核",
+      exportDatasetAttribution: "数据来源归属已复核",
+      exportSamplePrompts: "样例提示词",
+      exportKnownLimitations: "已知限制",
       exportReadiness: "导出就绪度",
       exportReady: "已可打包 adapter 元数据、模型卡、数据卡和 manifest。",
       exportNeedsAdapter: "导出前请选择一个可用 adapter。",
@@ -1953,9 +1965,19 @@ export function FineTuneStudioPanel({
   const chatReadiness = chatForm.adapterId
     ? text.chatReady
     : text.chatNeedsAdapter;
-  const exportReadiness = exportForm.adapterId
-    ? text.exportReady
-    : text.exportNeedsAdapter;
+  const exportChecklistReady =
+    exportForm.licenseReviewed &&
+    exportForm.datasetAttributionReviewed &&
+    exportForm.secretScanStatus === "passed" &&
+    exportForm.samplePrompts.trim().length > 0 &&
+    exportForm.knownLimitations.trim().length > 0;
+  const exportReadiness = !exportForm.adapterId
+    ? text.exportNeedsAdapter
+    : exportChecklistReady
+      ? text.exportReady
+      : locale.startsWith("en")
+        ? "Adapter selected, but publish checklist is still holding release."
+        : "Adapter 已选择，但发布前检查清单仍处于 HOLD。";
   const operationHistory = summary?.operations || [];
   const toggleEvaluateMetric = useCallback((metric: FineTuneEvalMetric) => {
     setEvaluateForm((current) => {

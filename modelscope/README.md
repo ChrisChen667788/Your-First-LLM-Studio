@@ -8,9 +8,9 @@ A local-first LLM studio for Apple Silicon that brings MLX local runtimes, remot
 
 ## Current Release
 
-Current version: `v0.4.1`.
+Current version: `v0.4.2`.
 
-The latest baseline focuses on stability, Fine-tune/LoRA professionalism, real release evidence, and high-resolution screenshots for GitHub and ModelScope. GitHub and ModelScope are synced from the same committed Git tree so the source, docs, and screenshot assets stay file-identical.
+The latest baseline focuses on stability, Fine-tune/LoRA professionalism, real release evidence, and high-resolution screenshots for GitHub and ModelScope. The v0.4.2 patch documents the README-facing LFS threshold fix and keeps GitHub and ModelScope synced from the same committed Git tree so the source, docs, and screenshot assets stay file-identical.
 
 ## Product Surfaces
 
@@ -34,11 +34,12 @@ The latest baseline focuses on stability, Fine-tune/LoRA professionalism, real r
 | `v0.3` | Fine-tune operation loops, adapter chat/export, distillation starters, operation history, partitioned typechecks, route/screenshot smoke, and launch assets. |
 | `v0.4` | Foreground `/fine-tune`, `/compare`, `/models`, `/benchmarks`, `/retrieval`, and `/experiments`; feature-owned state/actions; artifact lineage; dark-glass studio/workbench style; canonical APIs with deprecated Admin compatibility wrappers. |
 | `v0.4.1` | Stability baseline with dataless recovery, runtime/status fixes, real Qwen3 4B LoRA evidence, checkpoint/report/chart exports, and refreshed high-resolution screenshots. |
+| `v0.4.2` | Evidence patch for GitHub/ModelScope high-resolution screenshot sync, README LFS threshold hygiene, and the first v0.5.0 Provider Health Desk v2 + Adapter Export wizard slice. |
 | `v0.5` | Preview-gated Enterprise RAG, deployment registry, OpenAI-compatible API, telemetry, release-readiness gates, production attestation, quota, audit, and control-plane rehearsals. |
 
 ## Real Fine-tune / LoRA Evidence
 
-The v0.4.1 release includes a real local Qwen3 4B LoRA run:
+The v0.4.2 public baseline preserves the real local Qwen3 4B LoRA run introduced in v0.4.1:
 
 - Base model: `mlx-community/Qwen3-4B-Instruct-2507-4bit`
 - Dataset: First LLM Studio starter 960, split into train/valid/test `816/96/48`
@@ -71,7 +72,7 @@ README screenshots are captured from the running local app at 2x DPR. Route scre
 - GitHub: [https://github.com/ChrisChen667788/Your-First-LLM-Studio](https://github.com/ChrisChen667788/Your-First-LLM-Studio)
 - ModelScope profile: [https://www.modelscope.cn/profile/haozi667788](https://www.modelscope.cn/profile/haozi667788)
 - Default ModelScope repo id: `haozi667788/first-llm-studio`
-- Latest release note: [`v0.4.1`](../docs/releases/v0.4.1_2026-07-01.md)
+- Latest release note: [`v0.4.2`](../docs/releases/v0.4.2_2026-07-02.md)
 
 ---
 
@@ -83,9 +84,9 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 
 ## 当前版本
 
-当前版本：`v0.4.1`。
+当前版本：`v0.4.2`。
 
-这一版重点是稳定性、Fine-tune/LoRA 专业化、真实发布证据和 GitHub/ModelScope 高清截图。GitHub 与 ModelScope 使用同一份已提交 Git tree 同步，确保源码、文档与截图资产完全一致。
+这一版重点是稳定性、Fine-tune/LoRA 专业化、真实发布证据和 GitHub/ModelScope 高清截图。v0.4.2 正式记录 README 截图 LFS 阈值修复；GitHub 与 ModelScope 使用同一份已提交 Git tree 同步，确保源码、文档与截图资产完全一致。
 
 ## 产品入口
 
@@ -109,11 +110,12 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 | `v0.3` | Fine-tune 操作循环、adapter chat/export、distillation starter、operation history、分区 typecheck、route/screenshot smoke 和发布素材。 |
 | `v0.4` | 前台 `/fine-tune`、`/compare`、`/models`、`/benchmarks`、`/retrieval`、`/experiments`；feature-owned state/actions；artifact lineage；dark-glass studio/workbench 风格；canonical API 与带弃用头的 Admin compatibility wrappers。 |
 | `v0.4.1` | 稳定基线：dataless recovery、runtime/status 修复、真实 Qwen3 4B LoRA 证据、checkpoint/report/chart 导出，以及最新高清截图。 |
+| `v0.4.2` | 证据补丁：GitHub/ModelScope 高清截图同步、README LFS 阈值治理，以及 v0.5.0 Provider Health Desk v2 + Adapter Export wizard 第一段。 |
 | `v0.5` | Preview-gated 企业 RAG、deployment registry、OpenAI-compatible API、telemetry、release-readiness gates、生产签收、quota、audit 和 control-plane rehearsal。 |
 
 ## 真实 Fine-tune / LoRA 证据
 
-v0.4.1 包含一次真实本地 Qwen3 4B LoRA 训练：
+v0.4.2 公开基线继续保留 v0.4.1 引入的真实本地 Qwen3 4B LoRA 训练：
 
 - 基座模型：`mlx-community/Qwen3-4B-Instruct-2507-4bit`
 - 数据集：First LLM Studio starter 960，训练/验证/测试 `816/96/48`
@@ -146,4 +148,4 @@ README 截图来自本地运行版本，按 2x DPR 生成。页面截图为 3200
 - GitHub: [https://github.com/ChrisChen667788/Your-First-LLM-Studio](https://github.com/ChrisChen667788/Your-First-LLM-Studio)
 - ModelScope 主页: [https://www.modelscope.cn/profile/haozi667788](https://www.modelscope.cn/profile/haozi667788)
 - 默认 ModelScope repo id：`haozi667788/first-llm-studio`
-- 最新版本说明：[`v0.4.1`](../docs/releases/v0.4.1_2026-07-01.md)
+- 最新版本说明：[`v0.4.2`](../docs/releases/v0.4.2_2026-07-02.md)

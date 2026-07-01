@@ -57,6 +57,12 @@ export type FineTuneExportFormState = {
   outputDir: string;
   hubId: string;
   includeDatasetCard: boolean;
+  publishTarget: "local" | "huggingface" | "modelscope";
+  licenseReviewed: boolean;
+  datasetAttributionReviewed: boolean;
+  secretScanStatus: "not-run" | "passed" | "needs-review";
+  samplePrompts: string;
+  knownLimitations: string;
 };
 
 export const DEFAULT_EVALUATE_FORM: FineTuneEvaluateFormState = {
@@ -104,6 +110,14 @@ export const DEFAULT_EXPORT_FORM: FineTuneExportFormState = {
   outputDir: "",
   hubId: "",
   includeDatasetCard: true,
+  publishTarget: "local",
+  licenseReviewed: false,
+  datasetAttributionReviewed: false,
+  secretScanStatus: "not-run",
+  samplePrompts:
+    "Summarize a local LLM benchmark run.\nExplain why a LoRA adapter improved a task.",
+  knownLimitations:
+    "Adapter was validated on local starter/eval sets only; re-run domain evals before public release.",
 };
 
 export function useFineTuneRunState() {
