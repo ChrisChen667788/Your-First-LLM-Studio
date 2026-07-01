@@ -230,6 +230,35 @@ function formatUsd(value?: number | null) {
   return value < 0.01 ? `$${value.toFixed(4)}` : `$${value.toFixed(2)}`;
 }
 
+function buildProviderStatusClass(status: AgentProviderHealthDeskItem["status"]) {
+  if (status === "healthy") return "border-emerald-300/20 bg-emerald-400/10 text-emerald-100";
+  if (status === "degraded") return "border-amber-300/20 bg-amber-300/10 text-amber-100";
+  if (status === "unhealthy") return "border-rose-300/20 bg-rose-400/10 text-rose-100";
+  return "border-white/10 bg-white/5 text-slate-400";
+}
+
+function buildProviderPolicyClass(
+  severity: AgentProviderHealthDeskItem["policyRecommendation"]["severity"],
+) {
+  if (severity === "ok") return "border-emerald-300/20 bg-emerald-400/10 text-emerald-50";
+  if (severity === "watch") return "border-amber-300/20 bg-amber-300/10 text-amber-50";
+  return "border-rose-300/20 bg-rose-400/10 text-rose-50";
+}
+
+function labelProviderStatus(status: AgentProviderHealthDeskItem["status"], locale: string) {
+  const english = locale.startsWith("en");
+  if (status === "healthy") return english ? "Healthy" : "健康";
+  if (status === "degraded") return english ? "Degraded" : "降级";
+  if (status === "unhealthy") return english ? "Action needed" : "需处理";
+  return english ? "No traffic" : "无流量";
+}
+
+function formatOptionalMs(value?: number | null) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${value.toFixed(0)} ms`
+    : "--";
+}
+
 type DashboardResponse = {
   generatedAt: string;
   target: {
@@ -2844,6 +2873,9 @@ export function AdminDashboard() {
                         <div className="min-w-0">
                           <p className="text-base font-semibold text-white">{entry.targetLabel}</p>
                           <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-400">
+                            <span className={`rounded-full border px-2.5 py-1 ${buildProviderStatusClass(entry.status)}`}>
+                              {labelProviderStatus(entry.status, locale)}
+                            </span>
                             <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
                               {entry.providerLabel}
                             </span>
@@ -2888,8 +2920,9 @@ export function AdminDashboard() {
                             <p className="mt-2 text-sm text-white">{entry.totalRequests}</p>
                           </div>
                           <div>
-                            <p className="uppercase tracking-[0.2em] text-slate-500">{locale.startsWith("en") ? "Success / fail" : "成功 / 失败"}</p>
-                            <p className="mt-2 text-sm text-white">{entry.successCount} / {entry.failureCount}</p>
+                            <p className="uppercase tracking-[0.2em] text-slate-500">{locale.startsWith("en") ? "Success rate" : "成功率"}</p>
+                            <p className="mt-2 text-sm text-white">{entry.successRatePct.toFixed(1)}%</p>
+                            <p className="mt-1 text-[11px] text-slate-500">{entry.successCount} / {entry.failureCount}</p>
                           </div>
                           <div>
                             <p className="uppercase tracking-[0.2em] text-slate-500">{locale.startsWith("en") ? "Est. cost" : "估算成本"}</p>
@@ -2918,9 +2951,9 @@ export function AdminDashboard() {
                           </div>
                         </div>
                       </div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                          <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-amber-100">
-                            timeout {entry.timeoutCount}
+                      <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                        <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-amber-100">
+                          timeout {entry.timeoutCount}
                         </span>
                         <span className="rounded-full border border-rose-300/20 bg-rose-400/10 px-2.5 py-1 text-rose-100">
                           429 {entry.rateLimitCount}
@@ -2928,34 +2961,112 @@ export function AdminDashboard() {
                         <span className="rounded-full border border-violet-300/20 bg-violet-400/10 px-2.5 py-1 text-violet-100">
                           auth {entry.authFailureCount}
                         </span>
-                          <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
-                            network {entry.networkFailureCount}
+                        <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
+                          network {entry.networkFailureCount}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                            {locale.startsWith("en") ? "4h trend buckets" : "4 小时趋势分桶"}
+                          </p>
+                          <span className="text-[11px] text-slate-500">
+                            {locale.startsWith("en") ? "failures / first token / cost" : "失败 / 首字 / 成本"}
                           </span>
                         </div>
-                        <div className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.06] px-3 py-3 text-xs leading-6 text-cyan-50/80">
-                          <span className="font-semibold text-cyan-100">
-                            {locale.startsWith("en")
-                              ? "Active provider strategy"
-                              : "当前 provider 策略"}
-                            :{" "}
-                          </span>
-                          {entry.authFailureCount
-                            ? locale.startsWith("en")
-                              ? "Auth-gated. Validate credentials before retrying expensive runs."
-                              : "认证优先。先校验密钥，再重试高成本任务。"
-                            : entry.rateLimitCount
-                              ? locale.startsWith("en")
-                                ? "429 backoff. Prefer lower concurrency and slower retry cadence."
-                                : "429 退避。建议降低并发并放慢重试节奏。"
-                              : entry.timeoutCount
-                                ? locale.startsWith("en")
-                                  ? "Timeout recovery. Use shorter first-token budget and retry with provider-specific total timeout."
-                                  : "超时恢复。使用更短首字预算，并按 provider 专属总超时重试。"
-                                : locale.startsWith("en")
-                                  ? "Standard policy. Current retry and timeout budget can stay unchanged."
-                                  : "标准策略。当前重试与超时预算可保持不变。"}
+                        <div className="mt-3 grid grid-cols-6 gap-1.5">
+                          {entry.trendBuckets.map((bucket) => {
+                            const failureRate = bucket.totalRequests
+                              ? Math.min(100, (bucket.failureCount / bucket.totalRequests) * 100)
+                              : 0;
+                            const height = Math.max(12, Math.min(48, bucket.totalRequests * 6 + failureRate / 3));
+                            return (
+                              <div key={`${entry.targetId}:${bucket.bucketStart}`} className="min-w-0">
+                                <div className="flex h-14 items-end rounded-xl border border-white/10 bg-white/[0.035] px-1.5 py-1">
+                                  <div
+                                    className={`w-full rounded-lg ${
+                                      bucket.failureCount
+                                        ? "bg-gradient-to-t from-rose-500/80 to-amber-300/70"
+                                        : bucket.totalRequests
+                                          ? "bg-gradient-to-t from-emerald-500/80 to-cyan-300/70"
+                                          : "bg-white/10"
+                                    }`}
+                                    style={{ height }}
+                                    title={`${bucket.bucketLabel} · ${bucket.totalRequests} req · ${bucket.failureCount} fail · ${formatOptionalMs(bucket.avgFirstTokenLatencyMs)} · ${formatUsd(bucket.estimatedCostUsd)}`}
+                                  />
+                                </div>
+                                <p className="mt-1 truncate text-center text-[10px] text-slate-500">
+                                  {bucket.bucketLabel}
+                                </p>
+                              </div>
+                            );
+                          })}
                         </div>
-                        {entry.lastFailureSummary || entry.lastConnectionSummary ? (
+                      </div>
+
+                      <div className="mt-3 grid gap-3 xl:grid-cols-2">
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                            {locale.startsWith("en") ? "Model cost / latency" : "模型成本 / 延迟"}
+                          </p>
+                          <div className="mt-2 grid gap-2">
+                            {entry.modelBreakdown.length ? (
+                              entry.modelBreakdown.map((row) => (
+                                <div key={`${entry.targetId}:${row.resolvedModel}`} className="rounded-xl border border-white/10 bg-black/20 px-2.5 py-2 text-xs">
+                                  <div className="truncate font-mono text-slate-200">{row.resolvedModel}</div>
+                                  <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                                    <span>{row.totalRequests} req</span>
+                                    <span>{row.failureCount} fail</span>
+                                    <span>{formatOptionalMs(row.avgFirstTokenLatencyMs)}</span>
+                                    <span>{formatUsd(row.estimatedCostUsd)}</span>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs text-slate-500">{dictionary.admin.noData}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                            {locale.startsWith("en") ? "Profile policy view" : "Profile 策略视图"}
+                          </p>
+                          <div className="mt-2 grid gap-2">
+                            {entry.profileBreakdown.length ? (
+                              entry.profileBreakdown.map((row) => (
+                                <div key={`${entry.targetId}:${row.providerProfile}:${row.thinkingMode}`} className="rounded-xl border border-white/10 bg-black/20 px-2.5 py-2 text-xs">
+                                  <div className="text-slate-200">{row.providerProfile} · {row.thinkingMode}</div>
+                                  <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                                    <span>{row.totalRequests} req</span>
+                                    <span>{row.failureCount} fail</span>
+                                    <span>{formatOptionalMs(row.avgFirstTokenLatencyMs)}</span>
+                                    <span>{formatUsd(row.estimatedCostUsd)}</span>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs text-slate-500">{dictionary.admin.noData}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={`mt-3 rounded-2xl border px-3 py-3 text-xs leading-6 ${buildProviderPolicyClass(entry.policyRecommendation.severity)}`}>
+                        <span className="font-semibold">
+                          {locale.startsWith("en") ? "Provider policy" : "Provider 策略"}:{" "}
+                        </span>
+                        {entry.policyRecommendation.summary}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {entry.policyRecommendation.actions.slice(0, 3).map((action) => (
+                            <span key={action} className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
+                              {action}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {entry.lastFailureSummary || entry.lastConnectionSummary ? (
                         <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-xs leading-6 text-slate-400">
                           {entry.lastFailureSummary ? (
                             <div>

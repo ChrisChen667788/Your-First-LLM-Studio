@@ -777,6 +777,126 @@ export function FineTuneExportRunSection(props: FineTuneExportRunSectionProps) {
           />
           {text.exportIncludeDatasetCard}
         </label>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <FieldShell
+            label={text.exportPublishTarget || "Publish target"}
+            helper={
+              isEnglish
+                ? "Select where the package is intended to land; local keeps it as a private bundle."
+                : "选择导出包的目标平台；local 表示仅作为本地私有 bundle。"
+            }
+          >
+            <select
+              value={exportForm.publishTarget}
+              onChange={(event) =>
+                setExportForm((current) => ({
+                  ...current,
+                  publishTarget: event.target
+                    .value as FineTuneExportFormState["publishTarget"],
+                }))
+              }
+              className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400/40"
+            >
+              <option value="local">local</option>
+              <option value="huggingface">huggingface</option>
+              <option value="modelscope">modelscope</option>
+            </select>
+          </FieldShell>
+          <FieldShell
+            label={text.exportSecretScanStatus || "Secret scan"}
+            helper={
+              isEnglish
+                ? "Do not publish until secret scan status is passed."
+                : "secret scan 通过前不要公开发布。"
+            }
+          >
+            <select
+              value={exportForm.secretScanStatus}
+              onChange={(event) =>
+                setExportForm((current) => ({
+                  ...current,
+                  secretScanStatus: event.target
+                    .value as FineTuneExportFormState["secretScanStatus"],
+                }))
+              }
+              className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400/40"
+            >
+              <option value="not-run">not-run</option>
+              <option value="passed">passed</option>
+              <option value="needs-review">needs-review</option>
+            </select>
+          </FieldShell>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-semibold text-slate-200">
+            <input
+              type="checkbox"
+              checked={exportForm.licenseReviewed}
+              onChange={(event) =>
+                setExportForm((current) => ({
+                  ...current,
+                  licenseReviewed: event.target.checked,
+                }))
+              }
+            />
+            {text.exportLicenseReviewed || "License reviewed"}
+          </label>
+          <label className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-semibold text-slate-200">
+            <input
+              type="checkbox"
+              checked={exportForm.datasetAttributionReviewed}
+              onChange={(event) =>
+                setExportForm((current) => ({
+                  ...current,
+                  datasetAttributionReviewed: event.target.checked,
+                }))
+              }
+            />
+            {text.exportDatasetAttribution || "Dataset attribution reviewed"}
+          </label>
+        </div>
+        <FieldShell
+          label={text.exportSamplePrompts || "Sample prompts"}
+          helper={
+            isEnglish
+              ? "One prompt per line; these go into the model card and release checklist."
+              : "每行一个提示词，会写入模型卡和发布检查清单。"
+          }
+          className="mt-3"
+        >
+          <textarea
+            value={exportForm.samplePrompts}
+            rows={3}
+            onChange={(event) =>
+              setExportForm((current) => ({
+                ...current,
+                samplePrompts: event.target.value,
+              }))
+            }
+            className="w-full resize-y rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400/40"
+          />
+        </FieldShell>
+        <FieldShell
+          label={text.exportKnownLimitations || "Known limitations"}
+          helper={
+            isEnglish
+              ? "Make validation scope explicit before publishing."
+              : "公开发布前明确验证范围和已知限制。"
+          }
+          className="mt-3"
+        >
+          <textarea
+            value={exportForm.knownLimitations}
+            rows={3}
+            onChange={(event) =>
+              setExportForm((current) => ({
+                ...current,
+                knownLimitations: event.target.value,
+              }))
+            }
+            className="w-full resize-y rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400/40"
+          />
+        </FieldShell>
       </div>
 
       <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
