@@ -298,6 +298,8 @@ type DashboardResponse = {
       avgScore?: number | null;
       passRate?: number | null;
       okRuns: number;
+      skippedRuns?: number;
+      skipSummary?: string | null;
       runs: number;
       samples: Array<{
         firstTokenLatencyMs: number | null;
@@ -313,6 +315,21 @@ type DashboardResponse = {
   }>;
   releaseEvidence: AgentBenchmarkReleaseEvidence[];
   providerHealthDesk: AgentProviderHealthDeskItem[];
+  adminCompatibilityUsage?: {
+    generatedAt: string;
+    totalHits: number;
+    routeCount: number;
+    routes: Array<{
+      key: string;
+      legacyPath: string;
+      canonicalPath: string;
+      method: string;
+      hitCount: number;
+      firstSeenAt: string;
+      lastSeenAt: string;
+      lastUserAgent?: string;
+    }>;
+  };
   benchmarkTrends: Array<{
     targetId: string;
     targetLabel: string;
@@ -2740,6 +2757,70 @@ export function AdminDashboard() {
               <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                   <p className="text-sm text-slate-300">
+                    {locale.startsWith("en") ? "Admin compatibility usage" : "Admin 兼容层使用证据"}
+                  </p>
+                  <p className="mt-1 text-xs leading-6 text-slate-500">
+                    {locale.startsWith("en")
+                      ? "Track deprecated Admin API traffic before the 2026-09-30 sunset so wrappers can be removed only after usage drops to zero."
+                      : "跟踪 2026-09-30 sunset 前的旧 Admin API 流量，只有命中降为 0 后再删除 wrapper。"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 text-[11px]">
+                  <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
+                    hits {data?.adminCompatibilityUsage?.totalHits || 0}
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-slate-300">
+                    routes {data?.adminCompatibilityUsage?.routeCount || 0}
+                  </span>
+                  <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-amber-100">
+                    sunset 2026-09-30
+                  </span>
+                </div>
+              </div>
+              <div className="mt-3 grid gap-2">
+                {data?.adminCompatibilityUsage?.routes.length ? (
+                  data.adminCompatibilityUsage.routes.slice(0, 5).map((route) => (
+                    <article
+                      key={`admin-compat:${route.key}`}
+                      className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-3 text-xs text-slate-400"
+                    >
+                      <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-slate-300">
+                              {route.method}
+                            </span>
+                            <span className="font-mono text-slate-200">{route.legacyPath}</span>
+                          </div>
+                          <p className="mt-2 truncate font-mono text-slate-500">
+                            {locale.startsWith("en") ? "Successor" : "替代路径"}: {route.canonicalPath}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
+                            {route.hitCount} hit{route.hitCount === 1 ? "" : "s"}
+                          </span>
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-slate-400">
+                            {new Date(route.lastSeenAt).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <p className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-3 py-3 text-xs leading-6 text-emerald-100">
+                    {locale.startsWith("en")
+                      ? "No deprecated Admin compatibility route usage has been recorded."
+                      : "尚未记录到旧 Admin 兼容 API 调用。"}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+              <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <p className="text-sm text-slate-300">
                     {locale.startsWith("en") ? "Provider usage / health desk" : "Provider 使用 / 健康台"}
                   </p>
                   <p className="mt-1 text-xs leading-6 text-slate-500">
@@ -3215,6 +3296,11 @@ export function AdminDashboard() {
                                           <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
                                             {result.okRuns}/{result.runs}
                                           </span>
+                                          {result.skippedRuns ? (
+                                            <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-amber-100">
+                                              skipped {result.skippedRuns}
+                                            </span>
+                                          ) : null}
                                           <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
                                             {result.providerProfile || entry.providerProfile || "default"}
                                           </span>
@@ -3228,6 +3314,11 @@ export function AdminDashboard() {
                                             {result.resolvedModel}
                                           </span>
                                         </div>
+                                        {result.skipSummary ? (
+                                          <p className="mt-2 max-w-2xl rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                            {result.skipSummary}
+                                          </p>
+                                        ) : null}
                                       </div>
                                       <div className="grid gap-3 text-xs text-slate-400 sm:grid-cols-2 xl:min-w-[420px] xl:grid-cols-5">
                                         <div>

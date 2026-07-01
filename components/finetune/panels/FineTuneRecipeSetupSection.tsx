@@ -1,5 +1,23 @@
+import {
+  buildLoraTrainingDefaults,
+  LORA_BEST_CHECKPOINT_METRICS,
+  LORA_PACKING_POLICIES,
+  LORA_SCHEDULER_PRESETS,
+} from "@/lib/finetune/lora-config";
 import { FineTuneFieldShell as FieldShell } from "./FineTuneFieldShell";
+import { FineTuneLoraStandardsCard } from "./FineTuneLoraStandardsCard";
 import type { FineTuneRecipeSetupSectionProps } from "./FineTuneSetupSectionTypes";
+
+function parseTargetModules(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .split(/[\s,]+/)
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  );
+}
 
 export function FineTuneRecipeSetupSection({
   text,
@@ -13,6 +31,12 @@ export function FineTuneRecipeSetupSection({
   updateRecipeNumber,
   saveRecipe,
 }: FineTuneRecipeSetupSectionProps) {
+  const selectedTarget = (summary?.localTargets || []).find(
+    (target) => target.id === recipeForm.baseTargetId,
+  );
+  const selectedTargetModel =
+    selectedTarget?.modelDefault || selectedTarget?.id || recipeForm.baseTargetId;
+
   return (
     <div className="min-w-0 rounded-[24px] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
       <p className="text-sm font-semibold text-white">{text.recipeTitle}</p>
@@ -53,12 +77,27 @@ export function FineTuneRecipeSetupSection({
         <FieldShell label={text.baseTarget} helper={recipeHelp.baseTargetId}>
           <select
             value={recipeForm.baseTargetId}
-            onChange={(event) =>
+            onChange={(event) => {
+              const nextTargetId = event.target.value;
+              const nextTarget = (summary?.localTargets || []).find(
+                (target) => target.id === nextTargetId,
+              );
+              const defaults = buildLoraTrainingDefaults(
+                nextTarget?.modelDefault || nextTargetId,
+              );
               setRecipeForm((current) => ({
                 ...current,
-                baseTargetId: event.target.value,
-              }))
-            }
+                baseTargetId: nextTargetId,
+                targetModules: defaults.targetModules,
+                scheduler: defaults.scheduler.id,
+                warmupRatio: defaults.scheduler.warmupRatio,
+                packingPolicy: defaults.packing.id,
+                evalEverySteps: current.evalEverySteps || defaults.evalEverySteps,
+                saveEverySteps: current.saveEverySteps || defaults.saveEverySteps,
+                bestCheckpointMetric: defaults.bestCheckpointMetric,
+                loadBestCheckpointAtEnd: defaults.loadBestCheckpointAtEnd,
+              }));
+            }}
             className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none"
           >
             <option value="">{text.baseTarget}</option>
@@ -164,6 +203,140 @@ export function FineTuneRecipeSetupSection({
             </div>
           </div>
         ))}
+        <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-3 sm:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">
+              {text.recipeGroupLoraPolicy}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                const defaults = buildLoraTrainingDefaults(selectedTargetModel);
+                setRecipeForm((current) => ({
+                  ...current,
+                  targetModules: defaults.targetModules,
+                  scheduler: defaults.scheduler.id,
+                  warmupRatio: defaults.scheduler.warmupRatio,
+                  packingPolicy: defaults.packing.id,
+                  evalEverySteps: defaults.evalEverySteps,
+                  saveEverySteps: defaults.saveEverySteps,
+                  bestCheckpointMetric: defaults.bestCheckpointMetric,
+                  loadBestCheckpointAtEnd: defaults.loadBestCheckpointAtEnd,
+                }));
+              }}
+              className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/15"
+            >
+              {text.applyModelDefaults}
+            </button>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <FieldShell label={text.targetModules} helper={recipeHelp.targetModules}>
+              <textarea
+                value={recipeForm.targetModules.join(", ")}
+                onChange={(event) =>
+                  setRecipeForm((current) => ({
+                    ...current,
+                    targetModules: parseTargetModules(event.target.value),
+                  }))
+                }
+                rows={3}
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none"
+              />
+            </FieldShell>
+            <FieldShell label={text.scheduler} helper={recipeHelp.scheduler}>
+              <select
+                value={recipeForm.scheduler}
+                onChange={(event) => {
+                  const preset =
+                    LORA_SCHEDULER_PRESETS.find(
+                      (entry) => entry.id === event.target.value,
+                    ) || LORA_SCHEDULER_PRESETS[0];
+                  setRecipeForm((current) => ({
+                    ...current,
+                    scheduler: preset.id,
+                    warmupRatio: preset.warmupRatio,
+                  }));
+                }}
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none"
+              >
+                {LORA_SCHEDULER_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </FieldShell>
+            <FieldShell label={text.warmupRatio} helper={recipeHelp.warmupRatio}>
+              <input
+                type="number"
+                step="0.01"
+                value={recipeForm.warmupRatio}
+                onChange={(event) =>
+                  updateRecipeNumber("warmupRatio", event.target.value)
+                }
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none"
+              />
+            </FieldShell>
+            <FieldShell label={text.packingPolicy} helper={recipeHelp.packingPolicy}>
+              <select
+                value={recipeForm.packingPolicy}
+                onChange={(event) =>
+                  setRecipeForm((current) => ({
+                    ...current,
+                    packingPolicy: event.target.value as typeof current.packingPolicy,
+                  }))
+                }
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none"
+              >
+                {LORA_PACKING_POLICIES.map((policy) => (
+                  <option key={policy.id} value={policy.id}>
+                    {policy.label}
+                  </option>
+                ))}
+              </select>
+            </FieldShell>
+            <FieldShell label={text.bestCheckpointMetric} helper={recipeHelp.bestCheckpointMetric}>
+              <select
+                value={recipeForm.bestCheckpointMetric}
+                onChange={(event) =>
+                  setRecipeForm((current) => ({
+                    ...current,
+                    bestCheckpointMetric:
+                      event.target.value as typeof current.bestCheckpointMetric,
+                  }))
+                }
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none"
+              >
+                {LORA_BEST_CHECKPOINT_METRICS.map((metric) => (
+                  <option key={metric.id} value={metric.id}>
+                    {metric.label}
+                  </option>
+                ))}
+              </select>
+            </FieldShell>
+            <label className="rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-300">
+              <span className="flex items-center gap-2 font-semibold text-slate-100">
+                <input
+                  type="checkbox"
+                  checked={recipeForm.loadBestCheckpointAtEnd}
+                  onChange={(event) =>
+                    setRecipeForm((current) => ({
+                      ...current,
+                      loadBestCheckpointAtEnd: event.target.checked,
+                    }))
+                  }
+                />
+                {text.loadBestCheckpointAtEnd}
+              </span>
+              <span className="mt-1 block text-[11px] leading-5 text-slate-500">
+                {recipeHelp.loadBestCheckpointAtEnd}
+              </span>
+            </label>
+          </div>
+        </div>
+        <div className="sm:col-span-2">
+          <FineTuneLoraStandardsCard modelId={selectedTargetModel} />
+        </div>
         <FieldShell
           label={text.benchmarkSuite}
           helper={recipeHelp.benchmarkSuiteId}

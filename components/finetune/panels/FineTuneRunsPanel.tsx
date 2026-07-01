@@ -9,6 +9,7 @@ import type {
 import type {
   TrainingChartHoverState,
   TrainingChartRangePreset,
+  TrainingChartSmoothingMode,
 } from "@/features/finetune/ui-cache-state";
 import type { FineTuneRunJobActions } from "@/features/finetune/job-actions";
 import { FineTuneJobActionsCard } from "./FineTuneJobActionsCard";
@@ -43,6 +44,8 @@ type FineTuneRunsPanelProps = {
   collapsedJobGroups: Record<string, boolean | undefined>;
   chartRangeByJobId: Record<string, TrainingChartRangePreset>;
   chartHoverByJobId: Record<string, TrainingChartHoverState>;
+  chartSmoothingByJobId: Record<string, TrainingChartSmoothingMode>;
+  selectedOverlayJobIdsByJobId: Record<string, string[] | undefined>;
   lastReportByJobId: Record<string, AgentFineTuneReportExport | undefined>;
   adapterByJobId: Map<string, AgentFineTuneAdapterArtifact>;
   text: Record<string, string>;
@@ -69,6 +72,11 @@ type FineTuneRunsPanelProps = {
     jobId: string,
     point: TrainingChartHoverState,
   ) => void;
+  setChartSmoothingForJob: (
+    jobId: string,
+    mode: TrainingChartSmoothingMode,
+  ) => void;
+  toggleOverlayJobForJob: (jobId: string, overlayJobId: string) => void;
   onToggleJobGroup: (groupKey: string) => void;
   jobActions: FineTuneRunJobActions;
   copyValue: (value: string, message?: string) => void | Promise<void>;
@@ -83,6 +91,8 @@ export function FineTuneRunsPanel({
   collapsedJobGroups,
   chartRangeByJobId,
   chartHoverByJobId,
+  chartSmoothingByJobId,
+  selectedOverlayJobIdsByJobId,
   lastReportByJobId,
   adapterByJobId,
   text,
@@ -100,6 +110,8 @@ export function FineTuneRunsPanel({
   getRunDeltaConclusionLabel,
   setChartRangeForJob,
   setChartHoverForJob,
+  setChartSmoothingForJob,
+  toggleOverlayJobForJob,
   onToggleJobGroup,
   jobActions,
   copyValue,
@@ -182,10 +194,22 @@ export function FineTuneRunsPanel({
                             text={text}
                             isEnglish={isEnglish}
                             chartRange={chartRangeByJobId[job.id] || "all"}
+                            smoothingMode={
+                              chartSmoothingByJobId[job.id] || "raw"
+                            }
+                            selectedOverlayJobIds={
+                              selectedOverlayJobIdsByJobId[job.id] || []
+                            }
                             hoverPoint={chartHoverByJobId[job.id] || null}
                             formatNumber={formatNumber}
                             onChartRangeChange={(range) =>
                               setChartRangeForJob(job.id, range)
+                            }
+                            onSmoothingModeChange={(mode) =>
+                              setChartSmoothingForJob(job.id, mode)
+                            }
+                            onToggleOverlayJob={(overlayJobId) =>
+                              toggleOverlayJobForJob(job.id, overlayJobId)
                             }
                             onHoverPointChange={(point) =>
                               setChartHoverForJob(job.id, point)

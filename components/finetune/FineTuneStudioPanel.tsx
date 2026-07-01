@@ -88,6 +88,7 @@ import {
   getCommunityPresetRecommendedSteps,
   getFineTuneLicenseRiskLabel,
 } from "@/features/finetune/community-preset-catalog";
+import { buildLoraTrainingDefaults } from "@/lib/finetune/lora-config";
 
 export type FineTuneStudioPanelProps = {
   locale: string;
@@ -557,7 +558,16 @@ export function FineTuneStudioPanel({
         loraRank: "LoRA rank",
         loraAlpha: "LoRA alpha",
         validationSplitPct: "Validation split %",
+        targetModules: "Target modules",
+        scheduler: "Scheduler",
+        warmupRatio: "Warmup ratio",
+        packingPolicy: "Packing policy",
+        evalEverySteps: "Eval every N steps",
         saveEverySteps: "Save every N steps",
+        bestCheckpointMetric: "Best checkpoint metric",
+        loadBestCheckpointAtEnd: "Load best checkpoint at end",
+        applyModelDefaults: "Apply model defaults",
+        recipeGroupLoraPolicy: "LoRA policy",
         seed: "Seed",
         jobGroupActive: "Active",
         jobGroupNeedsReview: "Needs review",
@@ -914,7 +924,16 @@ export function FineTuneStudioPanel({
       loraRank: "LoRA Rank",
       loraAlpha: "LoRA Alpha",
       validationSplitPct: "验证集占比",
+      targetModules: "Target modules",
+      scheduler: "学习率调度",
+      warmupRatio: "Warmup 比例",
+      packingPolicy: "Packing 策略",
+      evalEverySteps: "每隔 N 步评估",
       saveEverySteps: "每隔 N 步保存",
+      bestCheckpointMetric: "最佳 checkpoint 指标",
+      loadBestCheckpointAtEnd: "完成后选用最佳 checkpoint",
+      applyModelDefaults: "套用模型默认值",
+      recipeGroupLoraPolicy: "LoRA 策略",
       seed: "随机种子",
       jobGroupActive: "运行中",
       jobGroupNeedsReview: "需要处理",
@@ -971,8 +990,22 @@ export function FineTuneStudioPanel({
           "LoRA scaling factor. Usually keep near 2x rank for a stable first pass.",
         validationSplitPct:
           "Percent of samples held out for validation so the curve can catch overfitting.",
+        targetModules:
+          "PEFT/MLX module names to adapt. Use model-family defaults unless you are debugging module coverage.",
+        scheduler:
+          "Learning-rate decay strategy recorded in the recipe and report for reproducible comparisons.",
+        warmupRatio:
+          "Fraction of planned steps reserved for warmup. Typical LoRA values stay between 0.02 and 0.05.",
+        packingPolicy:
+          "Example packing policy. Keep disabled until chat boundaries and loss masks are verified.",
+        evalEverySteps:
+          "Validation cadence. Use the same cadence as checkpoint saving for best-checkpoint selection.",
         saveEverySteps:
-          "Checkpoint cadence. Set 0 to save only final outputs in short smoke runs.",
+          "Checkpoint cadence. Default 100 for real LoRA runs; set 0 only for very short smoke runs.",
+        bestCheckpointMetric:
+          "Metric used to choose the adapter checkpoint shown in reports and handoff evidence.",
+        loadBestCheckpointAtEnd:
+          "Marks the selected checkpoint as the export/attach candidate when training completes.",
         seed: "Keeps data split and synthetic worker curve repeatable across runs.",
         benchmarkSuiteId:
           "Benchmark suite to attach after training so adapter results stay comparable.",
@@ -1002,7 +1035,22 @@ export function FineTuneStudioPanel({
       loraRank: "adapter 容量；rank 越高可学习内容越多，但文件和内存也会变大。",
       loraAlpha: "LoRA 缩放系数；首次训练通常保持在 rank 的 2 倍附近。",
       validationSplitPct: "留作验证集的样本比例，用来观察是否过拟合。",
-      saveEverySteps: "checkpoint 保存间隔；短 smoke 可设 0，只保存最终产物。",
+      targetModules:
+        "PEFT/MLX 要挂载 adapter 的模块名。除非在调试覆盖范围，否则建议使用模型族默认值。",
+      scheduler:
+        "学习率衰减策略，会写入配方和报告，方便不同实验可复现对比。",
+      warmupRatio:
+        "训练前段 warmup 占比；常见 LoRA 设置一般在 0.02 到 0.05 之间。",
+      packingPolicy:
+        "样本打包策略。聊天边界和 loss mask 没确认前，建议保持关闭。",
+      evalEverySteps:
+        "验证集评估间隔。建议和 checkpoint 保存间隔一致，方便选择最佳 checkpoint。",
+      saveEverySteps:
+        "checkpoint 保存间隔；真实 LoRA 默认 100，只有很短的 smoke 才建议设 0。",
+      bestCheckpointMetric:
+        "训练结束后用于选择 adapter checkpoint 的指标，会进入报告和 handoff 证据。",
+      loadBestCheckpointAtEnd:
+        "训练完成后把选中的 checkpoint 标记为导出/挂载候选。",
       seed: "固定数据拆分和模拟曲线，方便复现实验结果。",
       benchmarkSuiteId:
         "训练后要关联的 benchmark 套件，让 adapter 回归结果可追踪。",
@@ -1055,9 +1103,13 @@ export function FineTuneStudioPanel({
   const {
     chartRangeByJobId,
     chartHoverByJobId,
+    chartSmoothingByJobId,
+    selectedOverlayJobIdsByJobId,
     lastReportByJobId,
     setChartRangeForJob,
     setChartHoverForJob,
+    setChartSmoothingForJob,
+    toggleOverlayJobForJob,
     cacheJobReport,
   } = useFineTuneStudioEvidenceViewModel();
   const {
@@ -1245,9 +1297,34 @@ export function FineTuneStudioPanel({
       setSummary(nextSummary);
       setRecipeForm((current) => ({
         ...current,
-        datasetId: current.datasetId || nextSummary.datasets?.[0]?.id || "",
-        baseTargetId:
-          current.baseTargetId || nextSummary.localTargets?.[0]?.id || "",
+        ...(() => {
+          const nextBaseTargetId =
+            current.baseTargetId || nextSummary.localTargets?.[0]?.id || "";
+          if (!nextBaseTargetId || current.baseTargetId) {
+            return {
+              datasetId: current.datasetId || nextSummary.datasets?.[0]?.id || "",
+              baseTargetId: nextBaseTargetId,
+            };
+          }
+          const target = nextSummary.localTargets?.find(
+            (entry) => entry.id === nextBaseTargetId,
+          );
+          const defaults = buildLoraTrainingDefaults(
+            target?.modelDefault || nextBaseTargetId,
+          );
+          return {
+            datasetId: current.datasetId || nextSummary.datasets?.[0]?.id || "",
+            baseTargetId: nextBaseTargetId,
+            targetModules: defaults.targetModules,
+            scheduler: defaults.scheduler.id,
+            warmupRatio: defaults.scheduler.warmupRatio,
+            packingPolicy: defaults.packing.id,
+            evalEverySteps: defaults.evalEverySteps,
+            saveEverySteps: current.saveEverySteps || defaults.saveEverySteps,
+            bestCheckpointMetric: defaults.bestCheckpointMetric,
+            loadBestCheckpointAtEnd: defaults.loadBestCheckpointAtEnd,
+          };
+        })(),
       }));
       setSelectedRecipeId(
         (current) => current || nextSummary.recipes?.[0]?.id || "",
@@ -1647,6 +1724,17 @@ export function FineTuneStudioPanel({
               : "rank 越高 adapter 越大。",
           },
           {
+            label: text.targetModules,
+            value: recipeForm.targetModules.join(", ") || "--",
+            helper: recipeHelp.targetModules,
+            recommended: isEnglish
+              ? "Model-family default"
+              : "模型族默认值",
+            impact: isEnglish
+              ? "Controls adapter coverage."
+              : "决定 adapter 覆盖范围。",
+          },
+          {
             label: text.numLayers,
             value: String(recipeForm.numLayers),
             helper: recipeHelp.numLayers,
@@ -1665,6 +1753,24 @@ export function FineTuneStudioPanel({
             impact: isEnglish
               ? "Keep stable unless comparing recipes."
               : "非配方对比不建议频繁改。",
+          },
+          {
+            label: text.scheduler,
+            value: `${recipeForm.scheduler} / ${recipeForm.warmupRatio}`,
+            helper: `${recipeHelp.scheduler} ${recipeHelp.warmupRatio}`,
+            recommended: "cosine / 0.03",
+            impact: isEnglish
+              ? "Stabilizes longer local runs."
+              : "让长轮次训练更稳定。",
+          },
+          {
+            label: text.packingPolicy,
+            value: recipeForm.packingPolicy,
+            helper: recipeHelp.packingPolicy,
+            recommended: "disabled",
+            impact: isEnglish
+              ? "Avoids boundary bugs until masks are verified."
+              : "边界和 mask 确认前避免引入噪音。",
           },
           {
             label: text.gradientCheckpointing,
@@ -1698,6 +1804,17 @@ export function FineTuneStudioPanel({
               : "用于生成训练/验证曲线。",
           },
           {
+            label: text.evalEverySteps,
+            value: `${recipeForm.evalEverySteps} steps`,
+            helper: recipeHelp.evalEverySteps,
+            recommended: isEnglish
+              ? "Match save cadence"
+              : "与保存间隔一致",
+            impact: isEnglish
+              ? "Feeds best-checkpoint selection."
+              : "用于选择最佳 checkpoint。",
+          },
+          {
             label: text.saveEverySteps,
             value: checkpointCadence,
             helper: recipeHelp.saveEverySteps,
@@ -1707,6 +1824,19 @@ export function FineTuneStudioPanel({
             impact: isEnglish
               ? "More checkpoints improve recovery."
               : "checkpoint 越多越便于恢复。",
+          },
+          {
+            label: text.bestCheckpointMetric,
+            value: recipeForm.bestCheckpointMetric,
+            helper: recipeHelp.bestCheckpointMetric,
+            recommended: "eval_loss",
+            impact: recipeForm.loadBestCheckpointAtEnd
+              ? isEnglish
+                ? "Selected checkpoint becomes handoff candidate."
+                : "选中 checkpoint 会成为 handoff 候选。"
+              : isEnglish
+                ? "Reported but not auto-selected for handoff."
+                : "只进入报告，不自动作为 handoff 候选。",
           },
           {
             label: text.seed,
@@ -2122,6 +2252,18 @@ export function FineTuneStudioPanel({
           step: 1,
         },
         {
+          key: "warmupRatio",
+          label: text.warmupRatio,
+          helper: recipeHelp.warmupRatio,
+          step: 0.01,
+        },
+        {
+          key: "evalEverySteps",
+          label: text.evalEverySteps,
+          helper: recipeHelp.evalEverySteps,
+          step: 1,
+        },
+        {
           key: "saveEverySteps",
           label: text.saveEverySteps,
           helper: recipeHelp.saveEverySteps,
@@ -2143,13 +2285,16 @@ export function FineTuneStudioPanel({
       "epochs",
       "learningRate",
       "gradientAccumulationSteps",
+      "warmupRatio",
     ].includes(field.key),
   );
   const recipeAdapterFields = numericRecipeFields.filter((field) =>
     ["numLayers", "loraRank", "loraAlpha"].includes(field.key),
   );
   const recipeEvidenceFields = numericRecipeFields.filter((field) =>
-    ["validationSplitPct", "saveEverySteps", "seed"].includes(field.key),
+    ["validationSplitPct", "evalEverySteps", "saveEverySteps", "seed"].includes(
+      field.key,
+    ),
   );
 
   const updateRecipeNumber = useCallback(
@@ -2281,6 +2426,8 @@ export function FineTuneStudioPanel({
     collapsedJobGroups,
     chartRangeByJobId,
     chartHoverByJobId,
+    chartSmoothingByJobId,
+    selectedOverlayJobIdsByJobId,
     lastReportByJobId,
     adapterByJobId,
     isEnglish,
@@ -2295,6 +2442,8 @@ export function FineTuneStudioPanel({
     getRunDeltaConclusionLabel,
     setChartRangeForJob,
     setChartHoverForJob,
+    setChartSmoothingForJob,
+    toggleOverlayJobForJob,
     setCollapsedJobGroups,
     jobActions: runJobActions,
   });
