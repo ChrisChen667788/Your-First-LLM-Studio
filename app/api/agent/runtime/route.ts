@@ -4,13 +4,14 @@ import path from "path";
 import { getServerAgentTarget } from "@/lib/agent/server-targets";
 import {
   ensureLocalGatewayAvailableDetailed,
+  getLocalGatewayPythonInfo,
   getLocalGatewaySupervisorInfo,
   probeLocalGateway
 } from "@/lib/agent/local-gateway";
 import { readRuntimeProcessMetrics } from "@/lib/agent/runtime-process-metrics";
 import { buildRuntimeResourceGuardrail } from "@/lib/agent/runtime-safety";
-import { normalizeThinkingMode, resolveTargetWithMode } from "@/lib/agent/providers";
-import type { AgentRuntimeStatus } from "@/lib/agent/types";
+import { normalizeThinkingMode } from "@/lib/agent/providers";
+import type { AgentRuntimeStatus, AgentTarget, AgentThinkingMode } from "@/lib/agent/types";
 
 function loadLocalEnv() {
   const values: Record<string, string> = {};
@@ -37,6 +38,28 @@ function loadLocalEnv() {
 function readEnv(localEnv: Record<string, string>, name: string | undefined, fallback: string) {
   if (!name) return fallback;
   return localEnv[name] || process.env[name] || fallback;
+}
+
+function resolveRuntimeTarget(
+  target: AgentTarget,
+  thinkingMode: AgentThinkingMode,
+  localEnv: Record<string, string>
+) {
+  const resolvedBaseUrl = readEnv(localEnv, target.baseUrlEnv, target.baseUrlDefault).replace(/\/$/, "");
+  const modelEnv = thinkingMode === "thinking" ? target.thinkingModelEnv || target.modelEnv : target.modelEnv;
+  const modelDefault =
+    thinkingMode === "thinking" ? target.thinkingModelDefault || target.modelDefault : target.modelDefault;
+  const resolvedModel =
+    target.id === "deepseek-api" && thinkingMode === "thinking"
+      ? readEnv(localEnv, target.modelEnv, target.modelDefault)
+      : readEnv(localEnv, modelEnv, modelDefault);
+  const apiKeyConfigured = target.apiKeyEnv ? Boolean(readEnv(localEnv, target.apiKeyEnv, "")) : true;
+
+  return {
+    resolvedBaseUrl,
+    resolvedModel,
+    apiKeyConfigured
+  };
 }
 
 async function readLocalHealth(healthUrl: string, timeoutMs = 1500) {
@@ -132,17 +155,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: `Unknown target: ${targetId}` }, { status: 404 });
   }
 
-  const resolvedTarget = resolveTargetWithMode(targetId, thinkingMode);
-  const standardResolvedTarget = resolveTargetWithMode(targetId, "standard");
-  const thinkingResolvedTarget = target.execution === "remote"
-    ? resolveTargetWithMode(targetId, "thinking")
-    : null;
+  const localEnv = loadLocalEnv();
+  const resolvedTarget = resolveRuntimeTarget(target, thinkingMode, localEnv);
+  const standardResolvedTarget = resolveRuntimeTarget(target, "standard", localEnv);
+  const thinkingResolvedTarget =
+    target.execution === "remote" ? resolveRuntimeTarget(target, "thinking", localEnv) : null;
   const thinkingModelConfigured =
     target.execution === "remote"
-      ? Boolean(
-          target.thinkingModelEnv &&
-          (process.env[target.thinkingModelEnv] || loadLocalEnv()[target.thinkingModelEnv])
-        )
+      ? Boolean(target.thinkingModelEnv && readEnv(localEnv, target.thinkingModelEnv, ""))
       : false;
   const supervisor = getLocalGatewaySupervisorInfo();
   const baseProcessMetrics = readRuntimeProcessMetrics(supervisor.gatewayPid ?? supervisor.supervisorPid, {
@@ -157,17 +177,21 @@ export async function GET(request: Request) {
   });
 
   if (target.execution !== "local") {
+    const missingKeyMessage =
+      target.apiKeyEnv && !resolvedTarget.apiKeyConfigured
+        ? `Missing ${target.apiKeyEnv}. Add it to .env.local before using ${target.label}.`
+        : null;
     const phase = deriveRuntimePhase({
       execution: target.execution,
-      available: true
+      available: !missingKeyMessage
     });
     const payload: AgentRuntimeStatus = {
       targetId,
       targetLabel: target.label,
       execution: target.execution,
-      available: true,
+      available: !missingKeyMessage,
       phase: phase.phase,
-      phaseDetail: phase.phaseDetail,
+      phaseDetail: missingKeyMessage || phase.phaseDetail,
       resolvedModel: resolvedTarget.resolvedModel,
       resolvedBaseUrl: resolvedTarget.resolvedBaseUrl,
       standardResolvedModel: standardResolvedTarget.resolvedModel,
@@ -192,14 +216,14 @@ export async function GET(request: Request) {
       systemTotalMemoryMb: baseGuardrail.systemTotalMemoryMb,
       systemFreeMemoryMb: baseGuardrail.systemFreeMemoryMb,
       loadedAlias: null,
-      message: "Remote target. No local runtime queue."
+      message: missingKeyMessage || "Remote target. No local runtime queue."
     };
     return NextResponse.json(payload);
   }
 
-  const localEnv = loadLocalEnv();
   const resolvedBaseUrl = readEnv(localEnv, target.baseUrlEnv, target.baseUrlDefault).replace(/\/$/, "");
   const healthUrl = `${resolvedBaseUrl.replace(/\/v1$/, "")}/health`;
+  const pythonRuntime = getLocalGatewayPythonInfo();
 
   try {
     let ensureReason: string | undefined;
@@ -216,7 +240,7 @@ export async function GET(request: Request) {
           throw new Error(ensureResult.reason);
         }
       } else {
-      const payload: AgentRuntimeStatus = {
+        const payload: AgentRuntimeStatus = {
           targetId,
           targetLabel: target.label,
           execution: target.execution,
@@ -250,6 +274,7 @@ export async function GET(request: Request) {
           loadingAlias: null,
           loadingElapsedMs: null,
           loadingError: null,
+          pythonRuntime,
           supervisorPid: supervisor.supervisorPid ?? null,
           supervisorAlive: supervisor.supervisorAlive,
           gatewayPid: supervisor.gatewayPid ?? null,
@@ -332,6 +357,7 @@ export async function GET(request: Request) {
       loadingAlias,
       loadingElapsedMs: typeof data.loading_elapsed_ms === "number" ? data.loading_elapsed_ms : null,
       loadingError: typeof data.loading_error === "string" ? data.loading_error : null,
+      pythonRuntime,
       workspaceRoot: typeof data.workspace_root === "string" ? data.workspace_root : undefined,
       supervisorPid: supervisor.supervisorPid ?? null,
       supervisorAlive: supervisor.supervisorAlive,
@@ -393,6 +419,7 @@ export async function GET(request: Request) {
       loadingAlias: null,
       loadingElapsedMs: null,
       loadingError: null,
+      pythonRuntime,
       supervisorPid: supervisor.supervisorPid ?? null,
       supervisorAlive: supervisor.supervisorAlive,
       gatewayPid: supervisor.gatewayPid ?? null,

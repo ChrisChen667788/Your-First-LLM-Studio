@@ -19,6 +19,17 @@ export async function GET(request: Request) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to read progress record.";
+    if (latest && message === "Progress record not found.") {
+      return NextResponse.json({
+        ok: true,
+        status: "idle",
+        runId: null,
+        latest: true,
+        unfinishedOnly,
+        message: "No benchmark progress record found.",
+        updatedAt: new Date().toISOString(),
+      });
+    }
     return NextResponse.json(
       { error: message },
       { status: message === "Progress record not found." ? 404 : 400 },
