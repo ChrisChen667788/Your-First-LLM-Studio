@@ -5,6 +5,17 @@ from pathlib import Path
 
 REPO_ID = os.environ.get("MODELSCOPE_REPO_ID", "haozi667788/first-llm-studio")
 TOKEN = os.environ.get("MODELSCOPE_API_TOKEN") or os.environ.get("MODELSCOPE_TOKEN")
+REVISION = os.environ.get("MODELSCOPE_REVISION")
+SYNC_REMOTE_REPO = os.environ.get("MODELSCOPE_SYNC_REMOTE", "1").lower() not in {
+    "0",
+    "false",
+    "no",
+}
+USE_UPLOAD_CACHE = os.environ.get("MODELSCOPE_USE_CACHE", "0").lower() not in {
+    "0",
+    "false",
+    "no",
+}
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = ROOT / "dist" / "modelscope-first-llm-studio"
 
@@ -25,13 +36,15 @@ except Exception as exc:
     sys.exit(1)
 
 api = HubApi()
-_original_request = api.session.request
 
-def _request_with_timeout(method, url, **kwargs):
-    kwargs['timeout'] = 600
-    return _original_request(method, url, **kwargs)
+if hasattr(api, "session") and hasattr(api.session, "request"):
+    _original_request = api.session.request
 
-api.session.request = _request_with_timeout
+    def _request_with_timeout(method, url, **kwargs):
+        kwargs["timeout"] = 600
+        return _original_request(method, url, **kwargs)
+
+    api.session.request = _request_with_timeout
 api.create_repo(
     repo_id=REPO_ID,
     token=TOKEN,
@@ -61,6 +74,9 @@ try:
         commit_description=commit_description,
         token=TOKEN,
         repo_type="model",
+        revision=REVISION,
+        sync_remote_repo=SYNC_REMOTE_REPO,
+        use_cache=USE_UPLOAD_CACHE,
     )
     print(getattr(commit_info, "commit_url", commit_info))
 except Exception as exc:
