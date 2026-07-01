@@ -280,7 +280,14 @@ export async function POST(request: Request) {
       loraAlpha?: number;
       gradientCheckpointing?: boolean;
       validationSplitPct?: number;
+      targetModules?: unknown;
+      scheduler?: string;
+      warmupRatio?: number;
+      packingPolicy?: string;
+      evalEverySteps?: number;
       saveEverySteps?: number;
+      bestCheckpointMetric?: unknown;
+      loadBestCheckpointAtEnd?: boolean;
       seed?: number;
       benchmarkSuiteId?: string;
       notes?: string;
@@ -480,8 +487,23 @@ export async function POST(request: Request) {
           typeof body.validationSplitPct === "number"
             ? body.validationSplitPct
             : 10,
+        targetModules: body.targetModules,
+        scheduler: typeof body.scheduler === "string" ? body.scheduler : undefined,
+        warmupRatio:
+          typeof body.warmupRatio === "number" ? body.warmupRatio : undefined,
+        packingPolicy:
+          typeof body.packingPolicy === "string"
+            ? body.packingPolicy
+            : undefined,
+        evalEverySteps:
+          typeof body.evalEverySteps === "number" ? body.evalEverySteps : 100,
         saveEverySteps:
-          typeof body.saveEverySteps === "number" ? body.saveEverySteps : 0,
+          typeof body.saveEverySteps === "number" ? body.saveEverySteps : 100,
+        bestCheckpointMetric: body.bestCheckpointMetric,
+        loadBestCheckpointAtEnd:
+          typeof body.loadBestCheckpointAtEnd === "boolean"
+            ? body.loadBestCheckpointAtEnd
+            : true,
         seed: typeof body.seed === "number" ? body.seed : 42,
         benchmarkSuiteId:
           typeof body.benchmarkSuiteId === "string"

@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import type {
+  AgentFineTuneBestCheckpointSelection,
   AgentFineTuneDatasetFormat,
   AgentFineTuneDatasetQuality,
   AgentFineTuneDatasetValidation,
+  AgentFineTuneRecipe,
 } from "@/lib/agent/types";
+import { buildLoraTrainingDefaults } from "@/lib/finetune/lora-config";
 
 export type DatasetSourceMode = "local" | "community";
 
@@ -37,8 +40,12 @@ export type NumericRecipeFieldKey =
   | "loraRank"
   | "loraAlpha"
   | "validationSplitPct"
+  | "warmupRatio"
+  | "evalEverySteps"
   | "saveEverySteps"
   | "seed";
+
+export type FineTuneRecipeTargetModulesValue = string[];
 
 export type FineTuneRecipeFormState = {
   label: string;
@@ -57,7 +64,14 @@ export type FineTuneRecipeFormState = {
   loraAlpha: number;
   gradientCheckpointing: boolean;
   validationSplitPct: number;
+  targetModules: FineTuneRecipeTargetModulesValue;
+  scheduler: AgentFineTuneRecipe["scheduler"];
+  warmupRatio: number;
+  packingPolicy: AgentFineTuneRecipe["packingPolicy"];
+  evalEverySteps: number;
   saveEverySteps: number;
+  bestCheckpointMetric: AgentFineTuneBestCheckpointSelection["metric"];
+  loadBestCheckpointAtEnd: boolean;
   seed: number;
   benchmarkSuiteId: string;
   notes: string;
@@ -126,6 +140,8 @@ export const DEFAULT_COMMUNITY_IMPORT_FORM: FineTuneCommunityImportFormState = {
   upstreamQuery: "",
 };
 
+const DEFAULT_LORA_TRAINING = buildLoraTrainingDefaults("");
+
 export const DEFAULT_RECIPE_FORM: FineTuneRecipeFormState = {
   label: "",
   datasetId: "",
@@ -143,7 +159,14 @@ export const DEFAULT_RECIPE_FORM: FineTuneRecipeFormState = {
   loraAlpha: 32,
   gradientCheckpointing: true,
   validationSplitPct: 10,
-  saveEverySteps: 0,
+  targetModules: DEFAULT_LORA_TRAINING.targetModules,
+  scheduler: DEFAULT_LORA_TRAINING.scheduler.id,
+  warmupRatio: DEFAULT_LORA_TRAINING.scheduler.warmupRatio,
+  packingPolicy: DEFAULT_LORA_TRAINING.packing.id,
+  evalEverySteps: DEFAULT_LORA_TRAINING.evalEverySteps,
+  saveEverySteps: DEFAULT_LORA_TRAINING.saveEverySteps,
+  bestCheckpointMetric: DEFAULT_LORA_TRAINING.bestCheckpointMetric,
+  loadBestCheckpointAtEnd: DEFAULT_LORA_TRAINING.loadBestCheckpointAtEnd,
   seed: 42,
   benchmarkSuiteId: "milestone-formal",
   notes: "",

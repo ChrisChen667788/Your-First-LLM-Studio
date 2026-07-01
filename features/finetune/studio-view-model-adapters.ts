@@ -62,8 +62,12 @@ export type FineTuneStudioEvidenceViewModel = FineTuneEvidenceStateModel & {
   charts: {
     rangeByJobId: FineTuneEvidenceStateModel["chartRangeByJobId"];
     hoverByJobId: FineTuneEvidenceStateModel["chartHoverByJobId"];
+    smoothingByJobId: FineTuneEvidenceStateModel["chartSmoothingByJobId"];
+    selectedOverlayJobIdsByJobId: FineTuneEvidenceStateModel["selectedOverlayJobIdsByJobId"];
     setRangeForJob: FineTuneEvidenceStateModel["setChartRangeForJob"];
     setHoverForJob: FineTuneEvidenceStateModel["setChartHoverForJob"];
+    setSmoothingForJob: FineTuneEvidenceStateModel["setChartSmoothingForJob"];
+    toggleOverlayJobForJob: FineTuneEvidenceStateModel["toggleOverlayJobForJob"];
   };
   reports: {
     lastByJobId: FineTuneEvidenceStateModel["lastReportByJobId"];
@@ -139,8 +143,12 @@ export function useFineTuneStudioEvidenceViewModel(): FineTuneStudioEvidenceView
     charts: {
       rangeByJobId: state.chartRangeByJobId,
       hoverByJobId: state.chartHoverByJobId,
+      smoothingByJobId: state.chartSmoothingByJobId,
+      selectedOverlayJobIdsByJobId: state.selectedOverlayJobIdsByJobId,
       setRangeForJob: state.setChartRangeForJob,
       setHoverForJob: state.setChartHoverForJob,
+      setSmoothingForJob: state.setChartSmoothingForJob,
+      toggleOverlayJobForJob: state.toggleOverlayJobForJob,
     },
     reports: {
       lastByJobId: state.lastReportByJobId,

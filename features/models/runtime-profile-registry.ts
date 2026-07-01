@@ -341,3 +341,19 @@ export function getRuntimeProfileStoragePaths() {
     chatHistoryFile: CHAT_HISTORY_FILE,
   };
 }
+
+export function readModelRuntimeOperations(options?: {
+  targetId?: string;
+  logLimit?: number;
+}) {
+  return {
+    generatedAt: new Date().toISOString(),
+    registry: readRuntimeProfileRegistry(),
+    idleUnload: readIdleUnloadConfig(),
+    requestLogs: readLocalServerRequestLogs({
+      targetId: options?.targetId,
+      limit: options?.logLimit,
+    }),
+    paths: getRuntimeProfileStoragePaths(),
+  };
+}

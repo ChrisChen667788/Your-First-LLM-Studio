@@ -12,6 +12,8 @@ export type TrainingChartRangePreset =
   | "last-300"
   | "last-100";
 
+export type TrainingChartSmoothingMode = "raw" | "smooth-5";
+
 export type TrainingChartPoint = AgentFineTuneCurvePoint & {
   rawLoss: number;
   normalizedLoss: number;
@@ -28,6 +30,11 @@ export function useFineTuneUiCacheState() {
   const [chartHoverByJobId, setChartHoverByJobId] = useState<
     Record<string, TrainingChartHoverState>
   >({});
+  const [chartSmoothingByJobId, setChartSmoothingByJobId] = useState<
+    Record<string, TrainingChartSmoothingMode>
+  >({});
+  const [selectedOverlayJobIdsByJobId, setSelectedOverlayJobIdsByJobId] =
+    useState<Record<string, string[]>>({});
   const [lastReportByJobId, setLastReportByJobId] = useState<
     Record<string, AgentFineTuneReportExport>
   >({});
@@ -56,6 +63,32 @@ export function useFineTuneUiCacheState() {
     [],
   );
 
+  const setChartSmoothingForJob = useCallback(
+    (jobId: string, mode: TrainingChartSmoothingMode) => {
+      setChartSmoothingByJobId((current) => ({
+        ...current,
+        [jobId]: mode,
+      }));
+    },
+    [],
+  );
+
+  const toggleOverlayJobForJob = useCallback(
+    (jobId: string, overlayJobId: string) => {
+      setSelectedOverlayJobIdsByJobId((current) => {
+        const selected = current[jobId] || [];
+        const nextSelected = selected.includes(overlayJobId)
+          ? selected.filter((id) => id !== overlayJobId)
+          : [...selected, overlayJobId].slice(-4);
+        return {
+          ...current,
+          [jobId]: nextSelected,
+        };
+      });
+    },
+    [],
+  );
+
   const cacheJobReport = useCallback(
     (jobId: string, report: AgentFineTuneReportExport) => {
       setLastReportByJobId((current) => ({
@@ -69,9 +102,13 @@ export function useFineTuneUiCacheState() {
   return {
     chartRangeByJobId,
     chartHoverByJobId,
+    chartSmoothingByJobId,
+    selectedOverlayJobIdsByJobId,
     lastReportByJobId,
     setChartRangeForJob,
     setChartHoverForJob,
+    setChartSmoothingForJob,
+    toggleOverlayJobForJob,
     cacheJobReport,
   };
 }

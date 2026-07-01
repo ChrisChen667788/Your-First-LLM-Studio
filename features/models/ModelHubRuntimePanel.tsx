@@ -149,30 +149,6 @@ export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelP
     [registry],
   );
 
-  const loadProfiles = useCallback(async () => {
-    const response = await fetch("/api/models/runtime-profiles", { cache: "no-store" });
-    const payload = (await response.json()) as {
-      registry?: RuntimeProfileRegistry;
-      paths?: RuntimePaths;
-      error?: string;
-    };
-    if (!response.ok || !payload.registry) throw new Error(payload.error || "Failed to load profiles.");
-    setRegistry(payload.registry);
-    if (payload.paths) setPaths(payload.paths);
-  }, []);
-
-  const loadIdleConfig = useCallback(async () => {
-    const response = await fetch("/api/models/local-server/idle-unload", { cache: "no-store" });
-    const payload = (await response.json()) as {
-      config?: IdleUnloadConfig;
-      paths?: RuntimePaths;
-      error?: string;
-    };
-    if (!response.ok || !payload.config) throw new Error(payload.error || "Failed to load idle-unload config.");
-    setIdleConfig(payload.config);
-    if (payload.paths) setPaths(payload.paths);
-  }, []);
-
   const loadLogs = useCallback(async () => {
     const response = await fetch("/api/models/local-server/logs?limit=60", { cache: "no-store" });
     const payload = (await response.json()) as {
@@ -189,13 +165,29 @@ export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelP
     setPending("load");
     setError("");
     try {
-      await Promise.all([loadProfiles(), loadIdleConfig(), loadLogs()]);
+      const response = await fetch("/api/models/runtime-operations?limit=60", { cache: "no-store" });
+      const payload = (await response.json()) as {
+        operations?: {
+          registry: RuntimeProfileRegistry;
+          idleUnload: IdleUnloadConfig;
+          requestLogs: RequestLogSummary;
+          paths: RuntimePaths;
+        };
+        error?: string;
+      };
+      if (!response.ok || !payload.operations) {
+        throw new Error(payload.error || "Failed to load Model Hub runtime operations.");
+      }
+      setRegistry(payload.operations.registry);
+      setIdleConfig(payload.operations.idleUnload);
+      setLogs(payload.operations.requestLogs);
+      setPaths(payload.operations.paths);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load Model Hub runtime panel.");
     } finally {
       setPending("");
     }
-  }, [loadIdleConfig, loadLogs, loadProfiles]);
+  }, []);
 
   useEffect(() => {
     void loadAll();
