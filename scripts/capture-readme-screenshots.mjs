@@ -1,6 +1,7 @@
 import { chromium } from "playwright";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const baseUrl = process.env.BASE_URL ?? "http://127.0.0.1:3011";
 const outDir = path.resolve(process.env.README_SCREENSHOT_OUT_DIR ?? "docs/assets/screenshots");
@@ -41,6 +42,17 @@ const deepCaptures = [
     prepare: async (page) => {
       await scrollToText(page, "Benchmark 交叉热力图", { maxTextLength: 80, offset: 120 });
     },
+  },
+];
+
+const chartCaptures = [
+  {
+    name: "fine-tune-qwen4b-lora-chart.png",
+    svgName: "fine-tune-qwen4b-lora-chart.svg",
+    sourceSvg:
+      "docs/release-evidence/finetune-qwen4b-lora-2026-07-01/ft-job-qwen4b-lora-20260701-175225-chart-evidence.svg",
+    width: 1680,
+    height: 980,
   },
 ];
 
@@ -181,6 +193,18 @@ for (const capture of deepCaptures) {
   await page.screenshot({ path: file, fullPage: false });
   const stat = await fs.stat(file);
   results.push({ route: capture.route, file, bytes: stat.size });
+}
+
+for (const capture of chartCaptures) {
+  const sourceSvg = path.resolve(capture.sourceSvg);
+  const outSvg = path.join(outDir, capture.svgName);
+  const outPng = path.join(outDir, capture.name);
+  await fs.copyFile(sourceSvg, outSvg);
+  await page.setViewportSize({ width: capture.width, height: capture.height });
+  await page.goto(pathToFileURL(sourceSvg).href, { waitUntil: "load", timeout: 30000 });
+  await page.screenshot({ path: outPng, fullPage: false });
+  const stat = await fs.stat(outPng);
+  results.push({ route: "release-evidence:lora-chart", file: outPng, bytes: stat.size });
 }
 
 await browser.close();
