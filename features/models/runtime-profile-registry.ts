@@ -6,6 +6,7 @@ import {
   type ModelRuntimeDeveloperApiGuide,
   type ModelRuntimeOperationCapability,
 } from "@/features/models/contracts";
+import { listServerAgentTargets } from "@/lib/agent/server-targets";
 
 export type ModelRuntimeProfileRecord = {
   id: string;
@@ -84,7 +85,35 @@ export type ModelRuntimeOperationsReadModel = {
   idleUnload: LocalServerIdleUnloadConfig;
   requestLogs: LocalServerRequestLogSummary;
   developerApi: ModelRuntimeDeveloperApiGuide;
+  targetCards: ModelRuntimeTargetCard[];
   paths: ReturnType<typeof getRuntimeProfileStoragePaths>;
+};
+
+export type ModelRuntimeTargetCard = {
+  targetId: string;
+  label: string;
+  providerLabel: string;
+  execution: string;
+  resolvedModel: string;
+  endpoint: string;
+  chatCompletionsUrl: string;
+  modelsUrl: string;
+  apiKeyEnv?: string;
+  keyStatus: ModelRuntimeDeveloperApiGuide["keyStatus"];
+  recommendedContext?: string;
+  recommendedContextWindow?: number;
+  memoryProfile?: string;
+  profileCount: number;
+  profileLabels: string[];
+  toolEnabledProfileCount: number;
+  ragEnabledProfileCount: number;
+  idleUnloadEnabled: boolean;
+  idleMinutes: number;
+  requestCount: number;
+  failureCount: number;
+  totalTokens: number;
+  avgLatencyMs: number | null;
+  lastRequestAt?: string;
 };
 
 const DEFAULT_DATA_DIR = path.join(
@@ -328,32 +357,47 @@ function average(values: number[]) {
   return Number((numbers.reduce((sum, value) => sum + value, 0) / numbers.length).toFixed(1));
 }
 
-function buildDeveloperApiGuide(targetId?: string): ModelRuntimeDeveloperApiGuide {
-  const endpoint =
+function resolveEndpointForTarget(target?: { baseUrlEnv?: string; baseUrlDefault?: string }) {
+  if (target) {
+    return (
+      (target.baseUrlEnv ? process.env[target.baseUrlEnv] : "") ||
+      target.baseUrlDefault ||
+      DEFAULT_LOCAL_SERVER_BASE_URL
+    ).replace(/\/$/, "");
+  }
+  return (
     process.env.LOCAL_OPENAI_COMPAT_BASE_URL ||
     process.env.OPENAI_COMPATIBLE_BASE_URL ||
     process.env.OPENAI_BASE_URL ||
-    DEFAULT_LOCAL_SERVER_BASE_URL;
+    DEFAULT_LOCAL_SERVER_BASE_URL
+  ).replace(/\/$/, "");
+}
+
+function resolveKeyStatusForTarget(target: { execution?: string; apiKeyEnv?: string }, endpoint: string) {
+  if (
+    target.execution === "local" ||
+    endpoint.includes("localhost") ||
+    endpoint.includes("127.0.0.1")
+  ) {
+    return "not-required" as const;
+  }
+  return target.apiKeyEnv && process.env[target.apiKeyEnv] ? "configured" as const : "missing" as const;
+}
+
+function buildDeveloperApiGuide(targetId?: string): ModelRuntimeDeveloperApiGuide {
+  const target = targetId ? listServerAgentTargets().find((item) => item.id === targetId) : undefined;
+  const endpoint = resolveEndpointForTarget(target);
   const model = targetId || process.env.LOCAL_OPENAI_COMPAT_MODEL || "local-qwen35-4b-4bit";
-  const apiKeyEnv = process.env.LOCAL_OPENAI_COMPAT_API_KEY
-    ? "LOCAL_OPENAI_COMPAT_API_KEY"
-    : process.env.OPENAI_API_KEY
-      ? "OPENAI_API_KEY"
-      : "LOCAL_OPENAI_COMPAT_API_KEY";
-  const keyStatus =
-    endpoint.includes("localhost") || endpoint.includes("127.0.0.1")
-      ? "not-required"
-      : process.env.LOCAL_OPENAI_COMPAT_API_KEY || process.env.OPENAI_API_KEY
-        ? "configured"
-        : "missing";
+  const apiKeyEnv = target?.apiKeyEnv || "LOCAL_OPENAI_COMPAT_API_KEY";
+  const keyStatus = resolveKeyStatusForTarget(target || { execution: "local", apiKeyEnv }, endpoint);
   return {
     endpoint,
-    chatCompletionsUrl: `${endpoint.replace(/\/$/, "")}/chat/completions`,
-    modelsUrl: `${endpoint.replace(/\/$/, "")}/models`,
+    chatCompletionsUrl: `${endpoint}/chat/completions`,
+    modelsUrl: `${endpoint}/models`,
     apiKeyEnv,
     keyStatus,
     curlExample: [
-      `curl ${endpoint.replace(/\/$/, "")}/chat/completions \\`,
+      `curl ${endpoint}/chat/completions \\`,
       `  -H "Authorization: Bearer $${apiKeyEnv}" \\`,
       `  -H "Content-Type: application/json" \\`,
       `  -d '{"model":"${model}","messages":[{"role":"user","content":"ping"}],"temperature":0.2}'`,
@@ -374,6 +418,51 @@ function buildDeveloperApiGuide(targetId?: string): ModelRuntimeDeveloperApiGuid
       "tokenThroughputTps",
     ],
   };
+}
+
+function buildRuntimeTargetCards(input: {
+  registry: RuntimeProfileRegistry;
+  idleUnload: LocalServerIdleUnloadConfig;
+  requestLogs: LocalServerRequestLogSummary;
+}): ModelRuntimeTargetCard[] {
+  return listServerAgentTargets()
+    .filter((target) => target.transport === "openai-compatible")
+    .map((target) => {
+      const endpoint = resolveEndpointForTarget(target);
+      const profiles = input.registry.profiles.filter((profile) => profile.targetId === target.id);
+      const logs = input.requestLogs.entries.filter((entry) => entry.targetId === target.id);
+      return {
+        targetId: target.id,
+        label: target.label,
+        providerLabel: target.providerLabel,
+        execution: target.execution,
+        resolvedModel: target.modelDefault,
+        endpoint,
+        chatCompletionsUrl: `${endpoint}/chat/completions`,
+        modelsUrl: `${endpoint}/models`,
+        apiKeyEnv: target.apiKeyEnv,
+        keyStatus: resolveKeyStatusForTarget(target, endpoint),
+        recommendedContext: target.recommendedContext,
+        recommendedContextWindow: target.recommendedContextWindow,
+        memoryProfile: target.memoryProfile,
+        profileCount: profiles.length,
+        profileLabels: profiles.map((profile) => profile.label).slice(0, 3),
+        toolEnabledProfileCount: profiles.filter((profile) => profile.enableTools).length,
+        ragEnabledProfileCount: profiles.filter((profile) => profile.enableRetrieval).length,
+        idleUnloadEnabled: input.idleUnload.enabled,
+        idleMinutes: input.idleUnload.idleMinutes,
+        requestCount: logs.length,
+        failureCount: logs.filter((entry) => !entry.ok).length,
+        totalTokens: logs.reduce((sum, entry) => sum + (entry.usage?.totalTokens || 0), 0),
+        avgLatencyMs: average(logs.map((entry) => entry.latencyMs)),
+        lastRequestAt: logs[0]?.completedAt,
+      };
+    })
+    .sort((left, right) => {
+      if (left.execution !== right.execution) return left.execution === "local" ? -1 : 1;
+      if (right.profileCount !== left.profileCount) return right.profileCount - left.profileCount;
+      return left.label.localeCompare(right.label);
+    });
 }
 
 export function readLocalServerRequestLogs(options?: {
@@ -411,6 +500,12 @@ export function readModelRuntimeOperations(options?: {
   targetId?: string;
   logLimit?: number;
 }): ModelRuntimeOperationsReadModel {
+  const registry = readRuntimeProfileRegistry();
+  const idleUnload = readIdleUnloadConfig();
+  const requestLogs = readLocalServerRequestLogs({
+    targetId: options?.targetId,
+    limit: options?.logLimit,
+  });
   return {
     contractVersion: MODEL_RUNTIME_OPERATIONS_CONTRACT_VERSION,
     generatedAt: new Date().toISOString(),
@@ -423,13 +518,15 @@ export function readModelRuntimeOperations(options?: {
       "token-accounting",
       "latency-evidence",
     ],
-    registry: readRuntimeProfileRegistry(),
-    idleUnload: readIdleUnloadConfig(),
-    requestLogs: readLocalServerRequestLogs({
-      targetId: options?.targetId,
-      limit: options?.logLimit,
-    }),
+    registry,
+    idleUnload,
+    requestLogs,
     developerApi: buildDeveloperApiGuide(options?.targetId),
+    targetCards: buildRuntimeTargetCards({
+      registry,
+      idleUnload,
+      requestLogs,
+    }),
     paths: getRuntimeProfileStoragePaths(),
   };
 }

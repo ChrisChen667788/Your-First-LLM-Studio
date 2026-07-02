@@ -38,12 +38,13 @@ Completed in this development slice:
 - Added Provider Health policy cards to Admin and extended route smoke to guard the policy contract.
 - Added `benchmark.release-evidence-summary.v1` so pinned benchmark evidence now groups stored runs, missing runs, target coverage, failed/skipped samples, success rate, and release-note draft lines.
 - Surfaced the benchmark release-note summary in both `/benchmarks` and Admin, and added route smoke coverage for `/api/admin/benchmark/evidence`.
+- Added Model Hub runtime target cards from the backend runtime-operations read-model, covering endpoint, key status, profile counts, recent requests, token totals, latency, and idle-unload policy.
 - Extended route smoke to guard both the release train API and runtime operations v2 contract.
 
 Next implementation slice:
 
 - Extend release evidence grouping to fine-tune adapter exports and Provider Ops evidence sources.
-- Move Model Hub runtime server controls from the side panel into the primary model cards.
+- Continue moving Model Hub local server actions, hot-switch controls, and idle-unload daemon status into the primary model cards.
 - Start Provider Ops evidence grouping and promotion-gate source rollups.
 
 ## 中文说明
