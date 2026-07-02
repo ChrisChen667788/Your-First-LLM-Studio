@@ -114,6 +114,16 @@ export type ModelRuntimeTargetCard = {
   totalTokens: number;
   avgLatencyMs: number | null;
   lastRequestAt?: string;
+  serverActions: ModelRuntimeTargetServerAction[];
+};
+
+export type ModelRuntimeTargetServerAction = {
+  id: "hot-switch" | "unload" | "restart" | "read-log";
+  label: string;
+  description: string;
+  endpoint: string;
+  method: "POST";
+  enabled: boolean;
 };
 
 const DEFAULT_DATA_DIR = path.join(
@@ -431,6 +441,43 @@ function buildRuntimeTargetCards(input: {
       const endpoint = resolveEndpointForTarget(target);
       const profiles = input.registry.profiles.filter((profile) => profile.targetId === target.id);
       const logs = input.requestLogs.entries.filter((entry) => entry.targetId === target.id);
+      const serverActions: ModelRuntimeTargetServerAction[] =
+        target.execution === "local"
+          ? [
+              {
+                id: "hot-switch",
+                label: "Hot switch",
+                description: "Load or switch the local server to this model target.",
+                endpoint: "/api/agent/runtime/prewarm",
+                method: "POST",
+                enabled: true,
+              },
+              {
+                id: "unload",
+                label: "Unload",
+                description: "Release the currently loaded local model from the gateway.",
+                endpoint: "/api/agent/runtime/actions",
+                method: "POST",
+                enabled: true,
+              },
+              {
+                id: "restart",
+                label: "Restart",
+                description: "Restart the local OpenAI-compatible gateway.",
+                endpoint: "/api/agent/runtime/actions",
+                method: "POST",
+                enabled: true,
+              },
+              {
+                id: "read-log",
+                label: "Logs",
+                description: "Read recent local gateway logs for this target.",
+                endpoint: "/api/agent/runtime/actions",
+                method: "POST",
+                enabled: true,
+              },
+            ]
+          : [];
       return {
         targetId: target.id,
         label: target.label,
@@ -456,6 +503,7 @@ function buildRuntimeTargetCards(input: {
         totalTokens: logs.reduce((sum, entry) => sum + (entry.usage?.totalTokens || 0), 0),
         avgLatencyMs: average(logs.map((entry) => entry.latencyMs)),
         lastRequestAt: logs[0]?.completedAt,
+        serverActions,
       };
     })
     .sort((left, right) => {
@@ -517,6 +565,7 @@ export function readModelRuntimeOperations(options?: {
       "openai-compatible-server",
       "token-accounting",
       "latency-evidence",
+      "server-actions",
     ],
     registry,
     idleUnload,

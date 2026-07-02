@@ -85,6 +85,15 @@ type DeveloperApiGuide = {
   latencyFields: string[];
 };
 
+type RuntimeTargetServerAction = {
+  id: "hot-switch" | "unload" | "restart" | "read-log";
+  label: string;
+  description: string;
+  endpoint: string;
+  method: "POST";
+  enabled: boolean;
+};
+
 type RuntimeTargetCard = {
   targetId: string;
   label: string;
@@ -110,6 +119,28 @@ type RuntimeTargetCard = {
   totalTokens: number;
   avgLatencyMs: number | null;
   lastRequestAt?: string;
+  serverActions: RuntimeTargetServerAction[];
+};
+
+type RuntimeActionResponse = {
+  ok?: boolean;
+  targetId?: string;
+  targetLabel?: string;
+  message?: string;
+  status?: string;
+  loadMs?: number;
+  warmupMs?: number;
+  releasedAlias?: string | null;
+  logExcerpt?: string;
+  logSummary?: {
+    totalLines: number;
+    matchedLines: number;
+    errorLines: number;
+    warningLines: number;
+    restartMentions: number;
+    loadingMentions: number;
+  };
+  error?: string;
 };
 
 type ModelHubRuntimePanelProps = {
@@ -167,6 +198,16 @@ function profileTone(source: RuntimeProfile["source"]) {
     : "border-emerald-300/20 bg-emerald-400/10 text-emerald-100";
 }
 
+function targetActionKey(targetId: string, actionId: RuntimeTargetServerAction["id"]) {
+  return `target-action:${targetId}:${actionId}`;
+}
+
+function mapRuntimeAction(actionId: RuntimeTargetServerAction["id"]) {
+  if (actionId === "unload") return "release";
+  if (actionId === "read-log") return "read_log";
+  return actionId;
+}
+
 export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelProps) {
   const [registry, setRegistry] = useState<RuntimeProfileRegistry | null>(null);
   const [idleConfig, setIdleConfig] = useState<IdleUnloadConfig | null>(null);
@@ -179,6 +220,12 @@ export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelP
   const [pending, setPending] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [runtimeLog, setRuntimeLog] = useState<{
+    targetId: string;
+    targetLabel: string;
+    excerpt: string;
+    summary?: RuntimeActionResponse["logSummary"];
+  } | null>(null);
 
   const userProfiles = useMemo(
     () => registry?.profiles.filter((profile) => profile.source === "user") || [],
@@ -337,6 +384,52 @@ export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelP
     }
   }
 
+  async function runTargetAction(target: RuntimeTargetCard, action: RuntimeTargetServerAction) {
+    if (!action.enabled || target.execution !== "local") return;
+    const pendingKey = targetActionKey(target.targetId, action.id);
+    setPending(pendingKey);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(action.endpoint, {
+        method: action.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          action.id === "hot-switch"
+            ? { targetId: target.targetId }
+            : {
+                targetId: target.targetId,
+                action: mapRuntimeAction(action.id),
+              },
+        ),
+      });
+      const payload = (await response.json()) as RuntimeActionResponse;
+      if (!response.ok) {
+        throw new Error(payload.error || payload.message || `${action.label} failed.`);
+      }
+      const timing = [
+        typeof payload.loadMs === "number" ? `load ${payload.loadMs.toFixed(0)} ms` : "",
+        typeof payload.warmupMs === "number" ? `warm ${payload.warmupMs.toFixed(0)} ms` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      if (action.id === "read-log" && payload.logExcerpt) {
+        setRuntimeLog({
+          targetId: target.targetId,
+          targetLabel: target.label,
+          excerpt: payload.logExcerpt,
+          summary: payload.logSummary,
+        });
+      }
+      setMessage(`${target.label}: ${payload.message || `${action.label} completed.`}${timing ? ` · ${timing}` : ""}`);
+      await loadAll();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : `${action.label} failed.`);
+    } finally {
+      setPending("");
+    }
+  }
+
   return (
     <section className={embedded ? "text-slate-100" : "min-h-screen bg-[#031513] px-6 py-6 text-slate-100"}>
       <section className={embedded ? "space-y-5" : "mx-auto max-w-[1680px] rounded-[32px] border border-white/10 bg-slate-950/80 p-5 shadow-[0_28px_90px_rgba(2,8,23,0.5)]"}>
@@ -446,6 +539,53 @@ export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelP
                     {target.lastRequestAt ? ` · ${formatDate(target.lastRequestAt)}` : ""}
                   </p>
                 </div>
+                {target.serverActions.length ? (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {target.serverActions.map((action) => {
+                      const pendingKey = targetActionKey(target.targetId, action.id);
+                      const isPending = pending === pendingKey;
+                      return (
+                        <button
+                          key={action.id}
+                          type="button"
+                          title={action.description}
+                          onClick={() => void runTargetAction(target, action)}
+                          disabled={!action.enabled || pending !== "" || target.execution !== "local"}
+                          className={`rounded-2xl border px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] transition disabled:opacity-50 ${
+                            action.id === "hot-switch"
+                              ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-50 hover:bg-emerald-400/15"
+                              : action.id === "unload"
+                                ? "border-amber-300/20 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15"
+                                : action.id === "restart"
+                                  ? "border-violet-300/20 bg-violet-400/10 text-violet-100 hover:bg-violet-400/15"
+                                  : "border-cyan-300/20 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15"
+                          }`}
+                        >
+                          {isPending ? "Running..." : action.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs leading-5 text-slate-500">
+                    Remote target: server actions stay in provider/API health surfaces.
+                  </p>
+                )}
+                {runtimeLog?.targetId === target.targetId ? (
+                  <div className="mt-3 rounded-2xl border border-white/10 bg-black/30 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                      <span>Gateway logs</span>
+                      <span>
+                        {runtimeLog.summary
+                          ? `${runtimeLog.summary.errorLines} errors · ${runtimeLog.summary.warningLines} warnings`
+                          : "latest excerpt"}
+                      </span>
+                    </div>
+                    <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-xs leading-5 text-slate-300">
+                      {runtimeLog.excerpt}
+                    </pre>
+                  </div>
+                ) : null}
               </article>
             ))}
           </div>

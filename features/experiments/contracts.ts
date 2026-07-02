@@ -162,7 +162,12 @@ export type ReleaseTrainResponse = {
 export type PromotionGateSourceStatus = "pass" | "watch" | "hold";
 
 export type PromotionGateSource = {
-  id: "benchmark" | "provider-ops" | "fine-tune";
+  id:
+    | "benchmark"
+    | "provider-ops"
+    | "fine-tune"
+    | "adapter-export"
+    | "docs-screenshots";
   label: string;
   status: PromotionGateSourceStatus;
   summary: string;

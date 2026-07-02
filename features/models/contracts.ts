@@ -54,7 +54,8 @@ export type ModelRuntimeOperationCapability =
   | "developer-api"
   | "openai-compatible-server"
   | "token-accounting"
-  | "latency-evidence";
+  | "latency-evidence"
+  | "server-actions";
 
 export type ModelRuntimeDeveloperApiGuide = {
   endpoint: string;
