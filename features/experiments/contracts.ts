@@ -158,3 +158,27 @@ export type ReleaseTrainResponse = {
   activeVersion: string;
   milestones: ReleaseTrainMilestone[];
 };
+
+export type PromotionGateSourceStatus = "pass" | "watch" | "hold";
+
+export type PromotionGateSource = {
+  id: "benchmark" | "provider-ops" | "fine-tune";
+  label: string;
+  status: PromotionGateSourceStatus;
+  summary: string;
+  metrics: Record<string, string | number | boolean | null>;
+  evidence: string[];
+  blockers: string[];
+  releaseNoteDraft: string[];
+};
+
+export type PromotionGateResponse = {
+  ok: true;
+  schemaVersion: "experiments.promotion-gate.v1";
+  generatedAt: string;
+  activeVersion: string;
+  overallStatus: PromotionGateSourceStatus;
+  sources: PromotionGateSource[];
+  blockers: string[];
+  releaseNoteDraft: string[];
+};

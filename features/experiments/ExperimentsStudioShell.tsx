@@ -8,6 +8,7 @@ import {
   StudioSurface,
 } from "@/components/layout/StudioPageShell";
 import { ExperimentTimelinePanel } from "@/features/experiments/ExperimentTimelinePanel";
+import { PromotionGatePanel } from "@/features/experiments/PromotionGatePanel";
 import { ReleaseTrainPanel } from "@/features/experiments/ReleaseTrainPanel";
 
 export function ExperimentsStudioShell() {
@@ -24,6 +25,7 @@ export function ExperimentsStudioShell() {
         side={<div className="flex flex-wrap gap-2"><Link href="/fine-tune" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 hover:bg-white/10">Fine-tune</Link><Link href="/benchmarks" className="rounded-xl border border-amber-300/20 bg-amber-400/10 px-4 py-2 text-sm text-amber-50 hover:bg-amber-400/20">Benchmarks</Link></div>}
       />
       <StudioSegmentedChips labels={[en ? "Artifact references" : "产物引用", en ? "Cross-feature lineage" : "跨模块 lineage", en ? "Retention policy" : "保留策略", en ? "Release train" : "版本列车"]} />
+      <PromotionGatePanel locale={locale} />
       <ReleaseTrainPanel locale={locale} />
       <ExperimentTimelinePanel locale={locale} showRetention />
     </StudioSurface>
