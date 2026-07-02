@@ -8,6 +8,7 @@ import { buildProviderHealthDesk } from "@/lib/agent/provider-health-desk";
 import { readBenchmarkReleaseEvidence } from "@/lib/agent/benchmark-release-evidence-store";
 import { readAdminCompatibilityUsageSummary } from "@/features/admin/compatibility-usage";
 import { buildBenchmarkReleaseEvidenceSummary } from "@/features/benchmark/release-evidence-summary";
+import { buildProviderOpsEvidenceSummary } from "@/features/providers/provider-ops-evidence";
 
 export const runtime = "nodejs";
 
@@ -239,6 +240,10 @@ export async function GET(request: Request) {
   const providerDeskWindowMinutes = Math.max(windowMinutes, 24 * 60);
   const providerDeskSinceIso = new Date(Date.now() - providerDeskWindowMinutes * 60 * 1000).toISOString();
   const providerHealthDesk = buildProviderHealthDesk({ sinceIso: providerDeskSinceIso });
+  const providerOpsEvidenceSummary = buildProviderOpsEvidenceSummary({
+    rows: providerHealthDesk,
+    windowHours: Math.round(providerDeskWindowMinutes / 60),
+  });
   const benchmarkTrendMap = new Map<
     string,
     {
@@ -438,6 +443,7 @@ export async function GET(request: Request) {
     benchmarkReleaseEvidenceSummary,
     benchmarkTrends,
     providerHealthDesk,
+    providerOpsEvidenceSummary,
     adminCompatibilityUsage: readAdminCompatibilityUsageSummary(),
     benchmarkHeatmap,
     paths: getObservabilityPaths()

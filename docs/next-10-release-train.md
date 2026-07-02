@@ -39,13 +39,14 @@ Completed in this development slice:
 - Added `benchmark.release-evidence-summary.v1` so pinned benchmark evidence now groups stored runs, missing runs, target coverage, failed/skipped samples, success rate, and release-note draft lines.
 - Surfaced the benchmark release-note summary in both `/benchmarks` and Admin, and added route smoke coverage for `/api/admin/benchmark/evidence`.
 - Added Model Hub runtime target cards from the backend runtime-operations read-model, covering endpoint, key status, profile counts, recent requests, token totals, latency, and idle-unload policy.
+- Added `provider.ops-evidence-summary.v1` so Provider Health Desk can be consumed as a release-gate evidence source with provider status counts, action/watch counts, failure classes, cost/token totals, retry template summaries, and release-note draft lines.
 - Extended route smoke to guard both the release train API and runtime operations v2 contract.
 
 Next implementation slice:
 
-- Extend release evidence grouping to fine-tune adapter exports and Provider Ops evidence sources.
+- Extend release evidence grouping to fine-tune adapter exports.
 - Continue moving Model Hub local server actions, hot-switch controls, and idle-unload daemon status into the primary model cards.
-- Start Provider Ops evidence grouping and promotion-gate source rollups.
+- Start promotion-gate source rollups across Benchmark, Provider Ops, and Fine-tune evidence.
 
 ## 中文说明
 

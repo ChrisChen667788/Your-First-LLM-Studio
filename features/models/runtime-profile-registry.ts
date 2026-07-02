@@ -443,7 +443,7 @@ function buildRuntimeTargetCards(input: {
         apiKeyEnv: target.apiKeyEnv,
         keyStatus: resolveKeyStatusForTarget(target, endpoint),
         recommendedContext: target.recommendedContext,
-        recommendedContextWindow: target.recommendedContextWindow,
+        recommendedContextWindow: target.recommendedContextWindow ?? undefined,
         memoryProfile: target.memoryProfile,
         profileCount: profiles.length,
         profileLabels: profiles.map((profile) => profile.label).slice(0, 3),

@@ -20,6 +20,7 @@ import { StudioIdentityBand } from "@/components/layout/StudioPageShell";
 import { sanitizeDisplayPath } from "@/lib/agent/path-display";
 import { getBenchmarkContextRecommendationHelper } from "@/lib/agent/context-recommendation";
 import type { BenchmarkReleaseEvidenceSummary } from "@/features/benchmark/contracts";
+import type { ProviderOpsEvidenceSummary } from "@/features/providers/contracts";
 import type {
   AgentBenchmarkProgress,
   AgentBenchmarkReleaseEvidence,
@@ -346,6 +347,7 @@ type DashboardResponse = {
   releaseEvidence: AgentBenchmarkReleaseEvidence[];
   benchmarkReleaseEvidenceSummary?: BenchmarkReleaseEvidenceSummary;
   providerHealthDesk: AgentProviderHealthDeskItem[];
+  providerOpsEvidenceSummary?: ProviderOpsEvidenceSummary;
   adminCompatibilityUsage?: {
     generatedAt: string;
     totalHits: number;
@@ -2864,6 +2866,69 @@ export function AdminDashboard() {
                   {locale.startsWith("en") ? "24h aggregation" : "近 24h 聚合"} · {providerHealthDeskRows.length}
                 </span>
               </div>
+              {data?.providerOpsEvidenceSummary ? (
+                <div className="mt-3 rounded-3xl border border-emerald-300/15 bg-emerald-300/10 p-4">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.22em] text-emerald-200">
+                        {locale.startsWith("en") ? "Provider Ops evidence" : "Provider Ops 证据"}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        {locale.startsWith("en")
+                          ? "Remote provider health is grouped into release-gate source notes."
+                          : "远端 provider 健康状态会聚合为发布门禁可引用的来源摘要。"}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 xl:min-w-[520px]">
+                      {[
+                        [
+                          locale.startsWith("en") ? "Healthy" : "健康",
+                          `${data.providerOpsEvidenceSummary.totals.healthyCount}/${data.providerOpsEvidenceSummary.totals.providerCount}`,
+                        ],
+                        [
+                          locale.startsWith("en") ? "Success" : "成功率",
+                          `${data.providerOpsEvidenceSummary.totals.successRatePct}%`,
+                        ],
+                        [
+                          locale.startsWith("en") ? "Review" : "需复核",
+                          `${data.providerOpsEvidenceSummary.totals.actionRequiredCount}/${data.providerOpsEvidenceSummary.totals.watchCount}`,
+                        ],
+                        [
+                          locale.startsWith("en") ? "Cost" : "成本",
+                          formatUsd(data.providerOpsEvidenceSummary.totals.estimatedCostUsd),
+                        ],
+                      ].map(([label, value]) => (
+                        <div key={label} className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</p>
+                          <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-2 xl:grid-cols-2">
+                    {data.providerOpsEvidenceSummary.releaseNoteDraft.slice(0, 4).map((line) => (
+                      <p
+                        key={line}
+                        className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-slate-300"
+                      >
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                  {data.providerOpsEvidenceSummary.topRisks.length ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {data.providerOpsEvidenceSummary.topRisks.slice(0, 4).map((risk) => (
+                        <span
+                          key={risk}
+                          className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-[11px] text-amber-100"
+                        >
+                          {risk}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="mt-3 grid gap-3 xl:grid-cols-2">
                 {providerHealthDeskRows.length ? (
                   providerHealthDeskRows.map((entry) => (
