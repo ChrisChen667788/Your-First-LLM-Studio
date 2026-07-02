@@ -34,13 +34,15 @@ Completed in this development slice:
 - Promoted Model Hub runtime operations to `models.runtime-operations.v2`.
 - Added runtime operation capabilities and Developer API guide fields.
 - Added endpoint/key status, chat/models URLs, curl snippet, token accounting fields, and latency fields to the Model Hub runtime panel.
+- Added Provider Health retry/timeout policy read-models with provider kind, suggested policy template, first-token timeout, total timeout, stream idle timeout, retry budget, and fallback profile.
+- Added Provider Health policy cards to Admin and extended route smoke to guard the policy contract.
 - Extended route smoke to guard both the release train API and runtime operations v2 contract.
 
 Next implementation slice:
 
-- Finish retry/timeout policy visualization in Admin Provider Health Desk.
 - Group release evidence by benchmark/fine-tune/provider source and add release-note summaries.
 - Move Model Hub runtime server controls from the side panel into the primary model cards.
+- Start benchmark-to-release-note summaries and Provider Ops evidence grouping.
 
 ## 中文说明
 

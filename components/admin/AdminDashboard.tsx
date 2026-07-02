@@ -3052,6 +3052,47 @@ export function AdminDashboard() {
                         </div>
                       </div>
 
+                      <div className="mt-3 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-100">
+                            {locale.startsWith("en") ? "Retry / timeout policy" : "重试 / 超时策略"}
+                          </p>
+                          <span className="rounded-full border border-cyan-200/20 bg-black/20 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100">
+                            {entry.retryPolicy.providerKind}
+                          </span>
+                        </div>
+                        <div className="mt-3 grid gap-2 xl:grid-cols-3">
+                          {entry.retryPolicy.templates.map((template) => (
+                            <div
+                              key={`${entry.targetId}:${template.id}`}
+                              className={`rounded-2xl border px-3 py-2 text-xs ${
+                                template.id === entry.retryPolicy.recommendedTemplateId
+                                  ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-50"
+                                  : "border-white/10 bg-black/20 text-slate-300"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-semibold text-white">{template.label}</p>
+                                {template.id === entry.retryPolicy.recommendedTemplateId ? (
+                                  <span className="rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-emerald-100">
+                                    {locale.startsWith("en") ? "Suggested" : "建议"}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] text-slate-400">
+                                <span>FT {Math.round(template.firstTokenTimeoutMs / 1000)}s</span>
+                                <span>Total {Math.round(template.totalTimeoutMs / 1000)}s</span>
+                                <span>Idle {Math.round(template.streamIdleTimeoutMs / 1000)}s</span>
+                                <span>Retry {Math.round(template.retryBudgetMs / 1000)}s</span>
+                              </div>
+                              <p className="mt-2 text-[11px] leading-5 text-slate-400">
+                                {template.providerProfile} · {template.thinkingMode} · fallback {template.fallbackProfile}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className={`mt-3 rounded-2xl border px-3 py-3 text-xs leading-6 ${buildProviderPolicyClass(entry.policyRecommendation.severity)}`}>
                         <span className="font-semibold">
                           {locale.startsWith("en") ? "Provider policy" : "Provider 策略"}:{" "}

@@ -871,6 +871,23 @@ export type AgentProviderHealthDeskItem = {
     avgFirstTokenLatencyMs?: number | null;
     estimatedCostUsd?: number | null;
   }>;
+  retryPolicy: {
+    providerKind: string;
+    recommendedTemplateId: string;
+    templates: Array<{
+      id: string;
+      label: string;
+      workloadId: string;
+      providerProfile: AgentProviderProfile;
+      thinkingMode: AgentThinkingMode;
+      firstTokenTimeoutMs: number;
+      totalTimeoutMs: number;
+      streamIdleTimeoutMs: number;
+      retryBudgetMs: number;
+      retryCadence: string;
+      fallbackProfile: AgentProviderProfile;
+    }>;
+  };
   policyRecommendation: {
     severity: "ok" | "watch" | "action";
     summary: string;

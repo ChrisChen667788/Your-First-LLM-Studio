@@ -34,7 +34,7 @@
     "typecheck": "./scripts/run-typecheck.sh full",
     "typecheck:partitions": "./scripts/run-typecheck.sh partitions",
     "typecheck:changed": "./scripts/run-typecheck.sh changed",
-    "smoke:routes": "./scripts/route-smoke.sh",
+    "smoke:routes": "bash ./scripts/route-smoke.sh",
     "smoke:screenshots": "./scripts/screenshot-smoke.sh",
     "screenshots:readme": "node scripts/capture-readme-screenshots.mjs",
     "typecheck:validate": "./scripts/run-typecheck.sh validate",
