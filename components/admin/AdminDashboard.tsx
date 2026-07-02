@@ -19,6 +19,7 @@ import { useLocale } from "@/components/layout/LocaleProvider";
 import { StudioIdentityBand } from "@/components/layout/StudioPageShell";
 import { sanitizeDisplayPath } from "@/lib/agent/path-display";
 import { getBenchmarkContextRecommendationHelper } from "@/lib/agent/context-recommendation";
+import type { BenchmarkReleaseEvidenceSummary } from "@/features/benchmark/contracts";
 import type {
   AgentBenchmarkProgress,
   AgentBenchmarkReleaseEvidence,
@@ -343,6 +344,7 @@ type DashboardResponse = {
     }>;
   }>;
   releaseEvidence: AgentBenchmarkReleaseEvidence[];
+  benchmarkReleaseEvidenceSummary?: BenchmarkReleaseEvidenceSummary;
   providerHealthDesk: AgentProviderHealthDeskItem[];
   adminCompatibilityUsage?: {
     generatedAt: string;
@@ -3149,6 +3151,57 @@ export function AdminDashboard() {
                 </div>
                 <span className="text-[11px] text-slate-500">{data?.releaseEvidence.length || 0}</span>
               </div>
+              {data?.benchmarkReleaseEvidenceSummary ? (
+                <div className="mt-3 rounded-3xl border border-cyan-300/15 bg-cyan-300/10 p-4">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.22em] text-cyan-200">
+                        {locale.startsWith("en") ? "Release note summary" : "发布说明摘要"}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        {locale.startsWith("en")
+                          ? "Pinned benchmark evidence is grouped into release-ready source notes."
+                          : "已固定 benchmark 证据会自动分组为可进入发布说明的来源摘要。"}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 xl:min-w-[440px]">
+                      {[
+                        [
+                          locale.startsWith("en") ? "Matched" : "已匹配",
+                          `${data.benchmarkReleaseEvidenceSummary.totals.matchedRunCount}/${data.benchmarkReleaseEvidenceSummary.totals.evidenceCount}`,
+                        ],
+                        [
+                          locale.startsWith("en") ? "Groups" : "分组",
+                          String(data.benchmarkReleaseEvidenceSummary.totals.groupCount),
+                        ],
+                        [
+                          locale.startsWith("en") ? "Success" : "成功率",
+                          `${data.benchmarkReleaseEvidenceSummary.totals.successRatePct}%`,
+                        ],
+                        [
+                          locale.startsWith("en") ? "Review" : "需复核",
+                          `${data.benchmarkReleaseEvidenceSummary.totals.failedRuns}/${data.benchmarkReleaseEvidenceSummary.totals.skippedRuns}`,
+                        ],
+                      ].map(([label, value]) => (
+                        <div key={label} className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</p>
+                          <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-2 xl:grid-cols-2">
+                    {data.benchmarkReleaseEvidenceSummary.releaseNoteDraft.slice(0, 4).map((line) => (
+                      <p
+                        key={line}
+                        className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-slate-300"
+                      >
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="mt-3 grid gap-3 xl:grid-cols-2">
                 {data?.releaseEvidence.length ? (
                   data.releaseEvidence.map((entry) => (

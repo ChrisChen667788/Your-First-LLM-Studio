@@ -3,6 +3,7 @@ import {
   removeBenchmarkReleaseEvidence,
   upsertBenchmarkReleaseEvidence,
 } from "@/lib/agent/benchmark-release-evidence-store";
+import { buildBenchmarkReleaseEvidenceSummary } from "@/features/benchmark/release-evidence-summary";
 import {
   failBenchmarkProgress,
   finalizeBenchmarkProgressControl,
@@ -38,6 +39,10 @@ const STALE_WORKER_HEARTBEAT_GRACE_MS = 180_000;
 
 export function readBenchmarkReleaseEvidenceEntries() {
   return readBenchmarkReleaseEvidence();
+}
+
+export function readBenchmarkReleaseEvidenceSummary() {
+  return buildBenchmarkReleaseEvidenceSummary();
 }
 
 export function saveBenchmarkReleaseEvidence(input: {

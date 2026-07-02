@@ -36,13 +36,15 @@ Completed in this development slice:
 - Added endpoint/key status, chat/models URLs, curl snippet, token accounting fields, and latency fields to the Model Hub runtime panel.
 - Added Provider Health retry/timeout policy read-models with provider kind, suggested policy template, first-token timeout, total timeout, stream idle timeout, retry budget, and fallback profile.
 - Added Provider Health policy cards to Admin and extended route smoke to guard the policy contract.
+- Added `benchmark.release-evidence-summary.v1` so pinned benchmark evidence now groups stored runs, missing runs, target coverage, failed/skipped samples, success rate, and release-note draft lines.
+- Surfaced the benchmark release-note summary in both `/benchmarks` and Admin, and added route smoke coverage for `/api/admin/benchmark/evidence`.
 - Extended route smoke to guard both the release train API and runtime operations v2 contract.
 
 Next implementation slice:
 
-- Group release evidence by benchmark/fine-tune/provider source and add release-note summaries.
+- Extend release evidence grouping to fine-tune adapter exports and Provider Ops evidence sources.
 - Move Model Hub runtime server controls from the side panel into the primary model cards.
-- Start benchmark-to-release-note summaries and Provider Ops evidence grouping.
+- Start Provider Ops evidence grouping and promotion-gate source rollups.
 
 ## 中文说明
 
