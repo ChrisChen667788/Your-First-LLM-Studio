@@ -1,6 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import {
+  MODEL_RUNTIME_OPERATIONS_CONTRACT_VERSION,
+  type ModelRuntimeDeveloperApiGuide,
+  type ModelRuntimeOperationCapability,
+} from "@/features/models/contracts";
 
 export type ModelRuntimeProfileRecord = {
   id: string;
@@ -71,6 +76,17 @@ export type LocalServerRequestLogSummary = {
   entries: LocalServerRequestLogEntry[];
 };
 
+export type ModelRuntimeOperationsReadModel = {
+  contractVersion: typeof MODEL_RUNTIME_OPERATIONS_CONTRACT_VERSION;
+  generatedAt: string;
+  capabilities: ModelRuntimeOperationCapability[];
+  registry: RuntimeProfileRegistry;
+  idleUnload: LocalServerIdleUnloadConfig;
+  requestLogs: LocalServerRequestLogSummary;
+  developerApi: ModelRuntimeDeveloperApiGuide;
+  paths: ReturnType<typeof getRuntimeProfileStoragePaths>;
+};
+
 const DEFAULT_DATA_DIR = path.join(
   os.homedir(),
   "Library",
@@ -83,6 +99,7 @@ const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || DEFAULT_DATA_DIR;
 const PROFILE_REGISTRY_FILE = path.join(DATA_DIR, "model-runtime-profiles.json");
 const IDLE_UNLOAD_CONFIG_FILE = path.join(DATA_DIR, "local-server-idle-unload.json");
 const CHAT_HISTORY_FILE = path.join(DATA_DIR, "chat-history.jsonl");
+const DEFAULT_LOCAL_SERVER_BASE_URL = "http://localhost:11434/v1";
 
 function ensureDataDir() {
   mkdirSync(DATA_DIR, { recursive: true });
@@ -311,6 +328,54 @@ function average(values: number[]) {
   return Number((numbers.reduce((sum, value) => sum + value, 0) / numbers.length).toFixed(1));
 }
 
+function buildDeveloperApiGuide(targetId?: string): ModelRuntimeDeveloperApiGuide {
+  const endpoint =
+    process.env.LOCAL_OPENAI_COMPAT_BASE_URL ||
+    process.env.OPENAI_COMPATIBLE_BASE_URL ||
+    process.env.OPENAI_BASE_URL ||
+    DEFAULT_LOCAL_SERVER_BASE_URL;
+  const model = targetId || process.env.LOCAL_OPENAI_COMPAT_MODEL || "local-qwen35-4b-4bit";
+  const apiKeyEnv = process.env.LOCAL_OPENAI_COMPAT_API_KEY
+    ? "LOCAL_OPENAI_COMPAT_API_KEY"
+    : process.env.OPENAI_API_KEY
+      ? "OPENAI_API_KEY"
+      : "LOCAL_OPENAI_COMPAT_API_KEY";
+  const keyStatus =
+    endpoint.includes("localhost") || endpoint.includes("127.0.0.1")
+      ? "not-required"
+      : process.env.LOCAL_OPENAI_COMPAT_API_KEY || process.env.OPENAI_API_KEY
+        ? "configured"
+        : "missing";
+  return {
+    endpoint,
+    chatCompletionsUrl: `${endpoint.replace(/\/$/, "")}/chat/completions`,
+    modelsUrl: `${endpoint.replace(/\/$/, "")}/models`,
+    apiKeyEnv,
+    keyStatus,
+    curlExample: [
+      `curl ${endpoint.replace(/\/$/, "")}/chat/completions \\`,
+      `  -H "Authorization: Bearer $${apiKeyEnv}" \\`,
+      `  -H "Content-Type: application/json" \\`,
+      `  -d '{"model":"${model}","messages":[{"role":"user","content":"ping"}],"temperature":0.2}'`,
+    ].join("\n"),
+    openaiSdkExample: [
+      "import OpenAI from \"openai\";",
+      `const client = new OpenAI({ baseURL: "${endpoint}", apiKey: process.env.${apiKeyEnv} || "local" });`,
+      `const response = await client.chat.completions.create({ model: "${model}", messages: [{ role: "user", content: "ping" }] });`,
+    ].join("\n"),
+    tokenAccountingFields: [
+      "usage.promptTokens",
+      "usage.completionTokens",
+      "usage.totalTokens",
+    ],
+    latencyFields: [
+      "latencyMs",
+      "firstTokenLatencyMs",
+      "tokenThroughputTps",
+    ],
+  };
+}
+
 export function readLocalServerRequestLogs(options?: {
   targetId?: string;
   limit?: number;
@@ -345,15 +410,26 @@ export function getRuntimeProfileStoragePaths() {
 export function readModelRuntimeOperations(options?: {
   targetId?: string;
   logLimit?: number;
-}) {
+}): ModelRuntimeOperationsReadModel {
   return {
+    contractVersion: MODEL_RUNTIME_OPERATIONS_CONTRACT_VERSION,
     generatedAt: new Date().toISOString(),
+    capabilities: [
+      "runtime-profiles",
+      "request-logs",
+      "idle-unload",
+      "developer-api",
+      "openai-compatible-server",
+      "token-accounting",
+      "latency-evidence",
+    ],
     registry: readRuntimeProfileRegistry(),
     idleUnload: readIdleUnloadConfig(),
     requestLogs: readLocalServerRequestLogs({
       targetId: options?.targetId,
       limit: options?.logLimit,
     }),
+    developerApi: buildDeveloperApiGuide(options?.targetId),
     paths: getRuntimeProfileStoragePaths(),
   };
 }

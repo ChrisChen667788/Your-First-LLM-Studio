@@ -124,3 +124,37 @@ export type ExperimentRetentionResult = {
   appliedAt: string;
   policy: ExperimentRetentionPolicy;
 };
+
+export type ReleaseTrainStatus =
+  | "active"
+  | "planned"
+  | "blocked"
+  | "evidence-needed";
+
+export type ReleaseTrainTrack =
+  | "ops"
+  | "models"
+  | "rag"
+  | "finetune"
+  | "deployment"
+  | "release";
+
+export type ReleaseTrainMilestone = {
+  version: string;
+  label: string;
+  status: ReleaseTrainStatus;
+  track: ReleaseTrainTrack;
+  targetWindow: string;
+  objective: string;
+  scope: string[];
+  acceptance: string[];
+  evidence: string[];
+  nextSlice: string;
+};
+
+export type ReleaseTrainResponse = {
+  ok: true;
+  generatedAt: string;
+  activeVersion: string;
+  milestones: ReleaseTrainMilestone[];
+};
