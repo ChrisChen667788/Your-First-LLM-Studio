@@ -1,6 +1,6 @@
 # Next 10 Release Train
 
-Last updated: 2026-07-02
+Last updated: 2026-07-03
 
 This release train is the active product contract after `v0.4.2`. It is mirrored in code by:
 
@@ -42,12 +42,17 @@ Completed in this development slice:
 - Added `provider.ops-evidence-summary.v1` so Provider Health Desk can be consumed as a release-gate evidence source with provider status counts, action/watch counts, failure classes, cost/token totals, retry template summaries, and release-note draft lines.
 - Added `experiments.promotion-gate.v1`, combining Benchmark release evidence, Provider Ops evidence, and Fine-tune LoRA evidence into a visible `/experiments` promotion gate with honest PASS/WATCH/HOLD state.
 - Extended route smoke to guard both the release train API and runtime operations v2 contract.
+- Added Adapter Export package completeness checks to the promotion gate, including manifest, model card, publish checklist, optional dataset card, file size, and Git LFS pointer detection.
+- Added docs/screenshots freshness checks to the promotion gate for v0.4.2 release notes, roadmap, fine-tune screenshots, LoRA chart, benchmark evidence, and Model Hub screenshots.
+- Added Model Hub local server actions to runtime target cards so local model cards expose hot-switch, unload, restart, and logs through existing runtime APIs.
+- Ran a complete Adapter Export wizard rehearsal for `qwen3.5`, producing a ModelScope-targeted adapter package with `publishChecklistStatus: PASS`.
+- Added `experiments.release-evidence-matrix.v1`, a 10-round execution tracker that scores every release train version from current contracts, artifacts, blockers, and next actions.
 
 Next implementation slice:
 
-- Extend release evidence grouping to fine-tune adapter exports.
-- Continue moving Model Hub local server actions, hot-switch controls, and idle-unload daemon status into the primary model cards.
-- Extend promotion-gate rollups with adapter export package checks and screenshot/docs evidence freshness.
+- Pin a representative benchmark run as release evidence so the promotion gate can clear the Benchmark blocker.
+- Record at least one successful remote provider request in the 24h Provider Ops evidence window.
+- Continue v0.5.1 by adding public docs route manifest, demo capture manifest, and a small Distillation evidence run.
 
 ## 中文说明
 

@@ -187,3 +187,42 @@ export type PromotionGateResponse = {
   blockers: string[];
   releaseNoteDraft: string[];
 };
+
+export type ReleaseEvidenceMatrixStatus =
+  | "complete"
+  | "in-progress"
+  | "evidence-needed"
+  | "blocked"
+  | "planned";
+
+export type ReleaseEvidenceMatrixRound = {
+  version: string;
+  label: string;
+  track: ReleaseTrainTrack;
+  targetWindow: string;
+  status: ReleaseEvidenceMatrixStatus;
+  completionPct: number;
+  summary: string;
+  shipped: string[];
+  evidence: string[];
+  blockers: string[];
+  nextActions: string[];
+  metrics: Record<string, string | number | boolean | null>;
+};
+
+export type ReleaseEvidenceMatrixResponse = {
+  ok: true;
+  schemaVersion: "experiments.release-evidence-matrix.v1";
+  generatedAt: string;
+  activeVersion: string;
+  rounds: ReleaseEvidenceMatrixRound[];
+  totals: {
+    roundCount: number;
+    completeCount: number;
+    inProgressCount: number;
+    evidenceNeededCount: number;
+    blockedCount: number;
+    plannedCount: number;
+    averageCompletionPct: number;
+  };
+};

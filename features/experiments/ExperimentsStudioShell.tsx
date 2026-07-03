@@ -9,6 +9,7 @@ import {
 } from "@/components/layout/StudioPageShell";
 import { ExperimentTimelinePanel } from "@/features/experiments/ExperimentTimelinePanel";
 import { PromotionGatePanel } from "@/features/experiments/PromotionGatePanel";
+import { ReleaseEvidenceMatrixPanel } from "@/features/experiments/ReleaseEvidenceMatrixPanel";
 import { ReleaseTrainPanel } from "@/features/experiments/ReleaseTrainPanel";
 
 export function ExperimentsStudioShell() {
@@ -26,6 +27,7 @@ export function ExperimentsStudioShell() {
       />
       <StudioSegmentedChips labels={[en ? "Artifact references" : "产物引用", en ? "Cross-feature lineage" : "跨模块 lineage", en ? "Retention policy" : "保留策略", en ? "Release train" : "版本列车"]} />
       <PromotionGatePanel locale={locale} />
+      <ReleaseEvidenceMatrixPanel locale={locale} />
       <ReleaseTrainPanel locale={locale} />
       <ExperimentTimelinePanel locale={locale} showRetention />
     </StudioSurface>
