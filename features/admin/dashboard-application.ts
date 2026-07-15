@@ -7,6 +7,10 @@ import { resolveTargetWithMode } from "@/lib/agent/providers";
 import { buildProviderHealthDesk } from "@/lib/agent/provider-health-desk";
 import { readBenchmarkReleaseEvidence } from "@/lib/agent/benchmark-release-evidence-store";
 import { readAdminCompatibilityUsageSummary } from "@/features/admin/compatibility-usage";
+import { readAdminCompatibilitySunsetEvidence } from "@/features/admin/compatibility-sunset";
+import { readAdminCompatibilityDeletionManifest } from "@/features/admin/compatibility-deletion-manifest";
+import { buildBenchmarkReleaseEvidenceSummary } from "@/features/benchmark/release-evidence-summary";
+import { readProviderOpsEvidenceSummary } from "@/features/providers/provider-ops-evidence";
 
 export const runtime = "nodejs";
 
@@ -206,7 +210,8 @@ export async function GET(request: Request) {
     )
     .sort((left, right) => right.generatedAt.localeCompare(left.generatedAt))
     .slice(0, 20);
-  const releaseEvidence = readBenchmarkReleaseEvidence()
+  const rawReleaseEvidence = readBenchmarkReleaseEvidence();
+  const releaseEvidence = rawReleaseEvidence
     .map((entry) => {
       const matching = allBenchmarkHistoryRaw.find((row) => row.runId === entry.runId);
       if (!matching) return null;
@@ -230,9 +235,16 @@ export async function GET(request: Request) {
     })
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
     .slice(0, 8);
+  const benchmarkReleaseEvidenceSummary = buildBenchmarkReleaseEvidenceSummary({
+    evidence: rawReleaseEvidence,
+    logs: allBenchmarkHistoryRaw,
+  });
   const providerDeskWindowMinutes = Math.max(windowMinutes, 24 * 60);
   const providerDeskSinceIso = new Date(Date.now() - providerDeskWindowMinutes * 60 * 1000).toISOString();
   const providerHealthDesk = buildProviderHealthDesk({ sinceIso: providerDeskSinceIso });
+  const providerOpsEvidenceSummary = readProviderOpsEvidenceSummary({
+    windowHours: Math.round(providerDeskWindowMinutes / 60),
+  });
   const benchmarkTrendMap = new Map<
     string,
     {
@@ -429,9 +441,13 @@ export async function GET(request: Request) {
     comparison,
     benchmarkHistory,
     releaseEvidence,
+    benchmarkReleaseEvidenceSummary,
     benchmarkTrends,
     providerHealthDesk,
+    providerOpsEvidenceSummary,
     adminCompatibilityUsage: readAdminCompatibilityUsageSummary(),
+    adminCompatibilitySunset: readAdminCompatibilitySunsetEvidence(),
+    adminCompatibilityDeletionManifest: readAdminCompatibilityDeletionManifest(),
     benchmarkHeatmap,
     paths: getObservabilityPaths()
   });

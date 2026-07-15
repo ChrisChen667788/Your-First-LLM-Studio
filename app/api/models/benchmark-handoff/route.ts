@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { createModelBenchmarkHandoff, readModelBenchmarkHandoffEvidence } from "@/features/models/benchmark-handoff";
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export async function GET() { return NextResponse.json(readModelBenchmarkHandoffEvidence()); }
+export async function POST(request: Request) { try { const body = await request.json().catch(() => ({})) as { modelId?: string; targetId?: string; promptSetId?: string; runs?: number; contextWindow?: number }; if (!body.modelId || !body.targetId) throw new Error("modelId and targetId are required."); const receipt = createModelBenchmarkHandoff({ modelId: body.modelId, targetId: body.targetId, promptSetId: body.promptSetId, runs: body.runs, contextWindow: body.contextWindow }); return NextResponse.json({ ok: receipt.status === "ready", receipt, evidence: readModelBenchmarkHandoffEvidence() }, { status: receipt.status === "ready" ? 200 : 422 }); } catch (error) { return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Benchmark handoff failed." }, { status: 400 }); } }

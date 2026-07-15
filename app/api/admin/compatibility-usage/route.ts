@@ -1,40 +1,41 @@
 import { NextResponse } from "next/server";
 import {
-  clearAdminCompatibilityUsageSummary,
-  readAdminCompatibilityUsageSummary,
-} from "@/features/admin/compatibility-usage";
-import { appendExperimentEvent } from "@/features/experiments/timeline-service";
+  AdminCompatibilityApplicationError,
+  clearAdminCompatibilityApplication,
+  readAdminCompatibilityApplication,
+  runAdminCompatibilityAction,
+  type AdminCompatibilityActionInput,
+} from "@/features/admin/compatibility-application";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json({
-    ok: true,
-    summary: readAdminCompatibilityUsageSummary(),
-  });
+  return NextResponse.json(readAdminCompatibilityApplication());
+}
+
+export async function POST(request: Request) {
+  const body = (await request.json().catch(() => ({}))) as
+    AdminCompatibilityActionInput;
+  try {
+    return NextResponse.json(runAdminCompatibilityAction(body));
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error
+          ? error.message
+          : "Compatibility usage action failed.",
+      },
+      {
+        status: error instanceof AdminCompatibilityApplicationError
+          ? error.status
+          : 400,
+      },
+    );
+  }
 }
 
 export async function DELETE() {
-  const result = clearAdminCompatibilityUsageSummary();
-  appendExperimentEvent({
-    kind: "provider",
-    status: "completed",
-    title: "Admin compatibility usage cleared",
-    summary: `Cleared ${result.before.totalHits} deprecated Admin compatibility API hit${result.before.totalHits === 1 ? "" : "s"} across ${result.before.routeCount} route${result.before.routeCount === 1 ? "" : "s"}.`,
-    artifacts: [
-      {
-        kind: "api",
-        role: "manifest",
-        label: "Admin compatibility usage",
-        uri: "/api/admin/compatibility-usage",
-      },
-    ],
-    metadata: {
-      previousHits: result.before.totalHits,
-      previousRoutes: result.before.routeCount,
-      clearedAt: result.clearedAt,
-    },
-  });
-  return NextResponse.json(result);
+  return NextResponse.json(clearAdminCompatibilityApplication());
 }

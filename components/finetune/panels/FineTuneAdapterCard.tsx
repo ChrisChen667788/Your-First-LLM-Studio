@@ -10,6 +10,8 @@ type FineTuneAdapterCardProps = {
   onSendToBenchmark: (adapterId: string) => void;
   onSendToCompare: (adapterId: string) => void;
   onRunProofLoop: (adapterId: string) => void;
+  onRecordLifecycleExportPlan: (adapterId: string) => void;
+  onRunLifecycleRollbackProof: (adapterId: string) => void;
   onOpenDir: (adapterId: string) => void;
   onCopyPath: (path: string) => void;
   onOpenSource: (adapterId: string) => void;
@@ -25,6 +27,8 @@ export function FineTuneAdapterCard({
   onSendToBenchmark,
   onSendToCompare,
   onRunProofLoop,
+  onRecordLifecycleExportPlan,
+  onRunLifecycleRollbackProof,
   onOpenDir,
   onCopyPath,
   onOpenSource,
@@ -165,6 +169,32 @@ export function FineTuneAdapterCard({
           {actionPending[`adapter-proof:${adapter.id}`]
             ? text.loading
             : text.runProofLoop}
+        </button>
+        <button
+          type="button"
+          disabled={
+            adapter.status !== "ready" ||
+            Boolean(actionPending[`adapter-export-plan:${adapter.id}`])
+          }
+          onClick={() => onRecordLifecycleExportPlan(adapter.id)}
+          className="rounded-full border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-1.5 text-[11px] font-semibold text-fuchsia-100 transition enabled:hover:bg-fuchsia-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {actionPending[`adapter-export-plan:${adapter.id}`]
+            ? text.loading
+            : text.recordLifecycleExportPlan}
+        </button>
+        <button
+          type="button"
+          disabled={
+            adapter.status !== "ready" ||
+            Boolean(actionPending[`adapter-rollback-proof:${adapter.id}`])
+          }
+          onClick={() => onRunLifecycleRollbackProof(adapter.id)}
+          className="rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-[11px] font-semibold text-amber-100 transition enabled:hover:bg-amber-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {actionPending[`adapter-rollback-proof:${adapter.id}`]
+            ? text.loading
+            : text.runLifecycleRollbackProof}
         </button>
         <button
           type="button"

@@ -4,4 +4,4 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 cd "$ROOT"
-exec ./scripts/smoke-test.sh
+exec bash ./scripts/smoke-test.sh

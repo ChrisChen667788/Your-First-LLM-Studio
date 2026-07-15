@@ -73,6 +73,76 @@ type RuntimePaths = {
   chatHistoryFile: string;
 };
 
+type DeveloperApiGuide = {
+  endpoint: string;
+  chatCompletionsUrl: string;
+  modelsUrl: string;
+  apiKeyEnv: string;
+  keyStatus: "configured" | "missing" | "not-required";
+  curlExample: string;
+  openaiSdkExample: string;
+  tokenAccountingFields: string[];
+  latencyFields: string[];
+};
+
+type RuntimeTargetServerAction = {
+  id: "hot-switch" | "unload" | "restart" | "read-log";
+  label: string;
+  description: string;
+  endpoint: string;
+  method: "POST";
+  enabled: boolean;
+};
+
+type RuntimeTargetCard = {
+  targetId: string;
+  label: string;
+  providerLabel: string;
+  execution: string;
+  resolvedModel: string;
+  endpoint: string;
+  chatCompletionsUrl: string;
+  modelsUrl: string;
+  apiKeyEnv?: string;
+  keyStatus: "configured" | "missing" | "not-required";
+  recommendedContext?: string;
+  recommendedContextWindow?: number;
+  memoryProfile?: string;
+  profileCount: number;
+  profileLabels: string[];
+  toolEnabledProfileCount: number;
+  ragEnabledProfileCount: number;
+  idleUnloadEnabled: boolean;
+  idleMinutes: number;
+  requestCount: number;
+  failureCount: number;
+  totalTokens: number;
+  avgLatencyMs: number | null;
+  lastRequestAt?: string;
+  serverActions: RuntimeTargetServerAction[];
+};
+
+type RuntimeActionResponse = {
+  ok?: boolean;
+  targetId?: string;
+  targetLabel?: string;
+  message?: string;
+  status?: string;
+  loadMs?: number;
+  warmupMs?: number;
+  releasedAlias?: string | null;
+  logExcerpt?: string;
+  logSummary?: {
+    totalLines: number;
+    matchedLines: number;
+    errorLines: number;
+    warningLines: number;
+    restartMentions: number;
+    loadingMentions: number;
+  };
+  error?: string;
+};
+
 type ModelHubRuntimePanelProps = {
   embedded?: boolean;
 };
@@ -128,16 +198,34 @@ function profileTone(source: RuntimeProfile["source"]) {
     : "border-emerald-300/20 bg-emerald-400/10 text-emerald-100";
 }
 
+function targetActionKey(targetId: string, actionId: RuntimeTargetServerAction["id"]) {
+  return `target-action:${targetId}:${actionId}`;
+}
+
+function mapRuntimeAction(actionId: RuntimeTargetServerAction["id"]) {
+  if (actionId === "unload") return "release";
+  if (actionId === "read-log") return "read_log";
+  return actionId;
+}
+
 export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelProps) {
   const [registry, setRegistry] = useState<RuntimeProfileRegistry | null>(null);
   const [idleConfig, setIdleConfig] = useState<IdleUnloadConfig | null>(null);
   const [logs, setLogs] = useState<RequestLogSummary | null>(null);
   const [paths, setPaths] = useState<RuntimePaths | null>(null);
+  const [developerApi, setDeveloperApi] = useState<DeveloperApiGuide | null>(null);
+  const [targetCards, setTargetCards] = useState<RuntimeTargetCard[]>([]);
   const [profileDraft, setProfileDraft] = useState(EMPTY_PROFILE);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pending, setPending] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [runtimeLog, setRuntimeLog] = useState<{
+    targetId: string;
+    targetLabel: string;
+    excerpt: string;
+    summary?: RuntimeActionResponse["logSummary"];
+  } | null>(null);
 
   const userProfiles = useMemo(
     () => registry?.profiles.filter((profile) => profile.source === "user") || [],
@@ -171,6 +259,8 @@ export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelP
           registry: RuntimeProfileRegistry;
           idleUnload: IdleUnloadConfig;
           requestLogs: RequestLogSummary;
+          developerApi: DeveloperApiGuide;
+          targetCards: RuntimeTargetCard[];
           paths: RuntimePaths;
         };
         error?: string;
@@ -181,6 +271,8 @@ export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelP
       setRegistry(payload.operations.registry);
       setIdleConfig(payload.operations.idleUnload);
       setLogs(payload.operations.requestLogs);
+      setDeveloperApi(payload.operations.developerApi);
+      setTargetCards(payload.operations.targetCards || []);
       setPaths(payload.operations.paths);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load Model Hub runtime panel.");
@@ -292,6 +384,52 @@ export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelP
     }
   }
 
+  async function runTargetAction(target: RuntimeTargetCard, action: RuntimeTargetServerAction) {
+    if (!action.enabled || target.execution !== "local") return;
+    const pendingKey = targetActionKey(target.targetId, action.id);
+    setPending(pendingKey);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(action.endpoint, {
+        method: action.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          action.id === "hot-switch"
+            ? { targetId: target.targetId }
+            : {
+                targetId: target.targetId,
+                action: mapRuntimeAction(action.id),
+              },
+        ),
+      });
+      const payload = (await response.json()) as RuntimeActionResponse;
+      if (!response.ok) {
+        throw new Error(payload.error || payload.message || `${action.label} failed.`);
+      }
+      const timing = [
+        typeof payload.loadMs === "number" ? `load ${payload.loadMs.toFixed(0)} ms` : "",
+        typeof payload.warmupMs === "number" ? `warm ${payload.warmupMs.toFixed(0)} ms` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      if (action.id === "read-log" && payload.logExcerpt) {
+        setRuntimeLog({
+          targetId: target.targetId,
+          targetLabel: target.label,
+          excerpt: payload.logExcerpt,
+          summary: payload.logSummary,
+        });
+      }
+      setMessage(`${target.label}: ${payload.message || `${action.label} completed.`}${timing ? ` · ${timing}` : ""}`);
+      await loadAll();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : `${action.label} failed.`);
+    } finally {
+      setPending("");
+    }
+  }
+
   return (
     <section className={embedded ? "text-slate-100" : "min-h-screen bg-[#031513] px-6 py-6 text-slate-100"}>
       <section className={embedded ? "space-y-5" : "mx-auto max-w-[1680px] rounded-[32px] border border-white/10 bg-slate-950/80 p-5 shadow-[0_28px_90px_rgba(2,8,23,0.5)]"}>
@@ -325,6 +463,133 @@ export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelP
             {error || message}
           </div>
         ) : null}
+
+        <section className="mt-5 rounded-3xl border border-emerald-300/15 bg-emerald-300/8 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Runtime target cards</p>
+              <p className="mt-1 text-xs leading-5 text-emerald-100/70">
+                OpenAI-compatible server state, profiles, request logs, and idle-unload policy are now visible beside the model catalog.
+              </p>
+            </div>
+            <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-emerald-100">
+              {targetCards.length} targets
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+            {targetCards.slice(0, 9).map((target) => (
+              <article
+                key={target.targetId}
+                className="rounded-[26px] border border-white/10 bg-slate-950/70 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-semibold text-white">{target.label}</p>
+                    <p className="mt-1 truncate text-xs text-slate-400">{target.resolvedModel}</p>
+                  </div>
+                  <span className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                    target.execution === "local"
+                      ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-100"
+                      : "border-violet-300/20 bg-violet-400/10 text-violet-100"
+                  }`}>
+                    {target.execution}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.14em] text-slate-300">
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">{target.providerLabel}</span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                    {target.recommendedContext || (target.recommendedContextWindow ? `${Math.round(target.recommendedContextWindow / 1024)}K` : "context --")}
+                  </span>
+                  <span className={`rounded-full border px-2.5 py-1 ${
+                    target.keyStatus === "missing"
+                      ? "border-amber-300/20 bg-amber-300/10 text-amber-100"
+                      : "border-cyan-300/20 bg-cyan-400/10 text-cyan-100"
+                  }`}>
+                    key {target.keyStatus}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-300">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">Requests</p>
+                    <p className="mt-1 font-semibold text-white">{target.requestCount}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">Latency</p>
+                    <p className="mt-1 font-semibold text-white">{formatNumber(target.avgLatencyMs, " ms")}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">Tokens</p>
+                    <p className="mt-1 font-semibold text-white">{target.totalTokens}</p>
+                  </div>
+                </div>
+                <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-slate-300">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span>Profiles {target.profileCount}</span>
+                    <span>Tools {target.toolEnabledProfileCount} · RAG {target.ragEnabledProfileCount}</span>
+                  </div>
+                  <p className="mt-2 line-clamp-1 text-slate-500">
+                    {target.profileLabels.length ? target.profileLabels.join(" · ") : "No saved runtime profile yet"}
+                  </p>
+                </div>
+                <div className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 px-3 py-2 text-xs leading-5 text-cyan-50/85">
+                  <p className="break-all">{target.chatCompletionsUrl}</p>
+                  <p className="mt-1 text-cyan-100/60">
+                    Idle unload {target.idleUnloadEnabled ? `${target.idleMinutes} min` : "off"}
+                    {target.failureCount ? ` · ${target.failureCount} failed` : ""}
+                    {target.lastRequestAt ? ` · ${formatDate(target.lastRequestAt)}` : ""}
+                  </p>
+                </div>
+                {target.serverActions.length ? (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {target.serverActions.map((action) => {
+                      const pendingKey = targetActionKey(target.targetId, action.id);
+                      const isPending = pending === pendingKey;
+                      return (
+                        <button
+                          key={action.id}
+                          type="button"
+                          title={action.description}
+                          onClick={() => void runTargetAction(target, action)}
+                          disabled={!action.enabled || pending !== "" || target.execution !== "local"}
+                          className={`rounded-2xl border px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] transition disabled:opacity-50 ${
+                            action.id === "hot-switch"
+                              ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-50 hover:bg-emerald-400/15"
+                              : action.id === "unload"
+                                ? "border-amber-300/20 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15"
+                                : action.id === "restart"
+                                  ? "border-violet-300/20 bg-violet-400/10 text-violet-100 hover:bg-violet-400/15"
+                                  : "border-cyan-300/20 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15"
+                          }`}
+                        >
+                          {isPending ? "Running..." : action.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs leading-5 text-slate-500">
+                    Remote target: server actions stay in provider/API health surfaces.
+                  </p>
+                )}
+                {runtimeLog?.targetId === target.targetId ? (
+                  <div className="mt-3 rounded-2xl border border-white/10 bg-black/30 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                      <span>Gateway logs</span>
+                      <span>
+                        {runtimeLog.summary
+                          ? `${runtimeLog.summary.errorLines} errors · ${runtimeLog.summary.warningLines} warnings`
+                          : "latest excerpt"}
+                      </span>
+                    </div>
+                    <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-xs leading-5 text-slate-300">
+                      {runtimeLog.excerpt}
+                    </pre>
+                  </div>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        </section>
 
         <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.42fr)]">
           <section className="rounded-3xl border border-white/10 bg-black/25 p-4">
@@ -383,6 +648,49 @@ export function ModelHubRuntimePanel({ embedded = false }: ModelHubRuntimePanelP
           </section>
 
           <aside className="space-y-4">
+            <section className="rounded-3xl border border-white/10 bg-black/25 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">Developer API</p>
+                  <p className="mt-1 break-all text-xs text-slate-400">
+                    {developerApi?.endpoint || "OpenAI-compatible endpoint"}
+                  </p>
+                </div>
+                <span className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                  developerApi?.keyStatus === "missing"
+                    ? "border-amber-300/20 bg-amber-300/10 text-amber-100"
+                    : "border-emerald-300/20 bg-emerald-400/10 text-emerald-100"
+                }`}>
+                  {developerApi?.keyStatus || "loading"}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-2 text-xs text-slate-300">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2">
+                  <p className="uppercase tracking-[0.16em] text-slate-500">Chat</p>
+                  <p className="mt-1 break-all text-slate-100">{developerApi?.chatCompletionsUrl || "--"}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2">
+                  <p className="uppercase tracking-[0.16em] text-slate-500">Models</p>
+                  <p className="mt-1 break-all text-slate-100">{developerApi?.modelsUrl || "--"}</p>
+                </div>
+              </div>
+              <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-slate-950/80 p-3 text-xs leading-5 text-cyan-100">
+                {developerApi?.curlExample || "curl ..."}
+              </pre>
+              <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.14em] text-slate-300">
+                {(developerApi?.tokenAccountingFields || ["usage.totalTokens"]).map((field) => (
+                  <span key={field} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                    {field}
+                  </span>
+                ))}
+                {(developerApi?.latencyFields || ["latencyMs"]).map((field) => (
+                  <span key={field} className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
+                    {field}
+                  </span>
+                ))}
+              </div>
+            </section>
+
             <section className="rounded-3xl border border-white/10 bg-black/25 p-4">
               <p className="text-sm font-semibold text-white">Save Profile</p>
               <div className="mt-3 space-y-3">

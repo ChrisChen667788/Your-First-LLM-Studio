@@ -25,6 +25,13 @@ import {
   runFineTuneEvaluation,
 } from "@/lib/finetune/evaluation-service";
 import {
+  backfillFineTuneBestCheckpoints,
+} from "@/lib/finetune/best-checkpoint-service";
+import {
+  recordFineTuneAdapterExportPlan,
+  runFineTuneAdapterRollbackProof,
+} from "@/lib/finetune/lifecycle-service";
+import {
   importFineTuneCommunityDataset,
   checkFineTuneDatasetUpstream,
   refreshDueFineTuneDatasetWatches,
@@ -648,6 +655,57 @@ export async function POST(request: Request) {
       return NextResponse.json({
         ok: true,
         opened,
+        summary: readFineTuneSummary(),
+      });
+    }
+
+    if (body.action === "backfill-best-checkpoints") {
+      const backfill = backfillFineTuneBestCheckpoints();
+      return NextResponse.json({
+        ok: true,
+        backfill,
+        summary: readFineTuneSummary(),
+      });
+    }
+
+    if (body.action === "record-lifecycle-export-plan") {
+      const adapterId =
+        typeof body.adapterId === "string" ? body.adapterId.trim() : "";
+      if (!adapterId) {
+        return NextResponse.json(
+          { error: "adapterId is required for record-lifecycle-export-plan." },
+          { status: 400 },
+        );
+      }
+      const result = recordFineTuneAdapterExportPlan({
+        adapterId,
+        exportFormat:
+          typeof body.exportFormat === "string" ? body.exportFormat : undefined,
+        quantization:
+          typeof body.quantization === "string" ? body.quantization : undefined,
+      });
+      return NextResponse.json({
+        ok: true,
+        lifecycleAction: result.action,
+        lifecycle: result.lifecycle,
+        summary: readFineTuneSummary(),
+      });
+    }
+
+    if (body.action === "run-lifecycle-rollback-proof") {
+      const adapterId =
+        typeof body.adapterId === "string" ? body.adapterId.trim() : "";
+      if (!adapterId) {
+        return NextResponse.json(
+          { error: "adapterId is required for run-lifecycle-rollback-proof." },
+          { status: 400 },
+        );
+      }
+      const result = await runFineTuneAdapterRollbackProof({ adapterId });
+      return NextResponse.json({
+        ok: result.action.status === "completed",
+        lifecycleAction: result.action,
+        lifecycle: result.lifecycle,
         summary: readFineTuneSummary(),
       });
     }

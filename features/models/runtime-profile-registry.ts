@@ -1,6 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import {
+  MODEL_RUNTIME_OPERATIONS_CONTRACT_VERSION,
+  type ModelRuntimeDeveloperApiGuide,
+  type ModelRuntimeOperationCapability,
+} from "@/features/models/contracts";
+import { listServerAgentTargets } from "@/lib/agent/server-targets";
 
 export type ModelRuntimeProfileRecord = {
   id: string;
@@ -71,6 +77,55 @@ export type LocalServerRequestLogSummary = {
   entries: LocalServerRequestLogEntry[];
 };
 
+export type ModelRuntimeOperationsReadModel = {
+  contractVersion: typeof MODEL_RUNTIME_OPERATIONS_CONTRACT_VERSION;
+  generatedAt: string;
+  capabilities: ModelRuntimeOperationCapability[];
+  registry: RuntimeProfileRegistry;
+  idleUnload: LocalServerIdleUnloadConfig;
+  requestLogs: LocalServerRequestLogSummary;
+  developerApi: ModelRuntimeDeveloperApiGuide;
+  targetCards: ModelRuntimeTargetCard[];
+  paths: ReturnType<typeof getRuntimeProfileStoragePaths>;
+};
+
+export type ModelRuntimeTargetCard = {
+  targetId: string;
+  label: string;
+  providerLabel: string;
+  execution: string;
+  resolvedModel: string;
+  endpoint: string;
+  chatCompletionsUrl: string;
+  modelsUrl: string;
+  apiKeyEnv?: string;
+  keyStatus: ModelRuntimeDeveloperApiGuide["keyStatus"];
+  recommendedContext?: string;
+  recommendedContextWindow?: number;
+  memoryProfile?: string;
+  profileCount: number;
+  profileLabels: string[];
+  toolEnabledProfileCount: number;
+  ragEnabledProfileCount: number;
+  idleUnloadEnabled: boolean;
+  idleMinutes: number;
+  requestCount: number;
+  failureCount: number;
+  totalTokens: number;
+  avgLatencyMs: number | null;
+  lastRequestAt?: string;
+  serverActions: ModelRuntimeTargetServerAction[];
+};
+
+export type ModelRuntimeTargetServerAction = {
+  id: "hot-switch" | "unload" | "restart" | "read-log";
+  label: string;
+  description: string;
+  endpoint: string;
+  method: "POST";
+  enabled: boolean;
+};
+
 const DEFAULT_DATA_DIR = path.join(
   os.homedir(),
   "Library",
@@ -83,6 +138,7 @@ const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || DEFAULT_DATA_DIR;
 const PROFILE_REGISTRY_FILE = path.join(DATA_DIR, "model-runtime-profiles.json");
 const IDLE_UNLOAD_CONFIG_FILE = path.join(DATA_DIR, "local-server-idle-unload.json");
 const CHAT_HISTORY_FILE = path.join(DATA_DIR, "chat-history.jsonl");
+const DEFAULT_LOCAL_SERVER_BASE_URL = "http://localhost:11434/v1";
 
 function ensureDataDir() {
   mkdirSync(DATA_DIR, { recursive: true });
@@ -311,6 +367,152 @@ function average(values: number[]) {
   return Number((numbers.reduce((sum, value) => sum + value, 0) / numbers.length).toFixed(1));
 }
 
+function resolveEndpointForTarget(target?: { baseUrlEnv?: string; baseUrlDefault?: string }) {
+  if (target) {
+    return (
+      (target.baseUrlEnv ? process.env[target.baseUrlEnv] : "") ||
+      target.baseUrlDefault ||
+      DEFAULT_LOCAL_SERVER_BASE_URL
+    ).replace(/\/$/, "");
+  }
+  return (
+    process.env.LOCAL_OPENAI_COMPAT_BASE_URL ||
+    process.env.OPENAI_COMPATIBLE_BASE_URL ||
+    process.env.OPENAI_BASE_URL ||
+    DEFAULT_LOCAL_SERVER_BASE_URL
+  ).replace(/\/$/, "");
+}
+
+function resolveKeyStatusForTarget(target: { execution?: string; apiKeyEnv?: string }, endpoint: string) {
+  if (
+    target.execution === "local" ||
+    endpoint.includes("localhost") ||
+    endpoint.includes("127.0.0.1")
+  ) {
+    return "not-required" as const;
+  }
+  return target.apiKeyEnv && process.env[target.apiKeyEnv] ? "configured" as const : "missing" as const;
+}
+
+function buildDeveloperApiGuide(targetId?: string): ModelRuntimeDeveloperApiGuide {
+  const target = targetId ? listServerAgentTargets().find((item) => item.id === targetId) : undefined;
+  const endpoint = resolveEndpointForTarget(target);
+  const model = targetId || process.env.LOCAL_OPENAI_COMPAT_MODEL || "local-qwen35-4b-4bit";
+  const apiKeyEnv = target?.apiKeyEnv || "LOCAL_OPENAI_COMPAT_API_KEY";
+  const keyStatus = resolveKeyStatusForTarget(target || { execution: "local", apiKeyEnv }, endpoint);
+  return {
+    endpoint,
+    chatCompletionsUrl: `${endpoint}/chat/completions`,
+    modelsUrl: `${endpoint}/models`,
+    apiKeyEnv,
+    keyStatus,
+    curlExample: [
+      `curl ${endpoint}/chat/completions \\`,
+      `  -H "Authorization: Bearer $${apiKeyEnv}" \\`,
+      `  -H "Content-Type: application/json" \\`,
+      `  -d '{"model":"${model}","messages":[{"role":"user","content":"ping"}],"temperature":0.2}'`,
+    ].join("\n"),
+    openaiSdkExample: [
+      "import OpenAI from \"openai\";",
+      `const client = new OpenAI({ baseURL: "${endpoint}", apiKey: process.env.${apiKeyEnv} || "local" });`,
+      `const response = await client.chat.completions.create({ model: "${model}", messages: [{ role: "user", content: "ping" }] });`,
+    ].join("\n"),
+    tokenAccountingFields: [
+      "usage.promptTokens",
+      "usage.completionTokens",
+      "usage.totalTokens",
+    ],
+    latencyFields: [
+      "latencyMs",
+      "firstTokenLatencyMs",
+      "tokenThroughputTps",
+    ],
+  };
+}
+
+function buildRuntimeTargetCards(input: {
+  registry: RuntimeProfileRegistry;
+  idleUnload: LocalServerIdleUnloadConfig;
+  requestLogs: LocalServerRequestLogSummary;
+}): ModelRuntimeTargetCard[] {
+  return listServerAgentTargets()
+    .filter((target) => target.transport === "openai-compatible")
+    .map((target) => {
+      const endpoint = resolveEndpointForTarget(target);
+      const profiles = input.registry.profiles.filter((profile) => profile.targetId === target.id);
+      const logs = input.requestLogs.entries.filter((entry) => entry.targetId === target.id);
+      const serverActions: ModelRuntimeTargetServerAction[] =
+        target.execution === "local"
+          ? [
+              {
+                id: "hot-switch",
+                label: "Hot switch",
+                description: "Load or switch the local server to this model target.",
+                endpoint: "/api/agent/runtime/prewarm",
+                method: "POST",
+                enabled: true,
+              },
+              {
+                id: "unload",
+                label: "Unload",
+                description: "Release the currently loaded local model from the gateway.",
+                endpoint: "/api/agent/runtime/actions",
+                method: "POST",
+                enabled: true,
+              },
+              {
+                id: "restart",
+                label: "Restart",
+                description: "Restart the local OpenAI-compatible gateway.",
+                endpoint: "/api/agent/runtime/actions",
+                method: "POST",
+                enabled: true,
+              },
+              {
+                id: "read-log",
+                label: "Logs",
+                description: "Read recent local gateway logs for this target.",
+                endpoint: "/api/agent/runtime/actions",
+                method: "POST",
+                enabled: true,
+              },
+            ]
+          : [];
+      return {
+        targetId: target.id,
+        label: target.label,
+        providerLabel: target.providerLabel,
+        execution: target.execution,
+        resolvedModel: target.modelDefault,
+        endpoint,
+        chatCompletionsUrl: `${endpoint}/chat/completions`,
+        modelsUrl: `${endpoint}/models`,
+        apiKeyEnv: target.apiKeyEnv,
+        keyStatus: resolveKeyStatusForTarget(target, endpoint),
+        recommendedContext: target.recommendedContext,
+        recommendedContextWindow: target.recommendedContextWindow ?? undefined,
+        memoryProfile: target.memoryProfile,
+        profileCount: profiles.length,
+        profileLabels: profiles.map((profile) => profile.label).slice(0, 3),
+        toolEnabledProfileCount: profiles.filter((profile) => profile.enableTools).length,
+        ragEnabledProfileCount: profiles.filter((profile) => profile.enableRetrieval).length,
+        idleUnloadEnabled: input.idleUnload.enabled,
+        idleMinutes: input.idleUnload.idleMinutes,
+        requestCount: logs.length,
+        failureCount: logs.filter((entry) => !entry.ok).length,
+        totalTokens: logs.reduce((sum, entry) => sum + (entry.usage?.totalTokens || 0), 0),
+        avgLatencyMs: average(logs.map((entry) => entry.latencyMs)),
+        lastRequestAt: logs[0]?.completedAt,
+        serverActions,
+      };
+    })
+    .sort((left, right) => {
+      if (left.execution !== right.execution) return left.execution === "local" ? -1 : 1;
+      if (right.profileCount !== left.profileCount) return right.profileCount - left.profileCount;
+      return left.label.localeCompare(right.label);
+    });
+}
+
 export function readLocalServerRequestLogs(options?: {
   targetId?: string;
   limit?: number;
@@ -345,14 +547,34 @@ export function getRuntimeProfileStoragePaths() {
 export function readModelRuntimeOperations(options?: {
   targetId?: string;
   logLimit?: number;
-}) {
+}): ModelRuntimeOperationsReadModel {
+  const registry = readRuntimeProfileRegistry();
+  const idleUnload = readIdleUnloadConfig();
+  const requestLogs = readLocalServerRequestLogs({
+    targetId: options?.targetId,
+    limit: options?.logLimit,
+  });
   return {
+    contractVersion: MODEL_RUNTIME_OPERATIONS_CONTRACT_VERSION,
     generatedAt: new Date().toISOString(),
-    registry: readRuntimeProfileRegistry(),
-    idleUnload: readIdleUnloadConfig(),
-    requestLogs: readLocalServerRequestLogs({
-      targetId: options?.targetId,
-      limit: options?.logLimit,
+    capabilities: [
+      "runtime-profiles",
+      "request-logs",
+      "idle-unload",
+      "developer-api",
+      "openai-compatible-server",
+      "token-accounting",
+      "latency-evidence",
+      "server-actions",
+    ],
+    registry,
+    idleUnload,
+    requestLogs,
+    developerApi: buildDeveloperApiGuide(options?.targetId),
+    targetCards: buildRuntimeTargetCards({
+      registry,
+      idleUnload,
+      requestLogs,
     }),
     paths: getRuntimeProfileStoragePaths(),
   };

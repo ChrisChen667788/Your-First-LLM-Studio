@@ -1,9 +1,14 @@
 import { readChatLogs, readConnectionCheckLogs } from "@/lib/agent/log-store";
 import { listServerAgentTargets } from "@/lib/agent/server-targets";
+import {
+  resolveRemoteBenchmarkPolicy,
+  type RemoteBenchmarkProviderKind,
+} from "@/lib/agent/benchmark-remote-policy";
 import type {
   AgentProviderHealthDeskItem,
   AgentProviderProfile,
   AgentThinkingMode,
+  AgentTarget,
 } from "@/lib/agent/types";
 import type { StoredChatLog } from "@/lib/agent/log-store";
 
@@ -239,6 +244,95 @@ function buildPolicyRecommendation(input: {
   };
 }
 
+function inferProviderKind(target: AgentTarget): RemoteBenchmarkProviderKind {
+  const baseUrl = target.baseUrlDefault.toLowerCase();
+  const model = `${target.modelDefault} ${target.thinkingModelDefault || ""}`.toLowerCase();
+  if (target.id === "anthropic-claude" || model.includes("claude")) return "claude-compatible";
+  if (target.id === "deepseek-api" || baseUrl.includes("deepseek") || model.includes("deepseek")) {
+    return "deepseek-compatible";
+  }
+  if (target.id === "kimi-api" || baseUrl.includes("moonshot") || model.includes("kimi")) {
+    return "moonshot-compatible";
+  }
+  if (target.id === "glm-api" || baseUrl.includes("bigmodel") || model.includes("glm")) {
+    return "zhipu-compatible";
+  }
+  if (target.id === "qwen-api" || baseUrl.includes("dashscope") || model.includes("qwen")) {
+    return "dashscope-compatible";
+  }
+  return "openai-compatible";
+}
+
+function buildRetryPolicyView(input: {
+  target: AgentTarget;
+  failureRatePct: number;
+  timeoutCount: number;
+  rateLimitCount: number;
+  authFailureCount: number;
+  avgFirstTokenLatencyMs: number | null;
+}): AgentProviderHealthDeskItem["retryPolicy"] {
+  const providerKind = inferProviderKind(input.target);
+  const templateInputs: Array<{
+    id: string;
+    label: string;
+    workloadId: string;
+    providerProfile: AgentProviderProfile;
+    thinkingMode: AgentThinkingMode;
+    retryCadence: string;
+    fallbackProfile: AgentProviderProfile;
+  }> = [
+    {
+      id: "interactive-speed",
+      label: "Interactive speed",
+      workloadId: "latency-smoke",
+      providerProfile: "speed",
+      thinkingMode: "standard",
+      retryCadence: "500ms -> 1500ms -> 2500ms for timeout-shaped failures",
+      fallbackProfile: "balanced",
+    },
+    {
+      id: "balanced-release",
+      label: "Balanced release",
+      workloadId: "instruction-following-lite",
+      providerProfile: "balanced",
+      thinkingMode: "standard",
+      retryCadence: "1000ms -> 2500ms -> 5000ms for transient failures",
+      fallbackProfile: "balanced",
+    },
+    {
+      id: "tool-thinking",
+      label: "Tool / thinking",
+      workloadId: "bfcl-starter",
+      providerProfile: "tool-first",
+      thinkingMode: input.target.thinkingModelDefault || input.target.thinkingModelEnv ? "thinking" : "standard",
+      retryCadence: "2000ms -> 5000ms -> 10000ms for tool or reasoning runs",
+      fallbackProfile: "tool-first",
+    },
+  ];
+  const templates = templateInputs.map((template) => ({
+    ...template,
+    ...resolveRemoteBenchmarkPolicy({
+      workloadId: template.workloadId,
+      providerProfile: template.providerProfile,
+      thinkingMode: template.thinkingMode,
+      providerKind,
+    }),
+  }));
+  const recommendedTemplateId =
+    input.authFailureCount > 0 || input.rateLimitCount > 0
+      ? "balanced-release"
+      : input.timeoutCount > 1 || (input.avgFirstTokenLatencyMs ?? 0) > 5000
+        ? "tool-thinking"
+        : input.failureRatePct > 10
+          ? "balanced-release"
+          : "interactive-speed";
+  return {
+    providerKind,
+    recommendedTemplateId,
+    templates,
+  };
+}
+
 function classifyProviderStatus(input: {
   totalRequests: number;
   failureCount: number;
@@ -289,6 +383,8 @@ export function buildProviderHealthDesk(options?: {
       const totalTokens = targetRows.reduce((sum, row) => sum + (row.usage?.totalTokens || 0), 0);
       const estimatedCostUsd = sumEstimatedCostUsd(target.id, targetRows);
       const avgFirstTokenLatencyMs = average(successRows.flatMap((row) => (typeof row.firstTokenLatencyMs === "number" ? [row.firstTokenLatencyMs] : [])));
+      const successRatePct = pct(successRows.length, targetRows.length);
+      const failureRatePct = pct(failureRows.length, targetRows.length);
       const lastConnectionOk = latestConnectionCheck?.ok ?? null;
       const status = classifyProviderStatus({
         totalRequests: targetRows.length,
@@ -307,8 +403,8 @@ export function buildProviderHealthDesk(options?: {
         totalRequests: targetRows.length,
         successCount: successRows.length,
         failureCount: failureRows.length,
-        successRatePct: pct(successRows.length, targetRows.length),
-        failureRatePct: pct(failureRows.length, targetRows.length),
+        successRatePct,
+        failureRatePct,
         timeoutCount,
         rateLimitCount,
         authFailureCount,
@@ -331,6 +427,14 @@ export function buildProviderHealthDesk(options?: {
         trendBuckets: buildTrendBuckets(target.id, targetRows),
         modelBreakdown: buildModelBreakdown(target.id, targetRows),
         profileBreakdown: buildProfileBreakdown(target.id, targetRows),
+        retryPolicy: buildRetryPolicyView({
+          target,
+          failureRatePct,
+          timeoutCount,
+          rateLimitCount,
+          authFailureCount,
+          avgFirstTokenLatencyMs,
+        }),
         policyRecommendation: buildPolicyRecommendation({
           totalRequests: targetRows.length,
           failureCount: failureRows.length,

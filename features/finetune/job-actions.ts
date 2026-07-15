@@ -37,6 +37,9 @@ type FineTuneAssetJobActionsOptions = {
     datasetWatchSave: string;
     datasetWatchCheck: string;
     importPlanCopied: string;
+    bestCheckpointBackfill: string;
+    lifecycleExportPlan: string;
+    lifecycleRollbackProof: string;
   };
 };
 
@@ -57,6 +60,9 @@ export type FineTuneAssetJobActions = {
   ) => void | Promise<void>;
   openAdapterOutput: (adapterId: string) => void | Promise<void>;
   openAdapterSource: (adapterId: string) => void | Promise<void>;
+  backfillBestCheckpoints: () => void | Promise<void>;
+  recordLifecycleExportPlan: (adapterId: string) => void | Promise<void>;
+  runLifecycleRollbackProof: (adapterId: string) => void | Promise<void>;
 };
 
 export function useFineTuneAssetJobActions({
@@ -143,6 +149,44 @@ export function useFineTuneAssetJobActions({
     [runSecondaryAction],
   );
 
+  const backfillBestCheckpoints = useCallback(
+    () =>
+      runSecondaryAction(
+        "adapter-best-checkpoints",
+        { action: "backfill-best-checkpoints" },
+        messages.bestCheckpointBackfill,
+      ),
+    [messages.bestCheckpointBackfill, runSecondaryAction],
+  );
+
+  const recordLifecycleExportPlan = useCallback(
+    (adapterId: string) =>
+      runSecondaryAction(
+        `adapter-export-plan:${adapterId}`,
+        {
+          action: "record-lifecycle-export-plan",
+          adapterId,
+          exportFormat: "merged-mlx",
+          quantization: "q8",
+        },
+        messages.lifecycleExportPlan,
+      ),
+    [messages.lifecycleExportPlan, runSecondaryAction],
+  );
+
+  const runLifecycleRollbackProof = useCallback(
+    (adapterId: string) =>
+      runSecondaryAction(
+        `adapter-rollback-proof:${adapterId}`,
+        {
+          action: "run-lifecycle-rollback-proof",
+          adapterId,
+        },
+        messages.lifecycleRollbackProof,
+      ),
+    [messages.lifecycleRollbackProof, runSecondaryAction],
+  );
+
   return {
     openTargetSource,
     openDatasetSource,
@@ -151,6 +195,9 @@ export function useFineTuneAssetJobActions({
     copyDatasetCandidateImportPlan,
     openAdapterOutput,
     openAdapterSource,
+    backfillBestCheckpoints,
+    recordLifecycleExportPlan,
+    runLifecycleRollbackProof,
   };
 }
 

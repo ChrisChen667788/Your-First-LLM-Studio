@@ -1,4 +1,5 @@
 import type {
+  AgentFineTuneAdapterLifecycleAction,
   AgentFineTuneDataset,
   AgentFineTuneDatasetValidation,
   AgentFineTuneOperation,
@@ -7,6 +8,7 @@ import type {
   AgentFineTuneSummary,
   AgentTarget,
 } from "@/lib/agent/types";
+import type { FineTuneBestCheckpointBackfillResult } from "@/lib/finetune/best-checkpoint-service";
 
 export type FineTuneActionRequest = Record<string, unknown> & {
   sourceSurface?: AgentFineTuneSourceSurface;
@@ -40,6 +42,9 @@ export type FineTuneActionResponse = {
   };
   report?: AgentFineTuneReportExport;
   operation?: AgentFineTuneOperation;
+  backfill?: FineTuneBestCheckpointBackfillResult;
+  lifecycle?: AgentFineTuneSummary["lifecycle"];
+  lifecycleAction?: AgentFineTuneAdapterLifecycleAction;
 };
 
 export function normalizeFineTuneSummary(
@@ -60,6 +65,10 @@ export function normalizeFineTuneSummary(
     jobs: Array.isArray(input.jobs) ? input.jobs : [],
     adapters: Array.isArray(input.adapters) ? input.adapters : [],
     operations: Array.isArray(input.operations) ? input.operations : [],
+    lifecycle:
+      input.lifecycle && typeof input.lifecycle === "object"
+        ? input.lifecycle
+        : undefined,
   };
 }
 

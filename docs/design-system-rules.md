@@ -107,7 +107,7 @@ Relevant files:
 
 - [`components/agent/AgentPageShell.tsx`](../components/agent/AgentPageShell.tsx)
 - [`components/agent/AgentWorkbench.tsx`](../components/agent/AgentWorkbench.tsx)
-- [`components/agent/AgentCompareLab.tsx`](../components/agent/AgentCompareLab.tsx)
+- [`features/compare/CompareWorkbench.tsx`](../features/compare/CompareWorkbench.tsx)
 
 ## Frameworks and Styling
 

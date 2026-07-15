@@ -1,3 +1,3 @@
 export const runtime = "nodejs";
 
-export { POST } from "@/features/retrieval/query-application";
+export { GET, POST } from "@/features/retrieval/query-application";

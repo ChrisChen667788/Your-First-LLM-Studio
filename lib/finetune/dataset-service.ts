@@ -1253,6 +1253,7 @@ export function saveFineTuneDatasetWatch(input: {
 export async function checkFineTuneDatasetUpstream(input: {
   datasetId: string;
   query?: string;
+  timeoutMs?: number;
 }) {
   const dataset = readDatasets().find((entry) => entry.id === input.datasetId);
   if (!dataset) {
@@ -1263,7 +1264,9 @@ export async function checkFineTuneDatasetUpstream(input: {
   if (!query) {
     throw new Error("Upstream dataset query is required.");
   }
-  const matches = await discoverFineTuneUpstreamDatasets(query);
+  const matches = await discoverFineTuneUpstreamDatasets(query, {
+    timeoutMs: input.timeoutMs,
+  });
   const checkedAt = new Date().toISOString();
   const refreshCadenceHours = dataset.refreshCadenceHours || 24;
   return updateDatasetEntry(dataset.id, (current) => ({
@@ -1278,21 +1281,36 @@ export async function checkFineTuneDatasetUpstream(input: {
   }));
 }
 
-export async function refreshDueFineTuneDatasetWatches() {
+export async function refreshDueFineTuneDatasetWatches(options: {
+  maxDatasets?: number;
+  timeoutMs?: number;
+} = {}) {
   const datasets = readDatasets();
+  const maxDatasets = Math.max(1, Math.min(options.maxDatasets || 1, 4));
+  const timeoutMs = Math.max(500, Math.min(options.timeoutMs || 2_500, 8_000));
   const due = datasets.filter((dataset) => {
     if (!dataset.refreshCadenceHours || !dataset.upstreamQuery) return false;
     if (!dataset.nextUpstreamCheckAt) return true;
     return Date.parse(dataset.nextUpstreamCheckAt) <= Date.now();
-  });
+  }).slice(0, maxDatasets);
   for (const dataset of due) {
     try {
       await checkFineTuneDatasetUpstream({
         datasetId: dataset.id,
         query: dataset.upstreamQuery,
+        timeoutMs,
       });
     } catch {
-      // keep the last successful upstream snapshot
+      const retryAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      try {
+        updateDatasetEntry(dataset.id, (current) => ({
+          ...current,
+          nextUpstreamCheckAt: retryAt,
+          updatedAt: new Date().toISOString(),
+        }));
+      } catch {
+        // Keep the last successful upstream snapshot when the record changed.
+      }
     }
   }
   return readDatasets();

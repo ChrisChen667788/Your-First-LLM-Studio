@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { createArtifactQualityBillingLink, readArtifactQualityBillingEvidence } from "@/features/artifacts/quality-billing-link";
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export async function GET() { return NextResponse.json(readArtifactQualityBillingEvidence()); }
+export async function POST(request: Request) { try { const body = await request.json().catch(() => ({})) as { artifactId?: string; version?: string }; if (!body.artifactId || !body.version) throw new Error("artifactId and version are required."); const receipt = createArtifactQualityBillingLink({ artifactId: body.artifactId, version: body.version }); return NextResponse.json({ ok: receipt.status === "pass", receipt, evidence: readArtifactQualityBillingEvidence() }, { status: receipt.status === "pass" ? 200 : 422 }); } catch (error) { return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Artifact quality claim failed." }, { status: 400 }); } }

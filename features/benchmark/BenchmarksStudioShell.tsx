@@ -10,6 +10,7 @@ import type {
   AgentProviderProfile,
   AgentThinkingMode,
 } from "@/lib/agent/types";
+import type { BenchmarkReleaseEvidenceSummary } from "@/features/benchmark/contracts";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import {
   StudioSegmentedChips,
@@ -58,6 +59,7 @@ type BenchmarkDashboardResponse = {
   generatedAt: string;
   benchmarkHistory?: BenchmarkDashboardRun[];
   releaseEvidence?: BenchmarkReleaseEvidence[];
+  benchmarkReleaseEvidenceSummary?: BenchmarkReleaseEvidenceSummary;
 };
 
 type BenchmarkPromptSet = {
@@ -820,6 +822,54 @@ export function BenchmarksStudioShell() {
             </div>
 
             <aside className="space-y-3">
+              {data?.benchmarkReleaseEvidenceSummary ? (
+                <div className="rounded-3xl border border-cyan-300/15 bg-cyan-300/10 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        {isEnglish ? "Release note summary" : "发布说明摘要"}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-cyan-100/70">
+                        {isEnglish
+                          ? "Pinned evidence grouped from stored benchmark runs."
+                          : "从已固定 benchmark run 自动生成的分组摘要。"}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2 py-1 text-[11px] text-cyan-100">
+                      {data.benchmarkReleaseEvidenceSummary.totals.groupCount}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                        {isEnglish ? "Matched" : "已匹配"}
+                      </p>
+                      <p className="mt-1 font-semibold text-white">
+                        {data.benchmarkReleaseEvidenceSummary.totals.matchedRunCount}/
+                        {data.benchmarkReleaseEvidenceSummary.totals.evidenceCount}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                        {isEnglish ? "Success" : "成功率"}
+                      </p>
+                      <p className="mt-1 font-semibold text-white">
+                        {data.benchmarkReleaseEvidenceSummary.totals.successRatePct}%
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {data.benchmarkReleaseEvidenceSummary.releaseNoteDraft.slice(0, 2).map((line) => (
+                      <p
+                        key={line}
+                        className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-slate-300"
+                      >
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
                 <p className="text-sm font-semibold text-white">
                   {isEnglish ? "Release evidence" : "发布证据"}

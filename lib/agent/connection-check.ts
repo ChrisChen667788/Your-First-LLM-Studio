@@ -12,6 +12,9 @@ import {
 import type { AgentConnectionCheckResponse, AgentConnectionCheckStage } from "@/lib/agent/types";
 
 export type RemoteConnectionCheckMode = "quick" | "full";
+export type RemoteConnectionCheckEvidencePurpose =
+  | "connection-check"
+  | "release-probe";
 
 function extractTextContent(content: unknown) {
   if (typeof content === "string") return content;
@@ -103,10 +106,12 @@ export async function runRemoteConnectionCheck(
   options?: {
     mode?: RemoteConnectionCheckMode;
     log?: boolean;
+    evidencePurpose?: RemoteConnectionCheckEvidencePurpose;
   }
 ): Promise<AgentConnectionCheckResponse> {
   const mode = options?.mode || "full";
   const shouldLog = options?.log ?? true;
+  const evidencePurpose = options?.evidencePurpose || "connection-check";
   clearProviderEnvCache();
 
   const target = getServerAgentTarget(targetId);
@@ -264,6 +269,7 @@ export async function runRemoteConnectionCheck(
 
   const payload: AgentConnectionCheckResponse = {
     ok: stages.every((stage) => stage.ok),
+    evidencePurpose,
     targetId,
     targetLabel: target.label,
     providerLabel: target.providerLabel,
@@ -301,8 +307,15 @@ export async function runRemoteConnectionCheck(
     appendExperimentEvent({
       kind: "provider",
       status: payload.ok ? "completed" : "failed",
-      title: payload.ok ? "Provider health check passed" : "Provider health check failed",
-      summary: `${target.label} · ${stages.filter((stage) => stage.ok).length}/${stages.length} checks healthy`,
+      title:
+        evidencePurpose === "release-probe"
+          ? payload.ok
+            ? "Provider release probe passed"
+            : "Provider release probe failed"
+          : payload.ok
+            ? "Provider health check passed"
+            : "Provider health check failed",
+      summary: `${target.label} · ${stages.filter((stage) => stage.ok).length}/${stages.length} checks healthy · ${evidencePurpose}`,
       relatedId: checkId,
       targetIds: [targetId],
       artifacts,
@@ -313,6 +326,7 @@ export async function runRemoteConnectionCheck(
         mode,
         provider: target.providerLabel,
         model: resolvedTarget.resolvedModel,
+        evidencePurpose,
         stageCount: stages.length,
         okStages: stages.filter((stage) => stage.ok).length,
       },

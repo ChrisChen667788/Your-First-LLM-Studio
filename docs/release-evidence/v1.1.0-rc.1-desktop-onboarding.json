@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "desktop.v1.1.0-release-evidence.v1",
+  "version": "1.1.0-rc.1",
+  "generatedAt": "2026-07-16T01:59:38+08:00",
+  "status": "rc-ready",
+  "localRcReady": true,
+  "gaReady": false,
+  "totals": {
+    "pass": 8,
+    "watch": 1,
+    "blocked": 0
+  },
+  "package": {
+    "appBytes": 209375817,
+    "zip": {
+      "name": "First-LLM-Studio-1.1.0-rc.1-darwin-arm64.zip",
+      "bytes": 85619017,
+      "sha256": "d7ba933b0b0d852e490623207e9988414e61b3fd4cbe8d3fd870953a4a8cb1"
+    },
+    "dmg": {
+      "name": "First-LLM-Studio-1.1.0-rc.1-darwin-arm64.dmg",
+      "bytes": 90831207,
+      "sha256": "8051a380bf1570d61632813c4ccc2ffd3aa2b886d20477242c6dfbdf07525bc3"
+    },
+    "runtime": {
+      "nodeVersion": "22.23.1",
+      "architecture": "darwin-arm64",
+      "bundled": true
+    },
+    "signature": {
+      "mode": "apple-adhoc-local-rc",
+      "verified": true,
+      "gaEligible": false
+    }
+  },
+  "localChat": {
+    "provider": "ollama",
+    "model": "qwen3:0.6b",
+    "latencyMs": 3135,
+    "promptTokens": 24,
+    "completionTokens": 5,
+    "responseDigest": "7f32c5b584f28c3e2c3e8a414ba514662f2cce8430f6c16d9066e6095e07bba8"
+  },
+  "cleanProfileChecks": {
+    "dmgMountedReadOnly": true,
+    "codeSignatureVerified": true,
+    "terminalFreeLaunch": true,
+    "agentRouteHealthy": true,
+    "onboardingApiHealthy": true,
+    "isolatedProfileCreated": true,
+    "processStopped": true,
+    "imageDetached": true
+  },
+  "routeSmoke": {
+    "status": "pass",
+    "checks": 113,
+    "ui": 10,
+    "api": 99,
+    "compatibility": 4,
+    "sha256": "24d7855b4080e0f23d9bba6e3f1d7951ac587d0751a1c5a2cb0e908a8f61c6d3"
+  },
+  "screenshot": {
+    "path": "docs/assets/screenshots/desktop-onboarding-release.png",
+    "width": 3840,
+    "height": 2400,
+    "sha256": "84ed387abfc0f2fe9a08de81a94012df087723358b1a867490878739e34dee99"
+  },
+  "externalGaGate": {
+    "developerId": false,
+    "notarization": false,
+    "separateCleanMachineReceipt": false,
+    "reason": "External Apple identity and organization-owned acceptance evidence are not configured on this host."
+  }
+}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   deleteBenchmarkReleaseEvidence,
   readBenchmarkReleaseEvidenceEntries,
+  readBenchmarkReleaseEvidenceSummary,
   saveBenchmarkReleaseEvidence,
 } from "@/features/benchmark/application";
 
@@ -10,6 +11,7 @@ export const runtime = "nodejs";
 export async function GET() {
   return NextResponse.json({
     entries: readBenchmarkReleaseEvidenceEntries(),
+    summary: readBenchmarkReleaseEvidenceSummary(),
   });
 }
 

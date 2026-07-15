@@ -1,0 +1,24 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Slice = { id: string; version: string; label: string; status: "ready" | "partial" | "blocked"; completionPct: number; summary: string; blockers: string[] };
+type Payload = { ok: true; slices: Slice[]; totals: { slices: number; ready: number; partial: number; blocked: number; averageCompletionPct: number } };
+
+function tone(status: Slice["status"]) {
+  if (status === "ready") return "border-emerald-300/30 bg-emerald-400/10 text-emerald-100";
+  if (status === "blocked") return "border-rose-300/30 bg-rose-400/10 text-rose-100";
+  return "border-amber-300/30 bg-amber-400/10 text-amber-100";
+}
+
+export function PostV1ClosurePanel({ locale }: { locale: string }) {
+  const en = locale.startsWith("en");
+  const [payload, setPayload] = useState<Payload | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => { void fetch("/api/experiments/post-v1-closure", { cache: "no-store" }).then(async (response) => { const body = await response.json() as Payload & { error?: string }; if (!response.ok) throw new Error(body.error || "Failed to load closure evidence."); setPayload(body); }).catch((caught) => setError(caught instanceof Error ? caught.message : "Failed to load closure evidence.")); }, []);
+  return <section className="border border-white/10 bg-slate-950/70 p-4 backdrop-blur">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">POST-V1 EXECUTION TRAIN</p><h3 className="mt-2 text-xl font-semibold text-white">{en ? "15-slice closure evidence" : "15 段执行闭环证据"}</h3><p className="mt-2 text-sm text-slate-400">{en ? "Ready means executable evidence exists; external identity and production credentials remain blocked." : "Ready 代表已有可执行证据；外部身份与生产凭据缺失时继续保持 blocked。"}</p></div>{payload ? <span className="border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-50">{payload.totals.ready}/{payload.totals.slices} ready · {payload.totals.averageCompletionPct}%</span> : null}</div>
+    {error ? <p className="mt-4 border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">{error}</p> : null}
+    <div className="mt-4 grid gap-2 md:grid-cols-3 2xl:grid-cols-5">{payload?.slices.map((slice) => <article key={slice.id} className="min-h-40 border border-white/10 bg-black/25 p-3"><div className="flex items-start justify-between gap-2"><div><p className="text-xs font-semibold text-cyan-300">{slice.version}</p><h4 className="mt-1 text-sm font-semibold text-white">{slice.label}</h4></div><span className={`border px-2 py-1 text-[10px] uppercase ${tone(slice.status)}`}>{slice.status}</span></div><div className="mt-3 h-1 bg-white/10"><div className="h-full bg-cyan-300" style={{ width: `${slice.completionPct}%` }} /></div><p className="mt-3 text-xs leading-5 text-slate-400">{slice.summary}</p>{slice.blockers[0] ? <p className="mt-2 text-xs leading-5 text-amber-200">{slice.blockers[0]}</p> : null}</article>)}</div>
+  </section>;
+}
