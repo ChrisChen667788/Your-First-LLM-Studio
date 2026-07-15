@@ -368,6 +368,52 @@ export function FineTuneStudioPanel({
         completedJobs: "Completed jobs",
         failedJobs: "Needs review",
         readyAdapters: "Ready adapters",
+        bestCheckpointCoverage: "Best checkpoint coverage",
+        missingBestCheckpoints: "Missing best checkpoint",
+        bestCheckpointBackfillHint:
+          "Backfill historical ready adapters from validation curves or final checkpoint files so export, evaluation, and runtime attach use explicit checkpoint evidence.",
+        backfillBestCheckpoints: "Backfill best checkpoints",
+        backfillBestCheckpointsSuccess:
+          "Best checkpoint markers refreshed for ready adapters.",
+        adapterLifecycle: "Adapter lifecycle",
+        lifecycleRegistry: "Lifecycle registry",
+        lifecycleVariants: "Variants",
+        lifecycleDiffs: "Variant diffs",
+        lifecycleExportPlans: "Export plans",
+        lifecycleRollbackProofs: "Rollback proofs",
+        lifecycleActions: "Lifecycle actions",
+        lifecycleRegistryHint:
+          "Tracks adapter variants, merge/quantized export plans, and rollback-safe runtime attach evidence.",
+        lifecycleVariantList: "Variant registry",
+        lifecycleVariantDetail: "Variant detail",
+        lifecycleNoVariants: "No adapter variants match the current filters.",
+        lifecycleStatusAll: "All states",
+        lifecycleStatusReady: "Ready",
+        lifecycleStatusCheckpointing: "Checkpointing",
+        lifecycleStatusIncomplete: "Incomplete",
+        lifecycleStatusAttached: "Attached",
+        lifecycleDiffAll: "All diffs",
+        lifecycleDiffImproved: "Improved",
+        lifecycleDiffRegressed: "Regressed",
+        lifecycleDiffStable: "Stable",
+        lifecycleDiffMixed: "Mixed",
+        lifecycleDiffInsufficient: "No baseline",
+        lifecycleExportAll: "All export formats",
+        lifecycleVariantGroup: "Variant group",
+        lifecycleBaseTarget: "Base target",
+        lifecycleBestCheckpoint: "Best checkpoint",
+        lifecycleAttachedTarget: "Attached target",
+        lifecycleExportFormats: "Export formats",
+        lifecycleRollbackProofCount: "Rollback proofs",
+        lifecycleDiffConclusion: "Diff conclusion",
+        lifecycleCheckpointDelta: "Checkpoint delta",
+        lifecycleMetricDelta: "Metric delta",
+        lifecycleExportDelta: "Export delta",
+        lifecycleUpdatedAt: "Updated",
+        recordLifecycleExportPlan: "Plan merged q8 export",
+        lifecycleExportPlanSuccess: "Adapter export plan recorded.",
+        runLifecycleRollbackProof: "Run rollback proof",
+        lifecycleRollbackProofSuccess: "Adapter rollback proof recorded.",
         datasetTitle: "1. Dataset",
         datasetHint:
           "Point to a local JSONL dataset and run validation before saving it into the registry.",
@@ -743,6 +789,51 @@ export function FineTuneStudioPanel({
       completedJobs: "已完成",
       failedJobs: "需处理",
       readyAdapters: "可挂载 adapter",
+      bestCheckpointCoverage: "最佳 checkpoint 覆盖率",
+      missingBestCheckpoints: "缺少最佳 checkpoint",
+      bestCheckpointBackfillHint:
+        "从历史验证曲线或最终 checkpoint 文件回填可用 adapter 的最佳 checkpoint 证据，让导出、评估和运行时挂载都有明确依据。",
+      backfillBestCheckpoints: "回填最佳 checkpoint",
+      backfillBestCheckpointsSuccess: "已刷新可用 adapter 的最佳 checkpoint 标记。",
+      adapterLifecycle: "Adapter 生命周期",
+      lifecycleRegistry: "生命周期注册表",
+      lifecycleVariants: "变体",
+      lifecycleDiffs: "变体差异",
+      lifecycleExportPlans: "导出计划",
+      lifecycleRollbackProofs: "回滚证据",
+      lifecycleActions: "生命周期动作",
+      lifecycleRegistryHint:
+        "追踪 adapter 变体、merge/量化导出计划，以及可回滚的运行时挂载证据。",
+      lifecycleVariantList: "变体注册表",
+      lifecycleVariantDetail: "变体详情",
+      lifecycleNoVariants: "当前筛选条件下没有匹配的 adapter 变体。",
+      lifecycleStatusAll: "全部状态",
+      lifecycleStatusReady: "可用",
+      lifecycleStatusCheckpointing: "保存中",
+      lifecycleStatusIncomplete: "未完成",
+      lifecycleStatusAttached: "已挂载",
+      lifecycleDiffAll: "全部差异",
+      lifecycleDiffImproved: "有提升",
+      lifecycleDiffRegressed: "有回退",
+      lifecycleDiffStable: "稳定",
+      lifecycleDiffMixed: "混合",
+      lifecycleDiffInsufficient: "无基线",
+      lifecycleExportAll: "全部导出格式",
+      lifecycleVariantGroup: "变体分组",
+      lifecycleBaseTarget: "基础目标",
+      lifecycleBestCheckpoint: "最佳 checkpoint",
+      lifecycleAttachedTarget: "挂载目标",
+      lifecycleExportFormats: "导出格式",
+      lifecycleRollbackProofCount: "回滚证据",
+      lifecycleDiffConclusion: "差异结论",
+      lifecycleCheckpointDelta: "Checkpoint 差值",
+      lifecycleMetricDelta: "指标差值",
+      lifecycleExportDelta: "导出差值",
+      lifecycleUpdatedAt: "更新时间",
+      recordLifecycleExportPlan: "规划 merged q8 导出",
+      lifecycleExportPlanSuccess: "Adapter 导出计划已记录。",
+      runLifecycleRollbackProof: "运行回滚证明",
+      lifecycleRollbackProofSuccess: "Adapter 回滚证明已记录。",
       datasetTitle: "1. 数据集",
       datasetHint:
         "填写本地 JSONL 数据路径，先做校验，再把它保存进数据集注册表。",
@@ -1426,14 +1517,15 @@ export function FineTuneStudioPanel({
   useEffect(() => {
     if (!summary) return;
     const firstDatasetId = summary.datasets?.[0]?.id || "";
-    const firstAdapterPath =
-      summary.adapters.find((adapter) => adapter.status === "ready")
-        ?.outputDir ||
-      summary.jobs.find((job) => job.status === "completed")?.outputDir ||
-      "";
-    const firstAdapter = summary.adapters.find(
+    const firstReadyAdapter = summary.adapters.find(
       (adapter) => adapter.status === "ready",
     );
+    const firstAdapterPath =
+      firstReadyAdapter?.bestCheckpoint?.path ||
+      firstReadyAdapter?.outputDir ||
+      summary.jobs.find((job) => job.status === "completed")?.outputDir ||
+      "";
+    const firstAdapter = firstReadyAdapter;
     setEvaluateForm((current) => ({
       ...current,
       datasetId: current.datasetId || firstDatasetId,
@@ -1889,6 +1981,12 @@ export function FineTuneStudioPanel({
   const evaluateCheckpointOptions = useMemo(() => {
     const options = new Map<string, string>();
     (summary?.adapters || []).forEach((adapter) => {
+      if (adapter.bestCheckpoint?.path) {
+        options.set(
+          adapter.bestCheckpoint.path,
+          `${adapter.adapterName} · best ${adapter.bestCheckpoint.metric} @ ${adapter.bestCheckpoint.step}`,
+        );
+      }
       if (adapter.outputDir) {
         options.set(
           adapter.outputDir,
@@ -2132,6 +2230,9 @@ export function FineTuneStudioPanel({
       datasetWatchSave: text.datasetWatchSave,
       datasetWatchCheck: text.datasetWatchCheck,
       importPlanCopied: text.importPlanCopied,
+      bestCheckpointBackfill: text.backfillBestCheckpointsSuccess,
+      lifecycleExportPlan: text.lifecycleExportPlanSuccess,
+      lifecycleRollbackProof: text.lifecycleRollbackProofSuccess,
     },
   });
   const runJobActions = useFineTuneRunJobActions({
@@ -2444,6 +2545,8 @@ export function FineTuneStudioPanel({
     runAdapterBenchmarkHandoff,
     runAdapterCompareHandoff,
     runAdapterProofLoop,
+    recordLifecycleExportPlan: assetJobActions.recordLifecycleExportPlan,
+    runLifecycleRollbackProof: assetJobActions.runLifecycleRollbackProof,
     jobGroups,
     collapsedJobGroups,
     chartRangeByJobId,

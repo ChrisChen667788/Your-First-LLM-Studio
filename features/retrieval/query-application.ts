@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { searchKnowledgeBase } from "@/lib/agent/retrieval-store";
 import { appendExperimentEvent } from "@/features/experiments/timeline-service";
+import {
+  appendRetrievalQueryReplay,
+  readRetrievalQueryReplaySummary,
+} from "@/features/retrieval/query-replay-store";
 import type {
   AgentRetrievalEvidenceMode,
   AgentRetrievalScope,
@@ -9,6 +13,15 @@ import type {
 } from "@/lib/agent/types";
 
 export const runtime = "nodejs";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const limitParam = Number(searchParams.get("limit") || "30");
+  const limit = Number.isFinite(limitParam)
+    ? Math.max(1, Math.min(limitParam, 120))
+    : 30;
+  return NextResponse.json(readRetrievalQueryReplaySummary({ limit }));
+}
 
 export async function POST(request: Request) {
   try {
@@ -36,6 +49,10 @@ export async function POST(request: Request) {
       evidenceMode: body.evidenceMode
     });
     const queryId = `retrieval-query-${crypto.randomUUID()}`;
+    const replay = appendRetrievalQueryReplay({
+      id: queryId,
+      retrieval,
+    });
     appendExperimentEvent({
       kind: "retrieval",
       status: "completed",
@@ -60,7 +77,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      retrieval
+      retrieval,
+      replay,
     });
   } catch (error) {
     return NextResponse.json(

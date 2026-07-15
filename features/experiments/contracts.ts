@@ -127,6 +127,7 @@ export type ExperimentRetentionResult = {
 
 export type ReleaseTrainStatus =
   | "active"
+  | "complete"
   | "planned"
   | "blocked"
   | "evidence-needed";
@@ -137,7 +138,14 @@ export type ReleaseTrainTrack =
   | "rag"
   | "finetune"
   | "deployment"
-  | "release";
+  | "release"
+  | "desktop"
+  | "runtime"
+  | "platform"
+  | "ecosystem"
+  | "workflow"
+  | "governance"
+  | "evaluation";
 
 export type ReleaseTrainMilestone = {
   version: string;
@@ -225,4 +233,156 @@ export type ReleaseEvidenceMatrixResponse = {
     plannedCount: number;
     averageCompletionPct: number;
   };
+};
+
+export type GaReleaseEvidenceBundleStatus = "pass" | "evidence-needed" | "blocked";
+
+export type GaReleaseEvidenceBundleSource = {
+  id: string;
+  label: string;
+  status: GaReleaseEvidenceBundleStatus;
+  evidence: string[];
+  blockers: string[];
+  metrics: Record<string, string | number | boolean | null>;
+  digest: string;
+};
+
+export type GaReleaseEvidenceBundle = {
+  schemaVersion: "experiments.ga-release-evidence-bundle.v1";
+  generatedAt: string;
+  version: "v1.0.0";
+  scope: "ga-release";
+  artifactPath: string;
+  persistedAt: string | null;
+  nonCloudReadiness: {
+    status: GaReleaseEvidenceBundleStatus;
+    completionPct: number;
+    blockers: string[];
+  };
+  productionReadiness: {
+    status: GaReleaseEvidenceBundleStatus;
+    completionPct: number;
+    blockers: string[];
+  };
+  sources: GaReleaseEvidenceBundleSource[];
+  integrity: {
+    algorithm: "sha256";
+    digest: string;
+    stateDigest: string;
+    verified: boolean;
+    sourceDigestCount: number;
+  };
+  totals: {
+    sourceCount: number;
+    passingSourceCount: number;
+    blockerCount: number;
+    routeSmokeHistoryCount: number;
+    providerSnapshotCount: number;
+    compatibilityDeleteReadyCount: number;
+  };
+};
+
+export type GaReleaseEvidenceBundleVerification = {
+  generatedAt: string;
+  status: "in-sync" | "drifted" | "missing" | "invalid";
+  persistedPath: string;
+  persistedGeneratedAt: string | null;
+  persistedDigest: string | null;
+  liveStateDigest: string;
+  persistedStateDigest: string | null;
+  changedSourceIds: string[];
+  persistedIntegrityOk: boolean;
+  invalidSourceIds: string[];
+};
+
+export type GaReleaseEvidenceBundleHistory = {
+  generatedAt: string;
+  historyDir: string;
+  totalCount: number;
+  verifiedCount: number;
+  invalidCount: number;
+  latestAt: string | null;
+  entries: Array<{
+    file: string;
+    generatedAt: string | null;
+    nonCloudStatus: GaReleaseEvidenceBundleStatus | "unknown";
+    productionStatus: GaReleaseEvidenceBundleStatus | "unknown";
+    integrityStatus: "verified" | "invalid" | "missing";
+    digest: string | null;
+    sizeBytes: number;
+  }>;
+};
+
+export type GaReleaseEvidenceBundleRetentionResult = {
+  appliedAt: string;
+  beforeCount: number;
+  afterCount: number;
+  removedCount: number;
+  protectedLatest: boolean;
+  policy: {
+    maxBundles: number;
+    maxAgeDays: number;
+  };
+};
+
+export type PublicReleaseEvidenceFileCheck = {
+  label: string;
+  relativePath: string;
+  exists: boolean;
+  sizeBytes: number;
+  minBytes: number;
+  updatedAt: string | null;
+  lfsPointer: boolean;
+  ok: boolean;
+};
+
+export type PublicReleaseEvidenceFlow = {
+  id: string;
+  label: string;
+  route: string;
+  screenshotPath: string;
+  command: string;
+  purpose: string;
+  screenshot: PublicReleaseEvidenceFileCheck;
+  ok: boolean;
+};
+
+export type PublicReleaseEvidenceResponse = {
+  ok: true;
+  schemaVersion: "experiments.public-release-evidence.v1";
+  generatedAt: string;
+  docsRoute: {
+    route: string;
+    filePath: string;
+    exists: boolean;
+    ok: boolean;
+  };
+  docsFiles: PublicReleaseEvidenceFileCheck[];
+  demoCapture: {
+    manifestPath: string;
+    manifestExists: boolean;
+    schemaVersion: string | null;
+    flowCount: number;
+    verifiedFlowCount: number;
+    flows: PublicReleaseEvidenceFlow[];
+    ok: boolean;
+  };
+  distillation: {
+    operationCount: number;
+    completedOperationCount: number;
+    latestOperationId: string | null;
+    latestDatasetId: string | null;
+    latestManifestPath: string | null;
+    latestDatasetPath: string | null;
+    latestReportPath: string | null;
+    ok: boolean;
+  };
+  totals: {
+    checkCount: number;
+    passingCheckCount: number;
+    blockerCount: number;
+    completionPct: number;
+  };
+  blockers: string[];
+  releaseNoteDraft: string[];
 };

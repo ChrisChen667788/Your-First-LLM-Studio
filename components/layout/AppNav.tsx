@@ -12,6 +12,8 @@ const links = [
   { href: "/benchmarks", key: "benchmarks" },
   { href: "/retrieval", key: "retrieval" },
   { href: "/experiments", key: "experiments" },
+  { href: "/workflows", key: "workflows" },
+  { href: "/release", key: "release" },
   { href: "/admin", key: "dashboard" }
 ];
 
@@ -32,6 +34,8 @@ export function AppNav({ version }: { version?: string }) {
     benchmarks: locale.startsWith("en") ? "Benchmarks" : "评测",
     retrieval: locale.startsWith("en") ? "Retrieval" : "检索",
     experiments: locale.startsWith("en") ? "Experiments" : "实验",
+    workflows: locale.startsWith("en") ? "Workflows" : "工作流",
+    release: locale.startsWith("en") ? "Release" : "发布",
     dashboard: dictionary.nav.dashboard
   };
 

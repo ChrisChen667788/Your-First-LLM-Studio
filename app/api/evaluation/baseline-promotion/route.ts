@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { evaluateBaselinePromotion, readEvaluationBaselinePromotionEvidence, rehearseEvaluationBaselinePromotion } from "@/features/evaluation/baseline-promotion";
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export async function GET() { return NextResponse.json(readEvaluationBaselinePromotionEvidence()); }
+export async function POST(request: Request) { try { const body = await request.json().catch(() => ({})) as Record<string, unknown>; const receipt = body.baselineId ? evaluateBaselinePromotion(body as Parameters<typeof evaluateBaselinePromotion>[0]) : rehearseEvaluationBaselinePromotion(); return NextResponse.json({ ok: receipt.status === "promoted", receipt, evidence: readEvaluationBaselinePromotionEvidence() }, { status: receipt.status === "promoted" ? 200 : 422 }); } catch (error) { return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Baseline promotion failed." }, { status: 400 }); } }

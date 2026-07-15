@@ -34,7 +34,7 @@ type TurnLifecycleText = {
   noAssistantContent: string;
 };
 
-type TurnLifecycleInput = {
+export type TurnLifecycleInput = {
   locale: string;
   text: TurnLifecycleText;
   agentTargets: AgentTarget[];

@@ -110,7 +110,7 @@ export function FineTuneJobActionsCard({
           {text.exportMarkdownReport}
         </button>
         <a
-          href={`/api/admin/finetune?action=preview-report&id=${encodeURIComponent(job.id)}&reportFormat=markdown`}
+          href={`/api/finetune?action=preview-report&id=${encodeURIComponent(job.id)}&reportFormat=markdown`}
           target="_blank"
           rel="noreferrer"
           className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/15"
@@ -118,7 +118,7 @@ export function FineTuneJobActionsCard({
           {text.previewReport}
         </a>
         <a
-          href={`/api/admin/finetune?action=download-bundle&id=${encodeURIComponent(job.id)}`}
+          href={`/api/finetune?action=download-bundle&id=${encodeURIComponent(job.id)}`}
           download
           title={text.completeBundleHint}
           className="rounded-full border border-violet-300/25 bg-violet-300/10 px-3 py-1.5 text-[11px] font-semibold text-violet-100 transition hover:bg-violet-300/15"

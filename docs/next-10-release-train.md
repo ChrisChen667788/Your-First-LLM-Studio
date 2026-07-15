@@ -1,8 +1,64 @@
-# Next 10 Release Train
+# Release Train and Post-v1 Product Roadmap
 
-Last updated: 2026-07-03
+## 2026-07-16 third post-v1 operational lifecycle batch
 
-This release train is the active product contract after `v0.4.2`. It is mirrored in code by:
+The next 15 local acceptance slices are now executable as explicit lifecycle state machines: desktop service recovery and permission repair; authenticated model source manifests, bounded transfer scheduling, and ownership-safe removal; drain-aware server switching, redacted log retention, and remote heartbeat fencing; reversible extension grants and quarantine review; version-pinned workflow deployment access; four-eyes governance review; reproducible evaluation baseline promotion; artifact install rollback; and retry-safe usage settlement. `/experiments` reports 15 ready, 0 partial, and 0 blocked at 92% average local completion. Real launchd, hub network transfers, live traffic, multi-machine failover, public registry, external billing, and cloud/identity gates remain planned or fail-closed. Evidence: [`docs/release-evidence/post-v1-operational-lifecycle-15-slice-2026-07-16.md`](./release-evidence/post-v1-operational-lifecycle-15-slice-2026-07-16.md).
+
+## 2026-07-14 second post-v1 product acceptance batch
+
+The next 15 local acceptance slices are now executable and cross-linked: desktop data lifecycle, external-storage migration, model compatibility and Benchmark handoff, caller-key attribution, LAN/CORS/rate policy, backend-neutral runtime actions, remote-node capability routing, reversible extension updates and secret scope, workflow state diff plus Retrieval deployment, shared-asset ACL/audit, budgeted sweep calibration, and evidence-backed artifact quality/billing linkage. `/experiments` reports 15 ready, 0 partial, and 0 blocked at 90% average local acceptance completion. Complete post-v1 releases and all external production gates remain planned or fail-closed. Evidence: [`docs/release-evidence/post-v1-product-acceptance-15-slice-2026-07-14.md`](./release-evidence/post-v1-product-acceptance-15-slice-2026-07-14.md).
+
+## 2026-07-14 post-v1 executable hardening batch
+
+The next 15 local acceptance slices now have repeatable runtime evidence: desktop update/rollback, model dedup planning and isolated hardlink rehearsal, Hub transfer reconciliation, Ollama lifecycle and fleet conformance, idle-unload decisions, signed extension install/rollback, leased workflow execution and side-effect-safe replay, RBAC simulation, multi-metric evaluation gates, artifact registry round-trip, and request-ledger usage reconciliation. `/experiments` reports 15 ready, 0 partial, and 0 blocked at 91% average slice completion. This does not mark the full post-v1 releases as shipped or satisfy Apple/cloud/organization production gates. Evidence: [`docs/release-evidence/post-v1-hardening-15-slice-2026-07-14.md`](./release-evidence/post-v1-hardening-15-slice-2026-07-14.md).
+
+## 2026-07-14 post-v1 15-slice closure batch
+
+The current continuation turns the planned desktop, hub, runtime, extension, workflow, governance, evaluation, and package foundations into 15 independently evidenced slices. It adds bounded Hub retry state, a non-destructive content-address index, Local Server safety and request accounting, live Ollama OpenAI-compatible conformance, dependency-first extension install plans, permission sandbox policy, immutable workflow versions and deploy ingress, OIDC/JWKS verification, SCIM lifecycle routes, transaction-local Postgres RLS context, paired confidence gates, and signed artifact provenance. The aggregate projection is 12 ready, 0 partial, and 3 externally blocked at 84% average completion. Evidence: [`docs/release-evidence/post-v1-15-slice-2026-07-14.md`](./release-evidence/post-v1-15-slice-2026-07-14.md).
+
+## 2026-07-12 competitive landscape checkpoint
+
+The roadmap now incorporates a first-party documentation review of LM Studio, Ollama, Open WebUI, Jan, AnythingLLM, LLaMA-Factory, and LocalAI. The existing v0.5-v1.0 evidence train is preserved unchanged, while ten post-v1 milestones are appended as planned work. The product direction is to keep First LLM Studio evidence-driven and lifecycle-oriented while borrowing stronger desktop onboarding, runtime breadth, extension, workflow, team, and production patterns. See [`docs/competitive-landscape.md`](./competitive-landscape.md).
+
+## 2026-07-12 post-v1 ten-slice foundation batch
+
+One testable foundation slice now exists for every planned version from `v1.1.0` through `v1.5.1`: desktop diagnostics, model acquisition jobs, server instances, runtime conformance, extension trust, workflow graphs, workspace identity, training capabilities, artifact packages, and HA/FinOps readiness. `/experiments` shows these separately as foundation evidence, currently 3 foundation-ready, 6 partial, and 1 blocked at 14% average completion. Planned release statuses are unchanged. Evidence: [`docs/release-evidence/post-v1-foundation-2026-07-12.md`](./release-evidence/post-v1-foundation-2026-07-12.md).
+
+## 2026-07-12 executable foundation continuation
+
+The next mainline slice makes six foundations executable: local desktop package signature/install rehearsal, bounded resumable HTTP Range model transfer, the live Ollama API bridge, extension signature verification plus quarantine, a persisted workflow execution reducer, and SQLite-enforced workspace isolation. A real local rehearsal passes transfer, signature/tamper, workflow, and ACL checks while leaving Apple Developer ID and live Ollama evidence unresolved. The separate foundation projection rises from 14% to 22% average without changing planned release statuses. Evidence: [`docs/release-evidence/post-v1-executable-foundations-2026-07-12.md`](./release-evidence/post-v1-executable-foundations-2026-07-12.md).
+
+## 2026-07-10 GA hardening batch
+
+The latest implementation batch added Provider snapshot and GA bundle SHA-256 integrity, bundle history/export/retention, route-smoke trends, compatibility deletion operator sign-off, candidate-worktree secret scanning, production dependency audit evidence, Provider target-card feature ownership, and a combined Agent runtime/connection shell port. The non-cloud and production gates remain fail-closed where remote Provider, sunset, and real cloud evidence are absent.
+
+## 2026-07-10 GA auditability and boundary batch
+
+The follow-up batch adds checksummed security and route-smoke history, live-versus-persisted GA state drift, source-level evidence drilldowns, smoke and compatibility sign-off exports, a feature-owned Provider Ops Admin shell, thin Provider/GA/compatibility API wrappers, and one Agent runtime/connection action composition port. Local evidence remains separate from remote Provider freshness and cloud production sign-off.
+
+## 2026-07-10 Admin and Agent application-boundary batch
+
+This 15-item continuation moves Admin benchmark evidence/history and provider comparison rendering into their owning features; moves Agent target/profile, sidebar/tool registry, and runtime-rail prop assembly behind feature composition ports; and turns workspace-file, check-history, protected-tool decision, and runtime-status routes into thin wrappers over `features/agent` application services. Route ownership now matches the physical code boundary. Remote Provider freshness, the 2026-09-30 compatibility sunset, and real cloud production evidence remain intentionally unresolved external gates.
+
+## 2026-07-11 Shell, analysis, and transport-boundary batch
+
+This 15-item continuation retires the unused Agent-side Compare compatibility exports, physically moves Get Code into `features/agent`, extracts conversation/session projections plus header/status/prompt composition, groups session/transcript/composer/secondary/get-code props behind feature adapters, moves Admin telemetry/runtime and Benchmark analysis helpers into their owning modules, and removes `NextResponse` from the runtime application layer. External Provider freshness, sunset timing, and cloud production evidence remain fail-closed.
+
+## 2026-07-11 Workspace and runtime-card batch
+
+This 10-item continuation moves Agent sidebar/main/layout and Chat/Compare mode rendering into feature-owned composition, adds target/profile/header/status/prompt input adapters, moves Admin runtime target derivation plus hardware metric and log panels out of the dashboard, and separates remote runtime status construction from local gateway health orchestration. External Provider, sunset, and cloud evidence remain unchanged.
+
+## 2026-07-11 Session, runtime-state, and benchmark-detail batch
+
+This continuation moves Agent session command creation, session export, and turn-lifecycle input assembly behind feature-owned adapters; moves Admin runtime trace and model-state/action rendering plus Benchmark history identity/run-note detail into owning feature panels; and separates local recovering/ready/unavailable status construction from gateway probing. External Provider freshness, the 2026-09-30 compatibility sunset, and real cloud workload-identity evidence remain fail-closed.
+
+## 2026-07-11 v1.0 local GA closure batch
+
+This closure moves Agent base chat/session state, Benchmark result cards, Admin recent operations breakdowns, and local runtime probe/ensure policy into feature ownership; adds a five-route pre-sunset compatibility deletion rehearsal; refreshes nine product/evidence screenshots at 1920x1200 with 2x DPR and per-flow viewport/full-page policy; and records a successful real DeepSeek release probe. The only remaining gates are time-bound compatibility deletion and explicitly deferred real-cloud production evidence.
+
+Last updated: 2026-07-14
+
+This release train and post-v1 roadmap form the active product contract after `v0.4.2`. They are mirrored in code by:
 
 - `features/experiments/release-train.ts`
 - `app/api/experiments/release-train/route.ts`
@@ -12,20 +68,45 @@ This release train is the active product contract after `v0.4.2`. It is mirrored
 
 | Version | Track | Status | Target | Core outcome |
 | --- | --- | --- | --- | --- |
-| `v0.5.0` | Ops | Active | 2026-07 | Provider Health Desk v2, retry/timeout visibility, release evidence grouping, Adapter Export closure. |
-| `v0.5.1` | Release | Planned | 2026-07 | Public docs route, demo capture automation, contributor flow, Distillation v1. |
-| `v0.6.0` | Models | Planned | 2026-08 | Unified Model Hub for install, verify, runtime state, hardware fit, and local server controls. |
-| `v0.6.1` | Models | Planned | 2026-08 | Durable Runtime Profile Registry, profile apply contract, Developer API panel, token and latency accounting. |
-| `v0.7.0` | RAG | Planned | 2026-08 | Enterprise RAG Starter with vector adapter, hybrid recall, reranker, citations, ACL, and eval sets. |
-| `v0.7.1` | RAG | Planned | 2026-09 | RAG-first playground with replay, citation inspection, permission preview, and benchmark handoff. |
-| `v0.8.0` | Fine-tune | Planned | 2026-09 | Professional LoRA loop: durable recipe, eval, best checkpoint, chart markers, export, and adapter attach. |
-| `v0.8.1` | Fine-tune | Planned | 2026-09 | Adapter lifecycle registry, merge/quantized export plans, attach rollback, and lineage evidence. |
-| `v0.9.0` | Deployment | Planned | 2026-10 | Production control plane for registry, audit, quota, telemetry, KMS signing, and failover rehearsal. |
-| `v1.0.0` | Release | Planned | 2026-10 | GA release with coherent Agent, Model Hub, RAG, Fine-tune, Benchmark, Compare, Ops, and evidence contracts. |
+| `v0.5.0` | Ops | Complete | 2026-07 | Provider Health Desk v2, retry/timeout visibility, release evidence grouping, Adapter Export closure. |
+| `v0.5.1` | Release | Complete | 2026-07 | Public docs route, demo capture automation, contributor flow, Distillation v1. |
+| `v0.6.0` | Models | Complete | 2026-08 | Unified Model Hub for install, verify, runtime state, hardware fit, and local server controls. |
+| `v0.6.1` | Models | Complete | 2026-08 | Durable Runtime Profile Registry, profile apply contract, Developer API panel, token and latency accounting. |
+| `v0.7.0` | RAG | Complete | 2026-08 | Enterprise RAG Starter with vector adapter, hybrid recall, reranker, citations, ACL, and eval sets. |
+| `v0.7.1` | RAG | Complete | 2026-09 | RAG-first playground with replay, citation inspection, permission preview, and benchmark handoff. |
+| `v0.8.0` | Fine-tune | Evidence complete | 2026-09 | Professional LoRA loop: durable recipe, eval, best checkpoint, chart markers, export, and adapter attach. |
+| `v0.8.1` | Fine-tune | Evidence complete | 2026-09 | Adapter lifecycle registry, merge/quantized export plans, attach rollback, and lineage evidence. |
+| `v0.9.0` | Deployment | Cloud evidence needed | 2026-10 | Production control plane for registry, audit, quota, telemetry, KMS signing, and failover rehearsal. |
+| `v1.0.0` | Release | Complete | 2026-10 | GA release with coherent Agent, Model Hub, RAG, Fine-tune, Benchmark, Compare, Ops, and evidence contracts. |
+
+## Post-v1 Version Train
+
+These versions are planned, not shipped. Their acceptance and evidence requirements are mirrored in `features/experiments/release-train.ts` and appear as planned rounds in `/experiments`.
+
+| Version | Track | Target | Borrowed strength | Core outcome |
+| --- | --- | --- | --- | --- |
+| `v1.1.0` | Desktop | 2026-11 | LM Studio / Jan onboarding | Signed desktop package, first-run diagnosis, upgrades, permissions, background services, rollback and uninstall evidence. |
+| `v1.1.1` | Models | 2026-11 | Desktop model hubs | Resumable downloads, checksums, external-disk migration, deduplication, compatibility checks, and install-to-benchmark handoff. |
+| `v1.2.0` | Runtime | 2026-12 | LM Studio / Jan local server | Server-instance registry, hot-switch, idle eviction, request logs, auth, trusted hosts, accounting, and LAN safety. |
+| `v1.2.1` | Runtime | 2026-12 | Ollama / LocalAI runtime breadth | Backend-neutral adapters for MLX, llama.cpp, Ollama, LocalAI, vLLM, SGLang, cross-platform hardware, and remote nodes. |
+| `v1.3.0` | Ecosystem | 2027-01 | Open WebUI / Jan extensibility | Permissioned MCP and signed extension registry with secret scope, audit, update, rollback, and quarantine. |
+| `v1.3.1` | Workflow | 2027-01 | AnythingLLM flows | Typed visual Agent/RAG/eval graphs with versioning, breakpoint replay, protected-tool resume, and deploy-as-API. |
+| `v1.4.0` | Governance | 2027-02 | Open WebUI team controls | Organizations, workspaces, RBAC, OIDC/SSO, SCIM, shared assets, policy simulation, and immutable audit. |
+| `v1.4.1` | Evaluation | 2027-02 | LLaMA-Factory training depth | Training backend compatibility, sweeps, judge calibration, confidence intervals, and reproducible CI regression gates. |
+| `v1.5.0` | Ecosystem | 2027-03 | Community hubs and registries | Signed model/adapter/dataset/RAG/eval/profile/workflow packages with provenance and evidence-backed quality claims. |
+| `v1.5.1` | Platform | 2027-03 | Production AI control planes | Multi-node HA, fencing, regional failover, durable usage/billing, OTel/Langfuse, real KMS/HSM, immutable archive, and organization sign-off. |
 
 ## Current Slice
 
-The active version is `v0.5.0`.
+The active version is `v1.1.0-rc.1`. The locally reproducible Desktop Onboarding package is RC-ready; Developer ID notarization and a separate clean-machine or organization receipt remain the explicit GA gate.
+
+## 2026-07-16 v1.1.0-rc.1 Desktop Onboarding
+
+The Desktop milestone now has a self-contained Apple Silicon app bundle with bundled Node, ZIP/DMG outputs, terminal-free startup, first-run and lifecycle orchestration, a real local Ollama chat proof, and a read-only DMG clean-profile boot rehearsal. `/experiments` reports 8 pass, 1 Apple-distribution watch, and 0 blocked local steps through `desktop.onboarding-release.v1`. The package is intentionally RC-only until Developer ID notarization and external clean-machine acceptance exist. Evidence: [`docs/releases/v1.1.0-rc.1_2026-07-16.md`](./releases/v1.1.0-rc.1_2026-07-16.md).
+
+## 2026-07-12 v1.0.1 non-cloud hardening batch
+
+This 15-slice batch extracts Agent target/locale/session/export effects, Admin filter/query/report/progress/runtime-history glue, and Benchmark coverage/heatmap composition into owning features. It adds compatibility rehearsal exports, a dedicated local-GA bundle source, and a screenshot integrity report that verifies nine flow ids, PNG dimensions, file digests, and manifest synchronization. The runtime release-train contract now reflects the actual active v1.0 phase instead of the stale v0.5 marker.
 
 Completed in this development slice:
 
@@ -46,13 +127,39 @@ Completed in this development slice:
 - Added docs/screenshots freshness checks to the promotion gate for v0.4.2 release notes, roadmap, fine-tune screenshots, LoRA chart, benchmark evidence, and Model Hub screenshots.
 - Added Model Hub local server actions to runtime target cards so local model cards expose hot-switch, unload, restart, and logs through existing runtime APIs.
 - Ran a complete Adapter Export wizard rehearsal for `qwen3.5`, producing a ModelScope-targeted adapter package with `publishChecklistStatus: PASS`.
-- Added `experiments.release-evidence-matrix.v1`, a 10-round execution tracker that scores every release train version from current contracts, artifacts, blockers, and next actions.
+- Added `experiments.release-evidence-matrix.v1`, a release evidence and roadmap tracker that scores every milestone from current contracts, artifacts, blockers, and next actions.
+- Added `/release` as the public release evidence route for launch notes, demo capture status, and distillation evidence.
+- Added `experiments.public-release-evidence.v1` so public docs, release docs, demo capture screenshots, and distillation artifacts are scored from one contract.
+- Added `docs/demo-capture-manifest.json` and `npm run screenshots:release` for repeatable high-resolution release screenshot capture.
+- Added `retrieval.query-replay.v1` so `/retrieval` queries now produce durable replay entries, citation diagnostic labels, and release-matrix evidence for the RAG Playground slice.
+- Refreshed v0.5.0/v0.5.1 evidence on 2026-07-07 with a matched 638/638 benchmark pin, a real DeepSeek provider request in the 24h Provider Ops window, a new Distillation operation, and refreshed public release screenshots.
+- Added Fine-tune best-checkpoint backfill for historical ready adapters, including `/api/finetune` action `backfill-best-checkpoints`, Assets panel coverage UI, Evaluate checkpoint preference, and release evidence for v0.8.0.
+- Verified v0.8.0 Fine-tune Pro as `complete` in the release evidence matrix: 8 recipes, 6 completed jobs, 7 ready adapters, 6 best-checkpoint adapters, 1 completed export, and no blockers.
+- Added Adapter Lifecycle registry for v0.8.1 with variant diff evidence, merge/q8 export planning, rollback proof lifecycle actions, Fine-tune Assets UI totals, and release matrix scoring from real lifecycle totals.
+- Verified v0.8.1 Adapter Lifecycle as `complete` in the release evidence matrix: 16 variants, 9 variant diffs, 21 export plans, 1 rollback proof, and 2 lifecycle actions.
+- Added Adapter Lifecycle polish for v0.8.1: registry filters by status/diff/export format plus a variant detail drawer for lineage, best-checkpoint, export, and rollback evidence.
+- Added `deployment.control-plane.v1` with a durable usage outbox, external audit archive evidence directory, local Ed25519 KMS-style receipt signing, and failover rehearsal records.
+- Ran a live production-control rehearsal through `/api/deployment`, producing 1 delivered usage record, 1 archived audit event, 1 verified KMS receipt, and 1 completed failover rehearsal.
+- Added the cloud production adapter boundary for v0.9.0: AWS KMS `sign/verify`, S3 Object Lock archive writes, `requireCloud=true` fail-closed POST behavior, and separate `localReadiness` versus `productionReadiness`.
+- Re-scored v0.9.0 from production cloud evidence only. Local rehearsal evidence no longer counts as cloud production sign-off.
+- Added non-cloud v1.0 GA closeout evidence: Admin compatibility sunset read-model, route-smoke JSON artifact, v1.0 release-matrix GA blockers, and a dedicated Admin compatibility sunset panel.
+- Migrated remaining Fine-tune report/bundle UI links from `/api/admin/finetune` to canonical `/api/finetune`, and split compatibility usage evidence into runtime, route-smoke, and historical-unclassified buckets.
+- Added historical Admin compatibility archive/clear flow: `POST /api/admin/compatibility-usage` writes an archive, clears only legacy-unclassified hits, preserves route-smoke proof, and surfaces archive counts in `/admin` plus the v1.0 matrix.
+- Verified the archive/clear flow on 2026-07-09: 116 historical hits archived, live legacy hits cleared to 0, route smoke remained 34/34 passing, and the v1.0 matrix now carries archive metrics instead of a historical-hit blocker.
+- Added Provider Ops release probes: an Admin-owned minimal remote models plus chat check is labeled as `release-probe`, stored separately from user chat traffic, and can satisfy the fresh remote-evidence gate only after an actual successful probe.
+- Added durable Provider Ops evidence snapshots with pin/delete/retention/export controls. Pinned snapshots remain valid only while the underlying success event is inside the 24-hour promotion window.
+- Added a per-route Admin compatibility deletion manifest covering wrapper/canonical files, smoke coverage, runtime and historical hits, sunset timing, and delete readiness.
+- Added route-smoke history archives and consecutive-pass metrics instead of retaining only the latest JSON report.
+- Added `experiments.ga-release-evidence-bundle.v1`, a writable GA manifest that separates non-cloud readiness from production cloud readiness and is visible in `/experiments`.
+- Moved Agent connection state/action assembly into `features/agent/connection-composition.ts`, leaving the workbench with one feature-owned connection input.
 
 Next implementation slice:
 
-- Pin a representative benchmark run as release evidence so the promotion gate can clear the Benchmark blocker.
-- Record at least one successful remote provider request in the 24h Provider Ops evidence window.
-- Continue v0.5.1 by adding public docs route manifest, demo capture manifest, and a small Distillation evidence run.
+- Inject workload identity plus `FIRST_LLM_AWS_KMS_KEY_ID` and an Object Lock enabled `FIRST_LLM_AUDIT_S3_BUCKET`, then run `/api/deployment` with `requireCloud=true` to produce real cloud production sign-off.
+- After v0.9 cloud sign-off is present, enter v1.0.0 GA closure: final release evidence, API compatibility sunset evidence, docs/screenshots freshness, and cross-surface route smoke.
+- Continue non-cloud GA closure by refreshing screenshots/docs close to release time, keeping source-tagged runtime compatibility hits at zero, and recording final post-sunset compatibility evidence after 2026-09-30.
+- Select a configured remote target in Admin Provider Ops and run a real release probe before promotion; the gate intentionally remains WATCH when no fresh chat request or successful probe exists.
+- Write the GA evidence bundle from `/experiments`, review the non-cloud blockers, and keep production cloud sign-off blocked until real workload identity, KMS, and immutable archive evidence exist.
 
 ## 中文说明
 
@@ -62,4 +169,4 @@ Next implementation slice:
 - `app/api/experiments/release-train/route.ts`
 - `features/experiments/ReleaseTrainPanel.tsx`
 
-当前进行中的版本是 `v0.5.0`，重点是 Provider 运维、发布证据、Adapter Export 与 Model Hub runtime ops。后续版本继续沿 Model Hub、企业 RAG、专业 LoRA、部署控制面和 GA 发布证据推进。
+当前 active version 是 `v1.1.0-rc.1`。桌面首次启动在本机可复现证据下已经 RC-ready；Developer ID notarization 和独立 clean-machine/组织签收继续作为明确 GA 门禁。后续从 `v1.1.1` 到 `v1.5.1` 依次推进 Model Hub 生命周期、Local Server/runtime fabric、MCP/扩展、可视化 workflow、团队治理、训练/评测 CI、artifact marketplace 与企业 HA/FinOps。

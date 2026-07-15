@@ -1300,6 +1300,7 @@ export type AgentFineTuneSummary = {
   jobs: AgentFineTuneJob[];
   adapters: AgentFineTuneAdapterArtifact[];
   operations: AgentFineTuneOperation[];
+  lifecycle?: AgentFineTuneAdapterLifecycleSummary;
 };
 
 export type AgentFineTuneAdapterArtifact = {
@@ -1322,6 +1323,85 @@ export type AgentFineTuneAdapterArtifact = {
   attachedTargetLabel?: string;
   attachedAt?: string;
   updatedAt: string;
+};
+
+export type AgentFineTuneAdapterVariantDiff = {
+  previousAdapterId?: string;
+  previousJobId?: string;
+  checkpointDelta?: number | null;
+  bestMetricDelta?: number | null;
+  exportDelta?: number | null;
+  conclusion:
+    | "improved"
+    | "regressed"
+    | "stable"
+    | "mixed"
+    | "insufficient-data";
+};
+
+export type AgentFineTuneAdapterExportPlan = {
+  id: string;
+  adapterId: string;
+  adapterName: string;
+  exportFormat: "adapter-bundle" | "merged-mlx" | "gguf";
+  quantization: "none" | "q8" | "q4";
+  status: "planned" | "completed";
+  operationId?: string;
+  actionId?: string;
+  outputDir?: string;
+  publishTarget?: string;
+  publishChecklistStatus?: string;
+  generatedAt: string;
+};
+
+export type AgentFineTuneAdapterLifecycleAction = {
+  id: string;
+  kind: "export-plan" | "rollback-proof";
+  status: "planned" | "completed" | "failed";
+  adapterId: string;
+  adapterName: string;
+  summary: string;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: Record<string, string | number | boolean | null | undefined>;
+};
+
+export type AgentFineTuneAdapterLifecycleVariant = {
+  id: string;
+  adapterId: string;
+  adapterName: string;
+  jobId: string;
+  recipeId?: string;
+  datasetId?: string;
+  baseTargetId?: string;
+  baseTargetLabel?: string;
+  status: AgentFineTuneAdapterArtifact["status"];
+  bestCheckpoint?: AgentFineTuneBestCheckpointSelection;
+  checkpointCount: number;
+  exportOperationIds: string[];
+  attachedTargetId?: string;
+  variantGroup: string;
+  diff: AgentFineTuneAdapterVariantDiff;
+  updatedAt: string;
+};
+
+export type AgentFineTuneAdapterLifecycleSummary = {
+  generatedAt: string;
+  registryPath: string;
+  totals: {
+    variants: number;
+    readyVariants: number;
+    variantDiffs: number;
+    exportPlans: number;
+    completedExports: number;
+    plannedExports: number;
+    rollbackProofs: number;
+    lifecycleActions: number;
+  };
+  variants: AgentFineTuneAdapterLifecycleVariant[];
+  exportPlans: AgentFineTuneAdapterExportPlan[];
+  rollbackProofs: AgentFineTuneAdapterLifecycleAction[];
+  actions: AgentFineTuneAdapterLifecycleAction[];
 };
 
 export type AgentTimelineEventKind =
@@ -1362,6 +1442,7 @@ export type AgentConnectionCheckStage = {
 
 export type AgentConnectionCheckResponse = {
   ok: boolean;
+  evidencePurpose?: "connection-check" | "release-probe";
   targetId: string;
   targetLabel: string;
   providerLabel: string;

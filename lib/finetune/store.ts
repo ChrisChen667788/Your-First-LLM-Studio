@@ -13,6 +13,7 @@ import {
   normalizeLoraTargetModules,
 } from "./lora-config";
 import { buildFineTuneAdapterArtifacts } from "./bundle-service";
+import { buildFineTuneAdapterLifecycleSummary } from "./lifecycle-service";
 export { exportFineTuneJobReport } from "./report-service";
 export { exportFineTuneJobBundleArchive } from "./bundle-service";
 import {
@@ -52,6 +53,7 @@ export function readFineTuneSummary(): AgentFineTuneSummary {
   const recipes = readRecipes();
   const jobs = readJobs();
   const operations = readOperations();
+  const adapters = buildFineTuneAdapterArtifacts(jobs, recipes, localTargets);
   return {
     generatedAt: new Date().toISOString(),
     dataDir: FINETUNE_DIR,
@@ -59,8 +61,14 @@ export function readFineTuneSummary(): AgentFineTuneSummary {
     datasets,
     recipes,
     jobs,
-    adapters: buildFineTuneAdapterArtifacts(jobs, recipes, localTargets),
+    adapters,
     operations,
+    lifecycle: buildFineTuneAdapterLifecycleSummary({
+      jobs,
+      recipes,
+      adapters,
+      operations,
+    }),
   };
 }
 

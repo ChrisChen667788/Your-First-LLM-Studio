@@ -1,10 +1,32 @@
 # Agent Lab Development Roadmap
 
-Last updated: 2026-07-02
+Last updated: 2026-07-16
+
+## Post-v1 third operational lifecycle checkpoint
+
+第三组十五个本地生命周期切片已完成并进入 `/experiments`：15 ready、0 partial、0 blocked，平均本地完成度 92%。本轮把 Desktop 服务恢复/权限修复、Model Hub 来源清单/并发调度/安全清理、Server 流量排空/日志保留、Remote lease fencing、Extension grant/quarantine、Workflow deployment auth、Governance 四眼审批、Evaluation baseline promotion、Artifact rollback 和 usage settlement 做成可重复状态机。真实 launchd、Hub 网络下载、多机流量切换、公共 registry、外部 billing 与云/组织身份证据仍保持外部 gate。详见 [`docs/release-evidence/post-v1-operational-lifecycle-15-slice-2026-07-16.md`](./release-evidence/post-v1-operational-lifecycle-15-slice-2026-07-16.md)。
+
+## Post-v1 second product acceptance checkpoint
+
+第二组十五个本地产品验收切片已完成并汇总到 `/experiments`：15 ready、0 partial、0 blocked，平均本地完成度 90%。本轮新增 Desktop 数据迁移/卸载、Model Hub 外置盘 plan 与兼容性/Benchmark handoff、Server caller key 与 LAN/CORS/rate policy、六后端统一 operation contract、remote node capability routing、扩展 update/disable/enable 与 secret scope、Workflow state diff/breakpoint 和 Retrieval graph、共享资产 ACL/哈希链审计、Sweep/early-stop/judge calibration，以及 Artifact quality claim 到 usage/billing 的证据关联。完整版本仍是 planned，preview backend、loopback node、隔离迁移 fixture 不等同于真实生产能力。详见 [`docs/release-evidence/post-v1-product-acceptance-15-slice-2026-07-14.md`](./release-evidence/post-v1-product-acceptance-15-slice-2026-07-14.md)。
+
+## Post-v1 executable hardening checkpoint
+
+第二组十五个本地验收切片已经完成真实 rehearsal，并在 `/experiments` 汇总为 15 ready、0 partial、0 blocked，平均完成度 91%。本轮覆盖桌面更新/回滚、模型内容去重计划与隔离 hardlink 演练、Hub 会话对账、Ollama 热切换与 fleet conformance、idle unload dry-run、扩展原子安装/回滚、workflow lease/审批/幂等恢复/replay、RBAC simulator、多指标回归、artifact registry round-trip 和 usage outbox 对账。完整版本 train 仍保持 planned；Apple notarization、组织 OIDC/SCIM 与云 KMS/Object Lock 不计入本地通过。详见 [`docs/release-evidence/post-v1-hardening-15-slice-2026-07-14.md`](./release-evidence/post-v1-hardening-15-slice-2026-07-14.md)。
+
+## Post-v1 15-slice closure checkpoint
+
+十五个 post-v1 implementation slices 现在已经汇总到 `/experiments` 的 fail-closed evidence model：12 项本地 ready，3 项因 Apple Developer ID/notarization、OIDC 配置和 SCIM 凭据保持 externally blocked。当前批次覆盖 Hub 传输恢复与内容对账、Local Server 策略/计量与 Ollama conformance、扩展依赖/沙箱边界、版本化 workflow deployment、Postgres request context、evaluation confidence interval 和 signed artifact provenance。详见 [`docs/release-evidence/post-v1-15-slice-2026-07-14.md`](./release-evidence/post-v1-15-slice-2026-07-14.md)。
+
+## Post-v1 competitive roadmap checkpoint
+
+基于 LM Studio、Ollama、Open WebUI、Jan、AnythingLLM、LLaMA-Factory 和 LocalAI 官方资料的竞品评估已经归档到 [`docs/competitive-landscape.md`](./competitive-landscape.md)。后续 10 个 planned 版本已追加到 [`docs/next-10-release-train.md`](./next-10-release-train.md) 与 typed release-train contract，重点依次覆盖桌面分发、模型下载/存储生命周期、Local Server、运行时广度、MCP/扩展、可视化 workflow、团队治理、训练/评测 CI、artifact marketplace 与企业 HA/FinOps。既有 `v0.9.0` 云证据阻塞和 `v1.0.0` active 状态保持不变。
 
 ## Version snapshot
 
 当前版本已经具备下面这些主能力：
+
+- `v1.1.0-rc.1` Desktop Onboarding：自包含 Apple Silicon app、内置 Node、ZIP/DMG、首次诊断、权限与后台服务恢复、迁移/更新/回滚/卸载演练、真实 Ollama 本地对话证明、clean-profile DMG 启动证明，以及与 Developer ID/notarization 分离的 GA 门禁。
 
 - 本地/远端统一 Agent 工作台
 - 本地 Qwen 0.6B / 4B 4-bit 切换
@@ -108,7 +130,7 @@ Last updated: 2026-07-02
 - 2026-06-30 stability/control-plane checkpoint：本地 Agent runtime gateway 解释器解析从硬编码 `python3.12` 改为 `LOCAL_AGENT_PYTHON_BIN` / `.venv` / `python3.12` / `python3.11` / `python3` 分层探测，并把 `pythonRuntime` 诊断返回到 `/api/agent/runtime` 与 runtime rail；route smoke 全部请求加超时，Benchmark latest progress 空历史返回 idle snapshot；旧 Admin compatibility wrapper 增加 usage evidence store、Dashboard 面板与 `/api/admin/compatibility-usage` 管理契约；Agent runtime/connection actions 输入继续收成 feature-owned `target/context/state/mutations` 对象；Benchmark 远端目标遇到缺 key、认证、model not found、quota/billing 等 fatal unavailable 时跳过剩余样本并把 `skippedRuns` / `skipSummary` 写入 report/Admin read-model；Agent target scan 成为 Experiments timeline producer；Model Hub 新增 `/api/models/runtime-operations` 统一返回 runtime profiles、idle-unload、request logs 与 storage paths，作为后续把 runtime 面板完全并回 `/models` 的基础。
 - 2026-07-01 v0.4.1 release/evidence checkpoint：完成后续 10 段发布收尾：1) LoRA recipe contract 把 `targetModules`、scheduler、warmup、packing、eval/save cadence、best-checkpoint policy 从 UI 表单贯通到保存 API、YAML/command preview 与 worker bundle；2) `saveEverySteps` 专业默认与 recipe form 对齐到 100；3) worker 物化 checkpoint 目录、`checkpointEvents` 和 best checkpoint selection；4) 真实跑通 `mlx-community/Qwen3-4B-Instruct-2507-4bit` 的 816-step LoRA release run；5) 归档 manifest、metrics、report、chart evidence 与 full evidence tarball；6) Fine-tune 图表证据加入 eval/save/best markers、smoothing 与 raw metrics export；7) README/ModelScope 补齐双语大版本叙事与真实 LoRA evidence；8) README 截图保持 3200x2000，LoRA 图表从 SVG 重新导出 3360x1960 PNG 并保留矢量版，Benchmark 截图补入真实 local smoke run 与 pinned release evidence；9) release note 固化 v0.4.1 稳定基线，远端 runtime status 缺 key 改为 HTTP 200 + `available=false` 并纳入 route smoke；10) 依赖声明对齐到 `next@15.5.18` / `postcss@8.5.16`，`npm audit --omit=dev` 为 0，再以 committed Git tree 作为 GitHub/ModelScope 同步源，避免两端文件漂移。
 - 2026-07-02 v0.4.2 evidence patch + v0.5.0 entry checkpoint：把 GitHub/ModelScope 高清截图同步、README 截图 LFS 阈值修复、双语 release note 与 ModelScope README 正式固化为 v0.4.2 稳定证据；同时启动 v0.5.0 第一段：Provider Health Desk v2 read-model 增加 provider/model/profile 维度、success/failure rate、4h trend buckets、rough cost 与 policy recommendation；Fine-tune Adapter Export wizard 增加 publish target、license/dataset attribution checklist、secret scan status、sample prompts、known limitations，并贯通 command preview、submit payload、application contract、export service、model card、publish checklist 与 manifest。
-- 2026-07-02 next-10 release train checkpoint：后续 10 个产品版本已经固化为 `features/experiments/release-train.ts` typed contract、`/api/experiments/release-train` API 与 `/experiments` 前台 release train 面板；当前 active version 为 `v0.5.0`。Model Hub runtime operations 升级到 `models.runtime-operations.v2`，API 现在返回 capabilities、Developer API guide、OpenAI-compatible chat/models URL、key 状态、token accounting 字段与 latency 字段；`/models` runtime 面板同步显示 endpoint、curl snippet、token/latency evidence，并纳入 route smoke。详细版本列车见 [`docs/next-10-release-train.md`](./next-10-release-train.md)。
+- 2026-07-02 next-10 release train checkpoint：首批后续 10 个产品版本已经固化为 `features/experiments/release-train.ts` typed contract、`/api/experiments/release-train` API 与 `/experiments` 前台 release train 面板；该检查点当时的 active version 为 `v0.5.0`，当前状态以 contract 为准。Model Hub runtime operations 升级到 `models.runtime-operations.v2`，API 现在返回 capabilities、Developer API guide、OpenAI-compatible chat/models URL、key 状态、token accounting 字段与 latency 字段；`/models` runtime 面板同步显示 endpoint、curl snippet、token/latency evidence，并纳入 route smoke。详细版本列车见 [`docs/next-10-release-train.md`](./next-10-release-train.md)。
 - 2026-07-02 Provider Ops policy checkpoint：Provider Health Desk v2 继续补齐 retry/timeout 策略可视化；每个远端 provider row 现在输出 `retryPolicy`，包括 provider kind、推荐策略模板、first-token timeout、total timeout、stream idle timeout、retry budget、fallback profile，并在 Admin Provider Health 卡片中展示。Dashboard route smoke 已将该策略 contract 纳入回归。
 - 2026-07-02 Benchmark release evidence summary checkpoint：Benchmark pinned release evidence 已升级为 `benchmark.release-evidence-summary.v1` contract；`features/benchmark/release-evidence-summary.ts` 会把 pinned run 与 benchmark history 做 exact `runId` 匹配，并输出 totals、missing-run、grouped source、target coverage、failed/skipped sample、success rate 与 release-note draft。`/api/admin/benchmark/evidence`、Admin release evidence 区块与 `/benchmarks` side rail 均已显示同一份 summary，route smoke 已纳入回归。
 - 2026-07-02 Model Hub target cards checkpoint：`/api/models/runtime-operations` 在 `models.runtime-operations.v2` 内新增 `targetCards` read-model，把 server target、endpoint、chat/models URL、key 状态、runtime profile 数量、Tools/RAG profile 覆盖、recent request/token/latency、idle-unload policy 汇总到后端 contract；`/models` 顶部新增 Runtime target cards，把 Local Server-first 信息从独立 runtime 面板推进到主模型工作区，route smoke 已检查 `targetCards` shape。
@@ -987,3 +1009,20 @@ Definition of done:
   - `git diff --check`
   - 最小 lint / typecheck
   - 与该批次相关的 route 或 API smoke
+
+## Post-v1 executable status (2026-07-12)
+
+- Desktop release: real Developer ID/notary/stapler pipeline is implemented; production evidence remains blocked by missing Keychain identity, notary profile, and package.
+- Model Hub: Hugging Face automatic manifests and ModelScope explicit multi-file manifests now feed the durable Range/checksum worker; private tokens are read from environment variables and never returned by the API.
+- Runtime fabric: Ollama `qwen3:0.6b` has passing model-level conformance evidence for discover, prewarm, generation, metrics, and unload.
+- Extensions: dependency validation and a Node permission subprocess rehearsal are implemented. Container or OS sandboxing remains a later production gate.
+- Workflow Studio: `/workflows` owns graph inspection, persisted breakpoints, step/continue actions, and execution history.
+- Team governance: Postgres 16 RLS rehearsal passes. External OIDC discovery and SCIM provisioning endpoints are fail-closed pending real IdP configuration.
+
+Next production slices:
+
+- notarize a signed desktop package with a real Developer ID and retain Apple submission/staple receipts;
+- add Hub snapshot retry/backoff, signed URL refresh, and large-shard concurrency controls;
+- move extension execution from the Node permission preview into a hardened container/seatbelt profile;
+- add workflow graph mutation, schema validation, version publish, and deploy-as-API;
+- exercise OIDC JWT/JWKS verification and SCIM provisioning against a real identity provider, then run Postgres RLS under pooled application roles.

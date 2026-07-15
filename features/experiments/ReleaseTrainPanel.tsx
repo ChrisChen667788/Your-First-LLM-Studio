@@ -17,6 +17,7 @@ type ReleaseTrainPayload = Partial<ReleaseTrainResponse> & {
 
 function statusClass(status: ReleaseTrainStatus) {
   if (status === "active") return "border-cyan-300/30 bg-cyan-400/15 text-cyan-50";
+  if (status === "complete") return "border-emerald-300/30 bg-emerald-400/15 text-emerald-50";
   if (status === "blocked") return "border-rose-300/30 bg-rose-400/15 text-rose-50";
   if (status === "evidence-needed") return "border-amber-300/30 bg-amber-300/15 text-amber-50";
   return "border-white/10 bg-white/5 text-slate-300";
@@ -35,13 +36,14 @@ export function ReleaseTrainPanel({ locale }: ReleaseTrainPanelProps) {
   const text = useMemo(
     () => ({
       eyebrow: en ? "Release train" : "版本列车",
-      title: en ? "Next 10 product releases" : "后续 10 个产品版本",
+      title: en ? "Product release roadmap" : "产品版本路线图",
       subtitle: en
-        ? "A live contract for the next development train. Each card carries scope, acceptance, evidence, and the next implementation slice."
-        : "后续开发列车的实时契约。每个版本都带范围、验收、证据与下一段实现切片。",
+        ? "A live contract spanning the completed foundation, current gates, and post-v1 product train. Each card carries scope, acceptance, evidence, and the next implementation slice."
+        : "覆盖既有基础、当前门槛和 post-v1 产品列车的实时契约。每个版本都带范围、验收、证据与下一段实现切片。",
       refresh: en ? "Refresh" : "刷新",
       loading: en ? "Loading..." : "加载中...",
       active: en ? "Active" : "进行中",
+      complete: en ? "Complete" : "已完成",
       planned: en ? "Planned" : "计划中",
       blocked: en ? "Blocked" : "阻塞",
       evidence: en ? "Evidence needed" : "待补证据",
@@ -55,11 +57,12 @@ export function ReleaseTrainPanel({ locale }: ReleaseTrainPanelProps) {
   const statusLabel = useCallback(
     (status: ReleaseTrainStatus) => {
       if (status === "active") return text.active;
+      if (status === "complete") return text.complete;
       if (status === "blocked") return text.blocked;
       if (status === "evidence-needed") return text.evidence;
       return text.planned;
     },
-    [text.active, text.blocked, text.evidence, text.planned],
+    [text.active, text.blocked, text.complete, text.evidence, text.planned],
   );
 
   const loadTrain = useCallback(async () => {

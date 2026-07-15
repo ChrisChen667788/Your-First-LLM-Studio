@@ -8,6 +8,7 @@ import type {
   RetrievalEditor,
   RetrievalPathInspection,
   RetrievalQueryResponse,
+  RetrievalQueryReplaySummary,
   RetrievalSnapshot,
 } from "@/features/retrieval/contracts";
 
@@ -101,4 +102,14 @@ export async function runRetrievalProbe(input: {
     body: JSON.stringify({ ...input, topK: 6 }),
   });
   return readPayload<RetrievalQueryResponse>(response, "Retrieval probe failed.");
+}
+
+export async function loadRetrievalQueryReplay(limit = 12) {
+  const response = await fetch(`${RETRIEVAL_API}/query?limit=${encodeURIComponent(String(limit))}`, {
+    cache: "no-store",
+  });
+  return readPayload<RetrievalQueryReplaySummary>(
+    response,
+    "Failed to load retrieval query replay.",
+  );
 }

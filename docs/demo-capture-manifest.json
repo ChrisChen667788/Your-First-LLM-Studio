@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "first-llm-studio.demo-capture-manifest.v1",
+  "generatedAt": "2026-07-15T18:06:05.638Z",
+  "baseUrl": "http://localhost:3011",
+  "command": "BASE_URL=http://localhost:3011 npm run screenshots:release",
+  "viewport": {
+    "width": 1920,
+    "height": 1200,
+    "deviceScaleFactor": 2
+  },
+  "flows": [
+    {
+      "id": "agent-workbench",
+      "label": "Agent workbench",
+      "route": "/agent",
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/agent-workbench.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow agent-workbench",
+      "purpose": "Show the feature-owned Agent chat/session shell, runtime rail, target catalog, and transcript workspace."
+    },
+    {
+      "id": "compare-studio",
+      "label": "Compare studio",
+      "route": "/compare",
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/compare-studio.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow compare-studio",
+      "purpose": "Show the route-owned Compare composer, lane preview, review, and recipe workflow."
+    },
+    {
+      "id": "models-studio",
+      "label": "Model Hub",
+      "route": "/models",
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/models-studio.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow models-studio",
+      "purpose": "Show model discovery, hardware fit, runtime operations, and Developer API controls."
+    },
+    {
+      "id": "benchmarks-studio",
+      "label": "Benchmarks studio",
+      "route": "/benchmarks",
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/benchmarks-studio.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow benchmarks-studio",
+      "purpose": "Show route-owned benchmark controls, progress, history, and release evidence."
+    },
+    {
+      "id": "retrieval-studio",
+      "label": "Retrieval studio",
+      "route": "/retrieval",
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/retrieval-studio.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow retrieval-studio",
+      "purpose": "Show the RAG-first knowledge, ACL, citation, replay, and evaluation workflow."
+    },
+    {
+      "id": "admin-dashboard",
+      "label": "Admin operations dashboard",
+      "route": "/admin",
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/admin-dashboard.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow admin-dashboard",
+      "purpose": "Show runtime governance, Provider Ops, compatibility sunset rehearsal, and observability read-models."
+    },
+    {
+      "id": "public-release-evidence",
+      "label": "Public release evidence",
+      "route": "/release",
+      "fullPage": true,
+      "screenshotPath": "docs/assets/screenshots/public-release-evidence.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow public-release-evidence",
+      "purpose": "Show the public release docs route, demo capture status, and distillation evidence from the same release contract."
+    },
+    {
+      "id": "experiments-evidence-matrix",
+      "label": "Experiments evidence matrix",
+      "route": "/experiments",
+      "fullPage": true,
+      "screenshotPath": "docs/assets/screenshots/experiments-evidence-matrix.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow experiments-evidence-matrix",
+      "purpose": "Show the v0.5.0 and v0.5.1 promotion status inside the product evidence matrix."
+    },
+    {
+      "id": "desktop-onboarding-release",
+      "label": "Desktop onboarding release desk",
+      "route": "/experiments",
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/desktop-onboarding-release.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow desktop-onboarding-release",
+      "purpose": "Show the v1.1.0 RC package, first-run, lifecycle, local-chat, clean-profile, and Apple GA gate evidence."
+    },
+    {
+      "id": "fine-tune-distillation",
+      "label": "Fine-tune distillation workflow",
+      "route": "/fine-tune",
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/fine-tune-studio.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow fine-tune-distillation",
+      "purpose": "Show the Fine-tune studio surface that owns distillation, LoRA recipe, report, and adapter export evidence."
+    }
+  ]
+}

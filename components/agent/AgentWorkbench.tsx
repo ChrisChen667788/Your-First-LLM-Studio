@@ -5,42 +5,29 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
-import { AgentGetCodePanel } from "@/components/agent/AgentGetCodePanel";
+import { useAgentChatSessionState } from "@/features/agent/chat-session-state";
 import {
-  agentTargets as builtinAgentTargets,
-  agentToolSpecs,
-} from "@/lib/agent/catalog";
+  buildAgentConversationSelectors,
+  countSelectedCompareLanes,
+} from "@/features/agent/conversation-selectors";
 import {
-  buildSessionExportEnvelope,
-  flattenTurns,
-  MAX_STORED_SESSIONS,
-  serializeSessionsAsMarkdown,
-  serializeTurnsAsMarkdown,
-  sortSessions,
-  type AgentTurn,
+  buildAgentSessionSyncLabel,
+} from "@/features/agent/session-sync-status";
+import {
   type StoredAgentSession,
 } from "@/features/agent/session-model";
-import { AgentComposerForm } from "@/features/agent/agent-composer-form";
-import { AgentSecondaryAnalysisPanel } from "@/features/agent/secondary-analysis-panel";
-import { AgentSessionToolsPanel } from "@/features/agent/session-tools-panel";
-import { AgentTranscriptPanel } from "@/features/agent/agent-transcript-panel";
-import { writeLocalAgentSessions } from "@/features/agent/session-persistence";
+import { useAgentSessionCommandActions } from "@/features/agent/session-command-actions";
 import {
   applyStoredAgentSession,
   applyStoredAgentWorkbenchPreferences,
 } from "@/features/agent/session-apply";
-import { useAgentConnectionActions } from "@/features/agent/connection-actions";
-import { useAgentConnectionShellState } from "@/features/agent/connection-shell-state";
 import { useAgentCopyReplayState } from "@/features/agent/copy-replay-state";
-import { useAgentRuntimeActions } from "@/features/agent/runtime-actions";
-import { RuntimeStatusRail } from "@/features/agent/runtime-status-rail";
+import { useAgentRuntimeConnectionComposition } from "@/features/agent/runtime-connection-composition";
 import {
-  describeRuntimeAlias,
-  formatRuntimeDuration,
-  formatRuntimeTimestamp,
-} from "@/features/agent/runtime-formatters";
+  buildRuntimeStatusRailProps,
+  buildRuntimeStatusRailText,
+} from "@/features/agent/runtime-rail-composition";
 import { buildAgentRuntimeViewModel } from "@/features/agent/runtime-view-model";
 import {
   useAgentSessionHydration,
@@ -48,24 +35,38 @@ import {
 } from "@/features/agent/session-hydration";
 import { useAgentSessionServerSync } from "@/features/agent/session-server-sync";
 import { useAgentSessionSidebarSelectors } from "@/features/agent/session-sidebar-selectors";
-import { TargetCatalogPanel } from "@/features/agent/target-catalog-panel";
+import { AgentWorkbenchLayout } from "@/features/agent/workbench-layout";
+import {
+  buildAgentComposerProps,
+  buildAgentGetCodeProps,
+  buildAgentSecondaryAnalysisProps,
+  buildAgentSessionToolsProps,
+  buildAgentTargetCatalogProps,
+  buildAgentTargetProfileProps,
+  buildAgentTranscriptProps,
+  buildAgentWorkbenchHeaderProps,
+  buildAgentWorkbenchLayoutProps,
+  buildAgentWorkbenchPromptStripProps,
+  buildAgentWorkbenchStatusBandProps,
+} from "@/features/agent/workbench-composition";
+import { buildAgentSidebarComposition } from "@/features/agent/sidebar-composition";
 import { useAgentWorkbenchShellState } from "@/features/agent/workbench-shell-state";
-import { useAgentRuntimeShellState } from "@/features/agent/runtime-shell-state";
+import { useAgentRuntimeConnectionShellState } from "@/features/agent/runtime-connection-shell";
 import { useAgentTranscriptShellState } from "@/features/agent/transcript-shell-state";
 import { useAgentWorkspaceFileActions } from "@/features/agent/workspace-file-actions";
 import { useAgentTurnLifecycle } from "@/features/agent/turn-lifecycle";
+import { buildAgentTurnLifecycleInput } from "@/features/agent/turn-lifecycle-input";
+import { useAgentTargetCatalogSync } from "@/features/agent/target-catalog-sync";
+import { useAgentLocaleDefaultSync } from "@/features/agent/locale-default-sync";
+import { useAgentSessionSyncProjections } from "@/features/agent/session-sync-projections";
+import { useAgentTranscriptExportActions } from "@/features/agent/transcript-export";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { CompareWorkbenchPortal } from "@/features/compare/CompareWorkbenchPortal";
 import { useEmbeddedCompareSessionAdapter } from "@/features/compare/embedded-session-adapter";
 import { useEmbeddedCompareWorkbenchAdapter } from "@/features/compare/embedded-workbench-adapter";
 import { useCompareWorkbenchStateModel } from "@/features/compare/workbench-state-model";
-import {
-  getDefaultSystemPromptForLocale,
-  getLocalizedStarterPrompts,
-  getLocalizedToolDescription,
-} from "@/lib/i18n";
+import { getLocalizedStarterPrompts } from "@/lib/i18n";
 import { clampContextWindowForTarget } from "@/lib/agent/metrics";
-import { sanitizeDisplayPath } from "@/lib/agent/path-display";
 import { buildReproduceRequestArtifacts } from "@/lib/agent/reproduce-request";
 import type {
   AgentCompareIntent,
@@ -81,9 +82,7 @@ import type {
   AgentProviderProfile,
   AgentThinkingMode,
   AgentRuntimeStatus,
-  AgentTarget,
   AgentWorkbenchMode,
-  AgentWorkbenchSessionConflict,
   AgentWorkbenchStoredPreferences,
 } from "@/lib/agent/types";
 
@@ -129,11 +128,57 @@ export function AgentWorkbench({
     () => getLocalizedStarterPrompts(locale),
     [locale],
   );
-  const [availableTargets, setAvailableTargets] =
-    useState<AgentTarget[]>(builtinAgentTargets);
+  const {
+    availableTargets,
+    setAvailableTargets,
+    sessionId,
+    setSessionId,
+    savedSessions,
+    setSavedSessions,
+    selectedTargetId,
+    setSelectedTargetId,
+    workbenchMode,
+    setWorkbenchMode,
+    turns,
+    setTurns,
+    input,
+    setInput,
+    systemPrompt,
+    setSystemPrompt,
+    enableTools,
+    setEnableTools,
+    enableRetrieval,
+    setEnableRetrieval,
+    contextWindow,
+    setContextWindow,
+    providerProfile,
+    setProviderProfile,
+    thinkingMode,
+    setThinkingMode,
+    pending,
+    setPending,
+    error,
+    setError,
+    expandedCitationKey,
+    setExpandedCitationKey,
+    expandedTraceTurnId,
+    setExpandedTraceTurnId,
+    expandedReviewFileKey,
+    setExpandedReviewFileKey,
+    toolDecisionBusyKey,
+    setToolDecisionBusyKey,
+    toolDecisionStatusByToken,
+    setToolDecisionStatusByToken,
+    preferencesReady,
+    setPreferencesReady,
+    serverSessionSyncState,
+    setServerSessionSyncState,
+    serverSnapshotUpdatedAt,
+    setServerSnapshotUpdatedAt,
+    sessionSyncConflict,
+    setSessionSyncConflict,
+  } = useAgentChatSessionState(initialMode);
   const agentTargets = availableTargets;
-  const [sessionId, setSessionId] = useState<string>(() => crypto.randomUUID());
-  const [savedSessions, setSavedSessions] = useState<StoredAgentSession[]>([]);
   const {
     getCodeOpen,
     setGetCodeOpen,
@@ -148,9 +193,6 @@ export function AgentWorkbench({
     sessionExportScope,
     setSessionExportScope,
   } = useAgentWorkbenchShellState();
-  const [selectedTargetId, setSelectedTargetId] = useState("anthropic-claude");
-  const [workbenchMode, setWorkbenchMode] =
-    useState<AgentWorkbenchMode>(initialMode);
   const {
     targetState: compareTargetState,
     promptState: comparePromptState,
@@ -185,44 +227,24 @@ export function AgentWorkbench({
     setCompareBenchmarkUseOutputContract,
     setCompareBenchmarkPreviewDiffOnly,
   } = compareBenchmarkState;
-  const [turns, setTurns] = useState<AgentTurn[]>([]);
-  const [input, setInput] = useState(
-    () => getLocalizedStarterPrompts("zh-CN")[0],
-  );
-  const [systemPrompt, setSystemPrompt] = useState(() =>
-    getDefaultSystemPromptForLocale("zh-CN"),
-  );
-  const [enableTools, setEnableTools] = useState(true);
-  const [enableRetrieval, setEnableRetrieval] = useState(false);
-  const [contextWindow, setContextWindow] = useState(32768);
-  const [providerProfile, setProviderProfile] =
-    useState<AgentProviderProfile>("balanced");
-  const [thinkingMode, setThinkingMode] =
-    useState<AgentThinkingMode>("standard");
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+  const {
+    runtime: runtimeShell,
+    connection: connectionShell,
+  } = useAgentRuntimeConnectionShellState();
   const {
     runtimeStatus,
-    setRuntimeStatus,
     runtimeLastSwitchMsByTarget,
     setRuntimeLastSwitchMsByTarget,
     runtimeLastSwitchAtByTarget,
     setRuntimeLastSwitchAtByTarget,
     prewarmPending,
-    setPrewarmPending,
     prewarmAllPending,
-    setPrewarmAllPending,
     prewarmMessage,
     setPrewarmMessage,
     runtimeActionPending,
-    setRuntimeActionPending,
     runtimeLogExcerpt,
     setRuntimeLogExcerpt,
-    runtimeRequestInFlightRef,
-  } = useAgentRuntimeShellState();
-  const [expandedCitationKey, setExpandedCitationKey] = useState("");
-  const [expandedTraceTurnId, setExpandedTraceTurnId] = useState("");
-  const [expandedReviewFileKey, setExpandedReviewFileKey] = useState("");
+  } = runtimeShell;
   const {
     openWorkspaceFilePath,
     focusedWorkspaceFilePath,
@@ -231,10 +253,6 @@ export function AgentWorkbench({
     handleStepWorkspaceFileAnchor,
     handleOpenWorkspaceFile,
   } = useAgentWorkspaceFileActions();
-  const [toolDecisionBusyKey, setToolDecisionBusyKey] = useState("");
-  const [toolDecisionStatusByToken, setToolDecisionStatusByToken] = useState<
-    Record<string, "approved" | "rejected">
-  >({});
   const {
     transcriptRef,
     transcriptPinnedToBottom,
@@ -251,62 +269,14 @@ export function AgentWorkbench({
     workbenchMode,
     sessionId,
   });
-  const {
-    connectionChecksByTargetId,
-    setConnectionChecksByTargetId,
-    connectionCheckPending,
-    setConnectionCheckPending,
-    connectionCheckError,
-    setConnectionCheckError,
-    scanTargetsPending,
-    setScanTargetsPending,
-    scanTargetsMessage,
-    setScanTargetsMessage,
-    scanTargetsMessageTone,
-    setScanTargetsMessageTone,
-  } = useAgentConnectionShellState();
-  const [preferencesReady, setPreferencesReady] = useState(false);
-  const [serverSessionSyncState, setServerSessionSyncState] = useState<
-    "" | "syncing" | "synced" | "error"
-  >("");
-  const [serverSnapshotUpdatedAt, setServerSnapshotUpdatedAt] = useState<
-    string | null
-  >(null);
-  const [sessionSyncConflict, setSessionSyncConflict] =
-    useState<AgentWorkbenchSessionConflict | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const loadAvailableTargets = useCallback(async () => {
-    try {
-      const response = await fetch("/api/agent/targets", { cache: "no-store" });
-      const payload = (await response.json()) as { targets?: AgentTarget[] };
-      if (
-        !response.ok ||
-        !Array.isArray(payload.targets) ||
-        !payload.targets.length
-      )
-        return;
-      setAvailableTargets(payload.targets);
-    } catch {
-      // keep builtin targets when sync fails
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void loadAvailableTargets();
-    const timer = window.setInterval(() => {
-      if (!cancelled) {
-        void loadAvailableTargets();
-      }
-    }, 30000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [loadAvailableTargets]);
+  useAgentTargetCatalogSync({
+    availableTargets,
+    setAvailableTargets,
+    selectedTargetId,
+    setSelectedTargetId,
+  });
 
   const selectedTarget = useMemo(
     () =>
@@ -314,19 +284,14 @@ export function AgentWorkbench({
       agentTargets[0],
     [agentTargets, selectedTargetId],
   );
-  useEffect(() => {
-    if (!agentTargets.length) return;
-    if (!agentTargets.some((target) => target.id === selectedTargetId)) {
-      setSelectedTargetId(agentTargets[0].id);
-    }
-  }, [agentTargets, selectedTargetId]);
   const compareLaneCount = useMemo(
-    () =>
-      agentTargets.filter((target) => compareTargetIds.includes(target.id))
-        .length,
+    () => countSelectedCompareLanes(agentTargets, compareTargetIds),
     [agentTargets, compareTargetIds],
   );
-  const historyMessages = useMemo(() => flattenTurns(turns), [turns]);
+  const { historyMessages, lastTurn, lastChatTurn, toolRunCount } = useMemo(
+    () => buildAgentConversationSelectors(turns, selectedTargetId),
+    [selectedTargetId, turns],
+  );
   const {
     preferencePort: compareSessionPreferencePort,
     reproduceRequestArtifacts: compareReproduceRequestArtifacts,
@@ -402,45 +367,19 @@ export function AgentWorkbench({
       selectedTargetId,
     ],
   );
-  const lastChatTurn = useMemo(
-    () =>
-      [...turns]
-        .reverse()
-        .find(
-          (turn) => turn.kind !== "check" && turn.targetId === selectedTargetId,
-        ),
-    [selectedTargetId, turns],
-  );
-  const lastTurn = turns[turns.length - 1];
   const supportsConnectionCheck =
     selectedTarget.execution === "remote" && Boolean(selectedTarget.apiKeyEnv);
-  const connectionCheck = connectionChecksByTargetId[selectedTargetId] || null;
-  const previousLocaleRef = useRef(locale);
-  const sessionSyncLabel = useMemo(() => {
-    if (sessionSyncConflict) {
-      return locale.startsWith("en")
-        ? "Server snapshot conflict detected"
-        : "检测到服务端快照冲突";
-    }
-    if (serverSessionSyncState === "syncing") {
-      return locale.startsWith("en")
-        ? "Syncing server copy"
-        : "同步服务端快照中";
-    }
-    if (serverSessionSyncState === "synced") {
-      return locale.startsWith("en")
-        ? "Server snapshot synced"
-        : "服务端快照已同步";
-    }
-    if (serverSessionSyncState === "error") {
-      return locale.startsWith("en")
-        ? "Server snapshot unavailable"
-        : "服务端快照暂不可用";
-    }
-    return locale.startsWith("en")
-      ? "Local-first session storage"
-      : "本地优先会话存储";
-  }, [locale, serverSessionSyncState, sessionSyncConflict]);
+  const connectionCheck =
+    connectionShell.connectionChecksByTargetId[selectedTargetId] || null;
+  const sessionSyncLabel = useMemo(
+    () =>
+      buildAgentSessionSyncLabel({
+        locale,
+        state: serverSessionSyncState,
+        conflict: sessionSyncConflict,
+      }),
+    [locale, serverSessionSyncState, sessionSyncConflict],
+  );
   const uiText = useMemo(() => {
     switch (locale) {
       case "zh-TW":
@@ -1255,45 +1194,25 @@ export function AgentWorkbench({
     copyFailedMessage: uiText.copyFailed,
     setError,
   });
-  const {
-    loadRuntimeStatus,
-    handlePrewarm,
-    handlePrewarmAll,
-    handleRuntimeAction,
-  } = useAgentRuntimeActions({
-    target: {
-      agentTargets,
-      selectedTarget,
-      selectedTargetId,
-      thinkingMode,
-    },
-    state: {
+  const runtimeConnectionComposition = useAgentRuntimeConnectionComposition({
+    runtime: {
+      target: {
+        agentTargets,
+        selectedTarget,
+        selectedTargetId,
+        thinkingMode,
+      },
       pending,
-      runtimeStatus,
-      runtimeRequestInFlightRef,
-      prewarmPending,
-      prewarmAllPending,
-      runtimeActionPending,
-    },
-    mutations: {
-      setRuntimeStatus,
-      setPrewarmPending,
-      setPrewarmAllPending,
-      setPrewarmMessage,
-      setRuntimeActionPending,
-      setRuntimeLogExcerpt,
-      setRuntimeLastSwitchMsByTarget,
-      setRuntimeLastSwitchAtByTarget,
+      runtime: runtimeShell,
+      labels: {
+        runtimeFailed: uiText.runtimeFailed,
+        prewarmDone: uiText.prewarmDone,
+        prewarmAllDone: uiText.prewarmAllDone,
+      },
       setError,
     },
-    labels: {
-      runtimeFailed: uiText.runtimeFailed,
-      prewarmDone: uiText.prewarmDone,
-      prewarmAllDone: uiText.prewarmAllDone,
-    },
-  });
-  const { handleScanTargets, handleConnectionCheck } =
-    useAgentConnectionActions({
+    connection: {
+      shell: connectionShell,
       context: {
         locale,
         selectedTarget,
@@ -1301,20 +1220,9 @@ export function AgentWorkbench({
         pending,
         supportsConnectionCheck,
       },
-      state: {
-        scanTargetsPending,
-        connectionCheckPending,
-      },
       mutations: {
-        setScanTargetsPending,
-        setScanTargetsMessage,
-        setScanTargetsMessageTone,
-        setConnectionCheckPending,
-        setConnectionCheckError,
-        setConnectionChecksByTargetId,
         setAvailableTargets,
         setTurns,
-        loadRuntimeStatus,
       },
       labels: {
         scanFailed: locale.startsWith("en") ? "Scan failed." : "扫描失败。",
@@ -1327,7 +1235,26 @@ export function AgentWorkbench({
         ok: dictionary.common.ok,
         failed: dictionary.common.failed,
       },
-    });
+    },
+  });
+  const {
+    loadRuntimeStatus,
+    handlePrewarm,
+    handlePrewarmAll,
+    handleRuntimeAction,
+  } = runtimeConnectionComposition.runtime;
+  const {
+    connectionChecksByTargetId,
+    setConnectionChecksByTargetId,
+    connectionCheckPending,
+    connectionCheckError,
+    setConnectionCheckError,
+    scanTargetsPending,
+    scanTargetsMessage,
+    scanTargetsMessageTone,
+    handleScanTargets,
+    handleConnectionCheck,
+  } = runtimeConnectionComposition.connection;
   const {
     sessionTargetOptions,
     currentSession,
@@ -1419,131 +1346,38 @@ export function AgentWorkbench({
     setPreferencesReady,
   });
 
-  function updateSessions(
-    updater: (current: StoredAgentSession[]) => StoredAgentSession[],
-  ) {
-    setSavedSessions((current) => {
-      const next = sortSessions(updater(current)).slice(0, MAX_STORED_SESSIONS);
-      writeLocalAgentSessions(next);
-      return next;
-    });
-  }
-
-  function startNewSession() {
-    setTranscriptPinnedToBottom(true);
-    setSessionId(crypto.randomUUID());
-    setTurns([]);
-    setInput("");
-    setError("");
-    setRuntimeLogExcerpt("");
-    setToolDecisionBusyKey("");
-    setToolDecisionStatusByToken({});
-    setConnectionChecksByTargetId({});
-    setSystemPrompt(getDefaultSystemPromptForLocale(locale));
-    setProviderProfile("balanced");
-    setThinkingMode("standard");
-  }
-
-  function handleRenameSession(targetSessionId: string) {
-    const session = savedSessions.find((item) => item.id === targetSessionId);
-    if (!session) return;
-    const nextTitle = window
-      .prompt(uiText.renameSession, session.title)
-      ?.trim();
-    if (!nextTitle) return;
-    updateSessions((current) =>
-      current.map((item) =>
-        item.id === targetSessionId
-          ? {
-              ...item,
-              title: nextTitle,
-              updatedAt: new Date().toISOString(),
-            }
-          : item,
-      ),
-    );
-  }
-
-  function handleTogglePinSession(targetSessionId: string) {
-    updateSessions((current) =>
-      current.map((item) =>
-        item.id === targetSessionId
-          ? {
-              ...item,
-              pinned: !item.pinned,
-              updatedAt: new Date().toISOString(),
-            }
-          : item,
-      ),
-    );
-  }
-
-  function handleDeleteSession(targetSessionId: string) {
-    const session = savedSessions.find((item) => item.id === targetSessionId);
-    if (!session) return;
-    if (!window.confirm(uiText.deleteSessionConfirm)) return;
-
-    const remaining = savedSessions.filter(
-      (item) => item.id !== targetSessionId,
-    );
-    const nextSessions = writeLocalAgentSessions(remaining);
-    setSavedSessions(nextSessions);
-
-    if (targetSessionId === sessionId) {
-      if (nextSessions.length) {
-        restoreSession(nextSessions[0]);
-      } else {
-        startNewSession();
-      }
-    }
-  }
-
-  function handleBulkClearSessions(mode: "all" | "unpinned") {
-    const nextSessions =
-      mode === "all" ? [] : savedSessions.filter((session) => session.pinned);
-
-    const persistedSessions = writeLocalAgentSessions(nextSessions);
-    setSavedSessions(persistedSessions);
-
-    if (!persistedSessions.some((session) => session.id === sessionId)) {
-      if (persistedSessions.length) {
-        restoreSession(persistedSessions[0]);
-      } else {
-        startNewSession();
-      }
-    }
-  }
-
-  function handleExportSessions(format: "markdown" | "json") {
-    const sessions = exportableSessions;
-    if (!sessions.length) return;
-
-    const content =
-      format === "markdown"
-        ? serializeSessionsAsMarkdown(sessions)
-        : JSON.stringify(
-            buildSessionExportEnvelope(sessions, {
-              scope: sessionExportScope,
-              sessionTargetFilter,
-              sessionSearch,
-            }),
-            null,
-            2,
-          );
-
-    const blob = new Blob([content], {
-      type:
-        format === "markdown"
-          ? "text/markdown;charset=utf-8"
-          : "application/json;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `agent-sessions-${sessionTargetFilter}-${Date.now()}.${format === "markdown" ? "md" : "json"}`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
+  const {
+    startNewSession,
+    renameSession: handleRenameSession,
+    togglePinSession: handleTogglePinSession,
+    deleteSession: handleDeleteSession,
+    bulkClearSessions: handleBulkClearSessions,
+    exportSessions: handleExportSessions,
+  } = useAgentSessionCommandActions({
+    locale,
+    sessionId,
+    savedSessions,
+    exportableSessions,
+    sessionExportScope,
+    sessionTargetFilter,
+    sessionSearch,
+    renamePrompt: uiText.renameSession,
+    deleteConfirmation: uiText.deleteSessionConfirm,
+    restoreSession,
+    setSavedSessions,
+    setTranscriptPinnedToBottom,
+    setSessionId,
+    setTurns,
+    setInput,
+    setError,
+    setRuntimeLogExcerpt,
+    setToolDecisionBusyKey,
+    setToolDecisionStatusByToken,
+    setConnectionChecksByTargetId,
+    setSystemPrompt,
+    setProviderProfile,
+    setThinkingMode,
+  });
 
   useEffect(() => {
     setConnectionCheckError("");
@@ -1563,24 +1397,18 @@ export function AgentWorkbench({
     }
   }, [contextWindow, enableRetrieval, enableTools, selectedTargetId]);
 
-  useEffect(() => {
-    const previousLocale = previousLocaleRef.current;
-    const previousDefaultPrompt =
-      getDefaultSystemPromptForLocale(previousLocale);
-    const nextDefaultPrompt = getDefaultSystemPromptForLocale(locale);
-    setSystemPrompt((current) =>
-      current === previousDefaultPrompt ? nextDefaultPrompt : current,
-    );
+  useAgentLocaleDefaultSync({
+    locale,
+    starterPrompts,
+    setSystemPrompt,
+    setInput,
+  });
 
-    const previousPrompts = getLocalizedStarterPrompts(previousLocale);
-    setInput((current) =>
-      previousPrompts.includes(current) ? starterPrompts[0] : current,
-    );
-    previousLocaleRef.current = locale;
-  }, [locale, starterPrompts]);
-
-  const agentSessionPreferenceState = useMemo(
-    () => ({
+  const {
+    preferenceState: agentSessionPreferenceState,
+    activeSessionState: agentActiveSessionState,
+  } = useAgentSessionSyncProjections({
+    preference: {
       selectedTargetId,
       workbenchMode,
       compareSessionPreferencePort,
@@ -1589,29 +1417,15 @@ export function AgentWorkbench({
       contextWindow,
       providerProfile,
       thinkingMode,
-    }),
-    [
-      compareSessionPreferencePort,
-      contextWindow,
-      enableRetrieval,
-      enableTools,
-      providerProfile,
-      selectedTargetId,
-      thinkingMode,
-      workbenchMode,
-    ],
-  );
-
-  const agentActiveSessionState = useMemo(
-    () => ({
+    },
+    active: {
       sessionId,
       input,
       systemPrompt,
       turns,
       connectionChecksByTargetId,
-    }),
-    [connectionChecksByTargetId, input, sessionId, systemPrompt, turns],
-  );
+    },
+  });
 
   const {
     handleForceOverwriteServerSessionSnapshot,
@@ -1643,7 +1457,7 @@ export function AgentWorkbench({
     handleResumeAgent,
     handleComposerKeyDown,
     handleToolDecision,
-  } = useAgentTurnLifecycle({
+  } = useAgentTurnLifecycle(buildAgentTurnLifecycleInput({
     locale,
     text: uiText,
     agentTargets,
@@ -1672,7 +1486,7 @@ export function AgentWorkbench({
     toolDecisionBusyKey,
     setToolDecisionBusyKey,
     setToolDecisionStatusByToken,
-  });
+  }));
   const compareWorkbenchShellProps = useEmbeddedCompareWorkbenchAdapter({
     locale,
     sourceSurface: compareSurface,
@@ -1717,834 +1531,380 @@ export function AgentWorkbench({
     copyText: handleCopy,
   });
 
-  function handleExportTurns(format: "markdown" | "json") {
-    if (!turns.length) return;
+  const { handleExportTurns } = useAgentTranscriptExportActions({
+    turns,
+    selectedTargetId,
+  });
 
-    const content =
-      format === "markdown"
-        ? serializeTurnsAsMarkdown(turns)
-        : JSON.stringify(
-            {
-              generatedAt: new Date().toISOString(),
-              turns,
-            },
-            null,
-            2,
-          );
+  const sidebarComposition = buildAgentSidebarComposition({
+    shell: dictionary.agent.shell,
+    title: dictionary.agent.title,
+    subtitle: dictionary.agent.subtitle,
+    targets: dictionary.agent.targets,
+    model: dictionary.common.model,
+    local: dictionary.common.local,
+    remote: dictionary.common.remote,
+    healthHealthy: dictionary.agent.healthHealthy,
+    healthWarning: dictionary.agent.healthWarning,
+    healthDegraded: dictionary.agent.healthDegraded,
+    healthUnknown: dictionary.agent.healthUnknown,
+  });
+  const runtimeRailText = buildRuntimeStatusRailText({
+    runtimeSerializing: uiText.runtimeSerializing,
+    runtimeReady: uiText.runtimeReady,
+    runtimeUnavailable: uiText.runtimeUnavailable,
+    runtimeCurrentLoaded: uiText.runtimeCurrentLoaded,
+    runtimeSwitchingNow: uiText.runtimeSwitchingNow,
+    runtimeLastSwitchLoad: uiText.runtimeLastSwitchLoad,
+    runtimeLastSwitchAt: uiText.runtimeLastSwitchAt,
+    runtimeLoadingElapsed: uiText.runtimeLoadingElapsed,
+    runtimeLoadingError: uiText.runtimeLoadingError,
+    queueLabel: uiText.queueLabel,
+    activeLabel: uiText.activeLabel,
+    prewarmingAll: uiText.prewarmingAll,
+    prewarmAllModels: uiText.prewarmAllModels,
+    prewarming: uiText.prewarming,
+    prewarmModel: uiText.prewarmModel,
+    releasingModel: uiText.releasingModel,
+    releaseModel: uiText.releaseModel,
+    restartingGateway: uiText.restartingGateway,
+    restartGateway: uiText.restartGateway,
+    thinkingModeStandard: uiText.thinkingModeStandard,
+    thinkingModeThinking: uiText.thinkingModeThinking,
+    supervisor: uiText.supervisor,
+    gatewayProcess: uiText.gatewayProcess,
+    logExcerpt: uiText.logExcerpt,
+    loadingRuntimeLog: uiText.loadingRuntimeLog,
+    viewRuntimeLog: uiText.viewRuntimeLog,
+    fallbackLaunchHint: uiText.fallbackLaunchHint,
+  }, locale);
+  const runtimeStatusRailProps = buildRuntimeStatusRailProps({
+    locale,
+    dictionary,
+    uiText: runtimeRailText,
+    workbenchMode,
+    runtimeRailCollapsed,
+    onToggleRuntimeRail: () =>
+      setRuntimeRailCollapsed((current) => !current),
+    agentTargets,
+    selectedTarget,
+    selectedTargetId,
+    runtimeStatus,
+    runtimePhase,
+    runtimeStageItems,
+    lastTurn,
+    loadedAliasForSelectedTarget,
+    gatewayLoadedOtherAlias,
+    selectedTargetLastSwitchMs,
+    selectedTargetLastSwitchAt,
+    runtimeGuardrailBlocked,
+    runtimeGuardrailCaution,
+    pending,
+    prewarmAllPending,
+    prewarmPending,
+    prewarmMessage,
+    runtimeActionPending,
+    runtimeLogExcerpt,
+    systemPrompt,
+    onSystemPromptChange: setSystemPrompt,
+    supportsConnectionCheck,
+    connectionCheckPending,
+    connectionCheckError,
+    connectionCheck,
+    onConnectionCheck: handleConnectionCheck,
+    onPrewarmAll: handlePrewarmAll,
+    onPrewarm: handlePrewarm,
+    onRuntimeAction: handleRuntimeAction,
+  });
+  const sessionToolsProps = buildAgentSessionToolsProps({
+    locale,
+    uiText,
+    turns,
+    savedSessions,
+    currentSession,
+    sessionSyncLabel,
+    sessionSyncConflict,
+    sessionSearch,
+    sessionTargetFilter,
+    sessionTargetOptions,
+    sessionExportScope,
+    exportableSessions,
+    sessionGroups,
+    activeSessionTargetLabel,
+    onSessionSearchChange: setSessionSearch,
+    onSessionTargetFilterChange: setSessionTargetFilter,
+    onSessionExportScopeChange: setSessionExportScope,
+    onRestoreSession: restoreSession,
+    onRenameSession: handleRenameSession,
+    onTogglePinSession: handleTogglePinSession,
+    onDeleteSession: handleDeleteSession,
+    onReloadServerSessionSnapshot: handleReloadServerSessionSnapshot,
+    onForceOverwriteServerSessionSnapshot:
+      handleForceOverwriteServerSessionSnapshot,
+    onExportSessions: handleExportSessions,
+    onBulkClearSessions: handleBulkClearSessions,
+    onStartNewSession: startNewSession,
+  });
+  const transcriptProps = buildAgentTranscriptProps({
+    locale,
+    dictionary,
+    uiText,
+    turns,
+    transcriptRef,
+    transcriptPinnedToBottom,
+    unseenTranscriptTurns,
+    pending,
+    pendingTargetLabel: selectedTarget.label,
+    onTranscriptScroll: handleTranscriptScroll,
+    onJumpToLatestTranscript: handleJumpToLatestTranscript,
+    replayTargetMode,
+    expandedTraceTurnId,
+    expandedCitationKey,
+    expandedReviewFileKey,
+    workspaceFileViews,
+    openWorkspaceFilePath,
+    focusedWorkspaceFilePath,
+    workspaceFileFocusState,
+    copyState,
+    toolDecisionBusyKey,
+    toolDecisionStatusByToken,
+    setReplayTargetMode,
+    setExpandedTraceTurnId,
+    setExpandedCitationKey,
+    setExpandedReviewFileKey,
+    onPrepareReplayTurn: handlePrepareReplayTurn,
+    onReplayTurn: handleReplayTurn,
+    onCopy: handleCopy,
+    onOpenWorkspaceFile: handleOpenWorkspaceFile,
+    onStepWorkspaceFileAnchor: handleStepWorkspaceFileAnchor,
+    onToolDecision: handleToolDecision,
+    onResumeAgent: handleResumeAgent,
+  });
+  const composerProps = buildAgentComposerProps({
+    locale,
+    dictionary,
+    uiText: {
+      activeLabel: uiText.activeLabel,
+      contextWindow: uiText.contextWindow,
+      enableRetrieval: uiText.enableRetrieval,
+      enterHint: uiText.enterHint,
+      prewarmAllModels: uiText.prewarmAllModels,
+      prewarmModel: uiText.prewarmModel,
+      prewarming: uiText.prewarming,
+      prewarmingAll: uiText.prewarmingAll,
+      queueLabel: uiText.queueLabel,
+      runtimeCurrentLoaded:
+        uiText.runtimeCurrentLoaded ||
+        (locale.startsWith("en") ? "Loaded" : "已加载"),
+      runtimeDowngradeHint: uiText.runtimeDowngradeHint,
+      runtimeLoadingElapsed: uiText.runtimeLoadingElapsed,
+      runtimeLoadingError: uiText.runtimeLoadingError,
+      runtimeReady: uiText.runtimeReady,
+      runtimeSerializing: uiText.runtimeSerializing,
+      runtimeSwitchingNow:
+        uiText.runtimeSwitchingNow ||
+        (locale.startsWith("en") ? "Switching" : "切换中"),
+      runtimeUnavailable: uiText.runtimeUnavailable,
+      submit: uiText.submit,
+      submitting: uiText.submitting,
+    },
+    composerRef,
+    input,
+    placeholder: starterPrompts[0],
+    pending,
+    error,
+    turnsLength: turns.length,
+    enableTools,
+    enableRetrieval,
+    contextWindow,
+    contextWindowOptions: CONTEXT_WINDOW_OPTIONS,
+    agentTargets,
+    selectedTarget,
+    runtimeStatus,
+    runtimePhase,
+    loadedAliasForSelectedTarget,
+    gatewayLoadedOtherAlias,
+    runtimeGuardrailBlocked,
+    runtimeGuardrailCaution,
+    prewarmAllPending,
+    prewarmPending,
+    prewarmMessage,
+    runtimeActionPending,
+    onSubmit: handleSubmit,
+    onComposerKeyDown: handleComposerKeyDown,
+    onInputChange: setInput,
+    onEnableToolsChange: setEnableTools,
+    onEnableRetrievalChange: setEnableRetrieval,
+    onContextWindowChange: setContextWindow,
+    onExportTurns: handleExportTurns,
+    onStartNewSession: startNewSession,
+    onPrewarmAll: handlePrewarmAll,
+    onPrewarm: handlePrewarm,
+  });
+  const secondaryAnalysisProps = buildAgentSecondaryAnalysisProps({
+    locale,
+    dictionary,
+    systemPrompt,
+    setSystemPrompt,
+    selectedTarget,
+    selectedTargetId,
+    runtimeStatus,
+    lastTurn,
+    supportsConnectionCheck,
+    connectionCheckPending,
+    connectionCheckError,
+    connectionCheck,
+    pending,
+    fallbackLaunchHint: uiText.fallbackLaunchHint,
+    onConnectionCheck: handleConnectionCheck,
+  });
+  const getCodeProps = buildAgentGetCodeProps({
+    locale,
+    open: getCodeOpen,
+    mode: workbenchMode,
+    language: getCodeLanguage,
+    summary: reproduceRequestArtifacts.summary as Record<string, unknown>,
+    snippets: reproduceRequestArtifacts.snippets,
+    copyState,
+    onClose: () => setGetCodeOpen(false),
+    onLanguageChange: setGetCodeLanguage,
+    onCopy: handleCopy,
+  });
+  const targetCatalogProps = buildAgentTargetCatalogProps({
+    locale,
+    targets: agentTargets,
+    selectedTargetId,
+    connectionChecksByTargetId,
+    scanTargetsPending,
+    scanTargetsMessage,
+    scanTargetsMessageTone,
+    onScanTargets: handleScanTargets,
+    onSelectTarget: setSelectedTargetId,
+    labels: sidebarComposition.targetLabels,
+  });
+  const targetProfileProps = buildAgentTargetProfileProps({
+    locale,
+    target: selectedTarget,
+    runtimeStatus,
+    lastChatTurn,
+    contextWindow,
+    contextWindowOptions: CONTEXT_WINDOW_OPTIONS,
+    providerProfile,
+    thinkingMode,
+    enableRetrieval,
+    onContextWindowChange: setContextWindow,
+    onProviderProfileChange: setProviderProfile,
+    onThinkingModeChange: setThinkingMode,
+    text: {
+      contextWindow: uiText.contextWindow,
+      providerProfile: uiText.providerProfile,
+      providerProfileSpeed: uiText.providerProfileSpeed,
+      providerProfileBalanced: uiText.providerProfileBalanced,
+      providerProfileToolFirst: uiText.providerProfileToolFirst,
+      autoSpeedHint: uiText.autoSpeedHint,
+      thinkingMode: uiText.thinkingMode,
+      thinkingModeStandard: uiText.thinkingModeStandard,
+      thinkingModeThinking: uiText.thinkingModeThinking,
+      actualResolvedModel: uiText.actualResolvedModel,
+      actualProviderProfile: uiText.actualProviderProfile,
+      actualThinkingMode: uiText.actualThinkingMode,
+      thinkingModelFallback: uiText.thinkingModelFallback,
+      enableRetrieval: uiText.enableRetrieval,
+      enabled: uiText.enabled,
+      disabled: uiText.disabled,
+      retrievalHint: uiText.retrievalHint,
+    },
+  });
+  const headerProps = buildAgentWorkbenchHeaderProps({
+    locale,
+    dictionary,
+    target: selectedTarget,
+    mode: workbenchMode,
+    messageCount: historyMessages.length,
+    turnCount: turns.length,
+    activityCount:
+      workbenchMode === "compare" ? compareLaneCount : toolRunCount,
+    onModeChange: setWorkbenchMode,
+    onOpenGetCode: () => setGetCodeOpen(true),
+  });
+  const statusBandProps = buildAgentWorkbenchStatusBandProps({
+    locale,
+    dictionary,
+    text: {
+      selectedTargetLabel: uiText.selectedTargetLabel,
+      executionMode: uiText.executionMode,
+      contextWindow: uiText.contextWindow,
+      toolLoopState: uiText.toolLoopState,
+      enableRetrieval: uiText.enableRetrieval,
+      enabled: uiText.enabled,
+      disabled: uiText.disabled,
+      loadedAlias: uiText.loadedAlias,
+      runtimeCurrentLoaded:
+        uiText.runtimeCurrentLoaded ||
+        (locale.startsWith("en") ? "Loaded" : "已加载"),
+      runtimeBusy: dictionary.agent.runtimeBusy,
+      runtimeIdle: dictionary.agent.runtimeIdle,
+      runtimeOffline: dictionary.agent.runtimeOffline,
+      queueLabel: uiText.queueLabel,
+      runtimeSwitchingNow:
+        uiText.runtimeSwitchingNow ||
+        (locale.startsWith("en") ? "Switching" : "切换中"),
+      runtimeLoadingElapsed: uiText.runtimeLoadingElapsed,
+      runtimeLastSwitchLoad:
+        uiText.runtimeLastSwitchLoad ||
+        (locale.startsWith("en") ? "Last load" : "最近加载"),
+      runtimeLastSwitchAt:
+        uiText.runtimeLastSwitchAt ||
+        (locale.startsWith("en") ? "Last switch at" : "最近切换"),
+      runtimeLoadingError: uiText.runtimeLoadingError,
+      prewarmModel: uiText.prewarmModel,
+    },
+    mode: workbenchMode,
+    target: selectedTarget,
+    targets: agentTargets,
+    contextWindowLabel: formatContextWindowLabel(contextWindow),
+    enableTools,
+    enableRetrieval,
+    loadedAlias: loadedAliasForSelectedTarget,
+    gatewayLoadedOtherAlias,
+    compareLaneCount,
+    runtimeStatus,
+    selectedTargetLastSwitchMs,
+    selectedTargetLastSwitchAt,
+    prewarmMessage,
+  });
+  const promptStripProps = buildAgentWorkbenchPromptStripProps({
+    locale,
+    mode: workbenchMode,
+    starterPrompts,
+    onSelectPrompt: setInput,
+  });
+  const workbenchLayoutProps = buildAgentWorkbenchLayoutProps({
+    sidebarIdentity: sidebarComposition.identity,
+    sidebarContentProps: {
+      locale,
+      targetCatalogProps,
+      targetProfileProps,
+      sessionToolsProps,
+    },
+    mainProps: {
+      mode: workbenchMode,
+      headerProps,
+      statusBandProps,
+      promptStripProps,
+      modeContentProps: {
+        mode: workbenchMode,
+        transcriptProps,
+        composerProps,
+        secondaryAnalysisProps,
+        compareContent: (
+          <CompareWorkbenchPortal {...compareWorkbenchShellProps} />
+        ),
+      },
+      runtimeRailProps: runtimeStatusRailProps,
+    },
+    getCodeProps,
+  });
 
-    const blob = new Blob([content], {
-      type:
-        format === "markdown"
-          ? "text/markdown;charset=utf-8"
-          : "application/json;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `agent-transcript-${selectedTargetId}-${Date.now()}.${format === "markdown" ? "md" : "json"}`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
-
-  return (
-    <section className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.14),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(249,115,22,0.14),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] px-3 py-4 text-slate-100 sm:px-5 xl:px-6 2xl:px-8">
-      <div className="mx-auto grid w-full max-w-[2100px] gap-5 xl:grid-cols-[408px_minmax(0,1fr)] 2xl:grid-cols-[456px_minmax(0,1fr)]">
-        <aside className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/70 shadow-[0_30px_80px_rgba(2,6,23,0.55)] backdrop-blur xl:sticky xl:top-[5.25rem] xl:max-h-[calc(100vh-6.5rem)]">
-          <div className="border-b border-white/10 px-5 py-4">
-            <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-300">
-              {dictionary.agent.shell}
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">
-              {dictionary.agent.title}
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              {dictionary.agent.subtitle}
-            </p>
-          </div>
-
-          <div className="space-y-5 px-4 py-4 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto">
-            <TargetCatalogPanel
-              locale={locale}
-              targets={agentTargets}
-              selectedTargetId={selectedTargetId}
-              connectionChecksByTargetId={connectionChecksByTargetId}
-              scanTargetsPending={scanTargetsPending}
-              scanTargetsMessage={scanTargetsMessage}
-              scanTargetsMessageTone={scanTargetsMessageTone}
-              onScanTargets={handleScanTargets}
-              onSelectTarget={setSelectedTargetId}
-              labels={{
-                targets: dictionary.agent.targets,
-                model: dictionary.common.model,
-                local: dictionary.common.local,
-                remote: dictionary.common.remote,
-                healthHealthy: dictionary.agent.healthHealthy,
-                healthWarning: dictionary.agent.healthWarning,
-                healthDegraded: dictionary.agent.healthDegraded,
-                healthUnknown: dictionary.agent.healthUnknown,
-              }}
-            />
-
-            <section className="rounded-[24px] border border-white/8 bg-white/[0.035] px-4 py-3.5">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                {dictionary.agent.selectedProfile}
-              </p>
-              <div className="mt-2.5 space-y-2.5 text-sm text-slate-300">
-                <div>
-                  <p className="text-slate-500">{dictionary.agent.context}</p>
-                  <p className="mt-1 text-[13px] leading-6 text-white">
-                    {selectedTarget.recommendedContext}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-slate-500">{uiText.contextWindow}</p>
-                  <select
-                    value={contextWindow}
-                    onChange={(event) =>
-                      setContextWindow(Number(event.target.value))
-                    }
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none"
-                  >
-                    {CONTEXT_WINDOW_OPTIONS.map((value) => (
-                      <option key={value} value={value}>
-                        {value >= 1024 ? `${Math.round(value / 1024)}K` : value}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {selectedTarget.execution === "remote" ? (
-                  <div>
-                    <p className="text-slate-500">{uiText.providerProfile}</p>
-                    <select
-                      value={providerProfile}
-                      onChange={(event) =>
-                        setProviderProfile(
-                          event.target.value as AgentProviderProfile,
-                        )
-                      }
-                      disabled={thinkingMode === "thinking"}
-                      className="mt-1.5 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none"
-                    >
-                      <option value="speed">
-                        {uiText.providerProfileSpeed}
-                      </option>
-                      <option value="balanced">
-                        {uiText.providerProfileBalanced}
-                      </option>
-                      <option value="tool-first">
-                        {uiText.providerProfileToolFirst}
-                      </option>
-                    </select>
-                    {thinkingMode !== "thinking" ? (
-                      <p className="mt-1.5 text-xs leading-5 text-slate-500">
-                        {uiText.autoSpeedHint}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-                {selectedTarget.execution === "remote" ? (
-                  <div>
-                    <p className="text-slate-500">{uiText.thinkingMode}</p>
-                    <select
-                      value={thinkingMode}
-                      onChange={(event) =>
-                        setThinkingMode(event.target.value as AgentThinkingMode)
-                      }
-                      className="mt-1.5 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none"
-                    >
-                      <option value="standard">
-                        {uiText.thinkingModeStandard}
-                      </option>
-                      <option value="thinking">
-                        {uiText.thinkingModeThinking}
-                      </option>
-                    </select>
-                  </div>
-                ) : null}
-                {selectedTarget.execution === "remote" ? (
-                  <div>
-                    <p className="text-slate-500">
-                      {uiText.actualResolvedModel}
-                    </p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-cyan-100">
-                        live
-                      </span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[12px] leading-5 text-white">
-                        {runtimeStatus?.resolvedModel ||
-                          lastChatTurn?.resolvedModel ||
-                          selectedTarget.modelDefault}
-                      </span>
-                    </div>
-                    <p className="mt-2.5 text-slate-500">
-                      {uiText.actualProviderProfile}
-                    </p>
-                    <p className="mt-1 break-all text-[13px] leading-6 text-white">
-                      {lastChatTurn?.providerProfile ||
-                        (thinkingMode === "thinking"
-                          ? "tool-first"
-                          : providerProfile)}
-                    </p>
-                    <p className="mt-2.5 text-slate-500">
-                      {uiText.actualThinkingMode}
-                    </p>
-                    <p className="mt-1 break-all text-[13px] leading-6 text-white">
-                      {lastChatTurn?.thinkingMode || thinkingMode}
-                    </p>
-                    <p className="mt-2.5 text-slate-500">
-                      {uiText.thinkingModeStandard}
-                    </p>
-                    <div className="mt-1.5">
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[12px] leading-5 text-white">
-                        {runtimeStatus?.standardResolvedModel ||
-                          selectedTarget.modelDefault}
-                      </span>
-                    </div>
-                    <p className="mt-2.5 text-slate-500">
-                      {uiText.thinkingModeThinking}
-                    </p>
-                    <div className="mt-1.5">
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[12px] leading-5 text-white">
-                        {runtimeStatus?.thinkingResolvedModel ||
-                          selectedTarget.thinkingModelDefault ||
-                          selectedTarget.modelDefault}
-                      </span>
-                    </div>
-                    {lastChatTurn?.thinkingFallbackToStandard ||
-                    (thinkingMode === "thinking" &&
-                      runtimeStatus?.thinkingModelConfigured === false) ? (
-                      <p className="mt-1.5 text-xs leading-5 text-amber-200">
-                        {uiText.thinkingModelFallback}{" "}
-                        {runtimeStatus?.resolvedModel ||
-                          lastChatTurn?.resolvedModel ||
-                          selectedTarget.modelDefault}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-                <div>
-                  <p className="text-slate-500">{dictionary.agent.memory}</p>
-                  <p className="mt-1 text-[13px] leading-6">
-                    {selectedTarget.memoryProfile}
-                  </p>
-                </div>
-                {selectedTarget.execution === "local" &&
-                (selectedTarget.parameterScale ||
-                  selectedTarget.quantizationLabel ||
-                  selectedTarget.sourceLabel ||
-                  selectedTarget.sourceRepoId ||
-                  selectedTarget.sourcePath ||
-                  typeof selectedTarget.recommendedContextWindow ===
-                    "number") ? (
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-3 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                      {locale.startsWith("en")
-                        ? "Local model metadata"
-                        : "本地模型元数据"}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {selectedTarget.parameterScale ? (
-                        <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
-                          {locale.startsWith("en") ? "Scale" : "参数规模"} ·{" "}
-                          {selectedTarget.parameterScale}
-                        </span>
-                      ) : null}
-                      {selectedTarget.quantizationLabel ? (
-                        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-emerald-100">
-                          {locale.startsWith("en") ? "Quant" : "量化"} ·{" "}
-                          {selectedTarget.quantizationLabel}
-                        </span>
-                      ) : null}
-                      {typeof selectedTarget.recommendedContextWindow ===
-                      "number" ? (
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-200">
-                          {locale.startsWith("en")
-                            ? "Rec context"
-                            : "建议上下文"}{" "}
-                          ·{" "}
-                          {Math.round(
-                            selectedTarget.recommendedContextWindow / 1024,
-                          )}
-                          K
-                        </span>
-                      ) : null}
-                      {selectedTarget.sourceLabel ? (
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                          {selectedTarget.sourceLabel}
-                        </span>
-                      ) : null}
-                    </div>
-                    {selectedTarget.sourceRepoId ? (
-                      <p className="mt-3 break-all text-[12px] leading-6 text-slate-300">
-                        {locale.startsWith("en") ? "Repo id" : "模型仓库"}:{" "}
-                        {selectedTarget.sourceRepoId}
-                      </p>
-                    ) : null}
-                    {selectedTarget.sourcePath ? (
-                      <p className="mt-1 break-all text-[12px] leading-6 text-slate-400">
-                        {locale.startsWith("en") ? "Source path" : "来源路径"}:{" "}
-                        {sanitizeDisplayPath(selectedTarget.sourcePath)}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-                <div>
-                  <p className="text-slate-500">{dictionary.agent.toolMode}</p>
-                  <p className="mt-1 text-[13px] leading-6">
-                    {selectedTarget.supportsTools
-                      ? dictionary.agent.toolsAvailable
-                      : dictionary.agent.toolsUnavailable}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-slate-500">{uiText.enableRetrieval}</p>
-                  <p className="mt-1 text-[13px] leading-6 text-slate-300">
-                    {enableRetrieval ? uiText.enabled : uiText.disabled}
-                  </p>
-                  <p className="mt-1.5 text-xs leading-5 text-slate-500">
-                    {uiText.retrievalHint}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <AgentSessionToolsPanel
-              locale={locale}
-              uiText={uiText}
-              turns={turns}
-              savedSessions={savedSessions}
-              currentSession={currentSession}
-              sessionSyncLabel={sessionSyncLabel}
-              sessionSyncConflict={sessionSyncConflict}
-              sessionSearch={sessionSearch}
-              sessionTargetFilter={sessionTargetFilter}
-              sessionTargetOptions={sessionTargetOptions}
-              sessionExportScope={sessionExportScope}
-              exportableSessions={exportableSessions}
-              sessionGroups={sessionGroups}
-              activeSessionTargetLabel={activeSessionTargetLabel}
-              onSessionSearchChange={setSessionSearch}
-              onSessionTargetFilterChange={setSessionTargetFilter}
-              onSessionExportScopeChange={setSessionExportScope}
-              onRestoreSession={restoreSession}
-              onRenameSession={handleRenameSession}
-              onTogglePinSession={handleTogglePinSession}
-              onDeleteSession={handleDeleteSession}
-              onReloadServerSessionSnapshot={handleReloadServerSessionSnapshot}
-              onForceOverwriteServerSessionSnapshot={
-                handleForceOverwriteServerSessionSnapshot
-              }
-              onExportSessions={handleExportSessions}
-              onBulkClearSessions={handleBulkClearSessions}
-              onStartNewSession={startNewSession}
-            />
-
-            <details className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                    {dictionary.agent.toolRegistry}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">
-                    {dictionary.agent.toolsAvailable}
-                  </p>
-                </div>
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300">
-                  {agentToolSpecs.length}
-                </span>
-              </summary>
-              <div className="mt-4 space-y-3">
-                {agentToolSpecs.map((tool) => (
-                  <div
-                    key={tool.name}
-                    className="rounded-2xl border border-white/10 bg-black/20 p-3"
-                  >
-                    <p className="font-mono text-xs text-cyan-300">
-                      {tool.name}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-400">
-                      {getLocalizedToolDescription(
-                        locale,
-                        tool.name,
-                        tool.description,
-                      )}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </details>
-          </div>
-        </aside>
-
-        <div className="min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/75 shadow-[0_30px_80px_rgba(2,6,23,0.55)] backdrop-blur">
-          <header className="border-b border-white/10 px-5 py-4">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-full bg-cyan-400/[0.07] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-cyan-300">
-                    {selectedTarget.providerLabel}
-                  </span>
-                  <span className="rounded-full bg-white/[0.03] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                    {selectedTarget.transport}
-                  </span>
-                  <span className="rounded-full bg-white/[0.03] px-2 py-[3px] text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                    {selectedTarget.execution === "local"
-                      ? dictionary.common.local
-                      : dictionary.common.remote}
-                  </span>
-                </div>
-                <h2 className="mt-3 text-2xl font-semibold text-white">
-                  {selectedTarget.label}
-                </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-                  {dictionary.agent.subtitle}
-                </p>
-              </div>
-
-              <div className="space-y-2 xl:min-w-[318px]">
-                <div className="flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setGetCodeOpen(true)}
-                    className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-400/20"
-                  >
-                    {locale.startsWith("en") ? "Get code" : "获取代码"}
-                  </button>
-                  <div className="inline-flex rounded-full border border-white/10 bg-black/20 p-1">
-                    <button
-                      type="button"
-                      onClick={() => setWorkbenchMode("chat")}
-                      className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
-                        workbenchMode === "chat"
-                          ? "bg-cyan-400/15 text-cyan-100"
-                          : "text-slate-400 hover:text-slate-200"
-                      }`}
-                    >
-                      chat
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWorkbenchMode("compare")}
-                      className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
-                        workbenchMode === "compare"
-                          ? "bg-cyan-400/15 text-cyan-100"
-                          : "text-slate-400 hover:text-slate-200"
-                      }`}
-                    >
-                      compare
-                    </button>
-                  </div>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-3 2xl:grid-cols-4">
-                  <div className="rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">
-                      {dictionary.agent.messages}
-                    </p>
-                    <p className="mt-1.5 text-lg font-semibold text-white">
-                      {historyMessages.length}
-                    </p>
-                  </div>
-                  <div className="rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">
-                      {dictionary.agent.turns}
-                    </p>
-                    <p className="mt-1.5 text-lg font-semibold text-white">
-                      {turns.length}
-                    </p>
-                  </div>
-                  <div className="rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">
-                      {workbenchMode === "compare"
-                        ? locale.startsWith("en")
-                          ? "Lanes"
-                          : "对比 Lane"
-                        : dictionary.agent.tools}
-                    </p>
-                    <p className="mt-1.5 text-lg font-semibold text-white">
-                      {workbenchMode === "compare"
-                        ? compareLaneCount
-                        : turns.reduce(
-                            (count, turn) => count + turn.toolRuns.length,
-                            0,
-                          )}
-                    </p>
-                  </div>
-                  <div className="rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">
-                      {locale.startsWith("en") ? "Target mix" : "目标形态"}
-                    </p>
-                    <p className="mt-1.5 text-sm font-semibold text-white">
-                      {selectedTarget.execution === "local"
-                        ? locale.startsWith("en")
-                          ? "Local-first"
-                          : "本地优先"
-                        : locale.startsWith("en")
-                          ? "Remote API"
-                          : "远端 API"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </header>
-
-          <div className="border-b border-white/10 bg-black/20 px-5 py-2.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
-                {locale.startsWith("en") ? "Mode" : "模式"}:{" "}
-                {workbenchMode === "chat" ? "Chat" : "Compare"}
-              </span>
-              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] text-cyan-100">
-                {uiText.selectedTargetLabel}: {selectedTarget.label}
-              </span>
-              <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
-                {uiText.executionMode}:{" "}
-                {selectedTarget.execution === "local"
-                  ? dictionary.common.local
-                  : dictionary.common.remote}
-              </span>
-              <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
-                {uiText.contextWindow}:{" "}
-                {formatContextWindowLabel(contextWindow)}
-              </span>
-              <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
-                {uiText.toolLoopState}:{" "}
-                {enableTools ? uiText.enabled : uiText.disabled}
-              </span>
-              <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
-                {uiText.enableRetrieval}:{" "}
-                {enableRetrieval ? uiText.enabled : uiText.disabled}
-              </span>
-              <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
-                {uiText.loadedAlias}: {loadedAliasForSelectedTarget || "—"}
-              </span>
-              {workbenchMode === "compare" ? (
-                <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 py-1 text-[11px] text-violet-100">
-                  {locale.startsWith("en") ? "Compare lanes" : "对比 Lane"}:{" "}
-                  {compareLaneCount}
-                </span>
-              ) : null}
-              {gatewayLoadedOtherAlias ? (
-                <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
-                  {uiText.runtimeCurrentLoaded}:{" "}
-                  {describeRuntimeAlias(gatewayLoadedOtherAlias, agentTargets)}
-                </span>
-              ) : null}
-              {selectedTarget.execution === "local" && runtimeStatus ? (
-                <>
-                  <span
-                    className={`rounded-full border px-2.5 py-1 text-[11px] ${
-                      runtimeStatus.available
-                        ? runtimeStatus.busy
-                          ? "border-amber-400/20 bg-amber-400/10 text-amber-100"
-                          : "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
-                        : "border-rose-400/20 bg-rose-400/10 text-rose-100"
-                    }`}
-                  >
-                    {runtimeStatus.available
-                      ? runtimeStatus.busy
-                        ? dictionary.agent.runtimeBusy
-                        : dictionary.agent.runtimeIdle
-                      : dictionary.agent.runtimeOffline}
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300">
-                    {uiText.queueLabel}: {runtimeStatus.queueDepth ?? 0}
-                  </span>
-                  {runtimeStatus.loadingAlias ? (
-                    <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[11px] text-amber-100">
-                      {uiText.runtimeSwitchingNow}:{" "}
-                      {describeRuntimeAlias(
-                        runtimeStatus.loadingAlias,
-                        agentTargets,
-                      )}
-                      {typeof runtimeStatus.loadingElapsedMs === "number"
-                        ? ` · ${uiText.runtimeLoadingElapsed} ${Math.max(1, Math.round(runtimeStatus.loadingElapsedMs / 1000))}s`
-                        : ""}
-                    </span>
-                  ) : null}
-                  <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
-                    {uiText.runtimeLastSwitchLoad}:{" "}
-                    {formatRuntimeDuration(selectedTargetLastSwitchMs)}
-                  </span>
-                  <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300">
-                    {uiText.runtimeLastSwitchAt}:{" "}
-                    {formatRuntimeTimestamp(selectedTargetLastSwitchAt, locale)}
-                  </span>
-                  {runtimeStatus.loadingError ? (
-                    <span className="rounded-full border border-rose-400/20 bg-rose-400/10 px-2.5 py-1 text-[11px] text-rose-100">
-                      {uiText.runtimeLoadingError}
-                    </span>
-                  ) : null}
-                </>
-              ) : null}
-              {prewarmMessage ? (
-                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] text-cyan-100">
-                  {uiText.prewarmModel}: {prewarmMessage}
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          <div
-            className={`grid gap-0 ${
-              workbenchMode === "compare"
-                ? "2xl:grid-cols-[minmax(0,1fr)_400px]"
-                : "xl:grid-cols-[minmax(0,1.4fr)_420px] 2xl:grid-cols-[minmax(0,1.62fr)_500px]"
-            }`}
-          >
-            <div className="border-b border-white/10 xl:border-b-0 xl:border-r xl:border-white/10">
-              <div className="border-b border-white/10 bg-black/20 px-5 py-2.5">
-                {workbenchMode === "chat" ? (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {starterPrompts.map((prompt) => (
-                      <button
-                        key={prompt}
-                        type="button"
-                        onClick={() => setInput(prompt)}
-                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300 transition hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:text-white"
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                    <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
-                      {locale.startsWith("en")
-                        ? "Compare keeps the current shell"
-                        : "Compare 直接嵌进当前工作台"}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                      {locale.startsWith("en")
-                        ? "Reuse target catalog"
-                        : "复用 target catalog"}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                      {locale.startsWith("en")
-                        ? "Same runtime guardrails"
-                        : "复用 runtime guardrails"}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                      {locale.startsWith("en")
-                        ? "API + execution next slice"
-                        : "下一步接 compare run API"}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {workbenchMode === "chat" ? (
-                <>
-                  <AgentTranscriptPanel
-                    locale={locale}
-                    dictionary={dictionary}
-                    uiText={uiText}
-                    turns={turns}
-                    transcriptRef={transcriptRef}
-                    transcriptPinnedToBottom={transcriptPinnedToBottom}
-                    unseenTranscriptTurns={unseenTranscriptTurns}
-                    pending={pending}
-                    pendingTargetLabel={selectedTarget.label}
-                    onTranscriptScroll={handleTranscriptScroll}
-                    onJumpToLatestTranscript={handleJumpToLatestTranscript}
-                    replayTargetMode={replayTargetMode}
-                    expandedTraceTurnId={expandedTraceTurnId}
-                    expandedCitationKey={expandedCitationKey}
-                    expandedReviewFileKey={expandedReviewFileKey}
-                    workspaceFileViews={workspaceFileViews}
-                    openWorkspaceFilePath={openWorkspaceFilePath}
-                    focusedWorkspaceFilePath={focusedWorkspaceFilePath}
-                    workspaceFileFocusState={workspaceFileFocusState}
-                    copyState={copyState}
-                    toolDecisionBusyKey={toolDecisionBusyKey}
-                    toolDecisionStatusByToken={toolDecisionStatusByToken}
-                    setReplayTargetMode={setReplayTargetMode}
-                    setExpandedTraceTurnId={setExpandedTraceTurnId}
-                    setExpandedCitationKey={setExpandedCitationKey}
-                    setExpandedReviewFileKey={setExpandedReviewFileKey}
-                    onPrepareReplayTurn={handlePrepareReplayTurn}
-                    onReplayTurn={handleReplayTurn}
-                    onCopy={handleCopy}
-                    onOpenWorkspaceFile={handleOpenWorkspaceFile}
-                    onStepWorkspaceFileAnchor={handleStepWorkspaceFileAnchor}
-                    onToolDecision={handleToolDecision}
-                    onResumeAgent={handleResumeAgent}
-                  />
-
-                  <AgentComposerForm
-                    locale={locale}
-                    dictionary={dictionary}
-                    uiText={{
-                      activeLabel: uiText.activeLabel,
-                      contextWindow: uiText.contextWindow,
-                      enableRetrieval: uiText.enableRetrieval,
-                      enterHint: uiText.enterHint,
-                      prewarmAllModels: uiText.prewarmAllModels,
-                      prewarmModel: uiText.prewarmModel,
-                      prewarming: uiText.prewarming,
-                      prewarmingAll: uiText.prewarmingAll,
-                      queueLabel: uiText.queueLabel,
-                      runtimeCurrentLoaded:
-                        uiText.runtimeCurrentLoaded ||
-                        (locale.startsWith("en") ? "Loaded" : "已加载"),
-                      runtimeDowngradeHint: uiText.runtimeDowngradeHint,
-                      runtimeLoadingElapsed: uiText.runtimeLoadingElapsed,
-                      runtimeLoadingError: uiText.runtimeLoadingError,
-                      runtimeReady: uiText.runtimeReady,
-                      runtimeSerializing: uiText.runtimeSerializing,
-                      runtimeSwitchingNow:
-                        uiText.runtimeSwitchingNow ||
-                        (locale.startsWith("en") ? "Switching" : "切换中"),
-                      runtimeUnavailable: uiText.runtimeUnavailable,
-                      submit: uiText.submit,
-                      submitting: uiText.submitting,
-                    }}
-                    composerRef={composerRef}
-                    input={input}
-                    placeholder={starterPrompts[0]}
-                    pending={pending}
-                    error={error}
-                    turnsLength={turns.length}
-                    enableTools={enableTools}
-                    enableRetrieval={enableRetrieval}
-                    contextWindow={contextWindow}
-                    contextWindowOptions={CONTEXT_WINDOW_OPTIONS}
-                    agentTargets={agentTargets}
-                    selectedTarget={selectedTarget}
-                    runtimeStatus={runtimeStatus}
-                    runtimePhase={runtimePhase}
-                    loadedAliasForSelectedTarget={loadedAliasForSelectedTarget}
-                    gatewayLoadedOtherAlias={gatewayLoadedOtherAlias}
-                    runtimeGuardrailBlocked={runtimeGuardrailBlocked}
-                    runtimeGuardrailCaution={runtimeGuardrailCaution}
-                    prewarmAllPending={prewarmAllPending}
-                    prewarmPending={prewarmPending}
-                    prewarmMessage={prewarmMessage}
-                    runtimeActionPending={runtimeActionPending}
-                    onSubmit={handleSubmit}
-                    onComposerKeyDown={handleComposerKeyDown}
-                    onInputChange={setInput}
-                    onEnableToolsChange={setEnableTools}
-                    onEnableRetrievalChange={setEnableRetrieval}
-                    onContextWindowChange={setContextWindow}
-                    onExportTurns={handleExportTurns}
-                    onStartNewSession={startNewSession}
-                    onPrewarmAll={handlePrewarmAll}
-                    onPrewarm={handlePrewarm}
-                  />
-                  <AgentSecondaryAnalysisPanel
-                    locale={locale}
-                    dictionary={dictionary}
-                    systemPrompt={systemPrompt}
-                    setSystemPrompt={setSystemPrompt}
-                    selectedTarget={selectedTarget}
-                    selectedTargetId={selectedTargetId}
-                    runtimeStatus={runtimeStatus}
-                    lastTurn={lastTurn}
-                    supportsConnectionCheck={supportsConnectionCheck}
-                    connectionCheckPending={connectionCheckPending}
-                    connectionCheckError={connectionCheckError}
-                    connectionCheck={connectionCheck}
-                    pending={pending}
-                    fallbackLaunchHint={uiText.fallbackLaunchHint}
-                    onConnectionCheck={handleConnectionCheck}
-                  />
-                </>
-              ) : (
-                <CompareWorkbenchPortal {...compareWorkbenchShellProps} />
-              )}
-            </div>
-
-            <RuntimeStatusRail
-              locale={locale}
-              dictionary={dictionary}
-              uiText={{
-                runtimeSerializing: uiText.runtimeSerializing,
-                runtimeReady: uiText.runtimeReady,
-                runtimeUnavailable: uiText.runtimeUnavailable,
-                runtimeCurrentLoaded:
-                  uiText.runtimeCurrentLoaded ||
-                  (locale.startsWith("en") ? "Loaded" : "已加载"),
-                runtimeSwitchingNow:
-                  uiText.runtimeSwitchingNow ||
-                  (locale.startsWith("en") ? "Switching" : "切换中"),
-                runtimeLastSwitchLoad:
-                  uiText.runtimeLastSwitchLoad ||
-                  (locale.startsWith("en") ? "Last load" : "最近加载"),
-                runtimeLastSwitchAt:
-                  uiText.runtimeLastSwitchAt ||
-                  (locale.startsWith("en") ? "Last switch at" : "最近切换"),
-                runtimeLoadingElapsed: uiText.runtimeLoadingElapsed,
-                runtimeLoadingError: uiText.runtimeLoadingError,
-                queueLabel: uiText.queueLabel,
-                activeLabel: uiText.activeLabel,
-                prewarmingAll: uiText.prewarmingAll,
-                prewarmAllModels: uiText.prewarmAllModels,
-                prewarming: uiText.prewarming,
-                prewarmModel: uiText.prewarmModel,
-                releasingModel: uiText.releasingModel,
-                releaseModel: uiText.releaseModel,
-                restartingGateway: uiText.restartingGateway,
-                restartGateway: uiText.restartGateway,
-                thinkingModeStandard: uiText.thinkingModeStandard,
-                thinkingModeThinking: uiText.thinkingModeThinking,
-                supervisor: uiText.supervisor,
-                gatewayProcess: uiText.gatewayProcess,
-                logExcerpt: uiText.logExcerpt,
-                loadingRuntimeLog: uiText.loadingRuntimeLog,
-                viewRuntimeLog: uiText.viewRuntimeLog,
-                fallbackLaunchHint: uiText.fallbackLaunchHint,
-              }}
-              workbenchMode={workbenchMode}
-              runtimeRailCollapsed={runtimeRailCollapsed}
-              onToggleRuntimeRail={() =>
-                setRuntimeRailCollapsed((current) => !current)
-              }
-              agentTargets={agentTargets}
-              selectedTarget={selectedTarget}
-              selectedTargetId={selectedTargetId}
-              runtimeStatus={runtimeStatus}
-              runtimePhase={runtimePhase}
-              runtimeStageItems={runtimeStageItems}
-              lastTurn={lastTurn}
-              loadedAliasForSelectedTarget={loadedAliasForSelectedTarget}
-              gatewayLoadedOtherAlias={gatewayLoadedOtherAlias}
-              selectedTargetLastSwitchMs={selectedTargetLastSwitchMs}
-              selectedTargetLastSwitchAt={selectedTargetLastSwitchAt}
-              runtimeGuardrailBlocked={runtimeGuardrailBlocked}
-              runtimeGuardrailCaution={runtimeGuardrailCaution}
-              pending={pending}
-              prewarmAllPending={prewarmAllPending}
-              prewarmPending={prewarmPending}
-              prewarmMessage={prewarmMessage}
-              runtimeActionPending={runtimeActionPending}
-              runtimeLogExcerpt={runtimeLogExcerpt}
-              systemPrompt={systemPrompt}
-              onSystemPromptChange={setSystemPrompt}
-              supportsConnectionCheck={supportsConnectionCheck}
-              connectionCheckPending={connectionCheckPending}
-              connectionCheckError={connectionCheckError}
-              connectionCheck={connectionCheck}
-              onConnectionCheck={handleConnectionCheck}
-              onPrewarmAll={handlePrewarmAll}
-              onPrewarm={handlePrewarm}
-              onRuntimeAction={handleRuntimeAction}
-            />
-          </div>
-        </div>
-      </div>
-      <AgentGetCodePanel
-        locale={locale}
-        open={getCodeOpen}
-        mode={workbenchMode}
-        language={getCodeLanguage}
-        summary={reproduceRequestArtifacts.summary as Record<string, unknown>}
-        snippets={reproduceRequestArtifacts.snippets}
-        copyState={copyState}
-        onClose={() => setGetCodeOpen(false)}
-        onLanguageChange={setGetCodeLanguage}
-        onCopy={handleCopy}
-      />
-    </section>
-  );
+  return <AgentWorkbenchLayout {...workbenchLayoutProps} />;
 }

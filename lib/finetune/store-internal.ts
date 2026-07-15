@@ -17,6 +17,10 @@ export const DATASETS_FILE = path.join(FINETUNE_DIR, "datasets.json");
 export const RECIPES_FILE = path.join(FINETUNE_DIR, "recipes.json");
 export const JOBS_FILE = path.join(FINETUNE_DIR, "jobs.json");
 export const OPERATIONS_FILE = path.join(FINETUNE_DIR, "operations.json");
+export const ADAPTER_LIFECYCLE_FILE = path.join(
+  FINETUNE_DIR,
+  "adapter-lifecycle.json",
+);
 export const RUNTIME_ATTACHMENTS_FILE = path.join(
   FINETUNE_DIR,
   "runtime-attachments.json",

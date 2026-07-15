@@ -13,12 +13,15 @@ import {
   importRetrievalPath,
   inspectRetrievalPath,
   loadRetrievalSnapshot,
+  loadRetrievalQueryReplay,
   runRetrievalProbe,
   saveRetrievalDocument,
 } from "@/features/retrieval/actions";
 import type {
   RetrievalEditor,
   RetrievalPathInspection,
+  RetrievalQueryReplayEntry,
+  RetrievalQueryReplaySummary,
   RetrievalSnapshot,
 } from "@/features/retrieval/contracts";
 import type {
@@ -62,6 +65,10 @@ export function RetrievalStudioShell() {
   const [evidenceMode, setEvidenceMode] =
     useState<AgentRetrievalEvidenceMode>("compact");
   const [results, setResults] = useState<AgentRetrievalSummary | null>(null);
+  const [queryReplay, setQueryReplay] =
+    useState<RetrievalQueryReplaySummary | null>(null);
+  const [activeReplay, setActiveReplay] =
+    useState<RetrievalQueryReplayEntry | null>(null);
   const [pending, setPending] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -90,9 +97,20 @@ export function RetrievalStudioShell() {
     }
   }, []);
 
+  const loadReplay = useCallback(async () => {
+    try {
+      const replay = await loadRetrievalQueryReplay(12);
+      setQueryReplay(replay);
+      setActiveReplay((current) => current || replay.entries[0] || null);
+    } catch (replayError) {
+      setError(replayError instanceof Error ? replayError.message : "Failed to load retrieval replay.");
+    }
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadReplay();
+  }, [load, loadReplay]);
 
   function editDocument(document: AgentKnowledgeDocument) {
     setEditor({
@@ -204,6 +222,8 @@ export function RetrievalStudioShell() {
         evidenceMode,
       });
       setResults(payload.retrieval);
+      setActiveReplay(payload.replay);
+      await loadReplay();
     } catch (queryError) {
       setError(queryError instanceof Error ? queryError.message : "Retrieval probe failed.");
     } finally {
@@ -211,8 +231,18 @@ export function RetrievalStudioShell() {
     }
   }
 
+  function restoreReplay(entry: RetrievalQueryReplayEntry) {
+    setActiveReplay(entry);
+    setResults(entry.retrieval);
+    setQuery(entry.query);
+    setScope(entry.scope || "all");
+    setSourcePreference(entry.sourcePreference || "balanced");
+    setEvidenceMode(entry.evidenceMode || "compact");
+  }
+
   const stats = snapshot?.stats;
   const selectedChunks = snapshot?.chunks || [];
+  const activeDiagnostics = activeReplay?.diagnostics || [];
 
   return (
     <StudioSurface accent="cyan" className="flex flex-col gap-4">
@@ -379,6 +409,89 @@ export function RetrievalStudioShell() {
           <button type="button" onClick={() => void runQuery()} className="mt-3 w-full rounded-xl border border-cyan-300/20 bg-cyan-400/15 px-4 py-2.5 text-sm font-semibold text-cyan-50 hover:bg-cyan-400/25">
             {pending === "query" ? (en ? "Running..." : "检索中...") : en ? "Run retrieval" : "执行检索"}
           </button>
+
+          <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-300">
+                  {en ? "Query replay drawer" : "查询回放抽屉"}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {queryReplay
+                    ? `${queryReplay.totals.entryCount} replay${queryReplay.totals.entryCount === 1 ? "" : "s"} · ${queryReplay.totals.diagnosticLabelCount} diagnostic labels`
+                    : en ? "No replay loaded." : "尚未加载回放。"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void loadReplay()}
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10"
+              >
+                {en ? "Reload" : "重载"}
+              </button>
+            </div>
+            <div className="mt-3 max-h-[220px] space-y-2 overflow-auto pr-1">
+              {queryReplay?.entries.length ? queryReplay.entries.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => restoreReplay(entry)}
+                  className={`w-full rounded-2xl border px-3 py-2 text-left transition ${
+                    activeReplay?.id === entry.id
+                      ? "border-cyan-300/30 bg-cyan-400/10"
+                      : "border-white/10 bg-white/[0.035] hover:bg-white/[0.07]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="line-clamp-2 text-xs font-semibold text-white">{entry.query}</span>
+                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-[0.14em] ${
+                      entry.lowConfidence
+                        ? "border-amber-300/20 bg-amber-400/10 text-amber-100"
+                        : "border-emerald-300/20 bg-emerald-400/10 text-emerald-100"
+                    }`}>
+                      {entry.lowConfidence ? "watch" : "ready"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {entry.hitCount} hit{entry.hitCount === 1 ? "" : "s"} · top {entry.topScore.toFixed(2)} · {new Date(entry.createdAt).toLocaleString()}
+                  </p>
+                </button>
+              )) : (
+                <p className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs text-slate-500">
+                  {en ? "Run a query to create the first replay." : "执行一次查询后会生成第一条回放。"}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {activeDiagnostics.length ? (
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-amber-200">
+                {en ? "Citation diagnostics" : "引用诊断标签"}
+              </p>
+              <div className="mt-3 space-y-2">
+                {activeDiagnostics.slice(0, 8).map((item) => (
+                  <div key={item.id} className={`rounded-2xl border px-3 py-2 ${
+                    item.severity === "fail"
+                      ? "border-rose-300/20 bg-rose-400/10"
+                      : item.severity === "watch"
+                        ? "border-amber-300/20 bg-amber-400/10"
+                        : "border-emerald-300/20 bg-emerald-400/10"
+                  }`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-white">
+                        {item.citationLabel ? `${item.citationLabel} · ` : ""}{item.label}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                        {item.severity}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-5 text-slate-400">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {results && (
             <div className="mt-4 space-y-3">

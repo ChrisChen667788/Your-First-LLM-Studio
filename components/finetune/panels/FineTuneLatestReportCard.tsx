@@ -56,7 +56,7 @@ export function FineTuneLatestReportCard({
         </div>
         <div className="flex flex-wrap gap-2">
           <a
-            href={`/api/admin/finetune?action=preview-report&id=${encodeURIComponent(job.id)}&reportFormat=${latestReport.format}`}
+            href={`/api/finetune?action=preview-report&id=${encodeURIComponent(job.id)}&reportFormat=${latestReport.format}`}
             target="_blank"
             rel="noreferrer"
             className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-50 transition hover:bg-emerald-200/15"
@@ -64,7 +64,7 @@ export function FineTuneLatestReportCard({
             {text.previewReport}
           </a>
           <a
-            href={`/api/admin/finetune?action=download-bundle&id=${encodeURIComponent(job.id)}`}
+            href={`/api/finetune?action=download-bundle&id=${encodeURIComponent(job.id)}`}
             download
             title={text.completeBundleHint}
             className="rounded-full border border-violet-200/25 bg-violet-200/10 px-2.5 py-1 text-[10px] font-semibold text-violet-50 transition hover:bg-violet-200/15"

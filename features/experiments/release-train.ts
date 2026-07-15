@@ -3,13 +3,13 @@ import type {
   ReleaseTrainResponse,
 } from "@/features/experiments/contracts";
 
-export const RELEASE_TRAIN_ACTIVE_VERSION = "v0.5.0" as const;
+export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.1.0-rc.1" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
     version: "v0.5.0",
     label: "Admin Ops v2",
-    status: "active",
+    status: "complete",
     track: "ops",
     targetWindow: "2026-07",
     objective:
@@ -28,12 +28,13 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Route smoke covers runtime operations contracts.",
       "Release note records Provider Health Desk and Adapter Export closure.",
     ],
-    nextSlice: "Finish retry/timeout strategy visualization and release evidence grouping.",
+    nextSlice:
+      "Run a configured Provider Ops release probe, retain fresh remote evidence, and close the v0.5.0 promotion source.",
   },
   {
     version: "v0.5.1",
     label: "Public Release System",
-    status: "planned",
+    status: "complete",
     track: "release",
     targetWindow: "2026-07",
     objective:
@@ -49,15 +50,16 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Distillation data passes the same quality, source, and risk gates as imported datasets.",
     ],
     evidence: [
-      "Screenshot smoke includes public docs and roadmap.",
+      "Route smoke covers the public release docs route and public release evidence API.",
       "Distillation sample manifest links to Dataset Pipeline evidence.",
+      "Demo capture manifest refreshes release screenshots from repeatable routes.",
     ],
-    nextSlice: "Add public roadmap route and demo capture manifest.",
+    nextSlice: "Capture public release screenshots and promote distillation evidence into the v0.5.1 release note.",
   },
   {
     version: "v0.6.0",
     label: "Unified Model Hub",
-    status: "planned",
+    status: "complete",
     track: "models",
     targetWindow: "2026-08",
     objective:
@@ -81,7 +83,7 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
     version: "v0.6.1",
     label: "Runtime Profile Registry",
-    status: "planned",
+    status: "complete",
     track: "models",
     targetWindow: "2026-08",
     objective:
@@ -105,7 +107,7 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
     version: "v0.7.0",
     label: "Enterprise RAG Starter",
-    status: "planned",
+    status: "complete",
     track: "rag",
     targetWindow: "2026-08",
     objective:
@@ -129,7 +131,7 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
     version: "v0.7.1",
     label: "RAG Playground",
-    status: "planned",
+    status: "complete",
     track: "rag",
     targetWindow: "2026-09",
     objective:
@@ -153,7 +155,7 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
     version: "v0.8.0",
     label: "Fine-tune Pro",
-    status: "planned",
+    status: "complete",
     track: "finetune",
     targetWindow: "2026-09",
     objective:
@@ -177,7 +179,7 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
     version: "v0.8.1",
     label: "Adapter Lifecycle",
-    status: "planned",
+    status: "complete",
     track: "finetune",
     targetWindow: "2026-09",
     objective:
@@ -201,7 +203,7 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
     version: "v0.9.0",
     label: "Production Control Plane",
-    status: "planned",
+    status: "blocked",
     track: "deployment",
     targetWindow: "2026-10",
     objective:
@@ -218,14 +220,14 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     ],
     evidence: [
       "Postgres-http runtime cutover evidence.",
-      "Failover rehearsal report with RPO/RTO and signed receipts.",
+      "Failover rehearsal report with RPO/RTO, AWS KMS receipts, and S3 Object Lock archive proof.",
     ],
-    nextSlice: "Add durable usage outbox and external audit archive adapter.",
+    nextSlice: "Inject workload identity and run the cloud KMS/Object Lock rehearsal with requireCloud=true.",
   },
   {
     version: "v1.0.0",
     label: "Local LLM Studio GA",
-    status: "planned",
+    status: "complete",
     track: "release",
     targetWindow: "2026-10",
     objective:
@@ -244,7 +246,248 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Full route, screenshot, typecheck, audit, and release evidence bundle.",
       "GitHub and ModelScope fresh-clone verification.",
     ],
-    nextSlice: "Define GA release gate and block criteria after v0.9 evidence lands.",
+    nextSlice:
+      "Refresh route smoke and screenshot evidence, keep Admin compatibility runtime hits at zero, retain fresh Provider Ops probe evidence, and archive final zero-hit evidence after sunset.",
+  },
+  {
+    version: "v1.1.0",
+    label: "Desktop Onboarding",
+    status: "evidence-needed",
+    track: "desktop",
+    targetWindow: "2026-11",
+    objective:
+      "Match desktop-first products on installation, first-run diagnosis, upgrades, permissions, and background-service clarity without hiding runtime truth.",
+    scope: [
+      "Signed macOS application package and update channel",
+      "First-run hardware, storage, gateway, and provider diagnosis",
+      "Background service lifecycle and permission repair",
+      "Fresh-install and upgrade migration rehearsal",
+    ],
+    acceptance: [
+      "A new Apple Silicon user can reach a verified local chat without terminal setup.",
+      "Upgrade, rollback, and uninstall preserve or deliberately migrate user data.",
+    ],
+    evidence: [
+      "Clean-machine install and upgrade capture",
+      "Signed package, migration, rollback, and uninstall manifests",
+    ],
+    nextSlice: "Promote the locally complete v1.1.0-rc.1 package only after Developer ID notarization and a clean-machine organization receipt.",
+  },
+  {
+    version: "v1.1.1",
+    label: "Model Hub Lifecycle",
+    status: "planned",
+    track: "models",
+    targetWindow: "2026-11",
+    objective:
+      "Turn model acquisition, verification, storage, compatibility, and removal into one resumable lifecycle inspired by polished desktop model hubs.",
+    scope: [
+      "Download queue with pause, resume, checksum, and retry",
+      "External-disk placement, migration, deduplication, and cleanup",
+      "Format, license, tokenizer, template, and hardware compatibility checks",
+      "Install-to-load-to-benchmark handoff from one model card",
+    ],
+    acceptance: [
+      "Interrupted downloads resume without corrupting model state.",
+      "Every installed model exposes verified bytes, provenance, runtime compatibility, and storage ownership.",
+    ],
+    evidence: [
+      "Interrupted-download and external-disk migration tests",
+      "Model provenance and integrity manifest",
+    ],
+    nextSlice: "Add authenticated Hugging Face/ModelScope multi-file manifests, download concurrency, deduplication, and external-disk migration UI.",
+  },
+  {
+    version: "v1.2.0",
+    label: "Local Server Fleet",
+    status: "planned",
+    track: "runtime",
+    targetWindow: "2026-12",
+    objective:
+      "Make OpenAI-compatible serving a first-class fleet with model hot-switch, idle eviction, request logs, profiles, and safe network exposure.",
+    scope: [
+      "One-click server start, stop, restart, and health diagnosis",
+      "Multi-model hot-switch, pinned models, idle TTL, and auto-evict",
+      "Request log drawer with token, latency, error, and profile evidence",
+      "LAN binding, API keys, trusted hosts, CORS, and rate limits",
+    ],
+    acceptance: [
+      "A model card can safely serve, switch, unload, and explain every state transition.",
+      "Every request is attributable to endpoint, model, profile, token usage, latency, and caller key.",
+    ],
+    evidence: [
+      "Hot-switch and idle-unload stress run",
+      "Authenticated LAN server and request-accounting report",
+    ],
+    nextSlice: "Connect durable server instances to live start/stop/hot-switch actions and per-instance request accounting.",
+  },
+  {
+    version: "v1.2.1",
+    label: "Runtime Fabric",
+    status: "planned",
+    track: "runtime",
+    targetWindow: "2026-12",
+    objective:
+      "Expand beyond the MLX-first runtime while preserving one target, profile, health, accounting, and failure contract.",
+    scope: [
+      "MLX, llama.cpp, Ollama, LocalAI, vLLM, and SGLang adapters",
+      "Apple Silicon, NVIDIA, AMD, Linux, Windows, and remote-node capability discovery",
+      "Backend-neutral load, unload, prewarm, cancel, and health ports",
+      "Routing by fit, latency, quality, cost, and residency policy",
+    ],
+    acceptance: [
+      "Agent, Compare, Benchmark, and API callers do not depend on backend-specific payloads.",
+      "Unsupported model/hardware combinations fail before download or execution with an actionable reason.",
+    ],
+    evidence: [
+      "Backend conformance suite",
+      "Cross-platform capability and failure-mapping matrix",
+    ],
+    nextSlice: "Run the Ollama bridge against a real installed model, add chat/embedding conformance, and surface hot-switch controls in Model Hub.",
+  },
+  {
+    version: "v1.3.0",
+    label: "MCP and Extensions",
+    status: "planned",
+    track: "ecosystem",
+    targetWindow: "2027-01",
+    objective:
+      "Add a permissioned extension ecosystem for MCP servers, tools, skills, provider adapters, and reusable product templates.",
+    scope: [
+      "MCP server registry and capability discovery",
+      "Signed extension packages with version and compatibility metadata",
+      "Per-tool permission, secret scope, confirmation, and audit policy",
+      "Install, disable, update, rollback, and quarantine flows",
+    ],
+    acceptance: [
+      "Community capabilities cannot bypass tool confirmation, secret boundaries, or audit evidence.",
+      "Extension updates are reversible and dependency conflicts are visible before activation.",
+    ],
+    evidence: [
+      "Malicious and incompatible extension rejection tests",
+      "Signed package install, update, and rollback rehearsal",
+    ],
+    nextSlice: "Add dependency resolution, sandbox execution, quarantine review/release actions, and a disabled-by-default community install UI.",
+  },
+  {
+    version: "v1.3.1",
+    label: "Workflow Graph Studio",
+    status: "planned",
+    track: "workflow",
+    targetWindow: "2027-01",
+    objective:
+      "Make Agent, RAG, evaluation, and protected-tool flows visually composable, versioned, replayable, and deployable as APIs.",
+    scope: [
+      "Typed graph nodes for model, retrieval, tool, guard, evaluator, and human approval",
+      "Versioned workflow recipes and runtime profiles",
+      "Breakpoint, replay, state diff, resume, and failure recovery",
+      "Deploy-as-API with generated OpenAI-compatible examples",
+    ],
+    acceptance: [
+      "A workflow can be reproduced from a versioned graph plus immutable input artifacts.",
+      "Protected actions remain resumable and side effects remain idempotent across graph recovery.",
+    ],
+    evidence: [
+      "Graph replay and protected-tool resume report",
+      "Workflow version diff and deployed API smoke",
+    ],
+    nextSlice: "Add breakpoint persistence, Retrieval graph execution, state diff/replay UI, and the first visual graph editor slice.",
+  },
+  {
+    version: "v1.4.0",
+    label: "Team Governance",
+    status: "planned",
+    track: "governance",
+    targetWindow: "2027-02",
+    objective:
+      "Promote ACL foundations into multi-user workspaces, enterprise identity, shared assets, policy, and auditable administration.",
+    scope: [
+      "Organizations, workspaces, roles, groups, and resource ACLs",
+      "OIDC/SSO, SCIM, service accounts, and external secret vaults",
+      "Shared knowledge bases, models, profiles, datasets, adapters, and workflows",
+      "Policy simulation, approval queues, and immutable audit export",
+    ],
+    acceptance: [
+      "Authorization is enforced in storage queries and application actions, not only hidden in UI controls.",
+      "Identity, role, policy, and secret rotation events are externally auditable.",
+    ],
+    evidence: [
+      "Database-level tenant and ACL isolation suite",
+      "OIDC/SCIM lifecycle and policy-replay rehearsal",
+    ],
+    nextSlice: "Promote the SQLite isolation contract to Postgres RLS migrations, then connect OIDC/SCIM identities and external secret scopes.",
+  },
+  {
+    version: "v1.4.1",
+    label: "Quality and Training Lab",
+    status: "planned",
+    track: "evaluation",
+    targetWindow: "2027-02",
+    objective:
+      "Combine LLaMA-Factory-grade training compatibility with repeatable evaluation sweeps, judge calibration, and CI regression policy.",
+    scope: [
+      "Training backend capability matrix for LoRA, QLoRA, DoRA, preference, and distributed methods",
+      "Hyperparameter sweeps with hardware budgets and early-stop policy",
+      "Public benchmark adapters, custom eval sets, judge calibration, and confidence intervals",
+      "PR/release regression gates with pinned datasets, models, prompts, and scoring versions",
+    ],
+    acceptance: [
+      "The UI only offers train configurations supported by the selected model, backend, quantization, and hardware.",
+      "Quality regressions are reproducible and attributable to a versioned model, adapter, prompt, dataset, and judge.",
+    ],
+    evidence: [
+      "Training backend conformance and unsupported-combination report",
+      "Pinned evaluation sweep with calibrated judge and CI gate",
+    ],
+    nextSlice: "Bind recipe validation to the capability registry and add a fail-closed LLaMA-Factory execution adapter preview.",
+  },
+  {
+    version: "v1.5.0",
+    label: "Artifact Marketplace",
+    status: "planned",
+    track: "ecosystem",
+    targetWindow: "2027-03",
+    objective:
+      "Publish and consume trusted model, adapter, dataset, RAG, evaluation, profile, and workflow packages with provenance.",
+    scope: [
+      "Unified artifact manifest, semantic versioning, dependencies, and compatibility",
+      "Signing, license, attribution, safety, secret, and malware checks",
+      "GitHub, ModelScope, Hugging Face, and private registry adapters",
+      "Ratings derived from reproducible local evidence rather than popularity alone",
+    ],
+    acceptance: [
+      "Every installed artifact has verifiable origin, digest, license, compatibility, and rollback state.",
+      "Published quality claims link to reproducible benchmark or training evidence.",
+    ],
+    evidence: [
+      "Cross-registry publish/install round trip",
+      "Tampered package and incompatible dependency rejection report",
+    ],
+    nextSlice: "Materialize package digests/signatures and run a GitHub/ModelScope/Hugging Face publish-install round trip in a staging registry.",
+  },
+  {
+    version: "v1.5.1",
+    label: "Enterprise HA and FinOps",
+    status: "planned",
+    track: "platform",
+    targetWindow: "2027-03",
+    objective:
+      "Close multi-node availability, durable accounting, immutable audit, capacity, and billing reconciliation after real cloud evidence is available.",
+    scope: [
+      "Multi-node registry, health routing, fencing, automatic promotion, and regional failover",
+      "Durable usage outbox, quota policy, billing reconciliation, and exports",
+      "OpenTelemetry/Langfuse operations, SLOs, alert receivers, and evidence retention",
+      "Real KMS/HSM receipts, immutable archives, operator rotation, and organization sign-off",
+    ],
+    acceptance: [
+      "Failover meets declared RPO/RTO without split-brain or duplicate billing side effects.",
+      "Usage, audit, signing, archive, and organizational approval evidence reconcile end to end.",
+    ],
+    evidence: [
+      "Multi-node failover and fencing rehearsal",
+      "Cloud KMS/HSM, immutable archive, billing, and organizational receipt bundle",
+    ],
+    nextSlice: "Keep requireCloud fail-closed and resume this slice only when real workload identity and production manifests are available.",
   },
 ];
 

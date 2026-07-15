@@ -44,10 +44,10 @@ export function ReleaseEvidenceMatrixPanel({ locale }: ReleaseEvidenceMatrixPane
   const text = useMemo(
     () => ({
       eyebrow: en ? "Evidence matrix" : "证据矩阵",
-      title: en ? "10-round execution tracker" : "后续 10 轮执行追踪",
+      title: en ? "Release evidence and roadmap tracker" : "发布证据与路线图追踪",
       subtitle: en
-        ? "A live view of the next release train, scored from current contracts, artifacts, route evidence, and blockers."
-        : "基于当前 contracts、产物、路由证据和阻塞项实时计算后续版本列车状态。",
+        ? "A live view of completed, active, blocked, and planned releases, scored from current contracts, artifacts, route evidence, and blockers."
+        : "基于当前 contracts、产物、路由证据和阻塞项，实时展示已完成、进行中、阻塞和计划版本。",
       refresh: en ? "Refresh" : "刷新",
       loading: en ? "Loading..." : "加载中...",
       shipped: en ? "Shipped" : "已落地",

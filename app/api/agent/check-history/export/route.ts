@@ -1,31 +1,17 @@
-import { NextResponse } from "next/server";
-import {
-  readConnectionCheckLogs,
-  serializeConnectionChecksAsMarkdown
-} from "@/lib/agent/log-store";
+import { exportAgentCheckHistory } from "@/features/agent/check-history-application";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const format = (searchParams.get("format") || "markdown").toLowerCase();
-  const targetId = searchParams.get("targetId") || undefined;
-  const logs = readConnectionCheckLogs({ targetId, limit: 500 });
-
-  if (format === "json") {
-    return new NextResponse(JSON.stringify(logs, null, 2), {
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Content-Disposition": `attachment; filename=\"connection-checks${targetId ? `-${targetId}` : ""}.json\"`
-      }
-    });
-  }
-
-  const markdown = serializeConnectionChecksAsMarkdown(logs);
-  return new NextResponse(markdown, {
+  const searchParams = new URL(request.url).searchParams;
+  const result = exportAgentCheckHistory({
+    targetId: searchParams.get("targetId") || undefined,
+    format: searchParams.get("format") || undefined,
+  });
+  return new Response(result.body, {
     headers: {
-      "Content-Type": "text/markdown; charset=utf-8",
-      "Content-Disposition": `attachment; filename=\"connection-checks${targetId ? `-${targetId}` : ""}.md\"`
-    }
+      "Content-Type": result.contentType,
+      "Content-Disposition": `attachment; filename="${result.filename}"`,
+    },
   });
 }

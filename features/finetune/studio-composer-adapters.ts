@@ -103,6 +103,8 @@ type UseFineTuneEvidenceComposerPropsOptions = Pick<
     | "onRunAdapterBenchmarkHandoff"
     | "onRunAdapterCompareHandoff"
     | "onRunAdapterProofLoop"
+    | "onRecordLifecycleExportPlan"
+    | "onRunLifecycleRollbackProof"
   > &
   Omit<RunsPanelProps, "jobs" | "onToggleJobGroup"> & {
     operationHistory: AssetsPanelProps["operations"];
@@ -111,6 +113,8 @@ type UseFineTuneEvidenceComposerPropsOptions = Pick<
     runAdapterBenchmarkHandoff: AssetsPanelProps["onRunAdapterBenchmarkHandoff"];
     runAdapterCompareHandoff: AssetsPanelProps["onRunAdapterCompareHandoff"];
     runAdapterProofLoop: AssetsPanelProps["onRunAdapterProofLoop"];
+    recordLifecycleExportPlan: AssetsPanelProps["onRecordLifecycleExportPlan"];
+    runLifecycleRollbackProof: AssetsPanelProps["onRunLifecycleRollbackProof"];
     setCollapsedJobGroups: Dispatch<
       SetStateAction<Record<FineTuneJobGroupKey, boolean>>
     >;
@@ -456,6 +460,8 @@ export function useFineTuneEvidenceComposerProps({
   runAdapterBenchmarkHandoff,
   runAdapterCompareHandoff,
   runAdapterProofLoop,
+  recordLifecycleExportPlan,
+  runLifecycleRollbackProof,
   jobGroups,
   collapsedJobGroups,
   chartRangeByJobId,
@@ -514,6 +520,10 @@ export function useFineTuneEvidenceComposerProps({
         onRunAdapterCompareHandoff: (adapterId) =>
           void runAdapterCompareHandoff(adapterId),
         onRunAdapterProofLoop: (adapterId) => void runAdapterProofLoop(adapterId),
+        onRecordLifecycleExportPlan: (adapterId) =>
+          void recordLifecycleExportPlan(adapterId),
+        onRunLifecycleRollbackProof: (adapterId) =>
+          void runLifecycleRollbackProof(adapterId),
       },
       runsPanelProps: {
         jobs: summary?.jobs || [],
@@ -584,6 +594,8 @@ export function useFineTuneEvidenceComposerProps({
       runAdapterBenchmarkHandoff,
       runAdapterCompareHandoff,
       runAdapterProofLoop,
+      recordLifecycleExportPlan,
+      runLifecycleRollbackProof,
       setChartHoverForJob,
       setChartRangeForJob,
       selectedOverlayJobIdsByJobId,

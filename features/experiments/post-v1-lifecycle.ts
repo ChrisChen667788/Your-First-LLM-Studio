@@ -1,0 +1,42 @@
+import { readArtifactInstallLifecycleEvidence } from "@/features/artifacts/install-lifecycle";
+import { readDesktopPermissionRepairEvidence } from "@/features/desktop/permission-repair";
+import { readDesktopServiceSupervisorEvidence } from "@/features/desktop/service-supervisor";
+import { readUsageSettlementEvidence } from "@/features/deployment/usage-settlement";
+import { readEvaluationBaselinePromotionEvidence } from "@/features/evaluation/baseline-promotion";
+import { readExtensionPermissionGrantEvidence } from "@/features/extensions/permission-grants";
+import { readExtensionQuarantineReviewEvidence } from "@/features/extensions/quarantine-review";
+import { readGovernanceAccessReviewEvidence } from "@/features/governance/access-review";
+import { readModelRemovalLifecycleEvidence } from "@/features/models/removal-lifecycle";
+import { readModelSourceManifestEvidence } from "@/features/models/source-manifest";
+import { readServerLogRetentionEvidence } from "@/features/models/server-log-retention";
+import { readServerSwitchControllerEvidence } from "@/features/models/server-switch-controller";
+import { readModelTransferSchedulerEvidence } from "@/features/models/transfer-scheduler";
+import { readRemoteFailoverEvidence } from "@/features/runtime/remote-failover";
+import { readWorkflowDeploymentAccessEvidence } from "@/features/workflows/deployment-access";
+
+export const POST_V1_LIFECYCLE_SCHEMA_VERSION = "experiments.post-v1-lifecycle.v1" as const;
+type Status = "ready" | "partial" | "blocked";
+type Slice = { id: string; version: string; label: string; summary: string; evidence: string[]; status: Status; completionPct: number; blockers: string[] };
+function slice(input: Omit<Slice, "status" | "completionPct" | "blockers"> & { ready: boolean; blocker: string }): Slice { const { ready, blocker, ...publicSlice } = input; return { ...publicSlice, status: ready ? "ready" : "partial", completionPct: ready ? 92 : 65, blockers: ready ? [] : [blocker] }; }
+
+export function readPostV1LifecycleEvidence() {
+  const services = readDesktopServiceSupervisorEvidence(); const permissions = readDesktopPermissionRepairEvidence(); const sources = readModelSourceManifestEvidence(); const scheduler = readModelTransferSchedulerEvidence(); const removal = readModelRemovalLifecycleEvidence(); const switching = readServerSwitchControllerEvidence(); const logs = readServerLogRetentionEvidence(); const failover = readRemoteFailoverEvidence(); const grants = readExtensionPermissionGrantEvidence(); const quarantine = readExtensionQuarantineReviewEvidence(); const workflowAccess = readWorkflowDeploymentAccessEvidence(); const reviews = readGovernanceAccessReviewEvidence(); const promotion = readEvaluationBaselinePromotionEvidence(); const artifacts = readArtifactInstallLifecycleEvidence(); const settlement = readUsageSettlementEvidence();
+  const slices: Slice[] = [
+    slice({ id: "desktop-services", version: "v1.1.0", label: "Background-service lifecycle", ready: Boolean(services.latestPassing), summary: `${services.services.length} supervised service(s), ${services.receipts.length} recovery receipt(s).`, evidence: ["/api/desktop/service-supervisor"], blocker: "No passing service recovery receipt exists." }),
+    slice({ id: "desktop-permissions", version: "v1.1.0", label: "Permission repair", ready: Boolean(permissions.latestPassing), summary: `${permissions.receipts.length} isolated permission repair receipt(s).`, evidence: ["/api/desktop/permission-repair"], blocker: "No passing permission repair receipt exists." }),
+    slice({ id: "model-sources", version: "v1.1.1", label: "Authenticated source manifests", ready: Boolean(sources.latestPassing && !sources.security.tokenValuesPersisted), summary: `${sources.receipts.length} pinned multi-file source manifest(s).`, evidence: ["/api/models/source-manifests"], blocker: "No passing digest-complete source manifest exists." }),
+    slice({ id: "transfer-scheduler", version: "v1.1.1", label: "Transfer concurrency scheduler", ready: Boolean(scheduler.latestPassing), summary: `${scheduler.receipts.length} bounded concurrency schedule receipt(s).`, evidence: ["/api/models/transfer-scheduler"], blocker: "No passing transfer schedule receipt exists." }),
+    slice({ id: "model-removal", version: "v1.1.1", label: "Ownership-safe removal", ready: Boolean(removal.latestPassing), summary: `${removal.receipts.length} quarantine/rollback/shared-blob cleanup receipt(s).`, evidence: ["/api/models/removal-lifecycle"], blocker: "No passing model removal receipt exists." }),
+    slice({ id: "server-switch", version: "v1.2.0", label: "Drain-aware hot switch", ready: Boolean(switching.latestPassing), summary: `${switching.receipts.length} drain/activate/rollback controller receipt(s).`, evidence: ["/api/models/server-instances/switch-controller"], blocker: "No passing hot-switch controller receipt exists." }),
+    slice({ id: "log-retention", version: "v1.2.0", label: "Request-log retention and export", ready: Boolean(logs.latestPassing), summary: `${logs.receipts.length} redacted retention/export receipt(s).`, evidence: ["/api/models/server-instances/log-retention"], blocker: "No passing redacted log export exists." }),
+    slice({ id: "remote-failover", version: "v1.2.1", label: "Heartbeat lease and fencing", ready: Boolean(failover.latestPassing), summary: `${failover.receipts.length} lease expiry/failover/fencing receipt(s).`, evidence: ["/api/runtime/remote-failover"], blocker: "No passing lease/fencing rehearsal exists." }),
+    slice({ id: "extension-grants", version: "v1.3.0", label: "Permission grant and revoke", ready: Boolean(grants.latestPassing), summary: `${grants.totals.active} active / ${grants.totals.revoked} revoked grant(s).`, evidence: ["/api/extensions/permission-grants"], blocker: "No passing extension grant/revoke rehearsal exists." }),
+    slice({ id: "quarantine-review", version: "v1.3.0", label: "Quarantine review and release", ready: Boolean(quarantine.latestPassing), summary: `${quarantine.totals.released} released / ${quarantine.totals.rejected} rejected case(s).`, evidence: ["/api/extensions/quarantine-review"], blocker: "No passing quarantine review receipt exists." }),
+    slice({ id: "workflow-access", version: "v1.3.1", label: "Deployment auth and version pin", ready: Boolean(workflowAccess.latestPassing && !workflowAccess.security.plaintextPersisted), summary: `${workflowAccess.keys.length} digest-backed deployment key record(s).`, evidence: ["/api/workflows/deployment-access"], blocker: "No passing workflow deployment access receipt exists." }),
+    slice({ id: "access-review", version: "v1.4.0", label: "Four-eyes access review", ready: Boolean(reviews.latestPassing), summary: `${reviews.totals.approved} approved / ${reviews.totals.pending} pending review(s).`, evidence: ["/api/governance/access-reviews"], blocker: "No passing independent access review exists." }),
+    slice({ id: "baseline-promotion", version: "v1.4.1", label: "Reproducible baseline promotion", ready: Boolean(promotion.latestPassing), summary: `${promotion.receipts.length} pinned baseline promotion receipt(s).`, evidence: ["/api/evaluation/baseline-promotion"], blocker: "No passing reproducibility and promotion gate exists." }),
+    slice({ id: "artifact-install", version: "v1.5.0", label: "Artifact install lifecycle", ready: Boolean(artifacts.latestPassing), summary: `${artifacts.receipts.length} install/upgrade/rollback/unpublish receipt(s).`, evidence: ["/api/artifacts/install-lifecycle"], blocker: "No passing artifact lifecycle receipt exists." }),
+    slice({ id: "usage-settlement", version: "v1.5.1", label: "Durable usage settlement", ready: Boolean(settlement.latestPassing), summary: `${settlement.totals.delivered} delivered usage settlement event(s).`, evidence: ["/api/deployment/usage-settlement"], blocker: "No passing retry-safe usage settlement exists." }),
+  ];
+  return { ok: true as const, schemaVersion: POST_V1_LIFECYCLE_SCHEMA_VERSION, generatedAt: new Date().toISOString(), slices, totals: { slices: slices.length, ready: slices.filter((entry) => entry.status === "ready").length, partial: slices.filter((entry) => entry.status === "partial").length, blocked: slices.filter((entry) => entry.status === "blocked").length, averageCompletionPct: Math.round(slices.reduce((sum, entry) => sum + entry.completionPct, 0) / slices.length) } };
+}

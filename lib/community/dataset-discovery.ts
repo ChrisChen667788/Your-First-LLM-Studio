@@ -53,15 +53,25 @@ function isDefined<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
 
-async function fetchJson<T>(input: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, init);
-  if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+async function fetchJson<T>(
+  input: string,
+  init?: RequestInit,
+  timeoutMs = 8_000,
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(input, { ...init, signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status}`);
+    }
+    return (await response.json()) as T;
+  } finally {
+    clearTimeout(timer);
   }
-  return (await response.json()) as T;
 }
 
-async function scanHuggingFaceDatasets(query: string) {
+async function scanHuggingFaceDatasets(query: string, timeoutMs: number) {
   const url = new URL("https://huggingface.co/api/datasets");
   url.searchParams.set("search", query);
   url.searchParams.set("limit", "6");
@@ -72,7 +82,7 @@ async function scanHuggingFaceDatasets(query: string) {
       "User-Agent": "FirstLLMStudio/0.3"
     },
     cache: "no-store"
-  });
+  }, timeoutMs);
   return payload
     .map((entry) => {
       if (!entry.id) return null;
@@ -96,7 +106,7 @@ async function scanHuggingFaceDatasets(query: string) {
     .filter(isDefined);
 }
 
-async function scanGitHubDatasets(query: string) {
+async function scanGitHubDatasets(query: string, timeoutMs: number) {
   const url = new URL("https://api.github.com/search/repositories");
   url.searchParams.set("q", `${query} dataset finetune jsonl in:name,description,topics`);
   url.searchParams.set("sort", "updated");
@@ -108,7 +118,7 @@ async function scanGitHubDatasets(query: string) {
       "User-Agent": "FirstLLMStudio/0.3"
     },
     cache: "no-store"
-  });
+  }, timeoutMs);
   return (payload.items || [])
     .map((entry) => {
       if (!entry.full_name || !entry.html_url) return null;
@@ -129,7 +139,7 @@ async function scanGitHubDatasets(query: string) {
     .filter(isDefined);
 }
 
-async function scanModelScopeDatasets(query: string) {
+async function scanModelScopeDatasets(query: string, timeoutMs: number) {
   const url = new URL("https://www.modelscope.cn/openapi/v1/datasets");
   url.searchParams.set("page_number", "1");
   url.searchParams.set("page_size", "6");
@@ -140,7 +150,7 @@ async function scanModelScopeDatasets(query: string) {
       "User-Agent": "FirstLLMStudio/0.3"
     },
     cache: "no-store"
-  });
+  }, timeoutMs);
   return (payload.datasets || [])
     .map((entry) => {
       if (!entry.Path || !entry.Name) return null;
@@ -173,15 +183,19 @@ function rankCandidate(candidate: AgentFineTuneUpstreamDatasetCandidate) {
   return freshness + sampleWeight;
 }
 
-export async function discoverFineTuneUpstreamDatasets(queryInput: string) {
+export async function discoverFineTuneUpstreamDatasets(
+  queryInput: string,
+  options: { timeoutMs?: number } = {},
+) {
   const query = queryInput.trim();
   if (!query) {
     throw new Error("Dataset discovery query is required.");
   }
+  const timeoutMs = Math.max(500, Math.min(options.timeoutMs || 8_000, 30_000));
   const [huggingface, github, modelscope] = await Promise.allSettled([
-    scanHuggingFaceDatasets(query),
-    scanGitHubDatasets(query),
-    scanModelScopeDatasets(query)
+    scanHuggingFaceDatasets(query, timeoutMs),
+    scanGitHubDatasets(query, timeoutMs),
+    scanModelScopeDatasets(query, timeoutMs)
   ]);
   return [
     ...(huggingface.status === "fulfilled" ? huggingface.value : []),

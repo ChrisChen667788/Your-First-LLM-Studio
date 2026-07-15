@@ -24,7 +24,7 @@ type AgentDictionary = ReturnType<typeof getDictionary>;
 type RuntimePhase = ReturnType<typeof describeRuntimePhase>;
 type RuntimeStageItem = ReturnType<typeof buildRuntimeStageItems>[number];
 
-type RuntimeStatusRailText = {
+export type RuntimeStatusRailText = {
   runtimeSerializing: string;
   runtimeReady: string;
   runtimeUnavailable: string;
@@ -106,7 +106,7 @@ function RailDetailsSection({
   );
 }
 
-type RuntimeStatusRailProps = {
+export type RuntimeStatusRailProps = {
   locale: string;
   dictionary: AgentDictionary;
   uiText: RuntimeStatusRailText;

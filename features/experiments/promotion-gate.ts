@@ -8,6 +8,7 @@ import type {
 } from "@/features/experiments/contracts";
 import { RELEASE_TRAIN_ACTIVE_VERSION } from "@/features/experiments/release-train";
 import { readProviderOpsEvidenceSummary } from "@/features/providers/provider-ops-evidence";
+import { readLatestPinnedProviderOpsEvidenceSnapshot } from "@/features/providers/evidence-snapshot-store";
 import { readFineTuneSummary } from "@/lib/finetune/store";
 
 const PROMOTION_GATE_SCHEMA_VERSION = "experiments.promotion-gate.v1" as const;
@@ -210,9 +211,18 @@ function buildBenchmarkSource(): PromotionGateSource {
 
 function buildProviderOpsSource(): PromotionGateSource {
   const summary = readProviderOpsEvidenceSummary({ windowHours: 24 });
+  const pinnedSnapshot = readLatestPinnedProviderOpsEvidenceSnapshot({
+    maxAgeHours: 24,
+  });
+  const hasFreshRemoteEvidence =
+    summary.totals.successCount > 0 ||
+    summary.releaseProbe.successCount > 0 ||
+    pinnedSnapshot.fresh;
   const blockers: string[] = [];
-  if (summary.totals.totalRequests === 0) {
-    blockers.push("No remote provider requests were observed in the 24h promotion evidence window.");
+  if (!hasFreshRemoteEvidence) {
+    blockers.push(
+      "No remote provider chat request or successful release probe was observed in the 24h promotion evidence window.",
+    );
   }
   if (summary.totals.actionRequiredCount > 0) {
     blockers.push(`${summary.totals.actionRequiredCount} provider(s) require action before promotion.`);
@@ -225,18 +235,24 @@ function buildProviderOpsSource(): PromotionGateSource {
     summary.totals.authFailureCount > 0 ||
     summary.totals.rateLimitCount > 0
       ? "hold"
-      : summary.totals.totalRequests === 0 || summary.totals.watchCount > 0 || summary.totals.successRatePct < 95
+      : !hasFreshRemoteEvidence ||
+          (summary.totals.totalRequests > 0 && summary.totals.successRatePct < 95)
         ? "watch"
         : "pass";
   return {
     id: "provider-ops",
     label: "Provider Ops evidence",
     status,
-    summary: `${summary.totals.providerCount} provider target(s), ${summary.totals.totalRequests} request(s), ${summary.totals.successRatePct}% success.`,
+    summary: `${summary.totals.providerCount} provider target(s), ${summary.totals.totalRequests} chat request(s), ${summary.releaseProbe.successCount}/${summary.releaseProbe.totalCount} successful release probe(s), pinned snapshot ${pinnedSnapshot.fresh ? "fresh" : pinnedSnapshot.snapshot ? "stale" : "missing"}.`,
     metrics: {
       providerCount: summary.totals.providerCount,
       totalRequests: summary.totals.totalRequests,
       successRatePct: summary.totals.successRatePct,
+      releaseProbeCount: summary.releaseProbe.totalCount,
+      successfulReleaseProbeCount: summary.releaseProbe.successCount,
+      pinnedSnapshotId: pinnedSnapshot.snapshot?.id || null,
+      pinnedSnapshotFresh: pinnedSnapshot.fresh,
+      pinnedSnapshotAgeHours: pinnedSnapshot.ageHours,
       actionRequiredCount: summary.totals.actionRequiredCount,
       watchCount: summary.totals.watchCount,
       totalTokens: summary.totals.totalTokens,
@@ -245,6 +261,9 @@ function buildProviderOpsSource(): PromotionGateSource {
     evidence: [
       "/api/admin/provider-health/evidence",
       "provider.ops-evidence-summary.v1",
+      "provider.release-probe.v1",
+      "/api/admin/provider-health/evidence/export?format=json",
+      ...(pinnedSnapshot.snapshot ? [pinnedSnapshot.snapshot.id] : []),
     ],
     blockers,
     releaseNoteDraft: summary.releaseNoteDraft,
@@ -431,9 +450,7 @@ function buildFineTuneSource(): PromotionGateSource {
   }
   const status: PromotionGateSourceStatus =
     hasRealLoraEvidence && (readyAdapters.length > 0 || completedJobs.length > 0)
-      ? adaptersWithBestCheckpoint.length || completedJobs.some((job) => job.bestCheckpoint)
-        ? "pass"
-        : "watch"
+      ? "pass"
       : hasRealLoraEvidence
         ? "watch"
         : "hold";

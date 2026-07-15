@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { readWorkflowStateDiffEvidence, rehearseWorkflowStateDiff } from "@/features/workflows/state-diff";
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export async function GET() { return NextResponse.json(readWorkflowStateDiffEvidence()); }
+export async function POST(request: Request) { try { const body = await request.json().catch(() => ({})) as { sourceExecutionId?: string; replayExecutionId?: string }; if (!body.sourceExecutionId || !body.replayExecutionId) throw new Error("sourceExecutionId and replayExecutionId are required."); const receipt = rehearseWorkflowStateDiff({ sourceExecutionId: body.sourceExecutionId, replayExecutionId: body.replayExecutionId }); return NextResponse.json({ ok: receipt.status === "pass", receipt, evidence: readWorkflowStateDiffEvidence() }, { status: receipt.status === "pass" ? 200 : 422 }); } catch (error) { return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Workflow state diff failed." }, { status: 400 }); } }

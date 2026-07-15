@@ -1,9 +1,38 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AdminCompatibilitySunsetPanel } from "@/components/admin/AdminCompatibilitySunsetPanel";
 import { AdminTimelinePanel } from "@/components/admin/AdminTimelinePanel";
 import { AdminFeatureHandoffPanel } from "@/features/admin/AdminFeatureHandoffPanel";
+import { AdminRuntimeMetricsGrid } from "@/features/admin/AdminRuntimeMetricsGrid";
+import { AdminRuntimeLogPanel } from "@/features/admin/AdminRuntimeLogPanel";
+import { AdminRuntimeTracePanel } from "@/features/admin/AdminRuntimeTracePanel";
+import { AdminRuntimeModelStatePanel } from "@/features/admin/AdminRuntimeModelStatePanel";
+import { AdminRecentOperationsPanel } from "@/features/admin/AdminRecentOperationsPanel";
+import {
+  useAdminDashboardFilterState,
+} from "@/features/admin/dashboard-filter-state";
+import { buildAdminDashboardQuery } from "@/features/admin/dashboard-query";
+import { openAdminBenchmarkReport } from "@/features/admin/benchmark-report-application";
+import { useAdminBenchmarkProgressState } from "@/features/admin/benchmark-progress-state";
+import { useAdminRuntimeSwitchHistory } from "@/features/admin/runtime-switch-history";
+import {
+  MultiSeriesCard as AdminMultiSeriesCard,
+  SeriesCard as AdminSeriesCard,
+  formatBytes as formatAdminBytes,
+  formatCompactNumber as formatAdminCompactNumber,
+  formatPercent as formatAdminPercent,
+} from "@/features/admin/telemetry-components";
 import { buildAdminOperationsReadModel } from "@/features/admin/dashboard-read-model";
+import {
+  describeAdminRuntimeAlias,
+  formatAdminRuntimeDuration,
+  formatAdminRuntimeTimestamp,
+} from "@/features/admin/runtime-formatters";
+import {
+  buildAdminRuntimeTargetViewModel,
+  type AdminRuntimeMetricSample as RuntimeMetricSample,
+} from "@/features/admin/runtime-target-view-model";
 import {
   executeAdminRuntimeAction,
   fetchAdminRuntimeStatus,
@@ -14,15 +43,26 @@ import {
   type RuntimeGuardrailStrategy,
 } from "@/features/admin/runtime-operations";
 import { AdminBenchmarkHandoffPanel } from "@/features/benchmark/AdminBenchmarkHandoffPanel";
+import { AdminBenchmarkReleaseEvidencePanel } from "@/features/benchmark/AdminBenchmarkReleaseEvidencePanel";
+import { AdminBenchmarkHistoryEntryHeader } from "@/features/benchmark/AdminBenchmarkHistoryEntryHeader";
+import { AdminBenchmarkRunNotePanel } from "@/features/benchmark/AdminBenchmarkRunNotePanel";
+import { AdminBenchmarkResultGroups } from "@/features/benchmark/AdminBenchmarkResultGroups";
+import { AdminBenchmarkCoverageGovernancePanel } from "@/features/benchmark/AdminBenchmarkCoverageGovernancePanel";
+import { AdminBenchmarkHeatmapPanel } from "@/features/benchmark/AdminBenchmarkHeatmapPanel";
+import {
+  AdminBenchmarkHistoryPanel,
+} from "@/features/benchmark/AdminBenchmarkHistoryPanel";
+import { ProviderOpsAdminShell } from "@/features/providers/ProviderOpsAdminShell";
+import { AdminProviderComparisonPanel } from "@/features/providers/AdminProviderComparisonPanel";
 import { agentTargets as builtinAgentTargets } from "@/lib/agent/catalog";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { StudioIdentityBand } from "@/components/layout/StudioPageShell";
 import { sanitizeDisplayPath } from "@/lib/agent/path-display";
-import { getBenchmarkContextRecommendationHelper } from "@/lib/agent/context-recommendation";
 import type { BenchmarkReleaseEvidenceSummary } from "@/features/benchmark/contracts";
+import type { AdminCompatibilitySunsetEvidence } from "@/features/admin/compatibility-sunset";
+import type { AdminCompatibilityDeletionManifest } from "@/features/admin/compatibility-deletion-manifest";
 import type { ProviderOpsEvidenceSummary } from "@/features/providers/contracts";
 import type {
-  AgentBenchmarkProgress,
   AgentBenchmarkReleaseEvidence,
   AgentMetricPercentiles,
   AgentProviderHealthDeskItem,
@@ -32,163 +72,12 @@ import type {
 } from "@/lib/agent/types";
 
 type MetricPercentiles = AgentMetricPercentiles;
-type BenchmarkHeatmapMetricKey = "first-token" | "total-latency" | "throughput" | "success-rate";
-type BenchmarkHistorySourceFilter = "all" | "recent-window" | "full-history";
-const RUNTIME_SWITCH_HISTORY_STORAGE_KEY = "local-agent-runtime-switch-history-v1";
-
-type RuntimeSwitchHistoryEntry = {
-  loadMs: number | null;
-  switchedAt: string | null;
-};
-
-type RuntimeMetricSample = {
-  timestamp: string;
-  gatewayCpuPct: number | null;
-  gatewayResidentMemoryMb: number | null;
-  gatewayGpuPct: number | null;
-  gatewayGpuMemoryMb: number | null;
-  gatewayEnergySignalPct: number | null;
-  gatewayDiskUsedPct: number | null;
-  modelStorageFootprintMb: number | null;
-};
-
 const MAX_RUNTIME_METRIC_SAMPLES = 24;
 
-type BenchmarkCoverageHelpRow = {
-  id: string;
-  labelZh: string;
-  labelEn: string;
-  workloads: string[];
-  publicCoverage: boolean;
-  internalCoverage: boolean;
-  nextPublicBenchmarkZh: string;
-  nextPublicBenchmarkEn: string;
-};
-
-const BENCHMARK_COVERAGE_HELP_ROWS: BenchmarkCoverageHelpRow[] = [
-  {
-    id: "latency-throughput",
-    labelZh: "性能 / 首字延时 / 总耗时 / 吞吐",
-    labelEn: "Latency / total time / throughput",
-    workloads: ["latency-smoke"],
-    publicCoverage: false,
-    internalCoverage: true,
-    nextPublicBenchmarkZh: "先继续沿用内部 serving 回归协议，不急着补公开集。",
-    nextPublicBenchmarkEn: "Keep this as an internal serving regression lane before adding a public benchmark."
-  },
-  {
-    id: "instruction-following",
-    labelZh: "指令遵循 / 格式遵循",
-    labelEn: "Instruction following / format discipline",
-    workloads: ["instruction-following-lite", "ifeval-starter"],
-    publicCoverage: true,
-    internalCoverage: true,
-    nextPublicBenchmarkZh: "IFEval 已托底，优先级不高。",
-    nextPublicBenchmarkEn: "Already backed by IFEval, so this is not an urgent gap."
-  },
-  {
-    id: "chinese-knowledge",
-    labelZh: "中文知识 / 中文专业能力",
-    labelEn: "Chinese knowledge / domain understanding",
-    workloads: ["ceval-cs-starter", "cmmlu-cs-starter"],
-    publicCoverage: true,
-    internalCoverage: false,
-    nextPublicBenchmarkZh: "后续更适合扩 sample，不必先换集。",
-    nextPublicBenchmarkEn: "Expand sample coverage later rather than swapping benchmarks first."
-  },
-  {
-    id: "tool-calling",
-    labelZh: "工具调用 / 参数格式",
-    labelEn: "Tool calling / argument format",
-    workloads: ["bfcl-starter"],
-    publicCoverage: true,
-    internalCoverage: true,
-    nextPublicBenchmarkZh: "后续可补更复杂 multi-step tool benchmark。",
-    nextPublicBenchmarkEn: "A more complex multi-step tool benchmark would be the natural next step."
-  },
-  {
-    id: "long-context",
-    labelZh: "长上下文材料问答",
-    labelEn: "Long-context grounded QA",
-    workloads: ["longbench-starter"],
-    publicCoverage: true,
-    internalCoverage: false,
-    nextPublicBenchmarkZh: "如后续偏 repo-long-context，再补专项集。",
-    nextPublicBenchmarkEn: "Add a repo-long-context benchmark later if that becomes a core lane."
-  },
-  {
-    id: "grounded-rag",
-    labelZh: "Grounded QA / RAG 引用 / 低置信度处理",
-    labelEn: "Grounded QA / citation / low-confidence fallback",
-    workloads: ["grounded-kb-qa"],
-    publicCoverage: false,
-    internalCoverage: true,
-    nextPublicBenchmarkZh: "下一步最值得补：CRAG / RAGBench。",
-    nextPublicBenchmarkEn: "Best next addition: CRAG or RAGBench."
-  },
-  {
-    id: "repo-qa",
-    labelZh: "仓库级代码检索问答 / Repo QA",
-    labelEn: "Repo-grounded code QA",
-    workloads: ["code-rag-repo-qa"],
-    publicCoverage: false,
-    internalCoverage: true,
-    nextPublicBenchmarkZh: "下一步最值得补：RepoBench。",
-    nextPublicBenchmarkEn: "Best next addition: RepoBench."
-  },
-  {
-    id: "agent-workflow",
-    labelZh: "Agent 规划 / 记忆 / 恢复 / 状态持久化",
-    labelEn: "Agent planning / memory / recovery / state",
-    workloads: ["agent-flow-lite"],
-    publicCoverage: false,
-    internalCoverage: true,
-    nextPublicBenchmarkZh: "下一步最值得补：τ-bench / ToolSandbox。",
-    nextPublicBenchmarkEn: "Best next addition: τ-bench or ToolSandbox."
-  },
-  {
-    id: "codegen",
-    labelZh: "代码生成",
-    labelEn: "Code generation",
-    workloads: ["humaneval-starter", "mbppplus-starter"],
-    publicCoverage: true,
-    internalCoverage: false,
-    nextPublicBenchmarkZh: "如果以后强调真实仓库修复，再补 SWE-bench Lite。",
-    nextPublicBenchmarkEn: "Add SWE-bench Lite later if repo repair becomes a headline capability."
-  }
-];
-
-function formatTargetModelVersion(modelDefault: string, thinkingModelDefault?: string) {
-  if (thinkingModelDefault && thinkingModelDefault !== modelDefault) {
-    return `${modelDefault} · Thinking ${thinkingModelDefault}`;
-  }
-  return modelDefault;
-}
 
 function getDefaultBenchmarkTargetIds(targetIds: string[]) {
   const preferred = ["local-qwen3-0.6b", "local-qwen35-4b-4bit"].filter((id) => targetIds.includes(id));
   return preferred.length ? preferred : targetIds;
-}
-
-function splitRowsByExecution<T extends { execution?: "local" | "remote" }>(rows: T[]) {
-  const local = rows.filter((row) => row.execution === "local");
-  const remote = rows.filter((row) => row.execution !== "local");
-  return { local, remote };
-}
-
-function buildExecutionSections<T extends { execution?: "local" | "remote" }>(
-  rows: T[],
-  labels: { local: string; remote: string }
-) {
-  const { local, remote } = splitRowsByExecution(rows);
-  const sections: Array<{ execution: "local" | "remote"; label: string; rows: T[] }> = [];
-  if (local.length) {
-    sections.push({ execution: "local", label: labels.local, rows: local });
-  }
-  if (remote.length) {
-    sections.push({ execution: "remote", label: labels.remote, rows: remote });
-  }
-  return sections;
 }
 
 function summarizeBenchmarkRunNote(value: string, maxLength = 220) {
@@ -200,65 +89,6 @@ function summarizeBenchmarkRunNote(value: string, maxLength = 220) {
     .join(" · ");
   if (normalized.length <= maxLength) return normalized;
   return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
-}
-
-function formatBenchmarkReportMatchSource(
-  locale: string,
-  value: AgentBenchmarkReleaseEvidence["matchSource"] | undefined
-) {
-  if (value === "exact-run-id") {
-    return locale.startsWith("en") ? "Exact run" : "精确 run";
-  }
-  if (value === "full-history") {
-    return locale.startsWith("en") ? "Full history fallback" : "全历史回退";
-  }
-  return locale.startsWith("en") ? "Recent window" : "最近窗口";
-}
-
-function buildBenchmarkReportMatchSourceClass(
-  value: AgentBenchmarkReleaseEvidence["matchSource"] | undefined
-) {
-  if (value === "exact-run-id") {
-    return "border-violet-300/20 bg-violet-400/10 text-violet-100";
-  }
-  if (value === "full-history") {
-    return "border-amber-300/20 bg-amber-300/10 text-amber-100";
-  }
-  return "border-cyan-300/20 bg-cyan-400/10 text-cyan-100";
-}
-
-function formatUsd(value?: number | null) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
-  return value < 0.01 ? `$${value.toFixed(4)}` : `$${value.toFixed(2)}`;
-}
-
-function buildProviderStatusClass(status: AgentProviderHealthDeskItem["status"]) {
-  if (status === "healthy") return "border-emerald-300/20 bg-emerald-400/10 text-emerald-100";
-  if (status === "degraded") return "border-amber-300/20 bg-amber-300/10 text-amber-100";
-  if (status === "unhealthy") return "border-rose-300/20 bg-rose-400/10 text-rose-100";
-  return "border-white/10 bg-white/5 text-slate-400";
-}
-
-function buildProviderPolicyClass(
-  severity: AgentProviderHealthDeskItem["policyRecommendation"]["severity"],
-) {
-  if (severity === "ok") return "border-emerald-300/20 bg-emerald-400/10 text-emerald-50";
-  if (severity === "watch") return "border-amber-300/20 bg-amber-300/10 text-amber-50";
-  return "border-rose-300/20 bg-rose-400/10 text-rose-50";
-}
-
-function labelProviderStatus(status: AgentProviderHealthDeskItem["status"], locale: string) {
-  const english = locale.startsWith("en");
-  if (status === "healthy") return english ? "Healthy" : "健康";
-  if (status === "degraded") return english ? "Degraded" : "降级";
-  if (status === "unhealthy") return english ? "Action needed" : "需处理";
-  return english ? "No traffic" : "无流量";
-}
-
-function formatOptionalMs(value?: number | null) {
-  return typeof value === "number" && Number.isFinite(value)
-    ? `${value.toFixed(0)} ms`
-    : "--";
 }
 
 type DashboardResponse = {
@@ -351,6 +181,9 @@ type DashboardResponse = {
   adminCompatibilityUsage?: {
     generatedAt: string;
     totalHits: number;
+    runtimeHits: number;
+    smokeHits: number;
+    legacyUnclassifiedHits: number;
     routeCount: number;
     routes: Array<{
       key: string;
@@ -358,11 +191,18 @@ type DashboardResponse = {
       canonicalPath: string;
       method: string;
       hitCount: number;
+      evidenceVersion?: number;
+      runtimeHitCount?: number;
+      smokeHitCount?: number;
+      legacyUnclassifiedHitCount?: number;
       firstSeenAt: string;
       lastSeenAt: string;
       lastUserAgent?: string;
+      lastEvidenceSource?: "runtime" | "route-smoke";
     }>;
   };
+  adminCompatibilitySunset?: AdminCompatibilitySunsetEvidence;
+  adminCompatibilityDeletionManifest?: AdminCompatibilityDeletionManifest;
   benchmarkTrends: Array<{
     targetId: string;
     targetLabel: string;
@@ -511,539 +351,33 @@ type DashboardResponse = {
 
 type RuntimeActionKind = "refresh" | "prewarm" | "release" | "restart" | "read_log";
 
-function formatCompactNumber(value: number) {
-  return new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(value);
-}
-
-function formatBytes(value?: number | null) {
-  if (typeof value !== "number" || Number.isNaN(value)) return "--";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let current = value;
-  let index = 0;
-  while (current >= 1024 && index < units.length - 1) {
-    current /= 1024;
-    index += 1;
-  }
-  return `${current.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
-}
-
-function formatPercent(value?: number | null) {
-  if (typeof value !== "number" || Number.isNaN(value)) return "--";
-  return `${value.toFixed(1)}%`;
-}
-
-function formatDurationShort(value?: number | null) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
-  if (value < 1000) return `${Math.round(value)} ms`;
-  const totalSeconds = Math.round(value / 1000);
-  const seconds = totalSeconds % 60;
-  const minutes = Math.floor(totalSeconds / 60) % 60;
-  const hours = Math.floor(totalSeconds / 3600);
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m ${seconds}s`;
-  return `${seconds}s`;
-}
-
-function formatRecommendedContextBadge(value?: number | null) {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
-  return `${Math.round(value / 1024)}K`;
-}
-
-function buildPolyline(values: number[]) {
-  if (!values.length) return "";
-  const max = Math.max(...values, 1);
-  return values
-    .map((value, index) => {
-      const x = (index / Math.max(values.length - 1, 1)) * 100;
-      const y = 100 - (value / max) * 100;
-      return `${x},${y}`;
-    })
-    .join(" ");
-}
-
-function RuntimeMetricSparkline({
-  title,
-  latest,
-  values,
-  tone,
-  helper
-}: {
-  title: string;
-  latest: string;
-  values: number[];
-  tone: "cyan" | "emerald" | "amber" | "violet";
-  helper: string;
-}) {
-  const strokeMap = {
-    cyan: "#22d3ee",
-    emerald: "#34d399",
-    amber: "#f59e0b",
-    violet: "#a78bfa"
-  };
-  const stroke = strokeMap[tone];
-  const hasValues = values.length > 0;
-  return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-3.5 py-3.5 text-sm text-slate-300">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{title}</p>
-          <p className="mt-2 text-base font-semibold text-white">{latest}</p>
-        </div>
-        <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-400">
-          {hasValues ? `${values.length} pts` : "No data"}
-        </span>
-      </div>
-      <div className={`mt-3 rounded-2xl border border-white/10 bg-black/20 p-2.5 ${hasValues ? "h-14" : "h-10"}`}>
-        {hasValues ? (
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
-            <polyline
-              fill="none"
-              stroke={stroke}
-              strokeWidth="3"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              points={buildPolyline(values)}
-            />
-          </svg>
-        ) : (
-          <div className="flex h-full items-center justify-center text-[11px] text-slate-500">待采样</div>
-        )}
-      </div>
-      <p className="mt-2 text-[11px] leading-5 text-slate-400">{helper}</p>
-    </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3">
-      <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{label}</p>
-      <p className="mt-2 text-xl font-semibold text-white">{value}</p>
-    </div>
-  );
-}
-
-function SeriesCard({
-  title,
-  values,
-  tone = "cyan"
-}: {
-  title: string;
-  values: number[];
-  tone?: "cyan" | "amber" | "emerald" | "violet";
-}) {
-  const strokeMap = {
-    cyan: "#22d3ee",
-    amber: "#f59e0b",
-    emerald: "#34d399",
-    violet: "#a78bfa"
-  };
-  const latest = values.length ? values[values.length - 1] : 0;
-
-  return (
-    <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-300">{title}</p>
-        <span className="text-sm font-semibold text-white">{formatCompactNumber(latest)}</span>
-      </div>
-      <div className="mt-4 h-28 rounded-2xl border border-white/10 bg-black/20 p-3">
-        {values.length ? (
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
-            <polyline
-              fill="none"
-              stroke={strokeMap[tone]}
-              strokeWidth="3"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              points={buildPolyline(values)}
-            />
-          </svg>
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-slate-500">--</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MultiSeriesCard({
-  title,
-  lines
-}: {
-  title: string;
-  lines: Array<{ label: string; values: number[]; tone: "cyan" | "amber" | "emerald" | "violet" }>;
-}) {
-  const strokeMap = {
-    cyan: "#22d3ee",
-    amber: "#f59e0b",
-    emerald: "#34d399",
-    violet: "#a78bfa"
-  };
-  const allValues = lines.flatMap((line) => line.values);
-  const max = Math.max(...allValues, 1);
-
-  return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-3.5">
-      <p className="text-xs font-medium text-slate-400">{title}</p>
-      <div className="mt-2.5 flex flex-wrap gap-1.5">
-        {lines.map((line) => (
-          <span key={line.label} className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-slate-300">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: strokeMap[line.tone] }} />
-            {line.label}
-          </span>
-        ))}
-      </div>
-      <div className="mt-3 h-28 rounded-2xl border border-white/10 bg-black/20 p-2.5">
-        {allValues.length ? (
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
-            {lines.map((line) => {
-              if (!line.values.length) return null;
-              const points = line.values
-                .map((value, index) => {
-                  const x = (index / Math.max(line.values.length - 1, 1)) * 100;
-                  const y = 100 - (value / max) * 100;
-                  return `${x},${y}`;
-                })
-                .join(" ");
-              return (
-                <polyline
-                  key={line.label}
-                  fill="none"
-                  stroke={strokeMap[line.tone]}
-                  strokeWidth="2.5"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  points={points}
-                />
-              );
-            })}
-          </svg>
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-slate-500">--</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PercentileRow({
-  label,
-  metrics,
-  unit,
-  disabled = false
-}: {
-  label: string;
-  metrics: MetricPercentiles;
-  unit?: string;
-  disabled?: boolean;
-}) {
-  const suffix = unit ? ` ${unit}` : "";
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-      <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{label}</p>
-      <div className="mt-2 grid grid-cols-3 gap-2 text-sm text-slate-200">
-        <span>P50 {disabled ? "--" : `${metrics.p50.toFixed(2)}${suffix}`}</span>
-        <span>P95 {disabled ? "--" : `${metrics.p95.toFixed(2)}${suffix}`}</span>
-        <span>P99 {disabled ? "--" : `${metrics.p99.toFixed(2)}${suffix}`}</span>
-      </div>
-    </div>
-  );
-}
-
-function hasSuccessfulBenchmarkMetrics(row: { okRuns: number }) {
-  return row.okRuns > 0;
-}
-
-function formatBenchmarkMetric(value: number, success: boolean, digits: number, suffix = "") {
-  return success ? `${value.toFixed(digits)}${suffix}` : "--";
-}
-
-function formatBenchmarkTrendLegendMetric(
-  value: number | null | undefined,
-  kind: "first-token" | "total-latency" | "throughput",
-  tokensPerSecondLabel: string
-) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
-  if (kind === "throughput") {
-    return `${value.toFixed(2)} ${tokensPerSecondLabel}`;
-  }
-  return `${value.toFixed(1)} ms`;
-}
-
-function buildHeatmapCellClass(value: number, min: number, max: number) {
-  if (!Number.isFinite(value) || max <= min) {
-    return "bg-white/5";
-  }
-  const ratio = Math.max(0, Math.min(1, (value - min) / Math.max(max - min, 1)));
-  if (ratio >= 0.75) return "bg-rose-500/25";
-  if (ratio >= 0.5) return "bg-amber-500/20";
-  if (ratio >= 0.25) return "bg-cyan-500/15";
-  return "bg-emerald-500/15";
-}
-
-function buildDirectionalHeatmapCellClass(value: number, min: number, max: number, higherIsBetter: boolean) {
-  if (!Number.isFinite(value) || max <= min) {
-    return "bg-white/5";
-  }
-  return buildHeatmapCellClass(higherIsBetter ? max - value + min : value, min, max);
-}
-
-function getHeatmapRecommendation(providerProfile: string, thinkingMode: string, hasSamples: boolean, locale: string) {
-  if (!hasSamples) {
-    return locale.startsWith("en") ? "No samples yet. Run this combination first." : "暂无样本，先跑一次该组合再比较。";
-  }
-
-  const key = `${providerProfile}:${thinkingMode}`;
-  const zhMap: Record<string, string> = {
-    "speed:standard": "推荐短答、低等待成本场景，优先看首字体验。",
-    "speed:thinking": "推荐少量试验型深想任务，先观察样本再决定是否长期使用。",
-    "balanced:standard": "推荐默认主工作流，适合日常稳定对比。",
-    "balanced:thinking": "推荐复杂问答与较长推理，兼顾稳定与质量。",
-    "tool-first:standard": "推荐工具调用、仓库问答、函数调用型任务。",
-    "tool-first:thinking": "推荐复杂多步任务，适合工具 + 深度推理。"
-  };
-  const enMap: Record<string, string> = {
-    "speed:standard": "Best for short replies and fast first-token checks.",
-    "speed:thinking": "Use sparingly for exploratory deep-thinking runs.",
-    "balanced:standard": "Best default for day-to-day stable workloads.",
-    "balanced:thinking": "Best for more complex reasoning with stable quality.",
-    "tool-first:standard": "Best for tool use, repo QA, and function calling.",
-    "tool-first:thinking": "Best for multi-step tasks with tools and deep reasoning."
-  };
-
-  return (locale.startsWith("en") ? enMap : zhMap)[key] || (locale.startsWith("en") ? "General-purpose benchmark mode." : "通用 benchmark 策略组合。");
-}
-
-function classifyBenchmarkFailure(warning?: string) {
-  const raw = (warning || "").trim();
-  const normalized = raw.toLowerCase();
-  if (!raw) {
-    return {
-      key: "unknown",
-      label: "未知失败",
-      detail: "没有记录到明确 warning。",
-      operational: true
-    };
-  }
-  if (normalized.includes("terminated")) {
-    return {
-      key: "terminated",
-      label: "执行被终止",
-      detail: "请求在执行过程中被终止，通常是长时间流式执行后连接被中断或超时。少量可接受，但如果这一类明显偏多，通常不算正常波动，说明执行链稳定性还需要继续加固。",
-      operational: true
-    };
-  }
-  if (normalized.includes("aborted")) {
-    return {
-      key: "aborted",
-      label: "请求中止",
-      detail: "请求被 AbortController 或上游连接中止，属于执行链中断型失败。少量出现通常算正常波动，但如果持续增长，说明 timeout 或中断策略需要复核。",
-      operational: true
-    };
-  }
-  if (normalized.includes("502 bad gateway")) {
-    return {
-      key: "bad-gateway",
-      label: "上游网关 502",
-      detail: "上游网关瞬时错误，属于远端服务或代理抖动。少量出现通常是正常远端波动，但连续增多说明上游或代理链路不稳定。",
-      operational: true
-    };
-  }
-  if (normalized.includes("fetch failed")) {
-    return {
-      key: "fetch-failed",
-      label: "网络请求失败",
-      detail: "网络或连接建立失败，通常不是模型能力问题。少量属于链路抖动，偏多则说明网络或代理环境需要排查。",
-      operational: true
-    };
-  }
-  return {
-    key: raw,
-    label: raw.length > 48 ? `${raw.slice(0, 48)}…` : raw,
-    detail: raw,
-    operational: false
-  };
-}
-
-function summarizeBenchmarkFailures(
-  results: Array<{
-    targetLabel: string;
-    providerProfile?: string | null;
-    thinkingMode?: string | null;
-    samples: Array<{
-      ok: boolean;
-      warning?: string | null;
-      workloadId?: string | null;
-      itemId?: string | null;
-      latencyMs?: number | null;
-    }>;
-  }>,
-  fallbackProfile?: string | null,
-  fallbackThinkingMode?: string | null
-) {
-  const failedSamples = results.flatMap((result) =>
-    result.samples
-      .filter((sample) => !sample.ok)
-      .map((sample) => ({
-        targetLabel: result.targetLabel,
-        providerProfile: result.providerProfile || fallbackProfile || "default",
-        thinkingMode: result.thinkingMode || fallbackThinkingMode || "standard",
-        workloadId: sample.workloadId || "--",
-        itemId: sample.itemId || "--",
-        latencyMs: sample.latencyMs,
-        classified: classifyBenchmarkFailure(sample.warning || undefined)
-      }))
-  );
-  if (!failedSamples.length) return null;
-  const grouped = new Map<
-    string,
-    {
-      label: string;
-      detail: string;
-      operational: boolean;
-      count: number;
-    }
-  >();
-  for (const sample of failedSamples) {
-    const current = grouped.get(sample.classified.key) || {
-      label: sample.classified.label,
-      detail: sample.classified.detail,
-      operational: sample.classified.operational,
-      count: 0
-    };
-    current.count += 1;
-    grouped.set(sample.classified.key, current);
-  }
-  const groups = [...grouped.values()].sort((a, b) => b.count - a.count);
-  return {
-    total: failedSamples.length,
-    mostlyOperational:
-      groups.filter((group) => group.operational).reduce((sum, group) => sum + group.count, 0) >= failedSamples.length * 0.7,
-    groups,
-    examples: failedSamples.slice(0, 6)
-  };
-}
-
-function getFailureSummaryHeadline(
-  summary: ReturnType<typeof summarizeBenchmarkFailures>,
-  locale: string
-) {
-  if (!summary) return "";
-  return locale.startsWith("en")
-    ? `Failure summary · ${summary.total}`
-    : `失败摘要 · ${summary.total}`;
-}
-
-function getFailureSummaryNarrative(
-  summary: ReturnType<typeof summarizeBenchmarkFailures>,
-  locale: string
-) {
-  if (!summary) return "";
-  if (summary.mostlyOperational) {
-    return locale.startsWith("en")
-      ? "Current failed samples are mostly execution-chain or upstream fluctuations, and should not be read directly as model-quality regressions."
-      : "当前 failed 主要属于执行链或上游波动，不应直接解读成模型质量退化。";
-  }
-  return locale.startsWith("en")
-    ? "Current failed samples include execution-chain problems, and should be reviewed sample by sample before drawing model conclusions."
-    : "当前 failed 混有执行链问题，得先逐样本复核，再判断是否真是模型退化。";
-}
-
-function describeRuntimePhase(runtime: AgentRuntimeStatus | null, locale: string) {
-  const phase = runtime?.phase || "offline";
-  switch (phase) {
-    case "remote":
-      return {
-        label: locale.startsWith("en") ? "Remote" : "远端",
-        className: "border-violet-400/20 bg-violet-400/10 text-violet-100"
-      };
-    case "unloaded":
-      return {
-        label: locale.startsWith("en") ? "Unloaded" : "空载",
-        className: "border-white/10 bg-white/5 text-slate-200"
-      };
-    case "ready":
-      return {
-        label: locale.startsWith("en") ? "Ready" : "已就绪",
-        className: "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
-      };
-    case "busy":
-      return {
-        label: locale.startsWith("en") ? "Busy" : "处理中",
-        className: "border-amber-400/20 bg-amber-400/10 text-amber-100"
-      };
-    case "loading":
-      return {
-        label: locale.startsWith("en") ? "Loading" : "加载中",
-        className: "border-amber-400/20 bg-amber-400/10 text-amber-100"
-      };
-    case "recovering":
-      return {
-        label: locale.startsWith("en") ? "Recovering" : "恢复中",
-        className: "border-cyan-400/20 bg-cyan-400/10 text-cyan-100"
-      };
-    case "error":
-      return {
-        label: locale.startsWith("en") ? "Error" : "异常",
-        className: "border-rose-400/20 bg-rose-400/10 text-rose-100"
-      };
-    default:
-      return {
-        label: locale.startsWith("en") ? "Offline" : "离线",
-        className: "border-white/10 bg-white/5 text-slate-300"
-      };
-  }
-}
-
-function formatRuntimeDuration(ms: number | null | undefined) {
-  if (typeof ms !== "number" || !Number.isFinite(ms)) return "—";
-  if (ms >= 10_000) return `${(ms / 1000).toFixed(1)}s`;
-  if (ms >= 1000) return `${(ms / 1000).toFixed(2)}s`;
-  return `${Math.round(ms)}ms`;
-}
-
-function formatRuntimeTimestamp(timestamp: string | null | undefined, locale: string) {
-  if (!timestamp) return "—";
-  const parsed = new Date(timestamp);
-  if (Number.isNaN(parsed.getTime())) return "—";
-  return parsed.toLocaleString(locale);
-}
-
-function describeRuntimeAlias(alias: string | null | undefined, targets: AgentTarget[]) {
-  if (!alias) return "—";
-  const matched = targets.find((target) => target.id === alias);
-  return matched ? matched.label : alias;
-}
-
 export function AdminDashboard() {
   const { dictionary, locale } = useLocale();
   const [availableTargets, setAvailableTargets] = useState<AgentTarget[]>(builtinAgentTargets);
   const agentTargets = availableTargets;
   const benchmarkTargets = useMemo(() => agentTargets, [agentTargets]);
   const localTargets = useMemo(() => agentTargets.filter((target) => target.execution === "local"), [agentTargets]);
-  const [selectedTargetId, setSelectedTargetId] = useState("anthropic-claude");
-  const [providerFilter, setProviderFilter] = useState("all");
-  const [providerProfileFilter, setProviderProfileFilter] = useState("all");
-  const [benchmarkThinkingModeFilter, setBenchmarkThinkingModeFilter] = useState("all");
-  const [benchmarkHistorySourceFilter, setBenchmarkHistorySourceFilter] =
-    useState<BenchmarkHistorySourceFilter>("all");
-  const [modelFilter, setModelFilter] = useState("all");
-  const [contextWindowFilter, setContextWindowFilter] = useState("all");
-  const [compareTargetIds, setCompareTargetIds] = useState<string[]>(["anthropic-claude"]);
-  const [benchmarkTargetIds, setBenchmarkTargetIds] = useState<string[]>(
-    getDefaultBenchmarkTargetIds(localTargets.map((target) => target.id))
-  );
-  const [benchmarkHeatmapMetric, setBenchmarkHeatmapMetric] = useState<BenchmarkHeatmapMetricKey>("total-latency");
-  const [benchmarkHeatmapWindowMinutes, setBenchmarkHeatmapWindowMinutes] = useState(720);
-  const [benchmarkHeatmapPromptScope, setBenchmarkHeatmapPromptScope] = useState<"all" | "fixed-only">("all");
-  const [benchmarkHeatmapSampleStatus, setBenchmarkHeatmapSampleStatus] = useState<"all" | "success" | "failed">("all");
-  const [benchmarkProgress, setBenchmarkProgress] = useState<AgentBenchmarkProgress | null>(null);
+  const {
+    selectedTargetId, setSelectedTargetId,
+    providerFilter, setProviderFilter,
+    providerProfileFilter, setProviderProfileFilter,
+    benchmarkThinkingModeFilter, setBenchmarkThinkingModeFilter,
+    benchmarkHistorySourceFilter, setBenchmarkHistorySourceFilter,
+    modelFilter, setModelFilter,
+    contextWindowFilter, setContextWindowFilter,
+    compareTargetIds, setCompareTargetIds,
+    benchmarkTargetIds, setBenchmarkTargetIds,
+    benchmarkHeatmapMetric, setBenchmarkHeatmapMetric,
+    benchmarkHeatmapWindowMinutes, setBenchmarkHeatmapWindowMinutes,
+    benchmarkHeatmapPromptScope, setBenchmarkHeatmapPromptScope,
+    benchmarkHeatmapSampleStatus, setBenchmarkHeatmapSampleStatus,
+    windowMinutes, setWindowMinutes,
+    autoRefresh, setAutoRefresh,
+  } = useAdminDashboardFilterState({
+    defaultBenchmarkTargetIds: getDefaultBenchmarkTargetIds(
+      localTargets.map((target) => target.id),
+    ),
+  });
   const [runtimeStatuses, setRuntimeStatuses] = useState<Record<string, AgentRuntimeStatus | null>>({});
   const [runtimeMetricHistory, setRuntimeMetricHistory] = useState<Record<string, RuntimeMetricSample[]>>({});
   const [runtimeActionPending, setRuntimeActionPending] = useState<Record<string, RuntimeActionKind | "">>({});
@@ -1053,8 +387,12 @@ export function AdminDashboard() {
   const [runtimeLogQueries, setRuntimeLogQueries] = useState<Record<string, string>>({});
   const [runtimeLogLimits, setRuntimeLogLimits] = useState<Record<string, number>>({});
   const [runtimeMessages, setRuntimeMessages] = useState<Record<string, string>>({});
-  const [runtimeLastSwitchMs, setRuntimeLastSwitchMs] = useState<Record<string, number | null>>({});
-  const [runtimeLastSwitchAt, setRuntimeLastSwitchAt] = useState<Record<string, string | null>>({});
+  const {
+    runtimeLastSwitchMs,
+    setRuntimeLastSwitchMs,
+    runtimeLastSwitchAt,
+    setRuntimeLastSwitchAt,
+  } = useAdminRuntimeSwitchHistory();
   const [runtimeGuardrailDraft, setRuntimeGuardrailDraft] = useState<RuntimeGuardrailStrategy>({
     cautionPeakRatio: 0.68,
     blockedPeakRatio: 0.82,
@@ -1075,11 +413,19 @@ export function AdminDashboard() {
   const [benchmarkCopyState, setBenchmarkCopyState] = useState<{ key: string; tone: "success" | "error" } | null>(null);
   const [benchmarkEvidencePendingRunId, setBenchmarkEvidencePendingRunId] = useState("");
   const benchmarkCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [windowMinutes, setWindowMinutes] = useState(60);
-  const [autoRefresh, setAutoRefresh] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<DashboardResponse | null>(null);
+  const {
+    benchmarkProgress,
+  } = useAdminBenchmarkProgressState({
+    onCompleted: loadDashboard,
+    onError: (message) => setError((current) => current || message),
+  });
+  const [compatibilityArchivePending, setCompatibilityArchivePending] =
+    useState(false);
+  const [compatibilityArchiveMessage, setCompatibilityArchiveMessage] =
+    useState("");
 
   function recordRuntimeMetricSample(targetId: string, status: AgentRuntimeStatus) {
     const sample: RuntimeMetricSample = {
@@ -2190,7 +1536,21 @@ export function AdminDashboard() {
     setError("");
     try {
       const response = await fetch(
-        `/api/admin/dashboard?targetId=${encodeURIComponent(selectedTargetId)}&windowMinutes=${windowMinutes}&provider=${encodeURIComponent(providerFilter)}&providerProfile=${encodeURIComponent(providerProfileFilter)}&benchmarkThinkingMode=${encodeURIComponent(benchmarkThinkingModeFilter)}&benchmarkHistorySource=${encodeURIComponent(benchmarkHistorySourceFilter)}&benchmarkHeatmapPromptScope=${encodeURIComponent(benchmarkHeatmapPromptScope)}&benchmarkHeatmapSampleStatus=${encodeURIComponent(benchmarkHeatmapSampleStatus)}&benchmarkHeatmapWindowMinutes=${benchmarkHeatmapWindowMinutes}&model=${encodeURIComponent(modelFilter)}&contextWindow=${encodeURIComponent(contextWindowFilter)}&compareTargetIds=${encodeURIComponent(compareTargetIds.join(","))}&benchmarkTargetIds=${encodeURIComponent(benchmarkTargetIds.join(","))}`,
+        buildAdminDashboardQuery({
+          selectedTargetId,
+          windowMinutes,
+          providerFilter,
+          providerProfileFilter,
+          benchmarkThinkingModeFilter,
+          benchmarkHistorySourceFilter,
+          benchmarkHeatmapPromptScope,
+          benchmarkHeatmapSampleStatus,
+          benchmarkHeatmapWindowMinutes,
+          modelFilter,
+          contextWindowFilter,
+          compareTargetIds,
+          benchmarkTargetIds,
+        }),
         {
           cache: "no-store"
         }
@@ -2207,88 +1567,48 @@ export function AdminDashboard() {
     }
   }
 
-  async function loadBenchmarkProgress(runId: string) {
+  async function handleArchiveHistoricalCompatibilityUsage() {
+    setCompatibilityArchivePending(true);
+    setCompatibilityArchiveMessage("");
+    setError("");
     try {
-      const response = await fetch(`/api/admin/benchmark/progress?runId=${encodeURIComponent(runId)}`, {
-        cache: "no-store"
+      const response = await fetch("/api/admin/compatibility-usage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "archive-historical-unclassified",
+          clear: true,
+          reason:
+            "Admin dashboard archive flow after verifying source-tagged runtime compatibility hits are zero.",
+        }),
       });
+      const payload = (await response.json()) as {
+        archived?: boolean;
+        cleared?: boolean;
+        archive?: { legacyUnclassifiedHitsArchived?: number } | null;
+        error?: string;
+      };
       if (!response.ok) {
-        if (response.status === 404) return;
-        const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error || "Failed to load benchmark progress.");
+        throw new Error(payload.error || "Failed to archive compatibility usage.");
       }
-      const payload = (await response.json()) as AgentBenchmarkProgress;
-      setBenchmarkProgress(payload);
-      if (payload.status !== "running" && payload.status !== "pending") {
-        await loadDashboard();
-      }
-    } catch (progressError) {
-      setError((current) =>
-        current || (progressError instanceof Error ? progressError.message : "Failed to load benchmark progress.")
+      const archivedHits = payload.archive?.legacyUnclassifiedHitsArchived || 0;
+      setCompatibilityArchiveMessage(
+        payload.archived
+          ? `Archived ${archivedHits} historical hit${archivedHits === 1 ? "" : "s"}.`
+          : "No historical hits required archiving.",
       );
-    }
-  }
-
-  async function loadLatestBenchmarkProgress() {
-    try {
-      const response = await fetch("/api/admin/benchmark/progress?latest=1&unfinishedOnly=1", {
-        cache: "no-store"
-      });
-      if (!response.ok) {
-        if (response.status === 404) {
-          setBenchmarkProgress(null);
-          return;
-        }
-        const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error || "Failed to load latest benchmark progress.");
-      }
-      const payload = (await response.json()) as AgentBenchmarkProgress;
-      setBenchmarkProgress(payload);
-    } catch (progressError) {
-      setError((current) =>
-        current || (progressError instanceof Error ? progressError.message : "Failed to load latest benchmark progress.")
+      await loadDashboard();
+    } catch (archiveError) {
+      setError(
+        archiveError instanceof Error
+          ? archiveError.message
+          : "Failed to archive compatibility usage.",
       );
+    } finally {
+      setCompatibilityArchivePending(false);
     }
-  }
-
-  function buildBenchmarkReportQuery(
-    entry?:
-      | DashboardResponse["benchmarkHistory"][number]
-      | DashboardResponse["releaseEvidence"][number]
-      | null
-  ) {
-    const providerProfile = entry && "providerProfile" in entry ? entry.providerProfile : undefined;
-    const thinkingMode = entry && "thinkingMode" in entry ? entry.thinkingMode : undefined;
-    const query = new URLSearchParams({
-      benchmarkMode: entry?.benchmarkMode || "prompt",
-      targetIds: entry?.results?.map((result) => result.targetId).join(",") || benchmarkTargetIds.join(","),
-      windowMinutes: String(benchmarkHeatmapWindowMinutes),
-      providerProfile: providerProfile || "balanced",
-      thinkingMode: thinkingMode || "standard",
-      contextWindow: String(entry?.contextWindow || 32768)
-    });
-    if (entry?.runId) {
-      query.set("runId", entry.runId);
-    }
-    const entryPromptSetId = entry && "promptSetId" in entry ? entry.promptSetId : undefined;
-    const entryDatasetId = entry && "datasetId" in entry ? entry.datasetId : undefined;
-    const entrySuiteId = entry && "suiteId" in entry ? entry.suiteId : undefined;
-    const entryPrompt = entry?.prompt;
-    const entryProfileBatchScope =
-      entry && "profileBatchScope" in entry ? entry.profileBatchScope : undefined;
-    if (entryPromptSetId) {
-      query.set("promptSetId", entryPromptSetId);
-    } else if (entryDatasetId) {
-      query.set("datasetId", entryDatasetId);
-    } else if (entrySuiteId) {
-      query.set("suiteId", entrySuiteId);
-    } else if (entryPrompt?.trim()) {
-      query.set("prompt", entryPrompt.trim());
-    }
-    if (entryProfileBatchScope) {
-      query.set("profileBatchScope", entryProfileBatchScope);
-    }
-    return query;
   }
 
   function openBenchmarkReportMarkdown(
@@ -2297,7 +1617,11 @@ export function AdminDashboard() {
       | DashboardResponse["releaseEvidence"][number]
       | null
   ) {
-    window.open(`/api/admin/benchmark/report?${buildBenchmarkReportQuery(entry).toString()}`, "_blank");
+    openAdminBenchmarkReport({
+      entry,
+      fallbackTargetIds: benchmarkTargetIds,
+      windowMinutes: benchmarkHeatmapWindowMinutes,
+    });
   }
 
   async function toggleBenchmarkReleaseEvidence(entry: { runId?: string; suiteLabel?: string; datasetLabel?: string; promptSetLabel?: string; prompt: string }, pinned: boolean) {
@@ -2335,46 +1659,12 @@ export function AdminDashboard() {
   }
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(RUNTIME_SWITCH_HISTORY_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Record<string, { loadMs?: number | null; switchedAt?: string | null }>;
-      if (!parsed || typeof parsed !== "object") return;
-      const nextLoadMs: Record<string, number | null> = {};
-      const nextSwitchedAt: Record<string, string | null> = {};
-      for (const [targetId, entry] of Object.entries(parsed)) {
-        nextLoadMs[targetId] =
-          typeof entry?.loadMs === "number" && Number.isFinite(entry.loadMs) ? entry.loadMs : null;
-        nextSwitchedAt[targetId] = typeof entry?.switchedAt === "string" ? entry.switchedAt : null;
-      }
-      setRuntimeLastSwitchMs(nextLoadMs);
-      setRuntimeLastSwitchAt(nextSwitchedAt);
-    } catch {
-      // Ignore malformed local cache and keep runtime panels usable.
-    }
-  }, []);
-
-  useEffect(() => {
     void loadAllRuntimeStatuses();
   }, []);
 
   useEffect(() => {
     void loadRuntimeGuardrailPolicy();
   }, [loadRuntimeGuardrailPolicy]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const targetIds = new Set([...Object.keys(runtimeLastSwitchMs), ...Object.keys(runtimeLastSwitchAt)]);
-    const payload: Record<string, RuntimeSwitchHistoryEntry> = {};
-    targetIds.forEach((targetId) => {
-      payload[targetId] = {
-        loadMs: runtimeLastSwitchMs[targetId] ?? null,
-        switchedAt: runtimeLastSwitchAt[targetId] ?? null
-      };
-    });
-    window.localStorage.setItem(RUNTIME_SWITCH_HISTORY_STORAGE_KEY, JSON.stringify(payload));
-  }, [runtimeLastSwitchAt, runtimeLastSwitchMs]);
 
   useEffect(() => {
     setRuntimeMetricHistory((current) => {
@@ -2385,21 +1675,8 @@ export function AdminDashboard() {
   }, [localTargets]);
 
   useEffect(() => {
-    void loadLatestBenchmarkProgress();
-  }, []);
-
-  useEffect(() => {
     void loadDashboard();
   }, [selectedTargetId, windowMinutes, providerFilter, providerProfileFilter, benchmarkThinkingModeFilter, benchmarkHistorySourceFilter, benchmarkHeatmapPromptScope, benchmarkHeatmapSampleStatus, benchmarkHeatmapWindowMinutes, modelFilter, contextWindowFilter, compareTargetIds.join(","), benchmarkTargetIds.join(",")]);
-
-  useEffect(() => {
-    const runId = benchmarkProgress?.runId;
-    if (!runId || (benchmarkProgress.status !== "running" && benchmarkProgress.status !== "pending")) return;
-    const timer = window.setInterval(() => {
-      void loadBenchmarkProgress(runId);
-    }, 1500);
-    return () => window.clearInterval(timer);
-  }, [benchmarkProgress?.runId, benchmarkProgress?.status]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -2446,79 +1723,6 @@ export function AdminDashboard() {
         latestThroughputTps: entry.points.length ? entry.points[entry.points.length - 1].avgTokenThroughputTps : null
       })),
     [data]
-  );
-  const benchmarkHeatmapMetricValues = useMemo(
-    () =>
-      (data?.benchmarkHeatmap || [])
-        .flatMap((row) =>
-          row.cells.map((cell) => {
-            switch (benchmarkHeatmapMetric) {
-              case "first-token":
-                return cell.avgFirstTokenLatencyMs;
-              case "throughput":
-                return cell.avgTokenThroughputTps;
-              case "success-rate":
-                return cell.avgSuccessRate;
-              case "total-latency":
-              default:
-                return cell.avgLatencyMs;
-            }
-          })
-        )
-        .filter((value) => Number.isFinite(value) && value >= 0),
-    [benchmarkHeatmapMetric, data]
-  );
-  const benchmarkHeatmapMetricMin = benchmarkHeatmapMetricValues.length
-    ? Math.min(...benchmarkHeatmapMetricValues)
-    : 0;
-  const benchmarkHeatmapMetricMax = benchmarkHeatmapMetricValues.length
-    ? Math.max(...benchmarkHeatmapMetricValues)
-    : 0;
-  const benchmarkHeatmapHigherIsBetter =
-    benchmarkHeatmapMetric === "throughput" || benchmarkHeatmapMetric === "success-rate";
-  const selectedBenchmarkTargets = useMemo(
-    () => benchmarkTargets.filter((target) => benchmarkTargetIds.includes(target.id)),
-    [benchmarkTargets, benchmarkTargetIds]
-  );
-  const benchmarkTargetVersionMap = useMemo(
-    () =>
-      new Map(
-        (data?.benchmarkTargetVersions || []).map((entry) => [
-          entry.targetId,
-          {
-            standard: entry.standardResolvedModel,
-            thinking: entry.thinkingResolvedModel
-          }
-        ])
-      ),
-    [data]
-  );
-  const benchmarkHeatmapScopeSummary = useMemo(() => {
-    if (!selectedBenchmarkTargets.length) {
-      return locale.startsWith("en") ? "No benchmark target selected." : "当前没有选中 benchmark 目标。";
-    }
-    if (selectedBenchmarkTargets.length === 1) {
-      const target = selectedBenchmarkTargets[0];
-      const version = benchmarkTargetVersionMap.get(target.id);
-      const versionLabel = version
-        ? formatTargetModelVersion(version.standard, version.thinking || undefined)
-        : formatTargetModelVersion(target.modelDefault, target.thinkingModelDefault);
-      return locale.startsWith("en")
-        ? `Current target: ${target.label} · ${versionLabel}`
-        : `当前评测对象：${target.label} · ${versionLabel}`;
-    }
-    const preview = selectedBenchmarkTargets.slice(0, 3).map((target) => target.label).join(" / ");
-    const extra = selectedBenchmarkTargets.length > 3 ? ` +${selectedBenchmarkTargets.length - 3}` : "";
-    return locale.startsWith("en")
-      ? `Current scope: ${selectedBenchmarkTargets.length} targets aggregated · ${preview}${extra}`
-      : `当前评测对象：${selectedBenchmarkTargets.length} 个 target 聚合 · ${preview}${extra}`;
-  }, [benchmarkTargetVersionMap, locale, selectedBenchmarkTargets]);
-  const benchmarkHeatmapScopeHint = useMemo(
-    () =>
-      locale.startsWith("en")
-        ? "This heatmap compares strategy combinations for the selected benchmark targets, not a single-model leaderboard."
-        : "这个热力图比较的是所选 benchmark 目标在不同策略组合下的表现，不是单一模型能力榜单。",
-    [locale]
   );
   return (
     <section className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.14),_transparent_26%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] px-3 py-4 text-slate-100 sm:px-5 xl:px-6 2xl:px-8">
@@ -2652,7 +1856,7 @@ export function AdminDashboard() {
           </div>
           <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
             <p className="text-sm text-slate-400">{dictionary.admin.totalTokens}</p>
-            <p className="mt-2 text-3xl font-semibold text-white">{formatCompactNumber(data?.summary.totalTokens ?? 0)}</p>
+            <p className="mt-2 text-3xl font-semibold text-white">{formatAdminCompactNumber(data?.summary.totalTokens ?? 0)}</p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
             <p className="text-sm text-slate-400">{dictionary.admin.failedRequests}</p>
@@ -2671,19 +1875,19 @@ export function AdminDashboard() {
         </div>
 
         <div className="order-23 grid gap-4 xl:grid-cols-3">
-          <SeriesCard title={dictionary.admin.requestTrend} values={requestValues} tone="cyan" />
-          <SeriesCard title={dictionary.admin.tokenTrend} values={tokenValues} tone="amber" />
-          <SeriesCard title={uiText.concurrencyTrend} values={concurrencyValues} tone="violet" />
+          <AdminSeriesCard title={dictionary.admin.requestTrend} values={requestValues} tone="cyan" />
+          <AdminSeriesCard title={dictionary.admin.tokenTrend} values={tokenValues} tone="amber" />
+          <AdminSeriesCard title={uiText.concurrencyTrend} values={concurrencyValues} tone="violet" />
         </div>
 
         <div className="order-24 grid gap-4 xl:grid-cols-3">
-          <SeriesCard title={uiText.firstTokenLatency} values={firstTokenLatencyValues} tone="emerald" />
-          <SeriesCard title={uiText.totalLatency} values={totalLatencyValues} tone="amber" />
-          <SeriesCard title={uiText.tokenThroughput} values={tokenThroughputValues} tone="cyan" />
+          <AdminSeriesCard title={uiText.firstTokenLatency} values={firstTokenLatencyValues} tone="emerald" />
+          <AdminSeriesCard title={uiText.totalLatency} values={totalLatencyValues} tone="amber" />
+          <AdminSeriesCard title={uiText.tokenThroughput} values={tokenThroughputValues} tone="cyan" />
         </div>
 
         <div className="order-25">
-          <MultiSeriesCard
+          <AdminMultiSeriesCard
             title={uiText.latencySplit}
             lines={[
               { label: uiText.firstTokenLatency, values: firstTokenLatencyValues, tone: "emerald" },
@@ -2693,87 +1897,28 @@ export function AdminDashboard() {
           />
         </div>
 
-        <div className="order-26 rounded-3xl border border-white/10 bg-slate-950/70 p-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div>
-              <p className="text-sm text-slate-300">{uiText.compareView}</p>
-              <p className="mt-2 text-xs leading-6 text-slate-500">{uiText.compareTargets}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {agentTargets.map((target) => {
-                const active = compareTargetIds.includes(target.id);
-                return (
-                  <button
-                    key={target.id}
-                    type="button"
-                    onClick={() =>
-                      setCompareTargetIds((current) =>
-                        current.includes(target.id)
-                          ? current.length === 1
-                            ? current
-                            : current.filter((item) => item !== target.id)
-                          : [...current, target.id]
-                      )
-                    }
-                    className={`rounded-full border px-3 py-1.5 text-xs transition ${
-                      active
-                        ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-100"
-                        : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
-                    }`}
-                  >
-                    {target.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-slate-400">
-                <tr>
-                  <th className="px-3 py-2">{uiText.compareTargets}</th>
-                  <th className="px-3 py-2">{uiText.provider}</th>
-                  <th className="px-3 py-2">{dictionary.admin.totalRequests}</th>
-                  <th className="px-3 py-2">{dictionary.admin.totalTokens}</th>
-                  <th className="px-3 py-2">{dictionary.admin.failedRequests}</th>
-                  <th className="px-3 py-2">{dictionary.admin.activeRequests}</th>
-                  <th className="px-3 py-2">{uiText.firstTokenLatency}</th>
-                  <th className="px-3 py-2">{uiText.totalLatency}</th>
-                  <th className="px-3 py-2">{uiText.tokenThroughput}</th>
-                  <th className="px-3 py-2">{uiText.percentiles}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.comparison.length ? (
-                  data.comparison.map((row) => (
-                    <tr key={row.targetId} className="border-t border-white/10">
-                      <td className="px-3 py-2 text-slate-100">{row.targetLabel}</td>
-                      <td className="px-3 py-2 text-slate-300">{row.providerLabel}</td>
-                      <td className="px-3 py-2 text-slate-300">{row.totalRequests}</td>
-                      <td className="px-3 py-2 text-slate-300">{formatCompactNumber(row.totalTokens)}</td>
-                      <td className="px-3 py-2 text-slate-300">{row.failedRequests}</td>
-                      <td className="px-3 py-2 text-slate-300">{row.activeForTarget}</td>
-                      <td className="px-3 py-2 text-slate-300">{row.avgFirstTokenLatencyMs.toFixed(1)} ms</td>
-                      <td className="px-3 py-2 text-slate-300">{row.avgLatencyMs.toFixed(1)} ms</td>
-                      <td className="px-3 py-2 text-slate-300">{row.avgTokenThroughputTps.toFixed(2)} {uiText.tokensPerSecond}</td>
-                      <td className="px-3 py-2 text-xs text-slate-300">
-                        <div>FT P50/P95/P99: {row.firstTokenLatencyPercentiles.p50.toFixed(0)} / {row.firstTokenLatencyPercentiles.p95.toFixed(0)} / {row.firstTokenLatencyPercentiles.p99.toFixed(0)} ms</div>
-                        <div className="mt-1">LAT P50/P95/P99: {row.totalLatencyPercentiles.p50.toFixed(0)} / {row.totalLatencyPercentiles.p95.toFixed(0)} / {row.totalLatencyPercentiles.p99.toFixed(0)} ms</div>
-                        <div className="mt-1">TPS P50/P95/P99: {row.tokenThroughputPercentiles.p50.toFixed(2)} / {row.tokenThroughputPercentiles.p95.toFixed(2)} / {row.tokenThroughputPercentiles.p99.toFixed(2)}</div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="px-3 py-4 text-slate-500" colSpan={10}>
-                      {dictionary.admin.noData}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <AdminProviderComparisonPanel
+          targets={agentTargets}
+          selectedTargetIds={compareTargetIds}
+          setSelectedTargetIds={setCompareTargetIds}
+          rows={data?.comparison || []}
+          labels={{
+            title: uiText.compareView,
+            targets: uiText.compareTargets,
+            provider: uiText.provider,
+            totalRequests: dictionary.admin.totalRequests,
+            totalTokens: dictionary.admin.totalTokens,
+            failedRequests: dictionary.admin.failedRequests,
+            activeRequests: dictionary.admin.activeRequests,
+            firstTokenLatency: uiText.firstTokenLatency,
+            totalLatency: uiText.totalLatency,
+            tokenThroughput: uiText.tokenThroughput,
+            tokensPerSecond: uiText.tokensPerSecond,
+            percentiles: uiText.percentiles,
+            noData: dictionary.admin.noData,
+          }}
+        />
+
 
         <div className="order-1 rounded-3xl border border-white/10 bg-slate-950/70 p-4">
           <div className="flex flex-col gap-4">
@@ -2785,701 +1930,84 @@ export function AdminDashboard() {
               historyCount={data?.benchmarkHistory.length || 0}
               releaseEvidenceCount={data?.releaseEvidence.length || 0}
             />
+            <AdminBenchmarkCoverageGovernancePanel locale={locale} />
 
-            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-              <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
-                <div>
-                  <p className="text-sm text-slate-300">
-                    {locale.startsWith("en") ? "Admin compatibility usage" : "Admin 兼容层使用证据"}
-                  </p>
-                  <p className="mt-1 text-xs leading-6 text-slate-500">
-                    {locale.startsWith("en")
-                      ? "Track deprecated Admin API traffic before the 2026-09-30 sunset so wrappers can be removed only after usage drops to zero."
-                      : "跟踪 2026-09-30 sunset 前的旧 Admin API 流量，只有命中降为 0 后再删除 wrapper。"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2 text-[11px]">
-                  <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
-                    hits {data?.adminCompatibilityUsage?.totalHits || 0}
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-slate-300">
-                    routes {data?.adminCompatibilityUsage?.routeCount || 0}
-                  </span>
-                  <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-amber-100">
-                    sunset 2026-09-30
-                  </span>
-                </div>
-              </div>
-              <div className="mt-3 grid gap-2">
-                {data?.adminCompatibilityUsage?.routes.length ? (
-                  data.adminCompatibilityUsage.routes.slice(0, 5).map((route) => (
-                    <article
-                      key={`admin-compat:${route.key}`}
-                      className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-3 text-xs text-slate-400"
-                    >
-                      <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-slate-300">
-                              {route.method}
-                            </span>
-                            <span className="font-mono text-slate-200">{route.legacyPath}</span>
-                          </div>
-                          <p className="mt-2 truncate font-mono text-slate-500">
-                            {locale.startsWith("en") ? "Successor" : "替代路径"}: {route.canonicalPath}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 flex-wrap gap-2">
-                          <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
-                            {route.hitCount} hit{route.hitCount === 1 ? "" : "s"}
-                          </span>
-                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-slate-400">
-                            {new Date(route.lastSeenAt).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    </article>
-                  ))
-                ) : (
-                  <p className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-3 py-3 text-xs leading-6 text-emerald-100">
-                    {locale.startsWith("en")
-                      ? "No deprecated Admin compatibility route usage has been recorded."
-                      : "尚未记录到旧 Admin 兼容 API 调用。"}
-                  </p>
-                )}
-              </div>
-            </div>
+            <AdminCompatibilitySunsetPanel
+              locale={locale}
+              usage={data?.adminCompatibilityUsage}
+              sunset={data?.adminCompatibilitySunset}
+              deletionManifest={data?.adminCompatibilityDeletionManifest}
+              archivePending={compatibilityArchivePending}
+              archiveMessage={compatibilityArchiveMessage}
+              onArchiveHistoricalUsage={handleArchiveHistoricalCompatibilityUsage}
+            />
 
-            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-              <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
-                <div>
-                  <p className="text-sm text-slate-300">
-                    {locale.startsWith("en") ? "Provider usage / health desk" : "Provider 使用 / 健康台"}
-                  </p>
-                  <p className="mt-1 text-xs leading-6 text-slate-500">
-                    {locale.startsWith("en")
-                      ? "Track remote provider reliability, connection health, token volume, rough cost, and the latest failure mode from one place."
-                      : "把远端 provider 的连通性、稳定性、token 体量、粗略成本和最近失败模式收在一个面板里。"}
-                  </p>
-                </div>
-                <span className="text-[11px] text-slate-500">
-                  {locale.startsWith("en") ? "24h aggregation" : "近 24h 聚合"} · {providerHealthDeskRows.length}
-                </span>
-              </div>
-              {data?.providerOpsEvidenceSummary ? (
-                <div className="mt-3 rounded-3xl border border-emerald-300/15 bg-emerald-300/10 p-4">
-                  <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.22em] text-emerald-200">
-                        {locale.startsWith("en") ? "Provider Ops evidence" : "Provider Ops 证据"}
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                        {locale.startsWith("en")
-                          ? "Remote provider health is grouped into release-gate source notes."
-                          : "远端 provider 健康状态会聚合为发布门禁可引用的来源摘要。"}
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 xl:min-w-[520px]">
-                      {[
-                        [
-                          locale.startsWith("en") ? "Healthy" : "健康",
-                          `${data.providerOpsEvidenceSummary.totals.healthyCount}/${data.providerOpsEvidenceSummary.totals.providerCount}`,
-                        ],
-                        [
-                          locale.startsWith("en") ? "Success" : "成功率",
-                          `${data.providerOpsEvidenceSummary.totals.successRatePct}%`,
-                        ],
-                        [
-                          locale.startsWith("en") ? "Review" : "需复核",
-                          `${data.providerOpsEvidenceSummary.totals.actionRequiredCount}/${data.providerOpsEvidenceSummary.totals.watchCount}`,
-                        ],
-                        [
-                          locale.startsWith("en") ? "Cost" : "成本",
-                          formatUsd(data.providerOpsEvidenceSummary.totals.estimatedCostUsd),
-                        ],
-                      ].map(([label, value]) => (
-                        <div key={label} className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2">
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</p>
-                          <p className="mt-1 text-sm font-semibold text-white">{value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mt-3 grid gap-2 xl:grid-cols-2">
-                    {data.providerOpsEvidenceSummary.releaseNoteDraft.slice(0, 4).map((line) => (
-                      <p
-                        key={line}
-                        className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-slate-300"
-                      >
-                        {line}
-                      </p>
-                    ))}
-                  </div>
-                  {data.providerOpsEvidenceSummary.topRisks.length ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {data.providerOpsEvidenceSummary.topRisks.slice(0, 4).map((risk) => (
-                        <span
-                          key={risk}
-                          className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-[11px] text-amber-100"
-                        >
-                          {risk}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              <div className="mt-3 grid gap-3 xl:grid-cols-2">
-                {providerHealthDeskRows.length ? (
-                  providerHealthDeskRows.map((entry) => (
-                    <article
-                      key={`provider-health:${entry.targetId}`}
-                      className="rounded-3xl border border-white/10 bg-slate-950/70 p-4"
-                    >
-                      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="min-w-0">
-                          <p className="text-base font-semibold text-white">{entry.targetLabel}</p>
-                          <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-400">
-                            <span className={`rounded-full border px-2.5 py-1 ${buildProviderStatusClass(entry.status)}`}>
-                              {labelProviderStatus(entry.status, locale)}
-                            </span>
-                            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                              {entry.providerLabel}
-                            </span>
-                            <span
-                              className={`rounded-full border px-2.5 py-1 ${
-                                entry.lastConnectionOk === true
-                                  ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-100"
-                                  : entry.lastConnectionOk === false
-                                    ? "border-rose-300/20 bg-rose-400/10 text-rose-100"
-                                    : "border-white/10 bg-white/5 text-slate-400"
-                              }`}
-                            >
-                              {entry.lastConnectionOk === true
-                                ? locale.startsWith("en")
-                                  ? "Connection OK"
-                                  : "连接正常"
-                                : entry.lastConnectionOk === false
-                                  ? locale.startsWith("en")
-                                    ? "Connection failed"
-                                    : "连接失败"
-                                  : locale.startsWith("en")
-                                    ? "Connection unknown"
-                                    : "连接未知"}
-                            </span>
-                          </div>
-                          <div className="mt-2 text-xs text-slate-500">
-                            <div>
-                              {dictionary.common.model}:{" "}
-                              <span className="font-mono text-slate-300">{entry.resolvedModel || "--"}</span>
-                            </div>
-                            {entry.lastConnectionAt ? (
-                              <div>
-                                {locale.startsWith("en") ? "Last connection check" : "最近连接检查"}:{" "}
-                                {new Date(entry.lastConnectionAt).toLocaleString()}
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                        <div className="grid min-w-0 gap-3 text-xs text-slate-400 sm:grid-cols-2 xl:min-w-[360px] xl:grid-cols-3">
-                          <div>
-                            <p className="uppercase tracking-[0.2em] text-slate-500">{locale.startsWith("en") ? "Requests" : "请求数"}</p>
-                            <p className="mt-2 text-sm text-white">{entry.totalRequests}</p>
-                          </div>
-                          <div>
-                            <p className="uppercase tracking-[0.2em] text-slate-500">{locale.startsWith("en") ? "Success rate" : "成功率"}</p>
-                            <p className="mt-2 text-sm text-white">{entry.successRatePct.toFixed(1)}%</p>
-                            <p className="mt-1 text-[11px] text-slate-500">{entry.successCount} / {entry.failureCount}</p>
-                          </div>
-                          <div>
-                            <p className="uppercase tracking-[0.2em] text-slate-500">{locale.startsWith("en") ? "Est. cost" : "估算成本"}</p>
-                            <p className="mt-2 text-sm text-white">{formatUsd(entry.estimatedCostUsd)}</p>
-                          </div>
-                          <div>
-                            <p className="uppercase tracking-[0.2em] text-slate-500">{uiText.firstTokenLatency}</p>
-                            <p className="mt-2 text-sm text-white">
-                              {typeof entry.avgFirstTokenLatencyMs === "number" ? `${entry.avgFirstTokenLatencyMs.toFixed(1)} ms` : "--"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="uppercase tracking-[0.2em] text-slate-500">{uiText.totalLatency}</p>
-                            <p className="mt-2 text-sm text-white">
-                              {typeof entry.avgLatencyMs === "number" ? `${entry.avgLatencyMs.toFixed(1)} ms` : "--"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="uppercase tracking-[0.2em] text-slate-500">
-                              {locale.startsWith("en") ? "Token volume" : "Token 体量"}
-                            </p>
-                            <p className="mt-2 text-sm text-white">
-                              {entry.totalTokens.toLocaleString()}{" "}
-                              <span className="text-xs text-slate-500">{locale.startsWith("en") ? "tokens total" : "总 token"}</span>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                        <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-amber-100">
-                          timeout {entry.timeoutCount}
-                        </span>
-                        <span className="rounded-full border border-rose-300/20 bg-rose-400/10 px-2.5 py-1 text-rose-100">
-                          429 {entry.rateLimitCount}
-                        </span>
-                        <span className="rounded-full border border-violet-300/20 bg-violet-400/10 px-2.5 py-1 text-violet-100">
-                          auth {entry.authFailureCount}
-                        </span>
-                        <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-cyan-100">
-                          network {entry.networkFailureCount}
-                        </span>
-                      </div>
+            <ProviderOpsAdminShell
+              locale={locale}
+              summary={data?.providerOpsEvidenceSummary}
+              entries={providerHealthDeskRows}
+              labels={{
+                model: dictionary.common.model,
+                firstTokenLatency: uiText.firstTokenLatency,
+                totalLatency: uiText.totalLatency,
+                noData: dictionary.admin.noData,
+              }}
+              onRefresh={loadDashboard}
+            />
 
-                      <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                            {locale.startsWith("en") ? "4h trend buckets" : "4 小时趋势分桶"}
-                          </p>
-                          <span className="text-[11px] text-slate-500">
-                            {locale.startsWith("en") ? "failures / first token / cost" : "失败 / 首字 / 成本"}
-                          </span>
-                        </div>
-                        <div className="mt-3 grid grid-cols-6 gap-1.5">
-                          {entry.trendBuckets.map((bucket) => {
-                            const failureRate = bucket.totalRequests
-                              ? Math.min(100, (bucket.failureCount / bucket.totalRequests) * 100)
-                              : 0;
-                            const height = Math.max(12, Math.min(48, bucket.totalRequests * 6 + failureRate / 3));
-                            return (
-                              <div key={`${entry.targetId}:${bucket.bucketStart}`} className="min-w-0">
-                                <div className="flex h-14 items-end rounded-xl border border-white/10 bg-white/[0.035] px-1.5 py-1">
-                                  <div
-                                    className={`w-full rounded-lg ${
-                                      bucket.failureCount
-                                        ? "bg-gradient-to-t from-rose-500/80 to-amber-300/70"
-                                        : bucket.totalRequests
-                                          ? "bg-gradient-to-t from-emerald-500/80 to-cyan-300/70"
-                                          : "bg-white/10"
-                                    }`}
-                                    style={{ height }}
-                                    title={`${bucket.bucketLabel} · ${bucket.totalRequests} req · ${bucket.failureCount} fail · ${formatOptionalMs(bucket.avgFirstTokenLatencyMs)} · ${formatUsd(bucket.estimatedCostUsd)}`}
-                                  />
-                                </div>
-                                <p className="mt-1 truncate text-center text-[10px] text-slate-500">
-                                  {bucket.bucketLabel}
-                                </p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
+            <AdminBenchmarkReleaseEvidencePanel
+              locale={locale}
+              entries={data?.releaseEvidence || []}
+              summary={data?.benchmarkReleaseEvidenceSummary}
+              pendingRunId={benchmarkEvidencePendingRunId}
+              contextWindowLabel={uiText.contextWindowFilter}
+              onOpenMarkdown={openBenchmarkReportMarkdown}
+              onRemovePin={(entry) => toggleBenchmarkReleaseEvidence(entry, true)}
+            />
 
-                      <div className="mt-3 grid gap-3 xl:grid-cols-2">
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                            {locale.startsWith("en") ? "Model cost / latency" : "模型成本 / 延迟"}
-                          </p>
-                          <div className="mt-2 grid gap-2">
-                            {entry.modelBreakdown.length ? (
-                              entry.modelBreakdown.map((row) => (
-                                <div key={`${entry.targetId}:${row.resolvedModel}`} className="rounded-xl border border-white/10 bg-black/20 px-2.5 py-2 text-xs">
-                                  <div className="truncate font-mono text-slate-200">{row.resolvedModel}</div>
-                                  <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500">
-                                    <span>{row.totalRequests} req</span>
-                                    <span>{row.failureCount} fail</span>
-                                    <span>{formatOptionalMs(row.avgFirstTokenLatencyMs)}</span>
-                                    <span>{formatUsd(row.estimatedCostUsd)}</span>
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-xs text-slate-500">{dictionary.admin.noData}</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                            {locale.startsWith("en") ? "Profile policy view" : "Profile 策略视图"}
-                          </p>
-                          <div className="mt-2 grid gap-2">
-                            {entry.profileBreakdown.length ? (
-                              entry.profileBreakdown.map((row) => (
-                                <div key={`${entry.targetId}:${row.providerProfile}:${row.thinkingMode}`} className="rounded-xl border border-white/10 bg-black/20 px-2.5 py-2 text-xs">
-                                  <div className="text-slate-200">{row.providerProfile} · {row.thinkingMode}</div>
-                                  <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500">
-                                    <span>{row.totalRequests} req</span>
-                                    <span>{row.failureCount} fail</span>
-                                    <span>{formatOptionalMs(row.avgFirstTokenLatencyMs)}</span>
-                                    <span>{formatUsd(row.estimatedCostUsd)}</span>
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-xs text-slate-500">{dictionary.admin.noData}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
 
-                      <div className="mt-3 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-100">
-                            {locale.startsWith("en") ? "Retry / timeout policy" : "重试 / 超时策略"}
-                          </p>
-                          <span className="rounded-full border border-cyan-200/20 bg-black/20 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100">
-                            {entry.retryPolicy.providerKind}
-                          </span>
-                        </div>
-                        <div className="mt-3 grid gap-2 xl:grid-cols-3">
-                          {entry.retryPolicy.templates.map((template) => (
-                            <div
-                              key={`${entry.targetId}:${template.id}`}
-                              className={`rounded-2xl border px-3 py-2 text-xs ${
-                                template.id === entry.retryPolicy.recommendedTemplateId
-                                  ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-50"
-                                  : "border-white/10 bg-black/20 text-slate-300"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="font-semibold text-white">{template.label}</p>
-                                {template.id === entry.retryPolicy.recommendedTemplateId ? (
-                                  <span className="rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-emerald-100">
-                                    {locale.startsWith("en") ? "Suggested" : "建议"}
-                                  </span>
-                                ) : null}
-                              </div>
-                              <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] text-slate-400">
-                                <span>FT {Math.round(template.firstTokenTimeoutMs / 1000)}s</span>
-                                <span>Total {Math.round(template.totalTimeoutMs / 1000)}s</span>
-                                <span>Idle {Math.round(template.streamIdleTimeoutMs / 1000)}s</span>
-                                <span>Retry {Math.round(template.retryBudgetMs / 1000)}s</span>
-                              </div>
-                              <p className="mt-2 text-[11px] leading-5 text-slate-400">
-                                {template.providerProfile} · {template.thinkingMode} · fallback {template.fallbackProfile}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className={`mt-3 rounded-2xl border px-3 py-3 text-xs leading-6 ${buildProviderPolicyClass(entry.policyRecommendation.severity)}`}>
-                        <span className="font-semibold">
-                          {locale.startsWith("en") ? "Provider policy" : "Provider 策略"}:{" "}
-                        </span>
-                        {entry.policyRecommendation.summary}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {entry.policyRecommendation.actions.slice(0, 3).map((action) => (
-                            <span key={action} className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
-                              {action}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {entry.lastFailureSummary || entry.lastConnectionSummary ? (
-                        <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-xs leading-6 text-slate-400">
-                          {entry.lastFailureSummary ? (
-                            <div>
-                              <span className="text-slate-500">{locale.startsWith("en") ? "Latest failure" : "最近失败"}:</span>{" "}
-                              {entry.lastFailureSummary}
-                            </div>
-                          ) : null}
-                          {entry.lastConnectionSummary ? (
-                            <div className={entry.lastFailureSummary ? "mt-2" : ""}>
-                              <span className="text-slate-500">{locale.startsWith("en") ? "Connection summary" : "连接摘要"}:</span>{" "}
-                              {entry.lastConnectionSummary}
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </article>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">
-                    {locale.startsWith("en")
-                      ? "No remote provider activity has been recorded in the current aggregation window yet."
-                      : "当前聚合窗口里还没有记录到远端 provider 活动。"}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-              <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
-                <div>
-                  <p className="text-sm text-slate-300">
-                    {locale.startsWith("en") ? "Release evidence" : "发布证据"}
-                  </p>
-                  <p className="mt-1 text-xs leading-6 text-slate-500">
-                    {locale.startsWith("en")
-                      ? "Pin the benchmark runs that should survive beyond the recent window and stay attached to release reviews."
-                      : "把需要跨越最近窗口保留下来的 benchmark run 固定下来，作为 release 审阅证据。"}
-                  </p>
-                </div>
-                <span className="text-[11px] text-slate-500">{data?.releaseEvidence.length || 0}</span>
-              </div>
-              {data?.benchmarkReleaseEvidenceSummary ? (
-                <div className="mt-3 rounded-3xl border border-cyan-300/15 bg-cyan-300/10 p-4">
-                  <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.22em] text-cyan-200">
-                        {locale.startsWith("en") ? "Release note summary" : "发布说明摘要"}
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                        {locale.startsWith("en")
-                          ? "Pinned benchmark evidence is grouped into release-ready source notes."
-                          : "已固定 benchmark 证据会自动分组为可进入发布说明的来源摘要。"}
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 xl:min-w-[440px]">
-                      {[
-                        [
-                          locale.startsWith("en") ? "Matched" : "已匹配",
-                          `${data.benchmarkReleaseEvidenceSummary.totals.matchedRunCount}/${data.benchmarkReleaseEvidenceSummary.totals.evidenceCount}`,
-                        ],
-                        [
-                          locale.startsWith("en") ? "Groups" : "分组",
-                          String(data.benchmarkReleaseEvidenceSummary.totals.groupCount),
-                        ],
-                        [
-                          locale.startsWith("en") ? "Success" : "成功率",
-                          `${data.benchmarkReleaseEvidenceSummary.totals.successRatePct}%`,
-                        ],
-                        [
-                          locale.startsWith("en") ? "Review" : "需复核",
-                          `${data.benchmarkReleaseEvidenceSummary.totals.failedRuns}/${data.benchmarkReleaseEvidenceSummary.totals.skippedRuns}`,
-                        ],
-                      ].map(([label, value]) => (
-                        <div key={label} className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2">
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</p>
-                          <p className="mt-1 text-sm font-semibold text-white">{value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mt-3 grid gap-2 xl:grid-cols-2">
-                    {data.benchmarkReleaseEvidenceSummary.releaseNoteDraft.slice(0, 4).map((line) => (
-                      <p
-                        key={line}
-                        className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-slate-300"
-                      >
-                        {line}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              <div className="mt-3 grid gap-3 xl:grid-cols-2">
-                {data?.releaseEvidence.length ? (
-                  data.releaseEvidence.map((entry) => (
-                    <article
-                      key={`release-evidence:${entry.id}`}
-                      className="rounded-3xl border border-white/10 bg-slate-950/70 p-4"
-                    >
-                      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-base font-semibold text-white">
-                              {entry.title || entry.suiteLabel || entry.datasetLabel || entry.promptSetLabel || entry.prompt}
-                            </p>
-                            <span
-                              className={`rounded-full border px-2.5 py-1 text-[11px] ${buildBenchmarkReportMatchSourceClass(
-                                entry.matchSource
-                              )}`}
-                            >
-                              {formatBenchmarkReportMatchSource(locale, entry.matchSource)}
-                            </span>
-                          </div>
-                          <div className="mt-2 space-y-1 text-xs text-slate-500">
-                            <p>
-                              {locale.startsWith("en") ? "Pinned at" : "固定于"}: {new Date(entry.pinnedAt).toLocaleString()}
-                            </p>
-                            <p>
-                              {locale.startsWith("en") ? "Run generated at" : "run 生成于"}: {new Date(entry.generatedAt).toLocaleString()}
-                            </p>
-                            <p>
-                              runId: <span className="font-mono text-slate-300">{entry.runId}</span>
-                            </p>
-                          </div>
-                        </div>
-                        <div className="grid gap-3 text-xs text-slate-400 sm:grid-cols-2 xl:min-w-[300px] xl:grid-cols-3">
-                          <div>
-                            <p className="uppercase tracking-[0.2em] text-slate-500">{locale.startsWith("en") ? "Mode" : "模式"}</p>
-                            <p className="mt-2 text-sm text-white">{entry.benchmarkMode || "--"}</p>
-                          </div>
-                          <div>
-                            <p className="uppercase tracking-[0.2em] text-slate-500">{uiText.contextWindowFilter}</p>
-                            <p className="mt-2 text-sm text-white">
-                              {entry.contextWindow >= 1024 ? `${Math.round(entry.contextWindow / 1024)}K` : entry.contextWindow}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="uppercase tracking-[0.2em] text-slate-500">{locale.startsWith("en") ? "Results" : "结果数"}</p>
-                            <p className="mt-2 text-sm text-white">{entry.results.length}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openBenchmarkReportMarkdown(entry)}
-                          className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100 transition hover:bg-amber-300/20"
-                        >
-                          {locale.startsWith("en") ? "Open markdown" : "打开 Markdown"}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={benchmarkEvidencePendingRunId === entry.runId}
-                          onClick={() => void toggleBenchmarkReleaseEvidence(entry, true)}
-                          className="rounded-full border border-rose-300/20 bg-rose-400/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-rose-100 transition hover:bg-rose-400/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                        >
-                          {locale.startsWith("en") ? "Remove pin" : "取消固定"}
-                        </button>
-                      </div>
-                    </article>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">
-                    {locale.startsWith("en")
-                      ? "Nothing is pinned yet. Pin a benchmark run once it becomes release-worthy."
-                      : "还没有固定的发布证据。等某一轮 benchmark 值得进 release 时，再把它固定下来。"}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-slate-300">{uiText.benchmarkHistory}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="text-[11px] text-slate-500">
-                    {locale.startsWith("en") ? "History source" : "历史来源"}
-                  </label>
-                  <select
-                    value={benchmarkHistorySourceFilter}
-                    onChange={(event) => setBenchmarkHistorySourceFilter(event.target.value as BenchmarkHistorySourceFilter)}
-                    className="rounded-full border border-white/10 bg-black/25 px-3 py-1.5 text-[11px] text-slate-100 outline-none"
-                  >
-                    <option value="all">{locale.startsWith("en") ? "All sources" : "全部来源"}</option>
-                    <option value="recent-window">{formatBenchmarkReportMatchSource(locale, "recent-window")}</option>
-                    <option value="full-history">{formatBenchmarkReportMatchSource(locale, "full-history")}</option>
-                  </select>
-                  <span className="text-[11px] text-slate-500">
-                    {uiText.benchmarkTrendTitle} · {data?.benchmarkHistory.length || 0}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-3 space-y-3">
+            <AdminBenchmarkHistoryPanel
+              locale={locale}
+              title={uiText.benchmarkHistory}
+              trendTitle={uiText.benchmarkTrendTitle}
+              count={data?.benchmarkHistory.length || 0}
+              sourceFilter={benchmarkHistorySourceFilter}
+              onSourceFilterChange={setBenchmarkHistorySourceFilter}
+            >
                 {data?.benchmarkHistory.length ? (
                   data.benchmarkHistory.map((entry) => (
                     <article key={entry.id} className="rounded-3xl border border-white/10 bg-slate-950/70 px-4 py-3.5">
-                      {(() => {
-                        const entryProfiles = Array.from(
-                          new Set(entry.results.map((result) => result.providerProfile || entry.providerProfile || "default"))
-                        );
-                        const entryThinkingModes = Array.from(
-                          new Set(entry.results.map((result) => result.thinkingMode || entry.thinkingMode || "standard"))
-                        );
-                        const entryExecutionSummary = buildExecutionSections(entry.results, {
+                      <AdminBenchmarkHistoryEntryHeader
+                        locale={locale}
+                        entry={entry}
+                        labels={{
                           local: dictionary.common.local,
-                          remote: dictionary.common.remote
-                        })
-                          .map((group) => `${group.label} ${group.rows.length}`)
-                          .join(" · ");
-                        const profileLabel = entryProfiles.length === 1 ? entryProfiles[0] : "mixed";
-                        const thinkingLabel = entryThinkingModes.length === 1 ? entryThinkingModes[0] : "mixed";
-                        const failureSummary = summarizeBenchmarkFailures(
-                          entry.results,
-                          entry.providerProfile,
-                          entry.thinkingMode
-                        );
-                        return (
-                          <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-base font-semibold text-white">{new Date(entry.generatedAt).toLocaleString()}</p>
-                              <div className="mt-2 space-y-1 text-xs text-slate-500">
-                                <p>
-                                  {entry.benchmarkMode === "suite"
-                                    ? `${uiText.benchmarkSuite}: ${entry.suiteLabel || "--"}`
-                                    : entry.benchmarkMode === "dataset"
-                                      ? `${uiText.benchmarkDataset}: ${entry.datasetLabel || "--"}`
-                                      : entry.promptSetLabel
-                                        ? `${uiText.benchmarkPromptSet}: ${entry.promptSetLabel}`
-                                        : `${uiText.benchmarkPrompt}: ${entry.prompt}`}
-                                </p>
-                                <p>
-                                  {uiText.contextWindowFilter}: {entry.contextWindow >= 1024 ? `${Math.round(entry.contextWindow / 1024)}K` : entry.contextWindow}
-                                  {" · "}
-                                  {uiText.benchmarkRuns}: {entry.runs}
-                                  {" · "}
-                                  {uiText.providerProfile}: {profileLabel}
-                                  {" · "}
-                                  {uiText.benchmarkThinkingMode}: {thinkingLabel}
-                                  {entryExecutionSummary ? ` · ${entryExecutionSummary}` : ""}
-                                </p>
-                              </div>
-                              {failureSummary ? (
-                                <div className="mt-3 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-3 py-2.5 text-xs text-amber-50/80">
-                                  <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-                                    <div className="font-medium text-amber-100">{getFailureSummaryHeadline(failureSummary, locale)}</div>
-                                    <div>
-                                      {getFailureSummaryNarrative(failureSummary, locale)}
-                                    </div>
-                                  </div>
-                                  <div className="mt-2 flex flex-wrap gap-2">
-                                    {failureSummary.groups.slice(0, 4).map((group) => (
-                                      <span
-                                        key={`${entry.id}:failure:${group.label}`}
-                                        className="rounded-full border border-amber-300/20 bg-black/20 px-2.5 py-1 text-[11px] text-amber-100"
-                                        title={group.detail}
-                                      >
-                                        {group.label} · {group.count}
-                                      </span>
-                                    ))}
-                                  </div>
-                                  {failureSummary.examples[0] ? (
-                                    <div className="mt-2 text-[11px] text-amber-50/70">
-                                      例如：{failureSummary.examples[0].targetLabel} · {failureSummary.examples[0].providerProfile} · {failureSummary.examples[0].thinkingMode} · {failureSummary.examples[0].workloadId} · {failureSummary.examples[0].classified.label}
-                                    </div>
-                                  ) : null}
-                                </div>
-                              ) : null}
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={`rounded-full border px-2.5 py-1 text-[11px] ${buildBenchmarkReportMatchSourceClass(entry.matchSource)}`}
-                              >
-                                {formatBenchmarkReportMatchSource(locale, entry.matchSource)}
-                              </span>
-                              <span className="text-[11px] text-slate-500">{entry.results.length} results</span>
-                              <button
-                                type="button"
-                                onClick={() => openBenchmarkReportMarkdown(entry)}
-                                className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10"
-                              >
-                                {locale.startsWith("en") ? "Report" : "报告"}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={!entry.runId || benchmarkEvidencePendingRunId === entry.runId}
-                                onClick={() =>
-                                  void toggleBenchmarkReleaseEvidence(
-                                    entry,
-                                    entry.runId ? pinnedEvidenceRunIds.has(entry.runId) : false
-                                  )
-                                }
-                                className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 py-1 text-[11px] font-semibold text-violet-100 transition hover:bg-violet-400/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-400"
-                              >
-                                {entry.runId && pinnedEvidenceRunIds.has(entry.runId)
-                                  ? locale.startsWith("en")
-                                    ? "Pinned"
-                                    : "已固定"
-                                  : locale.startsWith("en")
-                                    ? "Pin"
-                                    : "固定"}
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })()}
+                          remote: dictionary.common.remote,
+                          suite: uiText.benchmarkSuite,
+                          dataset: uiText.benchmarkDataset,
+                          promptSet: uiText.benchmarkPromptSet,
+                          prompt: uiText.benchmarkPrompt,
+                          contextWindow: uiText.contextWindowFilter,
+                          runs: uiText.benchmarkRuns,
+                          providerProfile: uiText.providerProfile,
+                          thinkingMode: uiText.benchmarkThinkingMode,
+                        }}
+                        pinned={Boolean(
+                          entry.runId && pinnedEvidenceRunIds.has(entry.runId),
+                        )}
+                        pending={
+                          benchmarkEvidencePendingRunId === entry.runId
+                        }
+                        onOpenReport={() => openBenchmarkReportMarkdown(entry)}
+                        onTogglePin={() =>
+                          toggleBenchmarkReleaseEvidence(
+                            entry,
+                            entry.runId
+                              ? pinnedEvidenceRunIds.has(entry.runId)
+                              : false,
+                          )
+                        }
+                      />
                       <div className="mt-3 space-y-3">
                         {entry.benchmarkMode === "suite" ? (
                           <div className="space-y-1 text-xs text-slate-500">
@@ -3500,259 +2028,74 @@ export function AdminDashboard() {
                           <p className="text-xs text-slate-500">{uiText.benchmarkPrompt}: {entry.prompt}</p>
                         )}
                         {entry.runNote ? (
-                          <details className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 px-3 py-3 text-sm text-cyan-50">
-                            <summary className="cursor-pointer list-none">
-                              <div className="space-y-1">
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">
-                                  {locale.startsWith("en") ? "Run note" : "运行备注"}
-                                </p>
-                                <p className="text-[11px] leading-5 text-cyan-100/75">
-                                  {summarizeBenchmarkRunNote(entry.runNote)}
-                                </p>
-                              </div>
-                            </summary>
-                            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                              <p className="text-[11px] leading-5 text-cyan-100/75">
-                                {locale.startsWith("en")
-                                  ? "Captured from Compare handoff so this benchmark run keeps its original review context."
-                                  : "这段内容来自 Compare handoff，用来保留这轮 benchmark 当时的审阅上下文。"}
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => void handleCopyBenchmarkRunNote(entry.runNote || "", `history-run-note:${entry.id}`)}
-                                className="rounded-full border border-cyan-200/20 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-50 transition hover:border-cyan-200/35 hover:bg-cyan-400/20"
-                              >
-                                {benchmarkCopyState?.key === `history-run-note:${entry.id}`
-                                  ? benchmarkCopyState.tone === "success"
-                                    ? locale.startsWith("en")
-                                      ? "Copied"
-                                      : "已复制"
-                                    : locale.startsWith("en")
-                                      ? "Copy failed"
-                                      : "复制失败"
-                                  : locale.startsWith("en")
-                                    ? "Copy run note"
-                                    : "复制备注"}
-                              </button>
-                            </div>
-                            <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 text-[11px] leading-6 text-slate-200">
-                              {entry.runNote}
-                            </pre>
-                          </details>
+                          <AdminBenchmarkRunNotePanel
+                            locale={locale}
+                            entryId={entry.id}
+                            runNote={entry.runNote}
+                            summary={summarizeBenchmarkRunNote(entry.runNote)}
+                            copyState={benchmarkCopyState}
+                            onCopy={handleCopyBenchmarkRunNote}
+                          />
                         ) : null}
-                        {(() => {
-                          const executionGroups = buildExecutionSections(entry.results, {
+                        <AdminBenchmarkResultGroups
+                          entryId={entry.id}
+                          results={entry.results}
+                          fallbackProviderProfile={entry.providerProfile}
+                          fallbackThinkingMode={entry.thinkingMode}
+                          labels={{
                             local: dictionary.common.local,
-                            remote: dictionary.common.remote
-                          });
-
-                          return executionGroups.map((group) => (
-                            <section key={`${entry.id}:${group.execution}`} className="space-y-3">
-                              <div className="flex items-center justify-between gap-3 px-1">
-                                <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{group.label}</p>
-                                <span className="text-[11px] text-slate-500">{group.rows.length} results</span>
-                              </div>
-                              {group.rows.map((result) => {
-                                const hasMetrics = hasSuccessfulBenchmarkMetrics(result);
-                                return (
-                                  <div
-                                    key={`${entry.id}:${result.targetId}:${result.providerProfile || entry.providerProfile || "default"}:${result.thinkingMode || entry.thinkingMode || "standard"}`}
-                                    className="rounded-2xl border border-white/10 bg-black/20 p-4"
-                                  >
-                                    <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                                      <div>
-                                        <p className="text-base font-semibold text-slate-100">{result.targetLabel}</p>
-                                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-400">
-                                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                                            {result.okRuns}/{result.runs}
-                                          </span>
-                                          {result.skippedRuns ? (
-                                            <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-amber-100">
-                                              skipped {result.skippedRuns}
-                                            </span>
-                                          ) : null}
-                                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                                            {result.providerProfile || entry.providerProfile || "default"}
-                                          </span>
-                                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                                            {result.thinkingMode || entry.thinkingMode || "standard"}
-                                          </span>
-                                        </div>
-                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                                          <span>{dictionary.common.model}</span>
-                                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[11px] text-slate-200">
-                                            {result.resolvedModel}
-                                          </span>
-                                        </div>
-                                        {result.skipSummary ? (
-                                          <p className="mt-2 max-w-2xl rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-100">
-                                            {result.skipSummary}
-                                          </p>
-                                        ) : null}
-                                      </div>
-                                      <div className="grid gap-3 text-xs text-slate-400 sm:grid-cols-2 xl:min-w-[420px] xl:grid-cols-5">
-                                        <div>
-                                          <p className="uppercase tracking-[0.2em] text-slate-500">{uiText.firstTokenLatency}</p>
-                                          <p className="mt-2 text-sm text-white">{formatBenchmarkMetric(result.avgFirstTokenLatencyMs, hasMetrics, 1, " ms")}</p>
-                                        </div>
-                                        <div>
-                                          <p className="uppercase tracking-[0.2em] text-slate-500">{uiText.totalLatency}</p>
-                                          <p className="mt-2 text-sm text-white">{formatBenchmarkMetric(result.avgLatencyMs, hasMetrics, 1, " ms")}</p>
-                                        </div>
-                                        <div>
-                                          <p className="uppercase tracking-[0.2em] text-slate-500">{uiText.tokenThroughput}</p>
-                                          <p className="mt-2 text-sm text-white">{formatBenchmarkMetric(result.avgTokenThroughputTps, hasMetrics, 2, ` ${uiText.tokensPerSecond}`)}</p>
-                                        </div>
-                                        <div>
-                                          <p className="uppercase tracking-[0.2em] text-slate-500">{uiText.benchmarkScore}</p>
-                                          <p className="mt-2 text-sm text-white">{typeof result.avgScore === "number" ? result.avgScore.toFixed(2) : "--"}</p>
-                                        </div>
-                                        <div>
-                                          <p className="uppercase tracking-[0.2em] text-slate-500">{uiText.benchmarkPassRate}</p>
-                                          <p className="mt-2 text-sm text-white">{typeof result.passRate === "number" ? `${result.passRate.toFixed(2)}%` : "--"}</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </section>
-                          ));
-                        })()}
+                            remote: dictionary.common.remote,
+                            model: dictionary.common.model,
+                            firstTokenLatency: uiText.firstTokenLatency,
+                            totalLatency: uiText.totalLatency,
+                            tokenThroughput: uiText.tokenThroughput,
+                            tokensPerSecond: uiText.tokensPerSecond,
+                            score: uiText.benchmarkScore,
+                            passRate: uiText.benchmarkPassRate,
+                          }}
+                        />
                       </div>
                     </article>
                   ))
                 ) : (
                   <p className="text-sm text-slate-500">{uiText.benchmarkNoData}</p>
                 )}
-              </div>
-            </div>
+            </AdminBenchmarkHistoryPanel>
 
-            <div className="rounded-2xl border border-white/10 bg-black/20 px-3.5 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-medium text-slate-400">{uiText.benchmarkHeatmap}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] text-slate-500">{uiText.providerProfile} × {uiText.benchmarkThinkingMode}</span>
-                  <select
-                    value={benchmarkHeatmapWindowMinutes}
-                    onChange={(event) => setBenchmarkHeatmapWindowMinutes(Number(event.target.value))}
-                    className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs text-slate-100 outline-none"
-                  >
-                    {[60, 180, 720, 1440].map((value) => (
-                      <option key={value} value={value}>
-                        {uiText.benchmarkHeatmapWindow}: {value}m
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={benchmarkHeatmapPromptScope}
-                    onChange={(event) => setBenchmarkHeatmapPromptScope(event.target.value as "all" | "fixed-only")}
-                    className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs text-slate-100 outline-none"
-                  >
-                    <option value="all">{uiText.benchmarkHeatmapPromptScope}: {uiText.benchmarkHeatmapAllPrompts}</option>
-                    <option value="fixed-only">{uiText.benchmarkHeatmapPromptScope}: {uiText.benchmarkHeatmapFixedPromptsOnly}</option>
-                  </select>
-                  <select
-                    value={benchmarkHeatmapSampleStatus}
-                    onChange={(event) => setBenchmarkHeatmapSampleStatus(event.target.value as "all" | "success" | "failed")}
-                    className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs text-slate-100 outline-none"
-                  >
-                    <option value="all">{uiText.benchmarkHeatmapSampleStatus}: {uiText.allSamples}</option>
-                    <option value="success">{uiText.benchmarkHeatmapSampleStatus}: {uiText.successSamples}</option>
-                    <option value="failed">{uiText.benchmarkHeatmapSampleStatus}: {uiText.failedSamples}</option>
-                  </select>
-                  <select
-                    value={benchmarkHeatmapMetric}
-                    onChange={(event) => setBenchmarkHeatmapMetric(event.target.value as BenchmarkHeatmapMetricKey)}
-                    className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs text-slate-100 outline-none"
-                  >
-                    <option value="first-token">{uiText.benchmarkHeatmapMetric}: {uiText.firstTokenLatency}</option>
-                    <option value="total-latency">{uiText.benchmarkHeatmapMetric}: {uiText.totalLatency}</option>
-                    <option value="throughput">{uiText.benchmarkHeatmapMetric}: {uiText.tokenThroughput}</option>
-                    <option value="success-rate">{uiText.benchmarkHeatmapMetric}: {uiText.benchmarkSuccessRate}</option>
-                  </select>
-                </div>
-              </div>
-              <div className="mt-2.5 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
-                <p className="text-xs font-medium text-slate-100">{benchmarkHeatmapScopeSummary}</p>
-                <p className="mt-1 text-xs leading-6 text-slate-500">{benchmarkHeatmapScopeHint}</p>
-              </div>
-              <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-white/5 text-slate-400">
-                    <tr>
-                      <th className="px-3 py-2">{uiText.providerProfile}</th>
-                      <th className="px-3 py-2">standard</th>
-                      <th className="px-3 py-2">thinking</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(data?.benchmarkHeatmap || []).map((row) => (
-                      <tr key={`heatmap:${row.providerProfile}`} className="border-t border-white/10">
-                        <td className="px-3 py-2 text-slate-100">{row.providerProfile}</td>
-                        {row.cells.map((cell) => (
-                        <td key={`heatmap:${row.providerProfile}:${cell.thinkingMode}`} className="px-3 py-2">
-                          {(() => {
-                            const hasSamples = cell.sampleCount > 0;
-                            const metricValue = benchmarkHeatmapMetric === "first-token"
-                              ? cell.avgFirstTokenLatencyMs
-                              : benchmarkHeatmapMetric === "throughput"
-                                ? cell.avgTokenThroughputTps
-                                : benchmarkHeatmapMetric === "success-rate"
-                                  ? cell.avgSuccessRate
-                                  : cell.avgLatencyMs;
-                            const recommendation = getHeatmapRecommendation(
-                              row.providerProfile,
-                              cell.thinkingMode,
-                              hasSamples,
-                              locale
-                            );
-                            return (
-                            <div
-                              className={`rounded-xl border border-white/10 px-3 py-3 ${
-                                hasSamples
-                                  ? buildDirectionalHeatmapCellClass(
-                                      metricValue,
-                                      benchmarkHeatmapMetricMin,
-                                      benchmarkHeatmapMetricMax,
-                                      benchmarkHeatmapHigherIsBetter
-                                    )
-                                  : "bg-slate-950/70"
-                              }`}
-                            >
-                              <div className="text-xs uppercase tracking-[0.2em] text-slate-200">{cell.thinkingMode}</div>
-                              <div className="mt-2 text-sm font-semibold text-white">
-                                {hasSamples
-                                  ? benchmarkHeatmapMetric === "first-token"
-                                    ? `${cell.avgFirstTokenLatencyMs.toFixed(1)} ms`
-                                    : benchmarkHeatmapMetric === "throughput"
-                                      ? `${cell.avgTokenThroughputTps.toFixed(2)} ${uiText.tokensPerSecond}`
-                                      : benchmarkHeatmapMetric === "success-rate"
-                                        ? `${cell.avgSuccessRate.toFixed(1)}%`
-                                        : `${cell.avgLatencyMs.toFixed(1)} ms`
-                                  : locale.startsWith("en")
-                                    ? "No samples yet"
-                                    : "暂无样本"}
-                              </div>
-                              <div className="mt-2 text-xs leading-6 text-slate-100">
-                                <div>{uiText.firstTokenLatency}: {hasSamples ? `${cell.avgFirstTokenLatencyMs.toFixed(1)} ms` : locale.startsWith("en") ? "No samples yet" : "暂无样本"}</div>
-                                <div>{uiText.totalLatency}: {hasSamples ? `${cell.avgLatencyMs.toFixed(1)} ms` : locale.startsWith("en") ? "No samples yet" : "暂无样本"}</div>
-                                <div>{uiText.tokenThroughput}: {hasSamples ? `${cell.avgTokenThroughputTps.toFixed(2)} ${uiText.tokensPerSecond}` : locale.startsWith("en") ? "No samples yet" : "暂无样本"}</div>
-                                <div>{uiText.benchmarkSuccessRate}: {hasSamples ? `${cell.avgSuccessRate.toFixed(1)}%` : locale.startsWith("en") ? "No samples yet" : "暂无样本"}</div>
-                                <div>{locale.startsWith("en") ? "Recommended use" : "推荐用途"}: {recommendation}</div>
-                                <div>{hasSamples ? `n=${cell.sampleCount}` : locale.startsWith("en") ? "No samples yet" : "暂无样本"}</div>
-                              </div>
-                            </div>
-                            );
-                          })()}
-                        </td>
-                      ))}
-                    </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <AdminBenchmarkHeatmapPanel
+              locale={locale}
+              rows={data?.benchmarkHeatmap || []}
+              targets={benchmarkTargets}
+              selectedTargetIds={benchmarkTargetIds}
+              targetVersions={data?.benchmarkTargetVersions || []}
+              metric={benchmarkHeatmapMetric}
+              setMetric={setBenchmarkHeatmapMetric}
+              windowMinutes={benchmarkHeatmapWindowMinutes}
+              setWindowMinutes={setBenchmarkHeatmapWindowMinutes}
+              promptScope={benchmarkHeatmapPromptScope}
+              setPromptScope={setBenchmarkHeatmapPromptScope}
+              sampleStatus={benchmarkHeatmapSampleStatus}
+              setSampleStatus={setBenchmarkHeatmapSampleStatus}
+              labels={{
+                title: uiText.benchmarkHeatmap,
+                providerProfile: uiText.providerProfile,
+                thinkingMode: uiText.benchmarkThinkingMode,
+                window: uiText.benchmarkHeatmapWindow,
+                promptScope: uiText.benchmarkHeatmapPromptScope,
+                allPrompts: uiText.benchmarkHeatmapAllPrompts,
+                fixedPrompts: uiText.benchmarkHeatmapFixedPromptsOnly,
+                sampleStatus: uiText.benchmarkHeatmapSampleStatus,
+                allSamples: uiText.allSamples,
+                successSamples: uiText.successSamples,
+                failedSamples: uiText.failedSamples,
+                metric: uiText.benchmarkHeatmapMetric,
+                firstToken: uiText.firstTokenLatency,
+                totalLatency: uiText.totalLatency,
+                throughput: uiText.tokenThroughput,
+                successRate: uiText.benchmarkSuccessRate,
+                tokensPerSecond: uiText.tokensPerSecond,
+              }}
+            />
           </div>
         </div>
 
@@ -3773,28 +2116,28 @@ export function AdminDashboard() {
 
         {data?.summary.telemetryAvailable ? (
           <div className="order-32 grid gap-4 xl:grid-cols-3">
-            <SeriesCard title={dictionary.admin.memory} values={memoryValues} tone="emerald" />
-            <SeriesCard title={uiText.storageTrend} values={storageValues} tone="cyan" />
-            <SeriesCard title={dictionary.admin.battery} values={batteryValues} tone="amber" />
-            <SeriesCard title={dictionary.admin.gpuProxy} values={gpuValues} tone="violet" />
-            <SeriesCard title={uiText.energyTrend} values={energyValues} tone="amber" />
+            <AdminSeriesCard title={dictionary.admin.memory} values={memoryValues} tone="emerald" />
+            <AdminSeriesCard title={uiText.storageTrend} values={storageValues} tone="cyan" />
+            <AdminSeriesCard title={dictionary.admin.battery} values={batteryValues} tone="amber" />
+            <AdminSeriesCard title={dictionary.admin.gpuProxy} values={gpuValues} tone="violet" />
+            <AdminSeriesCard title={uiText.energyTrend} values={energyValues} tone="amber" />
             <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
               <p className="text-sm text-slate-300">{dictionary.admin.localTelemetry}</p>
               <div className="mt-4 space-y-3 text-sm text-slate-300">
                 <div>
                   <p className="text-slate-500">{dictionary.admin.memory}</p>
                   <p className="mt-1 text-white">
-                    {formatBytes(latestTelemetry?.memoryUsedBytes)} / {formatBytes(latestTelemetry?.memoryTotalBytes)}
+                    {formatAdminBytes(latestTelemetry?.memoryUsedBytes)} / {formatAdminBytes(latestTelemetry?.memoryTotalBytes)}
                   </p>
                 </div>
                 <div>
                   <p className="text-slate-500">{dictionary.admin.storage}</p>
-                  <p className="mt-1 text-white">{formatBytes(latestTelemetry?.diskAvailableBytes)}</p>
+                  <p className="mt-1 text-white">{formatAdminBytes(latestTelemetry?.diskAvailableBytes)}</p>
                 </div>
                 <div>
                   <p className="text-slate-500">{dictionary.admin.battery}</p>
                   <p className="mt-1 text-white">
-                    {formatPercent(latestTelemetry?.batteryPercent)} ·{" "}
+                    {formatAdminPercent(latestTelemetry?.batteryPercent)} ·{" "}
                     {latestTelemetry?.onAcPower ? uiText.acPower : uiText.batteryPower}
                   </p>
                 </div>
@@ -3958,119 +2301,59 @@ export function AdminDashboard() {
           </div>
           <div className="mt-4 grid gap-4 xl:grid-cols-2">
             {localTargets.map((target) => {
-              const runtime = runtimeStatuses[target.id];
-              const metricHistory = runtimeMetricHistory[target.id] || [];
-              const cpuHistory = metricHistory
-                .map((entry) => entry.gatewayCpuPct)
-                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-              const rssHistory = metricHistory
-                .map((entry) => entry.gatewayResidentMemoryMb)
-                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-              const gpuHistory = metricHistory
-                .map((entry) => entry.gatewayGpuPct)
-                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-              const gpuMemoryHistory = metricHistory
-                .map((entry) => entry.gatewayGpuMemoryMb)
-                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-              const energyHistory = metricHistory
-                .map((entry) => entry.gatewayEnergySignalPct)
-                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-              const diskUsedHistory = metricHistory
-                .map((entry) => entry.gatewayDiskUsedPct)
-                .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-              const action = runtimeActionPending[target.id] || "";
-              const runtimeMessage = runtimeMessages[target.id] || runtime?.message || "";
-              const logExcerpt = runtimeLogExcerpts[target.id] || "";
-              const logSummary = runtimeLogSummaries[target.id];
-              const runtimePhase = describeRuntimePhase(runtime, locale);
-              const runtimeLogQuery = runtimeLogQueries[target.id] || "";
-              const runtimeLogLimit = runtimeLogLimits[target.id] || 120;
-              const loadedAliasForTarget = runtime?.loadedAlias === target.id ? runtime.loadedAlias : null;
-              const gatewayLoadedOtherAlias =
-                runtime?.loadedAlias && runtime.loadedAlias !== target.id ? runtime.loadedAlias : null;
-              const liveCostTargetLabel = loadedAliasForTarget
-                ? target.label
-                : gatewayLoadedOtherAlias
-                  ? describeRuntimeAlias(gatewayLoadedOtherAlias, localTargets)
-                  : null;
-              const recommendedContextBadge = formatRecommendedContextBadge(target.recommendedContextWindow);
-              const benchmarkContextHelper =
-                target.execution === "local" ? getBenchmarkContextRecommendationHelper(locale) : "";
-              const lastSwitchMsForTarget = runtimeLastSwitchMs[target.id] ?? null;
-              const lastSwitchAtForTarget = runtimeLastSwitchAt[target.id] ?? null;
-              const runtimeIsIdle = runtime?.phase === "unloaded";
-              const supervisorValue = runtime?.supervisorPid
-                ? String(runtime.supervisorPid)
-                : runtimeIsIdle
-                  ? locale.startsWith("en")
-                    ? "On-demand"
-                    : "按需"
-                  : "—";
-              const supervisorDetail = runtime?.supervisorPid
-                ? runtime?.supervisorAlive
-                  ? dictionary.common.ok
-                  : dictionary.common.failed
-                : runtimeIsIdle
-                  ? locale.startsWith("en")
-                    ? "Not required while idle"
-                    : "空载时无需常驻"
-                  : dictionary.common.unknown;
-              const gatewayValue = runtime?.gatewayPid ? String(runtime.gatewayPid) : "—";
-              const gatewayDetail = runtime?.gatewayAlive
-                ? runtimeIsIdle
-                  ? locale.startsWith("en")
-                    ? "Idle"
-                    : "空载"
-                  : dictionary.common.ok
-                : runtimeIsIdle
-                  ? locale.startsWith("en")
-                    ? "Cold"
-                    : "冷启动"
-                  : dictionary.common.failed;
-              const lastExitCodeValue =
-                typeof runtime?.lastExitCode === "number" ? String(runtime.lastExitCode) : "—";
-              const lastStartValue = runtime?.lastStartAt ? new Date(runtime.lastStartAt).toLocaleString() : "—";
-              const lastExitValue = runtime?.lastExitAt ? new Date(runtime.lastExitAt).toLocaleString() : "—";
-              const overviewCards = [
-                {
-                  label: uiText.runtimeSupervisor,
-                  value: supervisorValue,
-                  detail: supervisorDetail
+              const {
+                runtime,
+                cpuHistory,
+                rssHistory,
+                gpuHistory,
+                gpuMemoryHistory,
+                energyHistory,
+                diskUsedHistory,
+                action,
+                runtimeMessage,
+                logExcerpt,
+                logSummary,
+                runtimePhase,
+                runtimeLogQuery,
+                runtimeLogLimit,
+                loadedAliasForTarget,
+                gatewayLoadedOtherAlias,
+                liveCostTargetLabel,
+                recommendedContextBadge,
+                benchmarkContextHelper,
+                lastSwitchMsForTarget,
+                lastSwitchAtForTarget,
+                runtimeIsIdle,
+                overviewCards,
+              } = buildAdminRuntimeTargetViewModel({
+                target,
+                runtime: runtimeStatuses[target.id],
+                metricHistory: runtimeMetricHistory[target.id] || [],
+                localTargets,
+                locale,
+                action: runtimeActionPending[target.id] || "",
+                runtimeMessage:
+                  runtimeMessages[target.id] ||
+                  runtimeStatuses[target.id]?.message ||
+                  "",
+                logExcerpt: runtimeLogExcerpts[target.id] || "",
+                logSummary: runtimeLogSummaries[target.id],
+                runtimeLogQuery: runtimeLogQueries[target.id] || "",
+                runtimeLogLimit: runtimeLogLimits[target.id] || 120,
+                lastSwitchMs: runtimeLastSwitchMs[target.id] ?? null,
+                lastSwitchAt: runtimeLastSwitchAt[target.id] ?? null,
+                text: {
+                  supervisor: uiText.runtimeSupervisor,
+                  gateway: uiText.runtimeGateway,
+                  restartCount: uiText.runtimeRestartCount,
+                  lastExitCode: uiText.runtimeLastExitCode,
+                  lastStart: uiText.runtimeLastStart,
+                  lastExit: uiText.runtimeLastExit,
+                  ok: dictionary.common.ok,
+                  failed: dictionary.common.failed,
+                  unknown: dictionary.common.unknown,
                 },
-                {
-                  label: uiText.runtimeGateway,
-                  value: gatewayValue,
-                  detail: gatewayDetail
-                },
-                {
-                  label: uiText.runtimeRestartCount,
-                  value: String(runtime?.restartCount ?? 0),
-                  detail: locale.startsWith("en")
-                    ? "Gateway restarts observed"
-                    : "累计网关重启次数"
-                },
-                {
-                  label: uiText.runtimeLastExitCode,
-                  value: lastExitCodeValue,
-                  detail: locale.startsWith("en")
-                    ? "Latest process exit code"
-                    : "最近一次进程退出码"
-                },
-                {
-                  label: uiText.runtimeLastStart,
-                  value: lastStartValue,
-                  detail: locale.startsWith("en")
-                    ? "Last gateway start"
-                    : "最近一次网关启动"
-                },
-                {
-                  label: uiText.runtimeLastExit,
-                  value: lastExitValue,
-                  detail: locale.startsWith("en")
-                    ? "Last gateway stop"
-                    : "最近一次网关退出"
-                }
-              ];
+              });
               return (
                 <article key={target.id} className="rounded-3xl border border-white/10 bg-black/20 p-4">
                   <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
@@ -4082,26 +2365,26 @@ export function AdminDashboard() {
                         </span>
                       </div>
                       <p className="mt-2 text-xs text-slate-400">
-                        {uiText.loadedAlias}: {loadedAliasForTarget ? describeRuntimeAlias(loadedAliasForTarget, localTargets) : "—"}
+                        {uiText.loadedAlias}: {loadedAliasForTarget ? describeAdminRuntimeAlias(loadedAliasForTarget, localTargets) : "—"}
                       </p>
                       {gatewayLoadedOtherAlias ? (
                         <p className="mt-1 text-xs text-slate-500">
-                          {uiText.runtimeCurrentLoaded}: {describeRuntimeAlias(gatewayLoadedOtherAlias, localTargets)}
+                          {uiText.runtimeCurrentLoaded}: {describeAdminRuntimeAlias(gatewayLoadedOtherAlias, localTargets)}
                         </p>
                       ) : null}
                       {runtime?.loadingAlias ? (
                         <p className="mt-1 text-xs text-amber-200">
-                          {uiText.runtimeSwitchingNow}: {describeRuntimeAlias(runtime.loadingAlias, localTargets)}
+                          {uiText.runtimeSwitchingNow}: {describeAdminRuntimeAlias(runtime.loadingAlias, localTargets)}
                           {typeof runtime.loadingElapsedMs === "number"
                             ? ` · ${Math.max(1, Math.round(runtime.loadingElapsedMs / 1000))}s`
                             : ""}
                         </p>
                       ) : null}
                       <p className="mt-1 text-xs text-slate-500">
-                        {uiText.runtimeLastSwitchLoad}: {formatRuntimeDuration(lastSwitchMsForTarget)}
+                        {uiText.runtimeLastSwitchLoad}: {formatAdminRuntimeDuration(lastSwitchMsForTarget)}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        {uiText.runtimeLastSwitchAt}: {formatRuntimeTimestamp(lastSwitchAtForTarget, locale)}
+                        {uiText.runtimeLastSwitchAt}: {formatAdminRuntimeTimestamp(lastSwitchAtForTarget, locale)}
                       </p>
                       {runtime?.loadingError ? (
                         <p className="mt-1 break-all text-xs text-rose-200">Loading error: {runtime.loadingError}</p>
@@ -4159,293 +2442,89 @@ export function AdminDashboard() {
                   </div>
 
                   <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-                    <div className="space-y-4">
-                      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                        {overviewCards.map((card) => (
-                          <div key={card.label} className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3.5 text-sm text-slate-300">
-                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{card.label}</p>
-                            <p className="mt-2 text-lg font-semibold text-white">{card.value}</p>
-                            <p className="mt-2 text-xs leading-5 text-slate-400">{card.detail}</p>
-                          </div>
-                        ))}
-                        <RuntimeMetricSparkline
-                          title={locale.startsWith("en") ? "Gateway CPU" : "网关 CPU"}
-                          latest={typeof runtime?.gatewayCpuPct === "number" ? `${runtime.gatewayCpuPct.toFixed(1)}%` : "--"}
-                          values={cpuHistory}
-                          tone="cyan"
-                          helper={
-                            liveCostTargetLabel
-                              ? locale.startsWith("en")
-                                ? `Realtime process usage for ${liveCostTargetLabel}`
-                                : `${liveCostTargetLabel} 的实时进程开销`
-                              : locale.startsWith("en")
-                                ? "No local model loaded"
-                                : "当前没有已加载模型"
-                          }
-                        />
-                        <RuntimeMetricSparkline
-                          title={locale.startsWith("en") ? "Gateway RSS" : "网关内存"}
-                          latest={
-                            typeof runtime?.gatewayResidentMemoryMb === "number"
-                              ? `${runtime.gatewayResidentMemoryMb.toFixed(1)} MB`
-                              : "--"
-                          }
-                          values={rssHistory}
-                          tone="emerald"
-                          helper={
-                            locale.startsWith("en")
-                              ? "Rolling resident memory footprint for the shared gateway process"
-                              : "共享本地网关进程的滚动常驻内存占用"
-                          }
-                        />
-                        <RuntimeMetricSparkline
-                          title={locale.startsWith("en") ? "Gateway GPU" : "网关 GPU"}
-                          latest={typeof runtime?.gatewayGpuPct === "number" ? `${runtime.gatewayGpuPct.toFixed(1)}%` : "--"}
-                          values={gpuHistory}
-                          tone="violet"
-                          helper={
-                            locale.startsWith("en")
-                              ? "Apple AGX device utilization sampled from ioreg without requiring sudo"
-                              : "通过 ioreg 采样 Apple AGX 设备利用率，无需 sudo"
-                          }
-                        />
-                        <RuntimeMetricSparkline
-                          title={locale.startsWith("en") ? "GPU memory" : "GPU 显存"}
-                          latest={
-                            typeof runtime?.gatewayGpuMemoryMb === "number"
-                              ? `${runtime.gatewayGpuMemoryMb.toFixed(1)} MB`
-                              : "--"
-                          }
-                          values={gpuMemoryHistory}
-                          tone="amber"
-                          helper={
-                            locale.startsWith("en")
-                              ? "Shared GPU system memory currently in use by AGX"
-                              : "AGX 当前占用的共享 GPU 系统内存"
-                          }
-                        />
-                        <RuntimeMetricSparkline
-                          title={locale.startsWith("en") ? "Energy signal" : "能耗信号"}
-                          latest={
-                            typeof runtime?.gatewayEnergySignalPct === "number"
-                              ? `${runtime.gatewayEnergySignalPct.toFixed(1)}%`
-                              : "--"
-                          }
-                          values={energyHistory}
-                          tone="amber"
-                          helper={
-                            locale.startsWith("en")
-                              ? "Best-effort energy estimate derived from CPU, GPU, busy state, and AC/battery context"
-                              : "结合 CPU、GPU、忙碌状态与供电信息得到的近似能耗信号"
-                          }
-                        />
-                        <RuntimeMetricSparkline
-                          title={locale.startsWith("en") ? "Storage pressure" : "存储占用"}
-                          latest={
-                            typeof runtime?.gatewayDiskUsedPct === "number"
-                              ? `${runtime.gatewayDiskUsedPct.toFixed(1)}%`
-                              : "--"
-                          }
-                          values={diskUsedHistory}
-                          tone="emerald"
-                          helper={
-                            locale.startsWith("en")
-                              ? `System disk usage. Model footprint: ${
-                                  typeof runtime?.modelStorageFootprintMb === "number"
-                                    ? `${runtime.modelStorageFootprintMb.toFixed(1)} MB`
-                                    : "--"
-                                }`
-                              : `系统磁盘使用率。模型体积：${
-                                  typeof runtime?.modelStorageFootprintMb === "number"
-                                    ? `${runtime.modelStorageFootprintMb.toFixed(1)} MB`
-                                    : "--"
-                                }`
-                          }
-                        />
-                      </div>
-                    </div>
+                    <AdminRuntimeMetricsGrid
+                      locale={locale}
+                      runtime={runtime}
+                      liveCostTargetLabel={liveCostTargetLabel}
+                      overviewCards={overviewCards}
+                      cpuHistory={cpuHistory}
+                      rssHistory={rssHistory}
+                      gpuHistory={gpuHistory}
+                      gpuMemoryHistory={gpuMemoryHistory}
+                      energyHistory={energyHistory}
+                      diskUsedHistory={diskUsedHistory}
+                    />
 
                     <div className="space-y-4">
-                      <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Runtime trace</p>
-                        <p className="mt-3 text-sm leading-6 text-slate-200">{runtimeMessage || uiText.runtimeNoLog}</p>
-                        {runtime?.phaseDetail ? (
-                          <p className="mt-2 text-xs leading-6 text-slate-400">{runtime.phaseDetail}</p>
-                        ) : null}
-                        {runtime?.loadingAlias || runtime?.loadingError ? (
-                          <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-xs text-slate-300">
-                            {runtime?.loadingAlias ? (
-                              <p>
-                                Loading: {runtime.loadingAlias}
-                                {typeof runtime.loadingElapsedMs === "number"
-                                  ? ` · ${Math.max(1, Math.round(runtime.loadingElapsedMs / 1000))}s`
-                                  : ""}
-                              </p>
-                            ) : null}
-                            {runtime?.loadingError ? (
-                              <p className="mt-2 break-all text-rose-200">Loading error: {runtime.loadingError}</p>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
+                      <AdminRuntimeTracePanel
+                        runtime={runtime}
+                        message={runtimeMessage}
+                        emptyLabel={uiText.runtimeNoLog}
+                      />
 
-                      <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Model state</p>
-                          <span className="text-xs text-slate-500">{action ? uiText.runtimeRefreshing : dictionary.agent.runtimeIdle}</span>
-                        </div>
-                        <div className="mt-3 space-y-2 text-sm text-slate-300">
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{uiText.loadedAlias}</p>
-                            <p className="mt-1 text-sm text-white">
-                              {loadedAliasForTarget ? describeRuntimeAlias(loadedAliasForTarget, localTargets) : "—"}
-                            </p>
-                            {gatewayLoadedOtherAlias ? (
-                              <p className="mt-1 text-xs text-slate-500">
-                                {uiText.runtimeCurrentLoaded}: {describeRuntimeAlias(gatewayLoadedOtherAlias, localTargets)}
-                              </p>
-                            ) : null}
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{uiText.runtimeLastSwitchLoad}</p>
-                            <p className="mt-1 text-sm text-white">{formatRuntimeDuration(lastSwitchMsForTarget)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{uiText.runtimeLastSwitchAt}</p>
-                            <p className="mt-1 text-sm text-white">
-                              {formatRuntimeTimestamp(lastSwitchAtForTarget, locale)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{uiText.runtimeSwitchingNow}</p>
-                            <p className="mt-1 text-sm text-white">
-                              {runtime?.loadingAlias ? describeRuntimeAlias(runtime.loadingAlias, localTargets) : "—"}
-                              {runtime?.loadingAlias && typeof runtime.loadingElapsedMs === "number"
-                                ? ` · ${Math.max(1, Math.round(runtime.loadingElapsedMs / 1000))}s`
-                                : ""}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{uiText.runtimeLastEvent}</p>
-                            <p className="mt-1 text-sm text-white">{runtime?.lastEvent || dictionary.common.unknown}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{uiText.runtimeEnsureReason}</p>
-                            <p className="mt-1 text-xs leading-6 text-slate-400">{runtime?.lastEnsureReason || runtimeMessage || uiText.runtimeNoLog}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{uiText.runtimeLogPath}</p>
-                            <p className="mt-1 break-all text-xs text-slate-400">{runtime?.logFile ? sanitizeDisplayPath(runtime.logFile) : dictionary.common.unknown}</p>
-                          </div>
-                        </div>
-                        <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-3">
-                          <button
-                            type="button"
-                            disabled={Boolean(action)}
-                            onClick={() => void loadRuntimeStatus(target.id)}
-                            className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-[11px] text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:text-slate-500"
-                          >
-                            {action === "refresh" ? uiText.runtimeRefreshing : uiText.runtimeRefresh}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={Boolean(action)}
-                            onClick={() => void handleRuntimePrewarm(target.id)}
-                            className="rounded-full border border-cyan-400/20 bg-transparent px-3 py-1.5 text-[11px] text-cyan-200 transition hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500"
-                          >
-                            {action === "prewarm" ? uiText.runtimeRefreshing : uiText.runtimePrewarm}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={Boolean(action)}
-                            onClick={() => void handleRuntimeAction(target.id, "release")}
-                            className="rounded-full border border-emerald-400/20 bg-transparent px-3 py-1.5 text-[11px] text-emerald-200 transition hover:bg-emerald-400/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500"
-                          >
-                            {action === "release" ? uiText.runtimeRefreshing : uiText.runtimeRelease}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={Boolean(action)}
-                            onClick={() => void handleRuntimeAction(target.id, "restart")}
-                            className="rounded-full border border-amber-400/20 bg-transparent px-3 py-1.5 text-[11px] text-amber-200 transition hover:bg-amber-400/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500"
-                          >
-                            {action === "restart" ? uiText.runtimeRefreshing : uiText.runtimeRestart}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={Boolean(action)}
-                            onClick={() => void handleRuntimeAction(target.id, "read_log")}
-                            className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-[11px] text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:text-slate-500"
-                          >
-                            {action === "read_log" ? uiText.runtimeRefreshing : uiText.runtimeReadLog}
-                          </button>
-                        </div>
-                      </div>
+                      <AdminRuntimeModelStatePanel
+                        locale={locale}
+                        runtime={runtime}
+                        targets={localTargets}
+                        action={action}
+                        runtimeMessage={runtimeMessage}
+                        loadedAlias={loadedAliasForTarget}
+                        gatewayLoadedOtherAlias={gatewayLoadedOtherAlias}
+                        lastSwitchMs={lastSwitchMsForTarget}
+                        lastSwitchAt={lastSwitchAtForTarget}
+                        text={{
+                          idle: dictionary.agent.runtimeIdle,
+                          unknown: dictionary.common.unknown,
+                          loadedAlias: uiText.loadedAlias,
+                          currentLoaded: uiText.runtimeCurrentLoaded,
+                          lastSwitchLoad: uiText.runtimeLastSwitchLoad,
+                          lastSwitchAt: uiText.runtimeLastSwitchAt,
+                          switchingNow: uiText.runtimeSwitchingNow,
+                          lastEvent: uiText.runtimeLastEvent,
+                          ensureReason: uiText.runtimeEnsureReason,
+                          logPath: uiText.runtimeLogPath,
+                          noLog: uiText.runtimeNoLog,
+                          refreshing: uiText.runtimeRefreshing,
+                          refresh: uiText.runtimeRefresh,
+                          prewarm: uiText.runtimePrewarm,
+                          release: uiText.runtimeRelease,
+                          restart: uiText.runtimeRestart,
+                          readLog: uiText.runtimeReadLog,
+                        }}
+                        onRefresh={() => loadRuntimeStatus(target.id)}
+                        onPrewarm={() => handleRuntimePrewarm(target.id)}
+                        onAction={(nextAction) =>
+                          handleRuntimeAction(target.id, nextAction)
+                        }
+                      />
 
-                      <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-slate-300">
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{uiText.runtimeLog}</p>
-                        <div className="mt-3 flex flex-col gap-2 xl:flex-row">
-                          <input
-                            value={runtimeLogQuery}
-                            onChange={(event) =>
-                              setRuntimeLogQueries((current) => ({
-                                ...current,
-                                [target.id]: event.target.value
-                              }))
-                            }
-                            placeholder={locale.startsWith("en") ? "Filter log keywords" : "筛选日志关键词"}
-                            className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500"
-                          />
-                          <select
-                            value={runtimeLogLimit}
-                            onChange={(event) =>
-                              setRuntimeLogLimits((current) => ({
-                                ...current,
-                                [target.id]: Number(event.target.value)
-                              }))
-                            }
-                            className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                          >
-                            {[80, 120, 200].map((value) => (
-                              <option key={value} value={value}>
-                                {value}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            disabled={Boolean(action)}
-                            onClick={() => void handleRuntimeLogSearch(target.id)}
-                            className="rounded-full border border-white/10 bg-transparent px-3 py-2 text-[11px] text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:text-slate-500"
-                          >
-                            {action === "read_log" ? uiText.runtimeRefreshing : uiText.runtimeReadLog}
-                          </button>
-                        </div>
-                        {logSummary ? (
-                          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-300">
-                            <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
-                              {locale.startsWith("en") ? "Matched" : "匹配"} {logSummary.matchedLines}/{logSummary.totalLines}
-                            </span>
-                            <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
-                              {locale.startsWith("en") ? "Errors" : "错误"} {logSummary.errorLines}
-                            </span>
-                            <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
-                              {locale.startsWith("en") ? "Warnings" : "警告"} {logSummary.warningLines}
-                            </span>
-                            <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
-                              {locale.startsWith("en") ? "Restarts" : "重启"} {logSummary.restartMentions}
-                            </span>
-                            <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
-                              {locale.startsWith("en") ? "Loading" : "加载"} {logSummary.loadingMentions}
-                            </span>
-                          </div>
-                        ) : null}
-                        {logExcerpt ? (
-                          <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-black/20 p-3 text-xs leading-6 text-slate-200">{logExcerpt}</pre>
-                        ) : (
-                          <p className="mt-3 text-sm text-slate-500">{uiText.runtimeNoLog}</p>
-                        )}
-                      </div>
+                      <AdminRuntimeLogPanel
+                        locale={locale}
+                        action={action}
+                        query={runtimeLogQuery}
+                        limit={runtimeLogLimit}
+                        summary={logSummary}
+                        excerpt={logExcerpt}
+                        text={{
+                          title: uiText.runtimeLog,
+                          refreshing: uiText.runtimeRefreshing,
+                          readLog: uiText.runtimeReadLog,
+                          noLog: uiText.runtimeNoLog,
+                        }}
+                        onQueryChange={(value) =>
+                          setRuntimeLogQueries((current) => ({
+                            ...current,
+                            [target.id]: value,
+                          }))
+                        }
+                        onLimitChange={(value) =>
+                          setRuntimeLogLimits((current) => ({
+                            ...current,
+                            [target.id]: value,
+                          }))
+                        }
+                        onSearch={() => handleRuntimeLogSearch(target.id)}
+                      />
                     </div>
                   </div>
                 </article>
@@ -4454,176 +2533,31 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
-            <p className="text-sm text-slate-300">{dictionary.admin.recentHistory}</p>
-            <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-white/5 text-slate-400">
-                  <tr>
-                    <th className="px-3 py-2">{dictionary.common.latest}</th>
-                    <th className="px-3 py-2">{dictionary.common.model}</th>
-                    <th className="px-3 py-2">{uiText.contextWindowFilter}</th>
-                    <th className="px-3 py-2">{uiText.latencyMs}</th>
-                    <th className="px-3 py-2">{uiText.tokens}</th>
-                    <th className="px-3 py-2">{uiText.status}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data?.recentChats.length ? (
-                    data.recentChats.map((row) => (
-                      <tr key={row.id} className="border-t border-white/10">
-                        <td className="px-3 py-2 text-slate-300">{new Date(row.completedAt).toLocaleTimeString()}</td>
-                        <td className="px-3 py-2 text-slate-100">{row.resolvedModel}</td>
-                        <td className="px-3 py-2 text-slate-300">
-                          {typeof row.contextWindow === "number"
-                            ? row.contextWindow >= 1024
-                              ? `${Math.round(row.contextWindow / 1024)}K`
-                              : row.contextWindow
-                            : uiText.defaultContextWindow}
-                        </td>
-                        <td className="px-3 py-2 text-slate-300">{row.latencyMs}</td>
-                        <td className="px-3 py-2 text-slate-300">{row.usage.totalTokens}</td>
-                        <td className="px-3 py-2 text-slate-300">{row.ok ? dictionary.common.ok : dictionary.common.failed}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td className="px-3 py-4 text-slate-500" colSpan={6}>
-                        {dictionary.admin.noData}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
-              <p className="text-sm text-slate-300">{uiText.firstTokenLatency}</p>
-              <div className="mt-2 text-3xl font-semibold text-white">{data?.summary.avgFirstTokenLatencyMs?.toFixed(1) || "0.0"} ms</div>
-              <p className="mt-2 text-xs text-slate-500">{uiText.totalLatency}: {data?.summary.avgLatencyMs?.toFixed(1) || "0.0"} ms</p>
-              <p className="mt-1 text-xs text-slate-500">{uiText.tokenThroughput}: {data?.summary.avgTokenThroughputTps?.toFixed(2) || "0.00"} {uiText.tokensPerSecond}</p>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
-              <p className="text-sm text-slate-300">{uiText.percentiles}</p>
-              <div className="mt-4 space-y-3">
-                <PercentileRow
-                  label={uiText.firstTokenLatency}
-                  metrics={data?.summary.firstTokenLatencyPercentiles || { p50: 0, p95: 0, p99: 0 }}
-                  unit="ms"
-                />
-                <PercentileRow
-                  label={uiText.totalLatency}
-                  metrics={data?.summary.latencyPercentiles || { p50: 0, p95: 0, p99: 0 }}
-                  unit="ms"
-                />
-                <PercentileRow
-                  label={uiText.tokenThroughput}
-                  metrics={data?.summary.tokenThroughputPercentiles || { p50: 0, p95: 0, p99: 0 }}
-                  unit={uiText.tokensPerSecond}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
-              <p className="text-sm text-slate-300">{dictionary.admin.modelBreakdown}</p>
-              <div className="mt-4 space-y-3">
-                {data?.modelBreakdown.length ? (
-                  data.modelBreakdown.slice(0, 6).map((row) => (
-                    <div key={row.model} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm text-white">{row.model}</p>
-                        <span className="text-xs text-slate-400">{row.requests}</span>
-                      </div>
-                      <p className="mt-2 text-xs text-slate-400">Token: {formatCompactNumber(row.totalTokens)}</p>
-                      <p className="mt-1 text-xs text-slate-500">{uiText.firstTokenLatency}: {row.avgFirstTokenLatencyMs.toFixed(1)} ms</p>
-                      <p className="mt-1 text-xs text-slate-500">{uiText.totalLatency}: {row.avgLatencyMs.toFixed(1)} ms</p>
-                      <p className="mt-1 text-xs text-slate-500">{uiText.tokenThroughput}: {row.avgTokenThroughputTps.toFixed(2)} {uiText.tokensPerSecond}</p>
-                      <div className="mt-3 space-y-2">
-                        <PercentileRow label={uiText.firstTokenLatency} metrics={row.firstTokenLatencyPercentiles} unit="ms" />
-                        <PercentileRow label={uiText.totalLatency} metrics={row.latencyPercentiles} unit="ms" />
-                        <PercentileRow label={uiText.tokenThroughput} metrics={row.tokenThroughputPercentiles} unit={uiText.tokensPerSecond} />
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">{dictionary.admin.noData}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
-              <p className="text-sm text-slate-300">{uiText.contextWindowBreakdown}</p>
-              <div className="mt-4 space-y-3">
-                {data?.contextWindowBreakdown.length ? (
-                  data.contextWindowBreakdown.map((row) => (
-                    <div
-                      key={row.contextWindow === null ? "default" : row.contextWindow}
-                      className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm text-white">
-                          {row.contextWindow === null
-                            ? uiText.defaultContextWindow
-                            : row.contextWindow >= 1024
-                              ? `${Math.round(row.contextWindow / 1024)}K`
-                              : row.contextWindow}
-                        </p>
-                        <span className="text-xs text-slate-400">{row.requests}</span>
-                      </div>
-                      <p className="mt-2 text-xs text-slate-400">Token: {formatCompactNumber(row.totalTokens)}</p>
-                      <p className="mt-1 text-xs text-slate-500">{uiText.firstTokenLatency}: {row.avgFirstTokenLatencyMs.toFixed(1)} ms</p>
-                      <p className="mt-1 text-xs text-slate-500">{uiText.totalLatency}: {row.avgLatencyMs.toFixed(1)} ms</p>
-                      <p className="mt-1 text-xs text-slate-500">{uiText.tokenThroughput}: {row.avgTokenThroughputTps.toFixed(2)} {uiText.tokensPerSecond}</p>
-                      <div className="mt-3 space-y-2">
-                        <PercentileRow label={uiText.firstTokenLatency} metrics={row.firstTokenLatencyPercentiles} unit="ms" />
-                        <PercentileRow label={uiText.totalLatency} metrics={row.latencyPercentiles} unit="ms" />
-                        <PercentileRow label={uiText.tokenThroughput} metrics={row.tokenThroughputPercentiles} unit={uiText.tokensPerSecond} />
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">{dictionary.admin.noData}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
-              <p className="text-sm text-slate-300">{dictionary.admin.recentChecks}</p>
-              <div className="mt-4 space-y-3">
-                {data?.recentChecks.length ? (
-                  data.recentChecks.map((row) => (
-                    <div key={row.id} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm text-white">{row.targetLabel}</p>
-                        <span className="text-xs text-slate-400">
-                          {row.ok ? dictionary.common.ok : dictionary.common.failed}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-xs text-slate-400">{new Date(row.checkedAt).toLocaleString()}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">{dictionary.admin.noData}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-4">
-              <p className="text-sm text-slate-300">{dictionary.admin.savedFiles}</p>
-              <div className="mt-3 space-y-2 text-xs leading-6 text-slate-400">
-                <p>{data?.paths.chatLogFile || "--"}</p>
-                <p>{data?.paths.connectionCheckFile || "--"}</p>
-                <p>{data?.paths.telemetryFile || "--"}</p>
-                <p>{data?.paths.benchmarkFile || "--"}</p>
-                <p>{data?.paths.benchmarkBaselineFile || "--"}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <AdminRecentOperationsPanel
+          data={data}
+          labels={{
+            recentHistory: dictionary.admin.recentHistory,
+            latest: dictionary.common.latest,
+            model: dictionary.common.model,
+            contextWindow: uiText.contextWindowFilter,
+            defaultContextWindow: uiText.defaultContextWindow,
+            latencyMs: uiText.latencyMs,
+            tokens: uiText.tokens,
+            status: uiText.status,
+            ok: dictionary.common.ok,
+            failed: dictionary.common.failed,
+            noData: dictionary.admin.noData,
+            firstTokenLatency: uiText.firstTokenLatency,
+            totalLatency: uiText.totalLatency,
+            tokenThroughput: uiText.tokenThroughput,
+            tokensPerSecond: uiText.tokensPerSecond,
+            percentiles: uiText.percentiles,
+            modelBreakdown: dictionary.admin.modelBreakdown,
+            contextWindowBreakdown: uiText.contextWindowBreakdown,
+            recentChecks: dictionary.admin.recentChecks,
+            savedFiles: dictionary.admin.savedFiles,
+          }}
+        />
       </div>
     </section>
   );
