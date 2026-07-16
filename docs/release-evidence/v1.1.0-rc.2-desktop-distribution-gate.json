@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "release-evidence.desktop-distribution-gate.v1",
+  "version": "1.1.0-rc.2",
+  "generatedAt": "2026-07-16T06:46:50.597Z",
+  "status": "rc-ready",
+  "gaDecision": "HOLD",
+  "localEvidence": {
+    "typecheckChanged": "11/11 passed",
+    "nativeLauncher": true,
+    "dmgCleanProfile": "pass",
+    "externalAcceptanceContract": "pass-fixture-only",
+    "onboarding": {
+      "pass": 8,
+      "watch": 2,
+      "blocked": 0,
+      "localRcReady": true,
+      "gaReady": false
+    }
+  },
+  "artifacts": {
+    "zip": {
+      "bytes": 85651276,
+      "sha256": "8846e9f986ba8a0875dda1f30ac856b421756e1f42ed5a16ecf4f91d4b0de004"
+    },
+    "dmg": {
+      "bytes": 90821659,
+      "sha256": "fb306846646f98a1ee0423d0c32e7bfa478e0957600b10fc8d3d6244ffac4132"
+    },
+    "screenshot": {
+      "path": "docs/assets/screenshots/desktop-onboarding-release.png",
+      "width": 3840,
+      "height": 2400,
+      "sha256": "9a45dfb602fb2cf71fb72be7ddc0993b27283d1b0ff6d241890498f1ee6ea810"
+    }
+  },
+  "externalBlockers": [
+    "No valid Developer ID Application identity is installed in the release Keychain.",
+    "No Apple notarytool Keychain profile is configured.",
+    "No Apple Accepted submission, staple, and Gatekeeper receipt exists for rc.2.",
+    "No independently pinned organization receipt from a different Mac exists."
+  ],
+  "honestyBoundary": "The fixture import rehearsal proves signature and tamper-denial behavior only. It is not Apple notarization or organization acceptance evidence."
+}

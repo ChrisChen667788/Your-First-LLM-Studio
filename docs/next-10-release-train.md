@@ -98,7 +98,11 @@ These versions are planned, not shipped. Their acceptance and evidence requireme
 
 ## Current Slice
 
-The active version is `v1.1.0-rc.1`. The locally reproducible Desktop Onboarding package is RC-ready; Developer ID notarization and a separate clean-machine or organization receipt remain the explicit GA gate.
+The active version is `v1.1.0-rc.2`. The native-launcher Desktop package and fail-closed production distribution workflow are RC-ready; real Developer ID notarization and a separately trusted clean-machine organization receipt remain the explicit GA gate.
+
+## 2026-07-16 v1.1.0-rc.2 Desktop Distribution Gate
+
+The app now uses a compiled arm64 Mach-O launcher. The Apple pipeline signs nested code and the app before notarizing/stapling both the app archive and final DMG, retains Apple logs, and separates preflight from completed evidence. A portable external-Mac runner and RSA-signed organization receipt importer require package/request binding, a different host fingerprint, complete lifecycle checks, and an out-of-band pinned public-key digest. Local contract and tamper-denial rehearsals pass, while the missing Developer ID identity, notary profile, and independent organization receipt keep GA on HOLD. Evidence: [`docs/releases/v1.1.0-rc.2_2026-07-16.md`](./releases/v1.1.0-rc.2_2026-07-16.md).
 
 ## 2026-07-16 v1.1.0-rc.1 Desktop Onboarding
 
@@ -169,4 +173,4 @@ Next implementation slice:
 - `app/api/experiments/release-train/route.ts`
 - `features/experiments/ReleaseTrainPanel.tsx`
 
-当前 active version 是 `v1.1.0-rc.1`。桌面首次启动在本机可复现证据下已经 RC-ready；Developer ID notarization 和独立 clean-machine/组织签收继续作为明确 GA 门禁。后续从 `v1.1.1` 到 `v1.5.1` 依次推进 Model Hub 生命周期、Local Server/runtime fabric、MCP/扩展、可视化 workflow、团队治理、训练/评测 CI、artifact marketplace 与企业 HA/FinOps。
+当前 active version 是 `v1.1.0-rc.2`。原生 launcher 桌面包和 fail-closed 生产分发链已经 RC-ready；真实 Developer ID notarization 和独立可信的 clean-machine/组织签收继续作为明确 GA 门禁。后续从 `v1.1.1` 到 `v1.5.1` 依次推进 Model Hub 生命周期、Local Server/runtime fabric、MCP/扩展、可视化 workflow、团队治理、训练/评测 CI、artifact marketplace 与企业 HA/FinOps。

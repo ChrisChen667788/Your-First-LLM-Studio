@@ -1,7 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
-  chmodSync,
   cpSync,
   existsSync,
   lstatSync,
@@ -17,7 +16,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const version = "1.1.0-rc.1";
+const version = "1.1.0-rc.2";
 const nodeVersion = process.env.FIRST_LLM_DESKTOP_NODE_VERSION || "22.23.1";
 const distDirName = ".next-build";
 const distDir = path.join(root, distDirName);
@@ -150,7 +149,7 @@ function writeAppBundle(serverRoot) {
   <key>CFBundleName</key><string>First LLM Studio</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>1.1.0</string>
-  <key>CFBundleVersion</key><string>11001</string>
+  <key>CFBundleVersion</key><string>11002</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSUIElement</key><false/>
 </dict></plist>
@@ -158,35 +157,14 @@ function writeAppBundle(serverRoot) {
     "utf8",
   );
 
-  const launcherPath = path.join(macosDir, "first-llm-studio");
-  writeFileSync(
-    launcherPath,
-    `#!/bin/bash
-set -euo pipefail
-CONTENTS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-APP_DIR="$CONTENTS_DIR/Resources/app"
-NODE_BIN="$CONTENTS_DIR/Resources/runtime/bin/node"
-DATA_DIR="\${LOCAL_AGENT_DATA_DIR:-$HOME/Library/Application Support/local-agent-lab/observability}"
-PORT="\${FIRST_LLM_STUDIO_PORT:-3011}"
-LOG_FILE="$DATA_DIR/desktop-server.log"
-PID_FILE="$DATA_DIR/desktop-server.pid"
-mkdir -p "$DATA_DIR"
-if ! /usr/bin/curl -fsS --max-time 2 "http://127.0.0.1:$PORT/agent" >/dev/null 2>&1; then
-  cd "$APP_DIR"
-  /usr/bin/nohup /usr/bin/env PORT="$PORT" HOSTNAME="127.0.0.1" LOCAL_AGENT_DATA_DIR="$DATA_DIR" FIRST_LLM_DESKTOP_RELEASE_MANIFEST="$APP_DIR/data/desktop-release-manifest.json" "$NODE_BIN" "$APP_DIR/server.js" >>"$LOG_FILE" 2>&1 &
-  echo $! >"$PID_FILE"
-  for _ in $(seq 1 120); do
-    /usr/bin/curl -fsS --max-time 2 "http://127.0.0.1:$PORT/agent" >/dev/null 2>&1 && break
-    sleep 0.25
-  done
-fi
-if [[ "\${FIRST_LLM_STUDIO_NO_BROWSER:-0}" != "1" ]]; then
-  /usr/bin/open "http://127.0.0.1:$PORT/agent"
-fi
-`,
-    "utf8",
-  );
-  chmodSync(launcherPath, 0o755);
+  run("/usr/bin/xcrun", [
+    "clang",
+    "-Os",
+    "-arch", "arm64",
+    "-mmacosx-version-min=13.0",
+    path.join(root, "scripts", "desktop-launcher.c"),
+    "-o", path.join(macosDir, "first-llm-studio"),
+  ]);
 }
 
 async function main() {

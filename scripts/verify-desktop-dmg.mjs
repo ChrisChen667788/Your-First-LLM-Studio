@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 const root = process.cwd();
-const version = "1.1.0-rc.1";
+const version = "1.1.0-rc.2";
 const dmgPath = path.join(root, "output", "desktop-release", version, `First-LLM-Studio-${version}-darwin-arm64.dmg`);
 const mountPoint = mkdtempSync(path.join(os.tmpdir(), "first-llm-dmg-"));
 const profileDir = mkdtempSync(path.join(os.tmpdir(), "first-llm-profile-"));

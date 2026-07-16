@@ -8,7 +8,7 @@ A local-first LLM studio for Apple Silicon that brings MLX local runtimes, remot
 
 ## Current Release
 
-Current version: `v1.1.0-rc.1`.
+Current version: `v1.1.0-rc.2`.
 
 This desktop-onboarding release candidate packages the current Studio as an Apple Silicon app with an official bundled Node runtime, ZIP/DMG artifacts, first-run diagnosis, permission and service recovery, data/update rollback rehearsals, a real Ollama local-chat proof, and clean-profile DMG boot evidence. Ad-hoc local codesign is reported separately from the still-open Developer ID/notarization GA gate.
 
@@ -38,6 +38,7 @@ This desktop-onboarding release candidate packages the current Studio as an Appl
 | `v0.5` | Preview-gated Enterprise RAG, deployment registry, OpenAI-compatible API, telemetry, release-readiness gates, production attestation, quota, audit, and control-plane rehearsals. |
 | `v1.0` | Integrated Agent, Compare, Model Hub, RAG, Fine-tune, Benchmark, Experiments, Admin monitoring, application APIs, route ownership, and release-evidence baseline. |
 | `v1.1.0-rc.1` | Self-contained Apple Silicon app, bundled Node runtime, ZIP/DMG, first-run and lifecycle orchestration, real local-chat proof, and clean-profile boot evidence; notarization remains a GA gate. |
+| `v1.1.0-rc.2` | Native arm64 launcher, nested-code/app/DMG signing workflow, dual notarization logs, staple/Gatekeeper verification, external-Mac runner, and RSA organization receipts with an out-of-band trust pin; real external evidence still gates GA. |
 
 ## Competitive Position
 
@@ -91,7 +92,7 @@ README screenshots are captured from the running local app at 2x DPR. Route scre
 - GitHub: [https://github.com/ChrisChen667788/Your-First-LLM-Studio](https://github.com/ChrisChen667788/Your-First-LLM-Studio)
 - ModelScope profile: [https://www.modelscope.cn/profile/haozi667788](https://www.modelscope.cn/profile/haozi667788)
 - Default ModelScope repo id: `haozi667788/first-llm-studio`
-- Latest release note: [`v1.1.0-rc.1`](../docs/releases/v1.1.0-rc.1_2026-07-16.md)
+- Latest release note: [`v1.1.0-rc.2`](../docs/releases/v1.1.0-rc.2_2026-07-16.md)
 
 ---
 
@@ -103,7 +104,7 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 
 ## 当前版本
 
-当前版本：`v1.1.0-rc.1`。
+当前版本：`v1.1.0-rc.2`。
 
 该桌面首次启动发布候选把当前 Studio 打包为 Apple Silicon app，内置官方 Node runtime，并生成 ZIP/DMG、首次诊断、权限与服务恢复、数据/更新回滚演练、真实 Ollama 本地对话证明和 clean-profile DMG 启动证据。ad-hoc 本地 codesign 与仍待完成的 Developer ID/notarization GA 门禁会分开报告。
 
@@ -133,6 +134,7 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 | `v0.5` | Preview-gated 企业 RAG、deployment registry、OpenAI-compatible API、telemetry、release-readiness gates、生产签收、quota、audit 和 control-plane rehearsal。 |
 | `v1.0` | 统一 Agent、Compare、Model Hub、RAG、Fine-tune、Benchmark、Experiments、Admin 监控、application API、route ownership 和发布证据基线。 |
 | `v1.1.0-rc.1` | 自包含 Apple Silicon app、内置 Node runtime、ZIP/DMG、首次启动和生命周期编排、真实本地对话证明及 clean-profile 启动证据；notarization 仍是 GA 门禁。 |
+| `v1.1.0-rc.2` | 原生 arm64 launcher、内部代码/app/DMG 分层签名链、双层公证日志、staple/Gatekeeper 验证、独立 Mac 验收脚本以及带线下信任锚的 RSA 组织签收；真实外部证据仍是 GA 门禁。 |
 
 ## 竞品定位对比
 
@@ -186,4 +188,4 @@ README 截图来自本地运行版本，按 2x DPR 生成。页面截图为 3200
 - GitHub: [https://github.com/ChrisChen667788/Your-First-LLM-Studio](https://github.com/ChrisChen667788/Your-First-LLM-Studio)
 - ModelScope 主页: [https://www.modelscope.cn/profile/haozi667788](https://www.modelscope.cn/profile/haozi667788)
 - 默认 ModelScope repo id：`haozi667788/first-llm-studio`
-- 最新版本说明：[`v1.1.0-rc.1`](../docs/releases/v1.1.0-rc.1_2026-07-16.md)
+- 最新版本说明：[`v1.1.0-rc.2`](../docs/releases/v1.1.0-rc.2_2026-07-16.md)
