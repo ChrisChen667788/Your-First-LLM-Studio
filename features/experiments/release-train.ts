@@ -3,7 +3,7 @@ import type {
   ReleaseTrainResponse,
 } from "@/features/experiments/contracts";
 
-export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.1.0-rc.1" as const;
+export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.1.0-rc.2" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -271,7 +271,7 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Clean-machine install and upgrade capture",
       "Signed package, migration, rollback, and uninstall manifests",
     ],
-    nextSlice: "Promote the locally complete v1.1.0-rc.1 package only after Developer ID notarization and a clean-machine organization receipt.",
+    nextSlice: "Promote the locally complete v1.1.0-rc.2 package only after Developer ID notarization and a trusted clean-machine organization receipt.",
   },
   {
     version: "v1.1.1",

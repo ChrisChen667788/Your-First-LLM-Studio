@@ -27,6 +27,7 @@ Last updated: 2026-07-16
 当前版本已经具备下面这些主能力：
 
 - `v1.1.0-rc.1` Desktop Onboarding：自包含 Apple Silicon app、内置 Node、ZIP/DMG、首次诊断、权限与后台服务恢复、迁移/更新/回滚/卸载演练、真实 Ollama 本地对话证明、clean-profile DMG 启动证明，以及与 Developer ID/notarization 分离的 GA 门禁。
+- `v1.1.0-rc.2` Desktop Distribution Gate：原生 arm64 launcher、内部 Mach-O 与 app/DMG 分层签名、公证日志/staple/Gatekeeper 链、独立 Mac 验收脚本、组织 RSA receipt 和线下公钥摘要锚定；真实 Apple 与组织 receipt 到位前 GA 保持 HOLD。
 
 - 本地/远端统一 Agent 工作台
 - 本地 Qwen 0.6B / 4B 4-bit 切换

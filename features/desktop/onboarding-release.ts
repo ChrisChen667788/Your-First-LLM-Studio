@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 
 import { readAppleReleaseSigningReadiness } from "@/features/desktop/apple-release-signing";
+import { readDesktopExternalAcceptance } from "@/features/desktop/external-acceptance";
 import {
   readDesktopDataLifecycleEvidence,
   rehearseDesktopDataLifecycle,
@@ -28,7 +29,7 @@ import {
 export const DESKTOP_ONBOARDING_RELEASE_SCHEMA_VERSION =
   "desktop.onboarding-release.v1" as const;
 
-const RC_VERSION = "1.1.0-rc.1";
+const RC_VERSION = "1.1.0-rc.2";
 const OBSERVABILITY_DIR =
   process.env.LOCAL_AGENT_DATA_DIR ||
   path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
@@ -107,6 +108,7 @@ export function readDesktopOnboardingRelease() {
   const services = readDesktopServiceSupervisorEvidence();
   const updates = readDesktopUpdateChannelEvidence();
   const apple = readAppleReleaseSigningReadiness();
+  const externalAcceptance = readDesktopExternalAcceptance();
   const build = readJson<BuildManifest>(RELEASE_MANIFEST);
   const localChat = readJson<LocalChatProof>(LOCAL_CHAT_PROOF);
   const cleanProfile = readJson<CleanProfileProof>(CLEAN_PROFILE_PROOF);
@@ -202,16 +204,27 @@ export function readDesktopOnboardingRelease() {
     {
       id: "apple-distribution",
       label: "Developer ID and notarization",
-      status: statusFor(apple.ready, true),
-      summary: apple.ready
-        ? "Developer ID signing and notarization inputs are ready."
-        : "External Apple signing identity and notarization receipt remain a GA-only gate.",
+      status: statusFor(apple.completed, true),
+      summary: apple.completed
+        ? "Developer ID, hardened runtime, secure timestamp, Apple notarization, staple, and Gatekeeper verification passed."
+        : apple.preflightReady
+          ? "Apple credentials and artifacts are ready; run the production signing pipeline."
+          : "External Apple signing identity and notarization receipt remain a GA-only gate.",
       evidence: ["/api/desktop/apple-release-signing"],
+    },
+    {
+      id: "external-acceptance",
+      label: "Independent Mac and organization acceptance",
+      status: statusFor(externalAcceptance.ready, true),
+      summary: externalAcceptance.ready
+        ? `${externalAcceptance.receipt?.organizationId}/${externalAcceptance.receipt?.operatorId} signed a complete clean-machine receipt.`
+        : "A trusted receipt from a different organization-controlled Mac remains required for GA.",
+      evidence: ["/api/desktop/external-acceptance", externalAcceptance.paths.receipt],
     },
   ];
 
   const localRcReady = hostReady && lifecycleReady && buildReady && localChatReady && cleanProfileReady;
-  const gaReady = localRcReady && apple.ready;
+  const gaReady = localRcReady && apple.completed && externalAcceptance.ready;
   return {
     ok: true as const,
     schemaVersion: DESKTOP_ONBOARDING_RELEASE_SCHEMA_VERSION,
@@ -227,16 +240,21 @@ export function readDesktopOnboardingRelease() {
       blocked: steps.filter((step) => step.status === "blocked").length,
     },
     blockers: steps.filter((step) => step.status === "blocked").map((step) => step.summary),
-    gaBlockers: apple.ready ? [] : apple.blockers,
+    gaBlockers: [
+      ...(!apple.completed ? [...apple.blockers, ...apple.completionBlockers] : []),
+      ...(!externalAcceptance.ready ? externalAcceptance.blockers : []),
+    ],
     build,
     localChat,
     cleanProfile,
+    externalAcceptance,
     paths: {
       releaseDirectory: build?.package?.appPath ? path.dirname(build.package.appPath) : null,
       releaseManifest: RELEASE_MANIFEST,
       onboardingReceipt: ONBOARDING_RECEIPT,
       localChatProof: LOCAL_CHAT_PROOF,
       cleanProfileProof: CLEAN_PROFILE_PROOF,
+      externalAcceptanceReceipt: externalAcceptance.paths.receipt,
     },
   };
 }
