@@ -9,6 +9,7 @@ import {
   describeAdminRuntimeAlias,
   describeAdminRuntimePhase,
 } from "./runtime-formatters";
+import type { AdminRuntimeRecoveryEvidence } from "./runtime-recovery-evidence";
 
 export type AdminRuntimeMetricSample = {
   timestamp: string;
@@ -59,6 +60,7 @@ export function buildAdminRuntimeTargetViewModel(input: {
   runtimeLogLimit: number;
   lastSwitchMs: number | null;
   lastSwitchAt: string | null;
+  recoveryEvidence?: AdminRuntimeRecoveryEvidence | null;
   text: RuntimeOverviewText;
 }) {
   const {
@@ -137,6 +139,7 @@ export function buildAdminRuntimeTargetViewModel(input: {
         : "",
     lastSwitchMsForTarget: input.lastSwitchMs,
     lastSwitchAtForTarget: input.lastSwitchAt,
+    recoveryEvidence: input.recoveryEvidence || null,
     runtimeIsIdle,
     overviewCards: [
       { label: text.supervisor, value: supervisorValue, detail: supervisorDetail },

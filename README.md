@@ -117,6 +117,10 @@ First LLM Studio's advantage is the connected evidence chain across Agent, Compa
 - `GLM API`
 - `Qwen API`
 
+Selection and stability guidance: [`docs/benchmark-lane-comparison.md`](./docs/benchmark-lane-comparison.md).
+
+Contributor onboarding: [English](./CONTRIBUTING.md) · [中文快速上手](./docs/chinese-contributor-quickstart.md) · [GitHub setup checklist](./docs/github-repository-setup-checklist.md).
+
 ## Screenshots
 
 Captured from the running local app after `npm run typecheck` and `npm run smoke:routes`. README screenshots are generated with `npm run screenshots:readme` at 2x DPR so text stays sharp on GitHub and ModelScope; the LoRA evidence chart is exported from SVG at 2x DPR.
@@ -124,6 +128,10 @@ Captured from the running local app after `npm run typecheck` and `npm run smoke
 Agent workbench with target catalog, runtime rail, and tool-enabled composer:
 
 ![Agent workbench](./docs/assets/screenshots/agent-workbench.png)
+
+Reproducible motion capture workflow: [`docs/demo-video-workflow.md`](./docs/demo-video-workflow.md).
+
+[Watch the Agent workbench MP4 demo](./docs/assets/demo/agent-workbench.mp4) · [SHA-256 metadata](./docs/assets/demo/agent-workbench.mp4.metadata.json)
 
 Fine-tune Studio with workflow tabs, training controls, and report/evidence panels:
 
@@ -381,6 +389,10 @@ First LLM Studio 的优势是把 Agent、Compare、Retrieval、Benchmark、Fine-
 - `GLM API`
 - `Qwen API`
 
+Target 选择、稳定性与适用任务对照：[`docs/benchmark-lane-comparison.md`](./docs/benchmark-lane-comparison.md)。
+
+贡献者入口：[English](./CONTRIBUTING.md) · [中文快速上手](./docs/chinese-contributor-quickstart.md) · [GitHub 仓库设置清单](./docs/github-repository-setup-checklist.md)。
+
 ## 截图
 
 以下截图来自本地运行版本，并已通过 `npm run typecheck` 与 `npm run smoke:routes`。README 截图使用 `npm run screenshots:readme` 以 2x DPR 生成，LoRA 证据图从 SVG 以 2x DPR 导出，确保在 GitHub 和 ModelScope 缩放后文字仍然清晰。
@@ -388,6 +400,10 @@ First LLM Studio 的优势是把 Agent、Compare、Retrieval、Benchmark、Fine-
 Agent 工作台：target catalog、runtime rail 与工具化输入区：
 
 ![Agent 工作台](./docs/assets/screenshots/agent-workbench.png)
+
+可复现动态演示流程：[`docs/demo-video-workflow.md`](./docs/demo-video-workflow.md)。
+
+[查看 Agent 工作台 MP4 演示](./docs/assets/demo/agent-workbench.mp4) · [SHA-256 元数据](./docs/assets/demo/agent-workbench.mp4.metadata.json)
 
 Fine-tune Studio：工作流 tab、训练控制与 report/evidence 面板：
 

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "first-llm-studio.demo-video-evidence.v1",
+  "generatedAt": "2026-07-16T11:22:11.438Z",
+  "flowId": "agent-workbench",
+  "route": "/agent",
+  "outputPath": "docs/assets/demo/agent-workbench.mp4",
+  "width": 1280,
+  "height": 800,
+  "durationSeconds": 15.92,
+  "bytes": 1347207,
+  "sha256": "50ea5c4f90c71b2afc5dbf652ba7e4adaf9cc7fe84f3a8737aee009fb3cdbe11",
+  "codec": "h264/yuv420p",
+  "sourceFormat": "playwright-webm",
+  "ffmpegPath": "/opt/homebrew/bin/ffmpeg"
+}

@@ -39,3 +39,45 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Start production server
+        run: |
+          npm run start > /tmp/first-llm-studio-next.log 2>&1 &
+          echo $! > /tmp/first-llm-studio-next.pid
+
+      - name: Wait for production server
+        run: |
+          for attempt in $(seq 1 45); do
+            if curl --fail --silent http://127.0.0.1:3011/agent > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/first-llm-studio-next.log
+          exit 1
+
+      - name: Route smoke
+        run: npm run smoke:ci-routes
+
+      - name: Collect route smoke logs
+        if: always()
+        run: |
+          mkdir -p output
+          cp /tmp/first-llm-studio-next.log output/ci-next-server.log || true
+
+      - name: Upload route smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-route-smoke
+          path: |
+            output/ci-route-smoke.json
+            output/ci-next-server.log
+          if-no-files-found: warn
+
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f /tmp/first-llm-studio-next.pid ]; then
+            kill "$(cat /tmp/first-llm-studio-next.pid)" || true
+          fi

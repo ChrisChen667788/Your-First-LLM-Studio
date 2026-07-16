@@ -1,5 +1,9 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-07-16 ten-version local productization gate
+
+The `v1.1.0` through `v1.5.1` roadmap is now scored from one runtime contract instead of ten stale planned cards. All ten milestones satisfy their current local foundation, hardening, product-acceptance, and lifecycle checks; `v1.3.1` is complete, six milestones are local-ready with external evidence still required, and `v1.1.0`, `v1.4.0`, and `v1.5.1` remain explicitly externally blocked. This batch also adds a worker-ready MLX-LM training plan, a fail-closed LLaMA-Factory preview plan, and non-mutating staging plans for GitHub Releases, ModelScope, Hugging Face, and private OCI registries. Local readiness is not a shipped production release. Evidence: [`docs/release-evidence/post-v1-promotion-gate-2026-07-16.md`](./release-evidence/post-v1-promotion-gate-2026-07-16.md).
+
 ## 2026-07-16 third post-v1 operational lifecycle batch
 
 The next 15 local acceptance slices are now executable as explicit lifecycle state machines: desktop service recovery and permission repair; authenticated model source manifests, bounded transfer scheduling, and ownership-safe removal; drain-aware server switching, redacted log retention, and remote heartbeat fencing; reversible extension grants and quarantine review; version-pinned workflow deployment access; four-eyes governance review; reproducible evaluation baseline promotion; artifact install rollback; and retry-safe usage settlement. `/experiments` reports 15 ready, 0 partial, and 0 blocked at 92% average local completion. Real launchd, hub network transfers, live traffic, multi-machine failover, public registry, external billing, and cloud/identity gates remain planned or fail-closed. Evidence: [`docs/release-evidence/post-v1-operational-lifecycle-15-slice-2026-07-16.md`](./release-evidence/post-v1-operational-lifecycle-15-slice-2026-07-16.md).
@@ -81,12 +85,12 @@ This release train and post-v1 roadmap form the active product contract after `v
 
 ## Post-v1 Version Train
 
-These versions are planned, not shipped. Their acceptance and evidence requirements are mirrored in `features/experiments/release-train.ts` and appear as planned rounds in `/experiments`.
+These versions are not all shipped. Their implementation, local readiness, and external production evidence are scored separately by `features/experiments/post-v1-promotion-gate.ts` and surfaced in `/experiments`.
 
 | Version | Track | Target | Borrowed strength | Core outcome |
 | --- | --- | --- | --- | --- |
 | `v1.1.0` | Desktop | 2026-11 | LM Studio / Jan onboarding | Signed desktop package, first-run diagnosis, upgrades, permissions, background services, rollback and uninstall evidence. |
-| `v1.1.1` | Models | 2026-11 | Desktop model hubs | Resumable downloads, checksums, external-disk migration, deduplication, compatibility checks, and install-to-benchmark handoff. |
+| `v1.1.1` | Models + DX | 2026-11 | Desktop model hubs and maintainable OSS workflows | Resumable downloads, checksums, external-disk migration, deduplication, compatibility checks, install-to-benchmark handoff, issue-ready runtime/tool/benchmark evidence, CI route smoke, bilingual contributor onboarding, and reproducible demo capture. |
 | `v1.2.0` | Runtime | 2026-12 | LM Studio / Jan local server | Server-instance registry, hot-switch, idle eviction, request logs, auth, trusted hosts, accounting, and LAN safety. |
 | `v1.2.1` | Runtime | 2026-12 | Ollama / LocalAI runtime breadth | Backend-neutral adapters for MLX, llama.cpp, Ollama, LocalAI, vLLM, SGLang, cross-platform hardware, and remote nodes. |
 | `v1.3.0` | Ecosystem | 2027-01 | Open WebUI / Jan extensibility | Permissioned MCP and signed extension registry with secret scope, audit, update, rollback, and quarantine. |
@@ -99,6 +103,10 @@ These versions are planned, not shipped. Their acceptance and evidence requireme
 ## Current Slice
 
 The active version is `v1.1.0-rc.2`. The native-launcher Desktop package and fail-closed production distribution workflow are RC-ready; real Developer ID notarization and a separately trusted clean-machine organization receipt remain the explicit GA gate.
+
+Development has moved to the non-blocked `v1.1.1` batch. Its first Community/DX slice absorbs the remaining GitHub issues: latest runtime recovery visibility, line-level `read_file` evidence, compact benchmark issue exports, production route-smoke artifacts, Chinese contributor onboarding, a repository setup checklist, local/remote lane guidance, and a reproducible MP4 workflow. The Model Hub promotion gate still requires an authenticated multi-file Hub transfer and a physical external-disk migration receipt.
+
+Evidence: [`docs/release-evidence/v1.1.1-community-dx-2026-07-16.md`](./release-evidence/v1.1.1-community-dx-2026-07-16.md).
 
 ## 2026-07-16 v1.1.0-rc.2 Desktop Distribution Gate
 

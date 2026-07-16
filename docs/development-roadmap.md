@@ -2,6 +2,14 @@
 
 Last updated: 2026-07-16
 
+## v1.1.1 Community/DX execution slice
+
+未闭环 GitHub issue 已并入 `v1.1.1 Model Hub Lifecycle + Community DX`，并优先完成不受 Apple 凭据阻塞的部分：runtime 卡片展示最新 recovery action/time，Agent `read_file` 形成 `path:start-end` 行级证据，Benchmark 提供可直接贴进 issue 的紧凑摘要，CI 构建后运行 production route smoke 并上传 JSON/日志，以及中文贡献指南、仓库设置清单、本地/远端 lane 对照和可复现 MP4 capture。Model Hub 的 authenticated multi-file Hub transfer 与真实外置盘迁移仍是下一项硬证据，不能由本地 fixture 替代。详见 [`docs/release-evidence/v1.1.1-community-dx-2026-07-16.md`](./release-evidence/v1.1.1-community-dx-2026-07-16.md)。
+
+## Post-v1 ten-version productization checkpoint
+
+`v1.1.0` 到 `v1.5.1` 已从十张静态 planned 卡片升级为统一 runtime promotion gate。当前十个版本全部满足本地 foundation、hardening、product acceptance 与 lifecycle 检查；`v1.3.1` 完成，六个版本达到 local-ready，`v1.1.0`、`v1.4.0`、`v1.5.1` 因 Apple、企业身份或真实云证据继续 externally blocked。本轮另加入 MLX-LM worker-ready training plan、LLaMA-Factory fail-closed preview，以及 GitHub Releases、ModelScope、Hugging Face、private OCI 的非写入 staging plan。这里的 local-ready 不等于正式生产发布，详见 [`docs/release-evidence/post-v1-promotion-gate-2026-07-16.md`](./release-evidence/post-v1-promotion-gate-2026-07-16.md)。
+
 ## Post-v1 third operational lifecycle checkpoint
 
 第三组十五个本地生命周期切片已完成并进入 `/experiments`：15 ready、0 partial、0 blocked，平均本地完成度 92%。本轮把 Desktop 服务恢复/权限修复、Model Hub 来源清单/并发调度/安全清理、Server 流量排空/日志保留、Remote lease fencing、Extension grant/quarantine、Workflow deployment auth、Governance 四眼审批、Evaluation baseline promotion、Artifact rollback 和 usage settlement 做成可重复状态机。真实 launchd、Hub 网络下载、多机流量切换、公共 registry、外部 billing 与云/组织身份证据仍保持外部 gate。详见 [`docs/release-evidence/post-v1-operational-lifecycle-15-slice-2026-07-16.md`](./release-evidence/post-v1-operational-lifecycle-15-slice-2026-07-16.md)。

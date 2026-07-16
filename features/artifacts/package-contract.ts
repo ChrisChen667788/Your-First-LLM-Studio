@@ -77,6 +77,6 @@ export function readArtifactPackageFoundation() {
     supportedKinds: ["model", "adapter", "dataset", "rag", "evaluation", "runtime-profile", "workflow"] as ArtifactPackageKind[],
     requiredChecks: ["digest", "signature", "license", "dependency-pin", "secret-scan", "compatibility", "evidence"],
     example: { manifest: example, validation: validateArtifactPackage(example) },
-    blockers: ["Registry publishing remains disabled until package signing and remote round-trip verification are implemented."],
+    blockers: ["Local signed publication is available; remote registry promotion remains disabled until a staging round-trip receipt verifies digest and signature."],
   };
 }

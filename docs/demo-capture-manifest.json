@@ -1,7 +1,7 @@
 {
   "schemaVersion": "first-llm-studio.demo-capture-manifest.v1",
-  "generatedAt": "2026-07-16T06:52:35.841Z",
-  "baseUrl": "http://localhost:3011",
+  "generatedAt": "2026-07-16T10:35:41.729Z",
+  "baseUrl": "http://127.0.0.1:3011",
   "command": "BASE_URL=http://localhost:3011 npm run screenshots:release",
   "viewport": {
     "width": 1920,
@@ -80,6 +80,18 @@
       "screenshotPath": "docs/assets/screenshots/experiments-evidence-matrix.png",
       "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow experiments-evidence-matrix",
       "purpose": "Show the v0.5.0 and v0.5.1 promotion status inside the product evidence matrix."
+    },
+    {
+      "id": "post-v1-promotion-gate",
+      "label": "Post-v1 promotion gate",
+      "route": "/experiments",
+      "selector": "#post-v1-promotion-gate",
+      "minimumPixelWidth": 3000,
+      "minimumPixelHeight": 1200,
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/post-v1-promotion-gate.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow post-v1-promotion-gate",
+      "purpose": "Show local and production readiness for v1.1.0 through v1.5.1 without masking Apple, identity, registry, or cloud evidence gates."
     },
     {
       "id": "desktop-onboarding-release",

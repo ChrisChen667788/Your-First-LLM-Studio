@@ -22,7 +22,7 @@ export type TrainingBackendCapability = {
   supportedSchedulers: string[];
 };
 
-const BACKENDS: TrainingBackendCapability[] = [
+export const TRAINING_BACKENDS: TrainingBackendCapability[] = [
   {
     id: "mlx-lm",
     status: "implemented",
@@ -36,7 +36,7 @@ const BACKENDS: TrainingBackendCapability[] = [
   },
   {
     id: "llama-factory",
-    status: "planned",
+    status: "preview",
     platforms: ["linux-x64-nvidia", "linux-x64-amd"],
     modelFamilies: ["qwen", "llama", "mistral", "gemma", "phi", "deepseek", "glm"],
     methods: ["lora", "qlora", "dora", "rslora", "full", "dpo", "orpo"],
@@ -66,7 +66,7 @@ export function evaluateTrainingCompatibility(input: {
   scheduler: string;
   distributed?: boolean;
 }) {
-  const backend = BACKENDS.find((candidate) => candidate.id === input.backendId);
+  const backend = TRAINING_BACKENDS.find((candidate) => candidate.id === input.backendId);
   if (!backend) return { supported: false, reasons: ["Unknown training backend."] };
   const reasons = [
     ...(!backend.modelFamilies.includes(input.modelFamily.toLowerCase())
@@ -96,7 +96,7 @@ export function readTrainingCapabilityRegistry() {
     ok: true as const,
     schemaVersion: TRAINING_CAPABILITY_SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
-    backends: BACKENDS,
+    backends: TRAINING_BACKENDS,
     sampleCompatibility: evaluateTrainingCompatibility({
       backendId: "mlx-lm",
       modelFamily: "qwen",
@@ -105,10 +105,11 @@ export function readTrainingCapabilityRegistry() {
       scheduler: "cosine",
     }),
     totals: {
-      backends: BACKENDS.length,
-      implemented: BACKENDS.filter((backend) => backend.status === "implemented").length,
-      planned: BACKENDS.filter((backend) => backend.status === "planned").length,
-      methods: new Set(BACKENDS.flatMap((backend) => backend.methods)).size,
+      backends: TRAINING_BACKENDS.length,
+      implemented: TRAINING_BACKENDS.filter((backend) => backend.status === "implemented").length,
+      preview: TRAINING_BACKENDS.filter((backend) => backend.status === "preview").length,
+      planned: TRAINING_BACKENDS.filter((backend) => backend.status === "planned").length,
+      methods: new Set(TRAINING_BACKENDS.flatMap((backend) => backend.methods)).size,
     },
   };
 }

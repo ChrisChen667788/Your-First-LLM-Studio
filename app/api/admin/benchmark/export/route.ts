@@ -4,6 +4,7 @@ import {
   serializeBenchmarksAsMarkdown
 } from "@/lib/agent/log-store";
 import { percentile } from "@/lib/agent/metrics";
+import { serializeBenchmarkIssueSummary } from "@/features/benchmark/issue-summary-export";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,7 @@ export async function GET(request: Request) {
   const suiteId = (searchParams.get("suiteId") || "").trim();
   const profileBatchScope = (searchParams.get("profileBatchScope") || "").trim();
   const prompt = (searchParams.get("prompt") || "").trim();
+  const runId = (searchParams.get("runId") || "").trim();
   const targetIds = (searchParams.get("targetIds") || "")
     .split(",")
     .map((value) => value.trim())
@@ -42,7 +44,8 @@ export async function GET(request: Request) {
   const contextWindowRaw = searchParams.get("contextWindow");
   const contextWindowValue = contextWindowRaw ? Number(contextWindowRaw) : Number.NaN;
   const contextWindow = Number.isFinite(contextWindowValue) ? contextWindowValue : undefined;
-  const windowMinutesValue = Number(searchParams.get("windowMinutes") || "");
+  const windowMinutesRaw = searchParams.get("windowMinutes");
+  const windowMinutesValue = windowMinutesRaw ? Number(windowMinutesRaw) : Number.NaN;
   const sinceIso = Number.isFinite(windowMinutesValue)
     ? new Date(Date.now() - Math.min(Math.max(windowMinutesValue, 5), 24 * 60) * 60 * 1000).toISOString()
     : undefined;
@@ -51,6 +54,7 @@ export async function GET(request: Request) {
 
   const logs = readBenchmarkLogs({ sinceIso, limit })
     .filter((entry) => {
+      if (runId && entry.runId !== runId && entry.id !== runId) return false;
       if (benchmarkMode !== "all" && (entry.benchmarkMode || "prompt") !== benchmarkMode) return false;
       if (profileBatchScope && (entry.profileBatchScope || "") !== profileBatchScope) return false;
       if (suiteId) return entry.suiteId === suiteId;
@@ -79,6 +83,9 @@ export async function GET(request: Request) {
             if (sampleStatus === "failed") return !sample.ok;
             return true;
           });
+          const scoredSamples = filteredSamples.filter(
+            (sample) => typeof sample.score === "number" && Number.isFinite(sample.score),
+          );
           return {
             ...result,
             runs: filteredSamples.length,
@@ -89,7 +96,7 @@ export async function GET(request: Request) {
             avgFirstTokenLatencyMs: average(filteredSamples.map((sample) => sample.firstTokenLatencyMs)),
             avgLatencyMs: average(filteredSamples.map((sample) => sample.latencyMs)),
             avgTokenThroughputTps: average(filteredSamples.map((sample) => sample.tokenThroughputTps)),
-            avgScore: average(filteredSamples.map((sample) => sample.score)),
+            avgScore: scoredSamples.length ? average(scoredSamples.map((sample) => sample.score)) : null,
             passRate: filteredSamples.filter((sample) => typeof sample.passed === "boolean").length
               ? Number((
                   (filteredSamples.filter((sample) => sample.passed).length /
@@ -97,7 +104,7 @@ export async function GET(request: Request) {
                   100
                 ).toFixed(2))
               : null,
-            scoredSamples: filteredSamples.filter((sample) => typeof sample.score === "number").length,
+            scoredSamples: scoredSamples.length,
             samples: filteredSamples
           };
         })
@@ -133,6 +140,7 @@ export async function GET(request: Request) {
             suiteId,
             profileBatchScope,
             prompt,
+            runId,
             targetIds,
             contextWindow,
             windowMinutes: Number.isFinite(windowMinutesValue) ? windowMinutesValue : null,
@@ -148,6 +156,16 @@ export async function GET(request: Request) {
         "Content-Type": "application/json; charset=utf-8",
         "Content-Disposition": `attachment; filename=\"benchmark-history${targetIds.length ? `-${targetIds.join("-")}` : ""}.json\"`
       }
+    });
+  }
+
+  if (format === "issue-summary") {
+    const markdown = serializeBenchmarkIssueSummary(logs, { generatedAt, maxRuns: runId ? 1 : 3 });
+    return new NextResponse(markdown, {
+      headers: {
+        "Content-Type": "text/markdown; charset=utf-8",
+        "Content-Disposition": `attachment; filename="benchmark-issue-summary${runId ? `-${runId}` : ""}.md"`,
+      },
     });
   }
 

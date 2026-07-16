@@ -340,6 +340,7 @@ export type PublicReleaseEvidenceFlow = {
   id: string;
   label: string;
   route: string;
+  selector?: string;
   screenshotPath: string;
   command: string;
   purpose: string;

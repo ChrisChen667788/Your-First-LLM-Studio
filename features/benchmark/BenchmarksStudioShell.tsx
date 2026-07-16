@@ -760,6 +760,12 @@ export function BenchmarksStudioShell() {
                         <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
                           {run.thinkingMode || "standard"}
                         </span>
+                        <a
+                          href={`/api/admin/benchmark/export?format=issue-summary&runId=${encodeURIComponent(run.runId || run.id)}`}
+                          className="border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 font-semibold text-cyan-100 hover:bg-cyan-300/20"
+                        >
+                          {isEnglish ? "Issue summary" : "Issue 摘要"}
+                        </a>
                       </div>
                     </div>
                     <div className="mt-4 grid gap-3 lg:grid-cols-2">
