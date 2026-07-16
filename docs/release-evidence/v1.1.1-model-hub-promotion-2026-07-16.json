@@ -1,0 +1,331 @@
+{
+  "schemaVersion": "models.v1.1.1-real-promotion-evidence.v1",
+  "generatedAt": "2026-07-16T13:35:24.119Z",
+  "status": "hold",
+  "authenticationRequired": false,
+  "transfer": {
+    "schemaVersion": "models.hub-transfer-receipt.v1",
+    "id": "hub-receipt-0227b518-6981-4e7b-ac2b-d37a42249532",
+    "sessionId": "hub-cb616e27ce42568365e9",
+    "generatedAt": "2026-07-16T13:35:23.656Z",
+    "status": "pass",
+    "provider": "modelscope",
+    "repository": "onnx-community/tiny-gpt2-ONNX",
+    "requestedRevision": "master",
+    "resolvedRevision": "7ee11395b1add2f56e7dd77f08113760b1fb99d8",
+    "destination": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2",
+    "authentication": {
+      "mode": "anonymous",
+      "tokenConfigured": false,
+      "verified": false
+    },
+    "manifestDigest": "87692c1d3267cc3921cb8c384f2e82df709b8aaa61626d626a2075de5dc056f9",
+    "checks": {
+      "immutableRevision": true,
+      "multiFile": true,
+      "authenticationVerified": true,
+      "allCompleted": true,
+      "checksumsMaterialized": true,
+      "expectedChecksumsMatched": true,
+      "destinationBound": true,
+      "manifestBound": true
+    },
+    "totals": {
+      "files": 9,
+      "completed": 9,
+      "bytes": 8288366,
+      "verifiedChecksums": 9
+    },
+    "files": [
+      {
+        "path": "config.json",
+        "bytes": 828,
+        "expectedSha256": "bf86691be60a4bfbee1dea50b91c08669bba649304defba583d3411201647f1c",
+        "verifiedSha256": "bf86691be60a4bfbee1dea50b91c08669bba649304defba583d3411201647f1c",
+        "checksumMatched": true,
+        "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/config.json"
+      },
+      {
+        "path": "configuration.json",
+        "bytes": 73,
+        "expectedSha256": "f888421726665e8a84b738eed42a64875aed79de8be7daade851ac8bf4c0cef9",
+        "verifiedSha256": "f888421726665e8a84b738eed42a64875aed79de8be7daade851ac8bf4c0cef9",
+        "checksumMatched": true,
+        "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/configuration.json"
+      },
+      {
+        "path": "generation_config.json",
+        "bytes": 119,
+        "expectedSha256": "e7f6144153c0e1c0ccd6c327134b1bcc8f4e36e164d903935b08753947126636",
+        "verifiedSha256": "e7f6144153c0e1c0ccd6c327134b1bcc8f4e36e164d903935b08753947126636",
+        "checksumMatched": true,
+        "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/generation_config.json"
+      },
+      {
+        "path": "merges.txt",
+        "bytes": 456318,
+        "expectedSha256": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5",
+        "verifiedSha256": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5",
+        "checksumMatched": true,
+        "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/merges.txt"
+      },
+      {
+        "path": "onnx/model_fp16.onnx",
+        "bytes": 3474209,
+        "expectedSha256": "6c35f6ae638bf656e3f16a76d98ffc9314da25e12593b7ddbc514a4863576a49",
+        "verifiedSha256": "6c35f6ae638bf656e3f16a76d98ffc9314da25e12593b7ddbc514a4863576a49",
+        "checksumMatched": true,
+        "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/onnx/model_fp16.onnx"
+      },
+      {
+        "path": "special_tokens_map.json",
+        "bytes": 438,
+        "expectedSha256": "98412137ae43c77f8af52eb51b19c3536d3242cb55339167d841005fa94a23b7",
+        "verifiedSha256": "98412137ae43c77f8af52eb51b19c3536d3242cb55339167d841005fa94a23b7",
+        "checksumMatched": true,
+        "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/special_tokens_map.json"
+      },
+      {
+        "path": "tokenizer.json",
+        "bytes": 3557680,
+        "expectedSha256": "1fe93b6152957cf9cfd6d89002467f789ce8b3f3e000b3a2edf27c808ddd0b9e",
+        "verifiedSha256": "1fe93b6152957cf9cfd6d89002467f789ce8b3f3e000b3a2edf27c808ddd0b9e",
+        "checksumMatched": true,
+        "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/tokenizer.json"
+      },
+      {
+        "path": "tokenizer_config.json",
+        "bytes": 545,
+        "expectedSha256": "b6d6e2d83b34280f18571d8306ae4a9a43f672d50a78c5c1b1f249f696fe3a7a",
+        "verifiedSha256": "b6d6e2d83b34280f18571d8306ae4a9a43f672d50a78c5c1b1f249f696fe3a7a",
+        "checksumMatched": true,
+        "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/tokenizer_config.json"
+      },
+      {
+        "path": "vocab.json",
+        "bytes": 798156,
+        "expectedSha256": "3ba3c3109ff33976c4bd966589c11ee14fcaa1f4c9e5e154c2ed7f99d80709e7",
+        "verifiedSha256": "3ba3c3109ff33976c4bd966589c11ee14fcaa1f4c9e5e154c2ed7f99d80709e7",
+        "checksumMatched": true,
+        "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/vocab.json"
+      }
+    ],
+    "blockers": []
+  },
+  "migration": {
+    "schemaVersion": "models.external-storage-migration.v2",
+    "id": "external-storage-d437be1d-c8ff-43f6-a9fa-fd4f9f7cbc83",
+    "generatedAt": "2026-07-16T13:35:24.024Z",
+    "mode": "physical-volume",
+    "status": "pass",
+    "checks": {
+      "operatorApproved": true,
+      "physicalVolumeExternal": true,
+      "volumeWritable": true,
+      "spaceAvailable": true,
+      "expectedSourceDigestMatched": true,
+      "stagedCopyComplete": true,
+      "perFileChecksumsVerified": true,
+      "digestPreserved": true,
+      "atomicDestination": true,
+      "ownershipManifestWritten": true,
+      "systemMetadataRemoved": true,
+      "sourceDispositionVerified": true
+    },
+    "files": 9,
+    "bytes": 8288366,
+    "sourcePath": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2",
+    "destinationPath": "/Volumes/HP ZHAN SSD/FirstLLMStudio/models-v111-evidence/v111-20260716213455-tiny-gpt2",
+    "sourceDigest": "74a139b3d958b5f0287a733f7af3fc3baf35ac8350aa173970bcbfa59b0ae980",
+    "destinationDigest": "74a139b3d958b5f0287a733f7af3fc3baf35ac8350aa173970bcbfa59b0ae980",
+    "volume": {
+      "mountPoint": "/Volumes/HP ZHAN SSD",
+      "volumeName": "HP ZHAN SSD",
+      "volumeUuid": "2EB12775-793C-3D6F-8DE9-4B56734C2E33",
+      "deviceIdentifier": "disk6s1",
+      "filesystem": "ExFAT",
+      "protocol": "USB",
+      "external": true,
+      "writable": true,
+      "freeBytes": 73978216448
+    },
+    "sourceRemoved": false,
+    "ownershipManifest": "/Volumes/HP ZHAN SSD/FirstLLMStudio/models-v111-evidence/v111-20260716213455-tiny-gpt2/.first-llm-storage-owner.json",
+    "warning": "A mounted physical external volume was verified. Disconnect/reconnect recovery is not part of this receipt."
+  },
+  "promotion": {
+    "ok": true,
+    "schemaVersion": "models.promotion-evidence.v1",
+    "status": "hold",
+    "checks": {
+      "authenticatedHubReceipt": false,
+      "immutableRevision": true,
+      "multiFileChecksumReceipt": true,
+      "physicalMigrationReceipt": true,
+      "sourceDestinationBound": true,
+      "directoryDigestBound": true,
+      "fileSetAndChecksumsBound": true,
+      "ownershipVolumeBound": true
+    },
+    "blockers": [
+      "Model Hub promotion check failed: authenticatedHubReceipt."
+    ],
+    "hubReceipt": {
+      "schemaVersion": "models.hub-transfer-receipt.v1",
+      "id": "hub-receipt-0227b518-6981-4e7b-ac2b-d37a42249532",
+      "sessionId": "hub-cb616e27ce42568365e9",
+      "generatedAt": "2026-07-16T13:35:23.656Z",
+      "status": "pass",
+      "provider": "modelscope",
+      "repository": "onnx-community/tiny-gpt2-ONNX",
+      "requestedRevision": "master",
+      "resolvedRevision": "7ee11395b1add2f56e7dd77f08113760b1fb99d8",
+      "destination": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2",
+      "authentication": {
+        "mode": "anonymous",
+        "tokenConfigured": false,
+        "verified": false
+      },
+      "manifestDigest": "87692c1d3267cc3921cb8c384f2e82df709b8aaa61626d626a2075de5dc056f9",
+      "checks": {
+        "immutableRevision": true,
+        "multiFile": true,
+        "authenticationVerified": true,
+        "allCompleted": true,
+        "checksumsMaterialized": true,
+        "expectedChecksumsMatched": true,
+        "destinationBound": true,
+        "manifestBound": true
+      },
+      "totals": {
+        "files": 9,
+        "completed": 9,
+        "bytes": 8288366,
+        "verifiedChecksums": 9
+      },
+      "files": [
+        {
+          "path": "config.json",
+          "bytes": 828,
+          "expectedSha256": "bf86691be60a4bfbee1dea50b91c08669bba649304defba583d3411201647f1c",
+          "verifiedSha256": "bf86691be60a4bfbee1dea50b91c08669bba649304defba583d3411201647f1c",
+          "checksumMatched": true,
+          "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/config.json"
+        },
+        {
+          "path": "configuration.json",
+          "bytes": 73,
+          "expectedSha256": "f888421726665e8a84b738eed42a64875aed79de8be7daade851ac8bf4c0cef9",
+          "verifiedSha256": "f888421726665e8a84b738eed42a64875aed79de8be7daade851ac8bf4c0cef9",
+          "checksumMatched": true,
+          "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/configuration.json"
+        },
+        {
+          "path": "generation_config.json",
+          "bytes": 119,
+          "expectedSha256": "e7f6144153c0e1c0ccd6c327134b1bcc8f4e36e164d903935b08753947126636",
+          "verifiedSha256": "e7f6144153c0e1c0ccd6c327134b1bcc8f4e36e164d903935b08753947126636",
+          "checksumMatched": true,
+          "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/generation_config.json"
+        },
+        {
+          "path": "merges.txt",
+          "bytes": 456318,
+          "expectedSha256": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5",
+          "verifiedSha256": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5",
+          "checksumMatched": true,
+          "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/merges.txt"
+        },
+        {
+          "path": "onnx/model_fp16.onnx",
+          "bytes": 3474209,
+          "expectedSha256": "6c35f6ae638bf656e3f16a76d98ffc9314da25e12593b7ddbc514a4863576a49",
+          "verifiedSha256": "6c35f6ae638bf656e3f16a76d98ffc9314da25e12593b7ddbc514a4863576a49",
+          "checksumMatched": true,
+          "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/onnx/model_fp16.onnx"
+        },
+        {
+          "path": "special_tokens_map.json",
+          "bytes": 438,
+          "expectedSha256": "98412137ae43c77f8af52eb51b19c3536d3242cb55339167d841005fa94a23b7",
+          "verifiedSha256": "98412137ae43c77f8af52eb51b19c3536d3242cb55339167d841005fa94a23b7",
+          "checksumMatched": true,
+          "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/special_tokens_map.json"
+        },
+        {
+          "path": "tokenizer.json",
+          "bytes": 3557680,
+          "expectedSha256": "1fe93b6152957cf9cfd6d89002467f789ce8b3f3e000b3a2edf27c808ddd0b9e",
+          "verifiedSha256": "1fe93b6152957cf9cfd6d89002467f789ce8b3f3e000b3a2edf27c808ddd0b9e",
+          "checksumMatched": true,
+          "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/tokenizer.json"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "bytes": 545,
+          "expectedSha256": "b6d6e2d83b34280f18571d8306ae4a9a43f672d50a78c5c1b1f249f696fe3a7a",
+          "verifiedSha256": "b6d6e2d83b34280f18571d8306ae4a9a43f672d50a78c5c1b1f249f696fe3a7a",
+          "checksumMatched": true,
+          "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/tokenizer_config.json"
+        },
+        {
+          "path": "vocab.json",
+          "bytes": 798156,
+          "expectedSha256": "3ba3c3109ff33976c4bd966589c11ee14fcaa1f4c9e5e154c2ed7f99d80709e7",
+          "verifiedSha256": "3ba3c3109ff33976c4bd966589c11ee14fcaa1f4c9e5e154c2ed7f99d80709e7",
+          "checksumMatched": true,
+          "completedFile": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2/vocab.json"
+        }
+      ],
+      "blockers": []
+    },
+    "storageReceipt": {
+      "schemaVersion": "models.external-storage-migration.v2",
+      "id": "external-storage-d437be1d-c8ff-43f6-a9fa-fd4f9f7cbc83",
+      "generatedAt": "2026-07-16T13:35:24.024Z",
+      "mode": "physical-volume",
+      "status": "pass",
+      "checks": {
+        "operatorApproved": true,
+        "physicalVolumeExternal": true,
+        "volumeWritable": true,
+        "spaceAvailable": true,
+        "expectedSourceDigestMatched": true,
+        "stagedCopyComplete": true,
+        "perFileChecksumsVerified": true,
+        "digestPreserved": true,
+        "atomicDestination": true,
+        "ownershipManifestWritten": true,
+        "systemMetadataRemoved": true,
+        "sourceDispositionVerified": true
+      },
+      "files": 9,
+      "bytes": 8288366,
+      "sourcePath": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-downloads/v111-20260716213455-tiny-gpt2",
+      "destinationPath": "/Volumes/HP ZHAN SSD/FirstLLMStudio/models-v111-evidence/v111-20260716213455-tiny-gpt2",
+      "sourceDigest": "74a139b3d958b5f0287a733f7af3fc3baf35ac8350aa173970bcbfa59b0ae980",
+      "destinationDigest": "74a139b3d958b5f0287a733f7af3fc3baf35ac8350aa173970bcbfa59b0ae980",
+      "volume": {
+        "mountPoint": "/Volumes/HP ZHAN SSD",
+        "volumeName": "HP ZHAN SSD",
+        "volumeUuid": "2EB12775-793C-3D6F-8DE9-4B56734C2E33",
+        "deviceIdentifier": "disk6s1",
+        "filesystem": "ExFAT",
+        "protocol": "USB",
+        "external": true,
+        "writable": true,
+        "freeBytes": 73978216448
+      },
+      "sourceRemoved": false,
+      "ownershipManifest": "/Volumes/HP ZHAN SSD/FirstLLMStudio/models-v111-evidence/v111-20260716213455-tiny-gpt2/.first-llm-storage-owner.json",
+      "warning": "A mounted physical external volume was verified. Disconnect/reconnect recovery is not part of this receipt."
+    },
+    "ownershipManifest": "/Volumes/HP ZHAN SSD/FirstLLMStudio/models-v111-evidence/v111-20260716213455-tiny-gpt2/.first-llm-storage-owner.json",
+    "generatedAt": "2026-07-16T13:35:24.118Z",
+    "evidenceDigest": "63abfeac2aa480f671d73e41d790486dd51d9e0653b692173ece9b577892d202",
+    "paths": {
+      "hubReceipts": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/hub-transfer-receipts.json",
+      "migrationReceipts": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/model-external-storage-migrations.json"
+    }
+  }
+}

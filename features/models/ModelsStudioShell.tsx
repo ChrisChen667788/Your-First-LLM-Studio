@@ -8,6 +8,7 @@ import {
 } from "@/components/layout/StudioPageShell";
 import { ModelDiscoveryPanel } from "@/features/models/ModelDiscoveryPanel";
 import { ModelHubRuntimePanel } from "@/features/models/ModelHubRuntimePanel";
+import { ModelHubLifecycleEvidencePanel } from "@/features/models/ModelHubLifecycleEvidencePanel";
 
 export function ModelsStudioShell() {
   const { locale } = useLocale();
@@ -42,6 +43,7 @@ export function ModelsStudioShell() {
           </div>
         }
       />
+      <ModelHubLifecycleEvidencePanel />
       <ModelHubRuntimePanel embedded />
       <ModelDiscoveryPanel locale={locale} />
     </StudioSurface>

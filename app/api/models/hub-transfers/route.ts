@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   createHubTransferSession,
+  finalizeHubTransferSession,
   readHubTransferSessions,
   runHubTransferSessionStep,
   resetHubTransferFileRetry,
@@ -18,6 +19,8 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
     const result = body.action === "reset-retry"
       ? resetHubTransferFileRetry(String(body.sessionId || ""), String(body.jobId || ""))
+      : body.action === "finalize"
+      ? finalizeHubTransferSession(String(body.sessionId || ""), body.requireAuthentication !== false)
       : body.action === "transfer-step"
       ? await runHubTransferSessionStep(String(body.sessionId || ""), typeof body.chunkBytes === "number" ? body.chunkBytes : undefined)
       : await createHubTransferSession({

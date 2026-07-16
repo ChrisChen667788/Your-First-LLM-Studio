@@ -2,9 +2,13 @@
 
 Last updated: 2026-07-16
 
+## v1.1.1 real Model Hub and physical storage checkpoint
+
+ModelScope `onnx-community/tiny-gpt2-ONNX` 已完成真实 9 文件下载、不可变 commit 解析、`9/9` provider SHA-256 对照和 `8,288,366` 字节落盘，并通过同卷 staging、逐文件重哈希、原子 rename、AppleDouble 清理和 volume UUID ownership manifest 迁移到 USB 外置 `HP ZHAN SSD`。`/models` 现在直接显示组合 promotion read model。当前 `7/8` 检查通过，旧 ModelScope token 在官方 `users/me` 返回 `401`，所以 `authenticatedHubReceipt` 保持 HOLD；token 明文未进入 env 文件或 evidence。CI workflow 同步升级到 `actions/*@v7`，待远端 run 确认 Node 20 action-runtime 弃用提示消失。详见 [`docs/release-evidence/v1.1.1-model-hub-promotion-2026-07-16.md`](./release-evidence/v1.1.1-model-hub-promotion-2026-07-16.md)。
+
 ## v1.1.1 Community/DX execution slice
 
-未闭环 GitHub issue 已并入 `v1.1.1 Model Hub Lifecycle + Community DX`，并优先完成不受 Apple 凭据阻塞的部分：runtime 卡片展示最新 recovery action/time，Agent `read_file` 形成 `path:start-end` 行级证据，Benchmark 提供可直接贴进 issue 的紧凑摘要，CI 构建后运行 production route smoke 并上传 JSON/日志，以及中文贡献指南、仓库设置清单、本地/远端 lane 对照和可复现 MP4 capture。Model Hub 的 authenticated multi-file Hub transfer 与真实外置盘迁移仍是下一项硬证据，不能由本地 fixture 替代。详见 [`docs/release-evidence/v1.1.1-community-dx-2026-07-16.md`](./release-evidence/v1.1.1-community-dx-2026-07-16.md)。
+未闭环 GitHub issue 已并入 `v1.1.1 Model Hub Lifecycle + Community DX`，并优先完成不受 Apple 凭据阻塞的部分：runtime 卡片展示最新 recovery action/time，Agent `read_file` 形成 `path:start-end` 行级证据，Benchmark 提供可直接贴进 issue 的紧凑摘要，CI 构建后运行 production route smoke 并上传 JSON/日志，以及中文贡献指南、仓库设置清单、本地/远端 lane 对照和可复现 MP4 capture。真实多文件下载与物理外置盘迁移已经完成；现在只剩 refreshed ModelScope identity token 对应的 authenticated receipt，不能由匿名公开下载或本地 fixture 替代。详见 [`docs/release-evidence/v1.1.1-community-dx-2026-07-16.md`](./release-evidence/v1.1.1-community-dx-2026-07-16.md)。
 
 ## Post-v1 ten-version productization checkpoint
 

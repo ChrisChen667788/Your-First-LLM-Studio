@@ -155,7 +155,7 @@ Benchmark run evidence from a real local smoke run:
 
 ![Benchmark run evidence](./docs/assets/screenshots/benchmark-run-evidence.png)
 
-Models Studio with hardware-fit chips and one-click community discovery:
+Models Studio with immutable multi-file Hub receipts, per-file SHA-256, physical external-volume ownership evidence, runtime cards, and community discovery:
 
 ![Models Studio](./docs/assets/screenshots/models-studio.png)
 
@@ -427,7 +427,7 @@ Benchmark：本地 smoke run 生成的真实评测证据：
 
 ![Benchmark 运行证据](./docs/assets/screenshots/benchmark-run-evidence.png)
 
-Models Studio：硬件适配 chips 与社区模型扫描：
+Models Studio：不可变多文件 Hub receipt、逐文件 SHA-256、物理外置盘 ownership evidence、runtime 卡片与社区模型扫描：
 
 ![Models Studio](./docs/assets/screenshots/models-studio.png)
 

@@ -300,8 +300,9 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Model provenance and integrity manifest",
       "CI route-smoke artifact, benchmark issue-summary export, and Agent demo-video receipt",
       "Community/DX issue closure matrix linked to durable repository documentation",
+      "Immutable multi-file Hub checksum receipt and physical-volume ownership manifest",
     ],
-    nextSlice: "Close the local Community/DX evidence set, then retain a real authenticated Hub multi-file transfer plus physical external-disk migration and checksum receipt.",
+    nextSlice: "Refresh the rejected ModelScope token and rerun the passing 9-file/physical-volume workflow without anonymous mode to close authenticatedHubReceipt.",
   },
   {
     version: "v1.2.0",

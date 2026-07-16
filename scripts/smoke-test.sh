@@ -54,6 +54,24 @@ check_json_field() {
   fi
 }
 
+check_json_stable_field() {
+  local label="$1"
+  local url="$2"
+  local field="$3"
+  local first
+  local second
+  first="$(curl --max-time "$CURL_MAX_TIME" -fsS "$url" | node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(data[process.argv[1]] || ''));" "$field" || true)"
+  second="$(curl --max-time "$CURL_MAX_TIME" -fsS "$url" | node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(data[process.argv[1]] || ''));" "$field" || true)"
+  if [[ -n "$first" && "$first" == "$second" ]]; then
+    echo "[ok] $label"
+    record_event "api" "$label" "pass" "$url field=$field"
+  else
+    echo "[fail] $label"
+    record_event "api" "$label" "fail" "$url unstable-field=$field"
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+
 check_text_contains() {
   local label="$1"
   local url="$2"
@@ -213,11 +231,13 @@ check_json_field "Desktop service supervisor evidence" "$BASE_URL/api/desktop/se
 check_json_field "Desktop permission repair evidence" "$BASE_URL/api/desktop/permission-repair" "data.ok===true && data.schemaVersion==='desktop.permission-repair.v1' && data.latestPassing && data.latestPassing.checks.contentDigestPreserved===true && data.latestPassing.checks.symlinkEscapeDenied===true"
 check_json_field "Desktop v1.1 onboarding release contract" "$BASE_URL/api/desktop/onboarding-release" "data.ok===true && data.schemaVersion==='desktop.onboarding-release.v1' && data.version==='1.1.0-rc.2' && typeof data.localRcReady==='boolean' && typeof data.gaReady==='boolean' && Array.isArray(data.steps) && data.steps.length>=10 && data.totals && Array.isArray(data.gaBlockers) && data.externalAcceptance && data.paths && typeof data.paths.releaseManifest==='string'"
 check_json_field "Model acquisition registry contract" "$BASE_URL/api/models/acquisitions" "data.ok===true && data.schemaVersion==='models.acquisition-registry.v1' && Array.isArray(data.capabilities) && data.capabilities.includes('pause-resume-contract') && data.capabilities.includes('bounded-range-transfer') && Array.isArray(data.jobs) && data.totals && typeof data.totals.jobs==='number'"
-check_json_field "Hub multi-file transfer contract" "$BASE_URL/api/models/hub-transfers" "data.ok===true && data.schemaVersion==='models.hub-transfer-session.v1' && Array.isArray(data.sessions) && data.providers && data.providers.huggingFace.automaticManifest===true && data.providers.modelScope.explicitFileManifest===true"
+check_json_field "Hub multi-file transfer contract" "$BASE_URL/api/models/hub-transfers" "data.ok===true && data.schemaVersion==='models.hub-transfer-session.v2' && Array.isArray(data.sessions) && Array.isArray(data.receipts) && Array.isArray(data.capabilities) && data.capabilities.includes('immutable-revision-resolution') && data.capabilities.includes('authenticated-identity-proof') && data.capabilities.includes('final-checksum-provenance-receipt') && data.providers && data.providers.huggingFace.automaticManifest===true && data.providers.modelScope.automaticManifest===true"
 check_json_field "Model content-address index" "$BASE_URL/api/models/content-index" "data.ok===true && data.schemaVersion==='models.content-address-index.v1' && Array.isArray(data.objects) && data.totals && typeof data.totals.potentialSavingsBytes==='number'"
 check_json_field "Model content deduplication evidence" "$BASE_URL/api/models/content-deduplication" "data.ok===true && data.schemaVersion==='models.content-deduplication.v1' && Array.isArray(data.receipts) && data.latestPassing && data.latestPassing.checks.atomicReplacementComplete===true"
 check_json_field "Hub transfer reconciliation evidence" "$BASE_URL/api/models/hub-transfers/reconcile" "data.ok===true && data.schemaVersion==='models.hub-session-reconciliation.v1' && Array.isArray(data.receipts) && data.latestPassing && data.latestPassing.status==='pass'"
-check_json_field "External storage migration evidence" "$BASE_URL/api/models/external-storage" "data.ok===true && data.schemaVersion==='models.external-storage-migration.v1' && data.mode==='plan-only' && data.requiresOperatorApproval===true && data.latestPassing && data.latestPassing.checks.digestPreserved===true"
+check_json_field "External storage migration evidence" "$BASE_URL/api/models/external-storage" "data.ok===true && data.schemaVersion==='models.external-storage-migration.v2' && data.mode==='plan-only' && data.requiresOperatorApproval===true && typeof data.destructiveApprovalPhrase==='string' && Array.isArray(data.receipts)"
+check_json_field "Model Hub promotion evidence" "$BASE_URL/api/models/promotion-evidence" "data.ok===true && data.schemaVersion==='models.promotion-evidence.v1' && ['pass','hold'].includes(data.status) && data.checks && typeof data.checks.authenticatedHubReceipt==='boolean' && Array.isArray(data.blockers) && typeof data.evidenceDigest==='string' && data.evidenceDigest.length===64"
+check_json_stable_field "Model Hub promotion evidence digest stability" "$BASE_URL/api/models/promotion-evidence" "evidenceDigest"
 check_json_field "Model compatibility manifest" "$BASE_URL/api/models/compatibility" "data.ok===true && data.schemaVersion==='models.compatibility-manifest.v1' && Array.isArray(data.receipts) && data.latestPassing && data.latestPassing.checks.hardwareFits===true"
 check_json_field "Model benchmark handoff" "$BASE_URL/api/models/benchmark-handoff" "data.ok===true && data.schemaVersion==='models.benchmark-handoff.v1' && Array.isArray(data.receipts) && data.latestReady && data.latestReady.compatibilityReceiptId"
 check_json_field "Authenticated model source manifests" "$BASE_URL/api/models/source-manifests" "data.ok===true && data.schemaVersion==='models.source-manifest.v1' && data.security.tokenValuesPersisted===false && data.latestPassing && data.latestPassing.files.length>=2 && data.latestPassing.checks.immutableRevision===true"

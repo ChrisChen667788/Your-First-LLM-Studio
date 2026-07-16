@@ -104,9 +104,11 @@ These versions are not all shipped. Their implementation, local readiness, and e
 
 The active version is `v1.1.0-rc.2`. The native-launcher Desktop package and fail-closed production distribution workflow are RC-ready; real Developer ID notarization and a separately trusted clean-machine organization receipt remain the explicit GA gate.
 
-Development has moved to the non-blocked `v1.1.1` batch. Its first Community/DX slice absorbs the remaining GitHub issues: latest runtime recovery visibility, line-level `read_file` evidence, compact benchmark issue exports, production route-smoke artifacts, Chinese contributor onboarding, a repository setup checklist, local/remote lane guidance, and a reproducible MP4 workflow. The Model Hub promotion gate still requires an authenticated multi-file Hub transfer and a physical external-disk migration receipt.
+Development has moved to the non-blocked `v1.1.1` batch. Its first Community/DX slice absorbs the remaining GitHub issues: latest runtime recovery visibility, line-level `read_file` evidence, compact benchmark issue exports, production route-smoke artifacts, Chinese contributor onboarding, a repository setup checklist, local/remote lane guidance, and a reproducible MP4 workflow. The real multi-file transfer and physical external-disk receipt now pass; only refreshed ModelScope identity evidence remains required for authenticated promotion.
 
 Evidence: [`docs/release-evidence/v1.1.1-community-dx-2026-07-16.md`](./release-evidence/v1.1.1-community-dx-2026-07-16.md).
+
+The real Model Hub continuation now resolves ModelScope manifests to immutable commits, verifies provider SHA-256 for every selected file, emits a final transfer receipt, and performs operator-approved physical-volume migration with per-file re-hashing and a volume-bound ownership manifest. The public 9-file workload and `HP ZHAN SSD` migration pass; the combined gate remains `7/8 PASS` because the previous ModelScope token returned `401` from the official identity endpoint. Evidence: [`docs/release-evidence/v1.1.1-model-hub-promotion-2026-07-16.md`](./release-evidence/v1.1.1-model-hub-promotion-2026-07-16.md).
 
 ## 2026-07-16 v1.1.0-rc.2 Desktop Distribution Gate
 

@@ -2,6 +2,7 @@ import { readArtifactLocalRegistry } from "@/features/artifacts/local-registry";
 import { readArtifactRegistryAdapterCatalog } from "@/features/artifacts/registry-adapters";
 import { readDesktopOnboardingRelease } from "@/features/desktop/onboarding-release";
 import { readHaFinOpsReadiness } from "@/features/deployment/ha-finops-readiness";
+import { buildModelHubPromotionEvidence } from "@/features/models/model-hub-promotion-evidence";
 import { readTrainingCapabilityRegistry } from "@/features/finetune/training-capabilities";
 import { readTrainingExecutionPlanCatalog } from "@/features/finetune/training-execution-plan";
 import { readIdentityProvisioningReadiness } from "@/features/governance/identity-provisioning";
@@ -78,6 +79,7 @@ export function readPostV1PromotionGate() {
   const artifacts = readArtifactLocalRegistry();
   const registryAdapters = readArtifactRegistryAdapterCatalog();
   const haFinOps = readHaFinOpsReadiness();
+  const modelHub = buildModelHubPromotionEvidence();
 
   const slices: EvidenceSlice[] = [
     ...hardening.slices.map((entry) => ({ ...entry, layer: "hardening" as const })),
@@ -93,8 +95,8 @@ export function readPostV1PromotionGate() {
     },
     "v1.1.1": {
       ready: true,
-      summary: "Model acquisition, source manifest, migration, deduplication, removal, compatibility, and Benchmark handoff contracts are executable.",
-      evidence: ["/api/models/acquisitions", "/api/models/source-manifests"],
+      summary: `Model Hub lifecycle contracts are executable; authenticated physical promotion evidence is ${modelHub.status}.`,
+      evidence: ["/api/models/acquisitions", "/api/models/source-manifests", "/api/models/promotion-evidence"],
     },
     "v1.2.0": {
       ready: true,
@@ -140,7 +142,7 @@ export function readPostV1PromotionGate() {
 
   const productionBlockers: Record<string, string[]> = {
     "v1.1.0": desktop.gaBlockers,
-    "v1.1.1": ["A real authenticated Hub multi-file transfer and physical external-disk migration receipt are still required."],
+    "v1.1.1": modelHub.status === "pass" ? [] : modelHub.blockers,
     "v1.2.0": ["Live concurrent traffic, authenticated LAN access, and long-running idle eviction evidence are still required."],
     "v1.2.1": adapters.totals.planned
       ? [`${adapters.totals.planned} runtime adapter(s) remain planned and require backend-owned conformance evidence.`]
@@ -155,7 +157,7 @@ export function readPostV1PromotionGate() {
     "v1.5.1": haFinOps.blockers,
   };
 
-  const externallyBlocked = new Set(["v1.1.0", "v1.4.0", "v1.5.1"]);
+  const externallyBlocked = new Set(["v1.1.0", "v1.1.1", "v1.4.0", "v1.5.1"]);
   const versions = POST_V1_VERSIONS.map((milestone) => {
     const versionSlices = slices.filter((entry) => sliceMatchesVersion(entry.version, milestone.version));
     const foundation = foundationChecks[milestone.version];
