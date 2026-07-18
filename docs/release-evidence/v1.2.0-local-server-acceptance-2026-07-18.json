@@ -1,0 +1,225 @@
+{
+  "schemaVersion": "models.v1.2.0-real-local-server-evidence.v1",
+  "generatedAt": "2026-07-18T15:05:12.248Z",
+  "status": "local-pass",
+  "acceptance": {
+    "id": "local-server-ee52e4f5-46c9-4ab1-942a-d70870a5c9eb",
+    "generatedAt": "2026-07-18T15:05:11.999Z",
+    "schemaVersion": "models.local-server-acceptance.v1",
+    "status": "pass",
+    "runtime": {
+      "backend": "ollama",
+      "baseUrl": "http://127.0.0.1:11434",
+      "version": "0.31.1",
+      "realProcess": true,
+      "realModel": true
+    },
+    "model": "qwen3:0.6b",
+    "slices": [
+      {
+        "id": "runtime-health",
+        "title": "Real runtime health and version",
+        "status": "pass",
+        "evidence": "Ollama 0.31.1 answered the live version endpoint.",
+        "metrics": {
+          "latencyMs": 3,
+          "version": "0.31.1"
+        }
+      },
+      {
+        "id": "model-discovery",
+        "title": "Installed model discovery",
+        "status": "pass",
+        "evidence": "qwen3:0.6b was discovered from the live runtime.",
+        "metrics": {
+          "installedModels": 1,
+          "bytes": 522653767
+        }
+      },
+      {
+        "id": "instance-registration",
+        "title": "Durable server instance registration",
+        "status": "pass",
+        "evidence": "local-ollama persisted with qwen3:0.6b.",
+        "metrics": {
+          "maxConcurrentRequests": 4,
+          "idleTtlMinutes": 1
+        }
+      },
+      {
+        "id": "model-prewarm",
+        "title": "Model prewarm and activation",
+        "status": "pass",
+        "evidence": "qwen3:0.6b was loaded with a bounded keep-alive."
+      },
+      {
+        "id": "loaded-process-evidence",
+        "title": "Loaded process and memory evidence",
+        "status": "pass",
+        "evidence": "qwen3:0.6b is resident in the live Ollama process.",
+        "metrics": {
+          "sizeBytes": 2634914201,
+          "vramBytes": 2634914201,
+          "expiresAt": "2026-07-18T23:15:09.635144+08:00"
+        }
+      },
+      {
+        "id": "openai-models-and-chat",
+        "title": "OpenAI-compatible models and chat",
+        "status": "pass",
+        "evidence": "Live /v1/models and non-stream chat conformance passed.",
+        "metrics": {
+          "modelsLatencyMs": 1,
+          "chatLatencyMs": 296,
+          "promptTokens": 23,
+          "completionTokens": 4
+        }
+      },
+      {
+        "id": "streaming-sse",
+        "title": "Streaming SSE completion",
+        "status": "pass",
+        "evidence": "Received 4 SSE data chunks and [DONE].",
+        "metrics": {
+          "chunks": 4,
+          "latencyMs": 189
+        }
+      },
+      {
+        "id": "bounded-concurrency",
+        "title": "Bounded concurrent requests",
+        "status": "pass",
+        "evidence": "2/2 concurrent requests completed.",
+        "metrics": {
+          "ok": true,
+          "completed": 2,
+          "latencyMs": 293,
+          "promptTokens": 48,
+          "completionTokens": 20
+        }
+      },
+      {
+        "id": "token-latency-ledger",
+        "title": "Token and latency accounting",
+        "status": "pass",
+        "evidence": "5 live request records were attributed to this run.",
+        "metrics": {
+          "requests": 5,
+          "promptTokens": 71,
+          "completionTokens": 24,
+          "averageLatencyMs": 214
+        }
+      },
+      {
+        "id": "api-key-attribution",
+        "title": "API key issue, attribution, and revocation",
+        "status": "pass",
+        "evidence": "Key plaintext was not persisted and revoked access was denied.",
+        "metrics": {
+          "validKeyAccepted": true,
+          "invalidKeyDenied": true,
+          "wrongServerDenied": true,
+          "plaintextNotPersisted": true,
+          "ledgerAttributed": true,
+          "revokedKeyDenied": true
+        }
+      },
+      {
+        "id": "lan-trusted-host-policy",
+        "title": "LAN trusted-host, CORS, auth, and rate policy",
+        "status": "pass",
+        "evidence": "Trusted request passed; host, origin, key, and rate denials matched policy.",
+        "metrics": {
+          "scenarios": 5,
+          "matched": 5
+        }
+      },
+      {
+        "id": "redacted-log-retention",
+        "title": "Request-log redaction and retention",
+        "status": "pass",
+        "evidence": "Expired records were removed and caller identity was hashed.",
+        "metrics": {
+          "expiredRecordRemoved": true,
+          "freshRecordRetained": true,
+          "callerKeyRedacted": true,
+          "digestMaterialized": true
+        }
+      },
+      {
+        "id": "drain-aware-switch-rollback",
+        "title": "Drain-aware switch and rollback policy",
+        "status": "pass",
+        "evidence": "Healthy candidate activated after drain and unhealthy candidate rolled back.",
+        "metrics": {
+          "drainsBeforeActivation": true,
+          "oldModelRetainedDuringDrain": true,
+          "unhealthyCandidateRollsBack": true,
+          "noNegativeInflight": true
+        }
+      },
+      {
+        "id": "idle-eviction-dry-run",
+        "title": "Idle eviction dry-run",
+        "status": "pass",
+        "evidence": "Idle threshold elapsed; dry-run preserved runtime state.",
+        "metrics": {
+          "idleMs": 120005,
+          "thresholdMs": 60000
+        }
+      },
+      {
+        "id": "unload-reload-recovery",
+        "title": "Unload and reload recovery",
+        "status": "pass",
+        "evidence": "The real model left memory and returned after bounded prewarm.",
+        "metrics": {
+          "loadedBeforeRecovery": true,
+          "unloaded": true,
+          "recovered": true
+        }
+      }
+    ],
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0,
+      "requests": 6,
+      "promptTokens": 71,
+      "completionTokens": 24,
+      "averageLatencyMs": 179
+    },
+    "blockers": [],
+    "evidenceDigest": "7b676a6c80b8b731bf8ccdbf6188097f65bc3ab58640c282519ef9f6d475d3ba"
+  },
+  "promotion": {
+    "ok": true,
+    "schemaVersion": "models.local-server-promotion.v1",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "localChecks": {
+      "realRuntime": true,
+      "realModel": true,
+      "allFifteenSlices": true,
+      "openAiCompatibility": true,
+      "streamingSse": true,
+      "boundedConcurrency": true,
+      "accounting": true,
+      "unloadReloadRecovery": true
+    },
+    "productionChecks": {
+      "authenticatedLanFromSeparateDevice": false,
+      "sustainedIdleEvictionDaemon": false
+    },
+    "localBlockers": [],
+    "productionBlockers": [
+      "Authenticated LAN traffic still needs a separate-device receipt.",
+      "Idle eviction still needs a sustained daemon-window receipt."
+    ],
+    "receiptId": "local-server-ee52e4f5-46c9-4ab1-942a-d70870a5c9eb",
+    "receiptDigest": "7b676a6c80b8b731bf8ccdbf6188097f65bc3ab58640c282519ef9f6d475d3ba",
+    "generatedAt": "2026-07-18T15:05:12.246Z",
+    "evidenceDigest": "055950c1f560747f82d7b5dc310d1abd4faa36fbc3f3d9a0946eac57216a32d9",
+    "acceptancePath": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/local-server-acceptance.json"
+  }
+}

@@ -3,6 +3,7 @@ import { readArtifactRegistryAdapterCatalog } from "@/features/artifacts/registr
 import { readDesktopOnboardingRelease } from "@/features/desktop/onboarding-release";
 import { readHaFinOpsReadiness } from "@/features/deployment/ha-finops-readiness";
 import { buildModelHubPromotionEvidence } from "@/features/models/model-hub-promotion-evidence";
+import { buildLocalServerPromotionEvidence } from "@/features/models/local-server-promotion-evidence";
 import { readTrainingCapabilityRegistry } from "@/features/finetune/training-capabilities";
 import { readTrainingExecutionPlanCatalog } from "@/features/finetune/training-execution-plan";
 import { readIdentityProvisioningReadiness } from "@/features/governance/identity-provisioning";
@@ -80,6 +81,7 @@ export function readPostV1PromotionGate() {
   const registryAdapters = readArtifactRegistryAdapterCatalog();
   const haFinOps = readHaFinOpsReadiness();
   const modelHub = buildModelHubPromotionEvidence();
+  const localServer = buildLocalServerPromotionEvidence();
 
   const slices: EvidenceSlice[] = [
     ...hardening.slices.map((entry) => ({ ...entry, layer: "hardening" as const })),
@@ -100,8 +102,8 @@ export function readPostV1PromotionGate() {
     },
     "v1.2.0": {
       ready: true,
-      summary: "Server registry, lifecycle, access, network, switch, idle-unload, logs, and request accounting contracts are executable.",
-      evidence: ["/api/models/server-instances", "/api/models/server-instances/actions"],
+      summary: `Real Local Server acceptance is ${localServer.localStatus}; production promotion remains ${localServer.productionStatus}.`,
+      evidence: ["/api/models/server-instances", "/api/models/local-server-acceptance", "/api/models/local-server-promotion"],
     },
     "v1.2.1": {
       ready: Boolean(ollama.latestPassing && adapters.totals.conformant >= 2),
@@ -143,7 +145,7 @@ export function readPostV1PromotionGate() {
   const productionBlockers: Record<string, string[]> = {
     "v1.1.0": desktop.gaBlockers,
     "v1.1.1": modelHub.status === "pass" ? [] : modelHub.blockers,
-    "v1.2.0": ["Live concurrent traffic, authenticated LAN access, and long-running idle eviction evidence are still required."],
+    "v1.2.0": [...localServer.localBlockers, ...localServer.productionBlockers],
     "v1.2.1": adapters.totals.planned
       ? [`${adapters.totals.planned} runtime adapter(s) remain planned and require backend-owned conformance evidence.`]
       : [],

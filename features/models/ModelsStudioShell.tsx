@@ -8,6 +8,7 @@ import {
 } from "@/components/layout/StudioPageShell";
 import { ModelDiscoveryPanel } from "@/features/models/ModelDiscoveryPanel";
 import { ModelHubRuntimePanel } from "@/features/models/ModelHubRuntimePanel";
+import { LocalServerAcceptancePanel } from "@/features/models/LocalServerAcceptancePanel";
 import { ModelHubLifecycleEvidencePanel } from "@/features/models/ModelHubLifecycleEvidencePanel";
 
 export function ModelsStudioShell() {
@@ -44,6 +45,7 @@ export function ModelsStudioShell() {
         }
       />
       <ModelHubLifecycleEvidencePanel />
+      <LocalServerAcceptancePanel />
       <ModelHubRuntimePanel embedded />
       <ModelDiscoveryPanel locale={locale} />
     </StudioSurface>

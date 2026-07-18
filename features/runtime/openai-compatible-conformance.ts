@@ -49,7 +49,7 @@ export async function runOpenAiCompatibleConformance(input: { serverId?: string;
     checks.modelDiscovered = Boolean(modelsPayload.data?.some((entry) => entry.id === model));
     appendServerRequestEntry({ serverId, modelId: model, operation: "models", status: modelsResponse.ok ? "success" : "error", statusCode: modelsResponse.status, latencyMs: metrics.modelsLatencyMs, promptTokens: 0, completionTokens: 0 });
     started = Date.now();
-    const chatResponse = await fetch(`${baseUrl}/v1/chat/completions`, { method: "POST", headers, body: JSON.stringify({ model, messages: [{ role: "user", content: "/no_think\nReply with exactly CONFORMANCE_OK." }], temperature: 0, max_tokens: 256, stream: false }), cache: "no-store", signal: AbortSignal.timeout(120_000) });
+    const chatResponse = await fetch(`${baseUrl}/v1/chat/completions`, { method: "POST", headers, body: JSON.stringify({ model, messages: [{ role: "user", content: "Reply with exactly CONFORMANCE_OK." }], temperature: 0, max_tokens: 64, reasoning_effort: "none", stream: false }), cache: "no-store", signal: AbortSignal.timeout(120_000) });
     metrics.chatLatencyMs = Date.now() - started;
     const chatPayload = await chatResponse.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
     checks.chatEndpoint = chatResponse.ok && Array.isArray(chatPayload.choices);

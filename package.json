@@ -43,6 +43,7 @@
     "validate:screenshots": "node scripts/validate-release-screenshots.mjs",
     "evidence:post-v1-promotion": "node scripts/export-post-v1-promotion-gate.mjs",
     "evidence:v111-model-hub": "node scripts/run-v111-model-hub-evidence.mjs",
+    "evidence:v120-local-server": "node scripts/run-v120-local-server-evidence.mjs",
     "preflight:aws-production-promotion": "node scripts/preflight-aws-production-promotion.mjs",
     "preflight:release-security": "node scripts/release-security-preflight.mjs",
     "rehearse:post-v1-foundations": "node scripts/rehearse-post-v1-foundations.mjs",

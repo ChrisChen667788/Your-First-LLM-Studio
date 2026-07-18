@@ -1,6 +1,10 @@
 # Agent Lab Development Roadmap
 
-Last updated: 2026-07-16
+Last updated: 2026-07-18
+
+## v1.2.0 real Local Server 15-slice checkpoint
+
+本机 Ollama `0.31.1` 与真实 `qwen3:0.6b` 已完成 15/15 Local Server acceptance：runtime/version、模型发现、实例注册、预热、`/api/ps` 驻留、OpenAI-compatible models/chat、SSE、双并发、token/latency ledger、API key 归因/撤销、LAN trusted-host/CORS/auth/rate policy、日志脱敏/保留、排空切换/回滚、idle eviction dry-run 和真实 unload/reload recovery。正式使用 `reasoning_effort: none` 后，completion tokens 从首轮 143 降为 24，平均记录延迟从 546 ms 降为 179 ms。`/models` 已显示完整 15-slice panel，`/experiments` 区分 local PASS 与 production HOLD。剩余生产门槛只有独立设备 authenticated LAN receipt 和持续 daemon-window receipt。详见 [`docs/release-evidence/v1.2.0-local-server-acceptance-2026-07-18.md`](./release-evidence/v1.2.0-local-server-acceptance-2026-07-18.md)。
 
 ## v1.1.1 real Model Hub and physical storage checkpoint
 

@@ -3,7 +3,7 @@ import type {
   ReleaseTrainResponse,
 } from "@/features/experiments/contracts";
 
-export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.1.0-rc.2" as const;
+export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.2.0" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -325,8 +325,9 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     evidence: [
       "Hot-switch and idle-unload stress run",
       "Authenticated LAN server and request-accounting report",
+      "Real Ollama 15-slice local acceptance with streaming, concurrency, accounting, and unload/reload evidence",
     ],
-    nextSlice: "Run sustained concurrent traffic, authenticated LAN access, hot-switch drain, and long-running idle eviction evidence.",
+    nextSlice: "Retain separate-device authenticated LAN traffic and a sustained idle-eviction daemon window; local real-model acceptance is already 15/15.",
   },
   {
     version: "v1.2.1",
