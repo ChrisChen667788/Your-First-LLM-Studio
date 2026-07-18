@@ -10,6 +10,7 @@ import { ModelDiscoveryPanel } from "@/features/models/ModelDiscoveryPanel";
 import { ModelHubRuntimePanel } from "@/features/models/ModelHubRuntimePanel";
 import { LocalServerAcceptancePanel } from "@/features/models/LocalServerAcceptancePanel";
 import { ModelHubLifecycleEvidencePanel } from "@/features/models/ModelHubLifecycleEvidencePanel";
+import { RuntimeFabricEvidencePanel } from "@/features/models/RuntimeFabricEvidencePanel";
 
 export function ModelsStudioShell() {
   const { locale } = useLocale();
@@ -45,6 +46,7 @@ export function ModelsStudioShell() {
         }
       />
       <ModelHubLifecycleEvidencePanel />
+      <RuntimeFabricEvidencePanel />
       <LocalServerAcceptancePanel />
       <ModelHubRuntimePanel embedded />
       <ModelDiscoveryPanel locale={locale} />

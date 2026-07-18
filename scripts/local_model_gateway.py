@@ -580,6 +580,7 @@ class ChatCompletionsRequest:
     model: str
     messages: list[ChatMessage]
     max_tokens: int = 512
+    stream: bool = False
     tools: list[ChatTool] | None = None
     tool_choice: Any = None
     extra_body: dict[str, Any] | None = None
@@ -599,10 +600,14 @@ class ChatCompletionsRequest:
         extra_body = payload.get("extra_body")
         if extra_body is not None and not isinstance(extra_body, dict):
             raise HTTPException(status_code=400, detail="`extra_body` must be an object when provided.")
+        stream = payload.get("stream", False)
+        if not isinstance(stream, bool):
+            raise HTTPException(status_code=400, detail="`stream` must be a boolean when provided.")
         return cls(
             model=require_string(payload, "model"),
             messages=[ChatMessage.from_payload(item) for item in raw_messages],
             max_tokens=clamp_int(payload, "max_tokens", default=512, minimum=1, maximum=2048),
+            stream=stream,
             tools=tools,
             tool_choice=payload.get("tool_choice"),
             extra_body=extra_body,
@@ -2439,6 +2444,63 @@ def chat_completions_stream(request: ChatCompletionsRequest):
     return event_stream()
 
 
+def openai_chat_completions_stream(request: ChatCompletionsRequest):
+    def event_stream():
+        stream_id = None
+        model = request.model
+        created = int(time.time())
+        for raw_event in chat_completions_stream(request):
+            event = json.loads(raw_event)
+            stream_id = event.get("id") or stream_id or f"chatcmpl-{uuid.uuid4().hex}"
+            created = event.get("created") or created
+            model = event.get("model") or model
+            if event.get("type") == "delta":
+                chunk = {
+                    "id": stream_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": model,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "delta": {"content": event.get("delta", "")},
+                            "finish_reason": None,
+                        }
+                    ],
+                }
+                yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                continue
+            if event.get("type") == "done":
+                chunk = {
+                    "id": stream_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": model,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "delta": {},
+                            "finish_reason": "stop",
+                        }
+                    ],
+                    "usage": event.get("usage"),
+                }
+                yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+                continue
+            if event.get("type") == "error":
+                error = {
+                    "error": {
+                        "type": "runtime_error",
+                        "message": event.get("error") or "Local stream failed.",
+                    }
+                }
+                yield f"data: {json.dumps(error, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+
+    return event_stream()
+
+
 def read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
     content_length = int(handler.headers.get("Content-Length") or "0")
     raw_body = handler.rfile.read(content_length) if content_length > 0 else b""
@@ -2481,6 +2543,18 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(data)
             self.wfile.flush()
 
+    def send_sse_stream(self, iterator):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-store")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.close_connection = True
+        for chunk in iterator:
+            data = chunk.encode("utf-8") if isinstance(chunk, str) else bytes(chunk)
+            self.wfile.write(data)
+            self.wfile.flush()
+
     def dispatch_get(self, path: str):
         if path == "/health":
             return 200, health()
@@ -2498,7 +2572,10 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
         if path == "/v1/tools/confirmations/reject":
             return 200, reject_direct_confirmation(RejectConfirmationRequest.from_payload(payload))
         if path == "/v1/chat/completions":
-            return 200, chat_completions(ChatCompletionsRequest.from_payload(payload))
+            request = ChatCompletionsRequest.from_payload(payload)
+            if request.stream:
+                return "sse", openai_chat_completions_stream(request)
+            return 200, chat_completions(request)
         if path == "/v1/chat/completions/stream":
             return "stream", chat_completions_stream(ChatCompletionsRequest.from_payload(payload))
         raise HTTPException(status_code=404, detail=f"Unknown route: {path}")
@@ -2521,6 +2598,9 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
             status_code, response_payload = self.dispatch_post(path, payload)
             if status_code == "stream":
                 self.send_ndjson_stream(response_payload)
+                return
+            if status_code == "sse":
+                self.send_sse_stream(response_payload)
                 return
             self.send_json(status_code, response_payload)
         except HTTPException as exc:

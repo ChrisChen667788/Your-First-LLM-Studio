@@ -1,6 +1,6 @@
 {
   "schemaVersion": "first-llm-studio.demo-capture-manifest.v1",
-  "generatedAt": "2026-07-18T15:07:47.117Z",
+  "generatedAt": "2026-07-18T16:09:48.238Z",
   "baseUrl": "http://127.0.0.1:3011",
   "command": "BASE_URL=http://localhost:3011 npm run screenshots:release",
   "viewport": {
@@ -34,7 +34,7 @@
       "fullPage": false,
       "screenshotPath": "docs/assets/screenshots/models-studio.png",
       "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow models-studio",
-      "purpose": "Show Model Hub storage evidence and real Ollama 15-slice Local Server acceptance beside runtime operations and Developer API controls."
+      "purpose": "Show Model Hub storage evidence, real Ollama Local Server acceptance, and real MLX/Ollama/llama.cpp Runtime Fabric evidence."
     },
     {
       "id": "benchmarks-studio",

@@ -3,7 +3,7 @@ import type {
   ReleaseTrainResponse,
 } from "@/features/experiments/contracts";
 
-export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.2.0" as const;
+export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.2.1" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -350,8 +350,10 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     evidence: [
       "Backend conformance suite",
       "Cross-platform capability and failure-mapping matrix",
+      "Real MLX, Ollama, and llama.cpp chat/stream acceptance through one normalized port",
+      "Six implemented adapters with 42/42 normalized operation decisions",
     ],
-    nextSlice: "Promote llama.cpp, LocalAI, vLLM, and SGLang from planned descriptors through backend-owned conformance receipts.",
+    nextSlice: "Retain real LocalAI, Linux/NVIDIA vLLM and SGLang, plus heterogeneous remote-node failover receipts; the local three-backend fabric is complete.",
   },
   {
     version: "v1.3.0",

@@ -8,8 +8,7 @@ import { readTrainingCapabilityRegistry } from "@/features/finetune/training-cap
 import { readTrainingExecutionPlanCatalog } from "@/features/finetune/training-execution-plan";
 import { readIdentityProvisioningReadiness } from "@/features/governance/identity-provisioning";
 import { readPostgresRlsEvidence } from "@/features/governance/postgres-rls-evidence";
-import { readRuntimeAdapterConformance } from "@/features/runtime/adapter-conformance";
-import { readOllamaConformanceEvidence } from "@/features/runtime/ollama-conformance";
+import { buildRuntimeFabricPromotionEvidence } from "@/features/runtime/runtime-fabric-promotion";
 
 import { readPostV1AcceptanceEvidence } from "@/features/experiments/post-v1-acceptance";
 import { readPostV1HardeningEvidence } from "@/features/experiments/post-v1-hardening";
@@ -71,8 +70,6 @@ export function readPostV1PromotionGate() {
   const acceptance = readPostV1AcceptanceEvidence();
   const lifecycle = readPostV1LifecycleEvidence();
   const desktop = readDesktopOnboardingRelease();
-  const adapters = readRuntimeAdapterConformance();
-  const ollama = readOllamaConformanceEvidence();
   const postgresRls = readPostgresRlsEvidence();
   const identity = readIdentityProvisioningReadiness();
   const training = readTrainingCapabilityRegistry();
@@ -82,6 +79,7 @@ export function readPostV1PromotionGate() {
   const haFinOps = readHaFinOpsReadiness();
   const modelHub = buildModelHubPromotionEvidence();
   const localServer = buildLocalServerPromotionEvidence();
+  const runtimeFabric = buildRuntimeFabricPromotionEvidence();
 
   const slices: EvidenceSlice[] = [
     ...hardening.slices.map((entry) => ({ ...entry, layer: "hardening" as const })),
@@ -106,9 +104,13 @@ export function readPostV1PromotionGate() {
       evidence: ["/api/models/server-instances", "/api/models/local-server-acceptance", "/api/models/local-server-promotion"],
     },
     "v1.2.1": {
-      ready: Boolean(ollama.latestPassing && adapters.totals.conformant >= 2),
-      summary: `${adapters.totals.conformant}/${adapters.totals.adapters} runtime descriptors satisfy the shared capability contract; live Ollama evidence is ${ollama.latestPassing ? "passing" : "missing"}.`,
-      evidence: ["/api/runtime/adapters", "/api/runtime/ollama/conformance"],
+      ready: runtimeFabric.localStatus === "pass",
+      summary: `Runtime Fabric local acceptance is ${runtimeFabric.localStatus}; production promotion remains ${runtimeFabric.productionStatus}.`,
+      evidence: [
+        "/api/runtime/adapters",
+        "/api/runtime/fabric-acceptance",
+        "/api/runtime/fabric-promotion",
+      ],
     },
     "v1.3.0": {
       ready: true,
@@ -146,9 +148,10 @@ export function readPostV1PromotionGate() {
     "v1.1.0": desktop.gaBlockers,
     "v1.1.1": modelHub.status === "pass" ? [] : modelHub.blockers,
     "v1.2.0": [...localServer.localBlockers, ...localServer.productionBlockers],
-    "v1.2.1": adapters.totals.planned
-      ? [`${adapters.totals.planned} runtime adapter(s) remain planned and require backend-owned conformance evidence.`]
-      : [],
+    "v1.2.1": [
+      ...runtimeFabric.localBlockers,
+      ...runtimeFabric.productionBlockers,
+    ],
     "v1.3.0": ["A real community registry package and OS-enforced sandbox acceptance receipt are still required."],
     "v1.3.1": [],
     "v1.4.0": identity.blockers,

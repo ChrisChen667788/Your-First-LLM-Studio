@@ -2,6 +2,10 @@
 
 Last updated: 2026-07-18
 
+## v1.2.1 real Runtime Fabric checkpoint
+
+`v1.2.1` 的本地实现已完成：六个 backend adapter（MLX、Ollama、llama.cpp、LocalAI、vLLM、SGLang）全部进入同一 `health / discover / chat / stream / prewarm / unload / cancel` 合同，42/42 操作均返回标准化成功或标准化拒绝，不再把 backend 私有 payload 泄漏给上层。Apple M1 Max 32 GB 上使用同一 Qwen3 0.6B 任务完成真实三后端验收：MLX、Ollama `0.31.1`、llama.cpp `b8680-15f786e65` 均通过 health、模型发现、非流式 marker、OpenAI-compatible SSE 和 usage 归一化，3/3 PASS，平均请求延迟 404 ms。MLX Gateway 同步补齐标准 `/v1/chat/completions` SSE，旧 NDJSON 路径继续兼容。vLLM/SGLang 在当前 Darwin/Apple Silicon 主机上会以 `platform_unsupported` 与 `accelerator_unavailable` 于执行前拒绝。生产 promotion 继续因真实 LocalAI、Linux/NVIDIA vLLM/SGLang 与异构远端节点 receipt 保持 HOLD。详见 [`docs/release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md`](./release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md)。
+
 ## v1.2.0 real Local Server 15-slice checkpoint
 
 本机 Ollama `0.31.1` 与真实 `qwen3:0.6b` 已完成 15/15 Local Server acceptance：runtime/version、模型发现、实例注册、预热、`/api/ps` 驻留、OpenAI-compatible models/chat、SSE、双并发、token/latency ledger、API key 归因/撤销、LAN trusted-host/CORS/auth/rate policy、日志脱敏/保留、排空切换/回滚、idle eviction dry-run 和真实 unload/reload recovery。正式使用 `reasoning_effort: none` 后，completion tokens 从首轮 143 降为 24，平均记录延迟从 546 ms 降为 179 ms。`/models` 已显示完整 15-slice panel，`/experiments` 区分 local PASS 与 production HOLD。剩余生产门槛只有独立设备 authenticated LAN receipt 和持续 daemon-window receipt。详见 [`docs/release-evidence/v1.2.0-local-server-acceptance-2026-07-18.md`](./release-evidence/v1.2.0-local-server-acceptance-2026-07-18.md)。
