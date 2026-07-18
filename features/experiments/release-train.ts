@@ -3,7 +3,7 @@ import type {
   ReleaseTrainResponse,
 } from "@/features/experiments/contracts";
 
-export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.2.1" as const;
+export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.3.0" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -376,8 +376,10 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     evidence: [
       "Malicious and incompatible extension rejection tests",
       "Signed package install, update, and rollback rehearsal",
+      "Official filesystem MCP server stdio discovery with tool annotations",
+      "macOS Seatbelt write and network denial receipt",
     ],
-    nextSlice: "Install one real community registry package and retain an OS-enforced sandbox acceptance receipt.",
+    nextSlice: "Retain independent publisher signing, Linux and Windows sandbox, and remote Streamable HTTP OAuth receipts; local stdio and Seatbelt acceptance is complete.",
   },
   {
     version: "v1.3.1",

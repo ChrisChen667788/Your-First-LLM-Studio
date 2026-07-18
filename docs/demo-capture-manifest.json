@@ -1,6 +1,6 @@
 {
   "schemaVersion": "first-llm-studio.demo-capture-manifest.v1",
-  "generatedAt": "2026-07-18T16:09:48.238Z",
+  "generatedAt": "2026-07-18T17:32:26.090Z",
   "baseUrl": "http://127.0.0.1:3011",
   "command": "BASE_URL=http://localhost:3011 npm run screenshots:release",
   "viewport": {
@@ -92,6 +92,23 @@
       "screenshotPath": "docs/assets/screenshots/post-v1-promotion-gate.png",
       "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow post-v1-promotion-gate",
       "purpose": "Show local and production readiness for v1.1.0 through v1.5.1 without masking Apple, identity, registry, or cloud evidence gates."
+    },
+    {
+      "id": "extension-ecosystem-acceptance",
+      "label": "MCP and extension security acceptance",
+      "route": "/experiments",
+      "selector": "#extension-ecosystem-acceptance",
+      "readySelector": "#extension-ecosystem-acceptance[data-evidence-ready=\"true\"]",
+      "waitUntil": "domcontentloaded",
+      "gotoTimeoutMs": 120000,
+      "readyTimeoutMs": 60000,
+      "settleMs": 1000,
+      "minimumPixelWidth": 3000,
+      "minimumPixelHeight": 1200,
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/extension-ecosystem-acceptance.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow extension-ecosystem-acceptance",
+      "purpose": "Show real MCP stdio discovery, signed extension lifecycle, malicious package rejection, OS-enforced sandbox evidence, and explicit production gates."
     },
     {
       "id": "desktop-onboarding-release",

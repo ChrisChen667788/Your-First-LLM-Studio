@@ -9,6 +9,7 @@ import { readTrainingExecutionPlanCatalog } from "@/features/finetune/training-e
 import { readIdentityProvisioningReadiness } from "@/features/governance/identity-provisioning";
 import { readPostgresRlsEvidence } from "@/features/governance/postgres-rls-evidence";
 import { buildRuntimeFabricPromotionEvidence } from "@/features/runtime/runtime-fabric-promotion";
+import { buildExtensionEcosystemPromotionEvidence } from "@/features/extensions/extension-ecosystem-promotion";
 
 import { readPostV1AcceptanceEvidence } from "@/features/experiments/post-v1-acceptance";
 import { readPostV1HardeningEvidence } from "@/features/experiments/post-v1-hardening";
@@ -80,6 +81,7 @@ export function readPostV1PromotionGate() {
   const modelHub = buildModelHubPromotionEvidence();
   const localServer = buildLocalServerPromotionEvidence();
   const runtimeFabric = buildRuntimeFabricPromotionEvidence();
+  const extensionEcosystem = buildExtensionEcosystemPromotionEvidence();
 
   const slices: EvidenceSlice[] = [
     ...hardening.slices.map((entry) => ({ ...entry, layer: "hardening" as const })),
@@ -113,9 +115,14 @@ export function readPostV1PromotionGate() {
       ],
     },
     "v1.3.0": {
-      ready: true,
-      summary: "Signed install, dependency, sandbox, secret scope, permission grant, rollback, and quarantine review contracts are executable.",
-      evidence: ["/api/extensions", "/api/extensions/installations"],
+      ready: extensionEcosystem.localStatus === "pass",
+      summary: `Extension ecosystem local acceptance is ${extensionEcosystem.localStatus}; production promotion remains ${extensionEcosystem.productionStatus}.`,
+      evidence: [
+        "/api/extensions",
+        "/api/extensions/mcp-servers",
+        "/api/extensions/acceptance",
+        "/api/extensions/promotion",
+      ],
     },
     "v1.3.1": {
       ready: true,
@@ -152,7 +159,10 @@ export function readPostV1PromotionGate() {
       ...runtimeFabric.localBlockers,
       ...runtimeFabric.productionBlockers,
     ],
-    "v1.3.0": ["A real community registry package and OS-enforced sandbox acceptance receipt are still required."],
+    "v1.3.0": [
+      ...extensionEcosystem.localBlockers,
+      ...extensionEcosystem.productionBlockers,
+    ],
     "v1.3.1": [],
     "v1.4.0": identity.blockers,
     "v1.4.1": training.totals.preview || training.totals.planned

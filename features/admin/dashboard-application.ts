@@ -52,7 +52,7 @@ function normalizeBenchmarkResult<T extends {
     tokenThroughputTps: number | null;
     ok: boolean;
   }>;
-}>(result: T) {
+}>(result: T, compactSamples = false) {
   const normalizedSamples = result.samples.map((sample) => ({
     ...sample,
     tokenThroughputTps:
@@ -68,7 +68,9 @@ function normalizeBenchmarkResult<T extends {
     firstTokenLatencyPercentiles: buildPercentiles(successfulSamples.map((sample) => sample.firstTokenLatencyMs)),
     totalLatencyPercentiles: buildPercentiles(successfulSamples.map((sample) => sample.latencyMs)),
     tokenThroughputPercentiles: buildPercentiles(successfulSamples.map((sample) => sample.tokenThroughputTps)),
-    samples: normalizedSamples
+    samples: compactSamples
+      ? normalizedSamples.filter((sample) => !sample.ok).slice(-100)
+      : normalizedSamples
   };
 }
 
@@ -186,7 +188,7 @@ export async function GET(request: Request) {
             ? true
             : (result.thinkingMode || entry.thinkingMode || "standard") === benchmarkThinkingModeFilter
         )
-        .map((result) => normalizeBenchmarkResult(result))
+        .map((result) => normalizeBenchmarkResult(result, true))
     }))
     .filter((entry) => entry.results.length > 0)
     .filter((entry) => (normalizedContextWindow === null ? true : entry.contextWindow === normalizedContextWindow));
@@ -230,7 +232,9 @@ export async function GET(request: Request) {
         profileBatchScope: matching.profileBatchScope,
         contextWindow: matching.contextWindow,
         matchSource: recentBenchmarkRunIds.has(entry.runId) ? "recent-window" : "full-history",
-        results: matching.results.map((result) => normalizeBenchmarkResult(result))
+        results: matching.results.map((result) =>
+          normalizeBenchmarkResult(result, true),
+        )
       };
     })
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))

@@ -106,7 +106,7 @@ These versions are not all shipped. Their implementation, local readiness, and e
 
 ## Current Slice
 
-The latest tagged release remains `v1.1.0-rc.2`. Active development is now `v1.2.1`; the Desktop package still requires real Developer ID notarization and a separately trusted clean-machine organization receipt before GA promotion.
+The latest tagged release remains `v1.1.0-rc.2`. Active development is now `v1.3.0`; the Desktop package still requires real Developer ID notarization and a separately trusted clean-machine organization receipt before GA promotion.
 
 The earlier `v1.1.1` Community/DX batch absorbed the remaining GitHub issues: latest runtime recovery visibility, line-level `read_file` evidence, compact benchmark issue exports, production route-smoke artifacts, Chinese contributor onboarding, a repository setup checklist, local/remote lane guidance, and a reproducible MP4 workflow. The real multi-file transfer and physical external-disk receipt pass; only refreshed ModelScope identity evidence remains required for authenticated promotion.
 
@@ -115,6 +115,8 @@ Evidence: [`docs/release-evidence/v1.1.1-community-dx-2026-07-16.md`](./release-
 The real Model Hub continuation now resolves ModelScope manifests to immutable commits, verifies provider SHA-256 for every selected file, emits a final transfer receipt, and performs operator-approved physical-volume migration with per-file re-hashing and a volume-bound ownership manifest. The public 9-file workload and `HP ZHAN SSD` migration pass; the combined gate remains `7/8 PASS` because the previous ModelScope token returned `401` from the official identity endpoint. Evidence: [`docs/release-evidence/v1.1.1-model-hub-promotion-2026-07-16.md`](./release-evidence/v1.1.1-model-hub-promotion-2026-07-16.md).
 
 The `v1.2.1` local Runtime Fabric is complete. Six adapters share one normalized operation contract, and real MLX, Ollama, and llama.cpp processes pass health, discovery, chat, SSE, and usage normalization on Apple Silicon. Production promotion remains HOLD for real LocalAI, Linux/NVIDIA vLLM and SGLang, and heterogeneous remote-node failover receipts. Evidence: [`docs/release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md`](./release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md).
+
+The `v1.3.0` local MCP and secure extension ecosystem is complete. A pinned official filesystem server passes real MCP stdio initialization, tool discovery, and read execution under macOS Seatbelt; signed install/update/rollback, permission/secret boundaries, quarantine, malicious bundle rejection, and dependency blocking pass 11/11 checks. Production promotion remains HOLD for an independently managed publisher trust root, Linux and Windows isolation receipts, and a remote Streamable HTTP OAuth lifecycle. Evidence: [`docs/release-evidence/v1.3.0-mcp-extension-acceptance-2026-07-19.md`](./release-evidence/v1.3.0-mcp-extension-acceptance-2026-07-19.md).
 
 ## 2026-07-16 v1.1.0-rc.2 Desktop Distribution Gate
 
@@ -189,4 +191,4 @@ Next implementation slice:
 - `app/api/experiments/release-train/route.ts`
 - `features/experiments/ReleaseTrainPanel.tsx`
 
-当前正式标签仍是 `v1.1.0-rc.2`，active development 已推进到 `v1.2.1`。本地 Runtime Fabric 已实现六 backend 统一合同，真实 MLX、Ollama、llama.cpp 三后端验收通过；真实 LocalAI、Linux/NVIDIA vLLM/SGLang 与异构远端节点证据继续作为生产门禁。原生 launcher 的 Developer ID notarization 和独立可信 clean-machine/组织签收同样保持 fail-closed。下一条非阻塞主线进入 `v1.3.0` MCP/扩展。
+当前正式标签仍是 `v1.1.0-rc.2`，active development 已推进到 `v1.3.0`。本地 MCP/安全扩展生态已完成 11/11 验收，真实官方 filesystem MCP server、签名生命周期和 macOS Seatbelt 隔离通过；独立 publisher 信任根、Linux/Windows sandbox 与远程 Streamable HTTP OAuth receipt 继续作为生产门禁。原生 launcher 的 Developer ID notarization 和独立可信 clean-machine/组织签收同样保持 fail-closed。下一条非阻塞主线进入 `v1.3.1` 可视化 Workflow。

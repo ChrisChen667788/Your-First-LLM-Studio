@@ -45,6 +45,7 @@
     "evidence:v111-model-hub": "node scripts/run-v111-model-hub-evidence.mjs",
     "evidence:v120-local-server": "node scripts/run-v120-local-server-evidence.mjs",
     "evidence:v121-runtime-fabric": "node scripts/run-v121-runtime-fabric-evidence.mjs",
+    "evidence:v130-extensions": "node scripts/run-v130-extension-ecosystem-evidence.mjs",
     "preflight:aws-production-promotion": "node scripts/preflight-aws-production-promotion.mjs",
     "preflight:release-security": "node scripts/release-security-preflight.mjs",
     "rehearse:post-v1-foundations": "node scripts/rehearse-post-v1-foundations.mjs",
@@ -77,9 +78,12 @@
     "typecheck:app": "./scripts/run-typecheck.sh app"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "@modelcontextprotocol/server-filesystem": "2026.7.10",
     "next": "15.5.18",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "20.14.12",

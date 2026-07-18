@@ -103,7 +103,17 @@ export function readExtensionRegistryFoundation() {
       source: "builtin" as const,
       state: "enabled" as const,
     })),
-    capabilities: ["manifest-validation", "permission-review", "signature-policy", "rollback-contract", "dependency-contract"],
-    blockers: ["Community installation remains disabled until an accepted package is unpacked and passes the process sandbox rehearsal."],
+    capabilities: [
+      "manifest-validation",
+      "permission-review",
+      "signature-policy",
+      "rollback-contract",
+      "dependency-contract",
+      "mcp-server-registry",
+      "os-sandbox-contract",
+    ],
+    blockers: [
+      "Production promotion still requires independent publisher trust roots and cross-platform OS sandbox receipts.",
+    ],
   };
 }
