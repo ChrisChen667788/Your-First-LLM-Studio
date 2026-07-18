@@ -8,6 +8,7 @@ import type {
 } from "@/features/experiments/contracts";
 import { readPromotionGate } from "@/features/experiments/promotion-gate";
 import { readPublicReleaseEvidence } from "@/features/experiments/public-release-evidence";
+import { readPostV1PromotionGate } from "@/features/experiments/post-v1-promotion-gate";
 import { readRouteSmokeEvidence } from "@/features/experiments/route-smoke-evidence";
 import {
   buildGaReleaseEvidenceBundle,
@@ -94,6 +95,7 @@ function buildRoundDrafts(): RoundDraft[] {
   const completedFineTuneJobs = fineTune.jobs.filter((job) => job.status === "completed");
   const bestCheckpointCount = readyAdapters.filter((adapter) => adapter.bestCheckpoint).length;
   const lifecycle = fineTune.lifecycle;
+  const postV1Promotion = readPostV1PromotionGate();
   const lifecycleBlockers = [
     ...(lifecycle?.totals.rollbackProofs
       ? []
@@ -162,7 +164,7 @@ function buildRoundDrafts(): RoundDraft[] {
       ]
     : ["Promotion evidence is complete; draft the v0.5.0 release note and tag candidate."];
 
-  return [
+  const currentDrafts: RoundDraft[] = [
     {
       version: "v0.5.0",
       status: promotionGate.overallStatus === "pass" ? "complete" : "evidence-needed",
@@ -585,6 +587,33 @@ function buildRoundDrafts(): RoundDraft[] {
       },
     },
   ];
+  const postV1Drafts: RoundDraft[] = postV1Promotion.versions.map((entry) => {
+    const blockers = [...entry.localBlockers, ...entry.externalBlockers];
+    return {
+      version: entry.version,
+      status: entry.status === "complete"
+        ? "complete"
+        : statusFromCompletion({ completionPct: entry.releaseCompletionPct, blockers }),
+      completionPct: entry.releaseCompletionPct,
+      summary: entry.summary,
+      shipped: entry.slices.filter((slice) => slice.status === "ready").map((slice) => slice.label),
+      evidence: entry.evidence,
+      blockers,
+      nextActions: entry.nextActions,
+      metrics: {
+        promotionStatus: entry.status,
+        localReady: entry.localReady,
+        productionReady: entry.productionReady,
+        localCompletionPct: entry.localCompletionPct,
+        hardeningChecks: entry.layers.hardening,
+        acceptanceChecks: entry.layers.acceptance,
+        lifecycleChecks: entry.layers.lifecycle,
+        readyChecks: entry.layers.ready,
+        totalChecks: entry.layers.total,
+      },
+    };
+  });
+  return [...currentDrafts, ...postV1Drafts];
 }
 
 export function readReleaseEvidenceMatrix(): ReleaseEvidenceMatrixResponse {

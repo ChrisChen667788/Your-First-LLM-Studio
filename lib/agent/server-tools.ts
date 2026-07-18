@@ -618,23 +618,26 @@ async function runReadFile(input: Record<string, unknown>) {
     throw new Error("read_file requires a relative file path.");
   }
 
-  const absolutePath = safeResolve(input.path.trim());
+  const relativePath = input.path.trim();
+  const absolutePath = safeResolve(relativePath);
   const raw = (await fs.readFile(absolutePath, "utf8")).slice(0, MAX_FILE_BYTES);
   const lines = raw.split("\n");
   const requestedStart = typeof input.startLine === "number" ? Math.max(1, Math.trunc(input.startLine)) : 1;
+  const startLine = Math.min(requestedStart, lines.length);
   const requestedEnd =
     typeof input.endLine === "number"
-      ? Math.max(requestedStart, Math.trunc(input.endLine))
-      : requestedStart + MAX_LINE_WINDOW - 1;
-  const endLine = Math.min(requestedEnd, requestedStart + MAX_LINE_WINDOW - 1, lines.length);
-  const slice = lines.slice(requestedStart - 1, endLine).join("\n");
+      ? Math.max(startLine, Math.trunc(input.endLine))
+      : startLine + MAX_LINE_WINDOW - 1;
+  const endLine = Math.min(requestedEnd, startLine + MAX_LINE_WINDOW - 1, lines.length);
+  const slice = lines.slice(startLine - 1, endLine).join("\n");
 
   return JSON.stringify(
     {
       status: "ok",
-      path: input.path,
-      startLine: requestedStart,
+      path: relativePath,
+      startLine,
       endLine,
+      citation: `${relativePath}:${startLine}-${endLine}`,
       content: slice
     },
     null,

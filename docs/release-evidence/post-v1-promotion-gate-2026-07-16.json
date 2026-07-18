@@ -1,0 +1,809 @@
+{
+  "schemaVersion": "experiments.post-v1-promotion-gate-evidence.v1",
+  "capturedAt": "2026-07-16T10:37:46.689Z",
+  "source": "http://127.0.0.1:3011/api/experiments/post-v1-promotion-gate",
+  "integrity": {
+    "algorithm": "sha256",
+    "excludes": [
+      "generatedAt"
+    ],
+    "stateDigest": "fde559afac85d05f10d85bbef37699a76aea2ef84a9264cefbaf5b399edb5645"
+  },
+  "gate": {
+    "ok": true,
+    "schemaVersion": "experiments.post-v1-promotion-gate.v1",
+    "generatedAt": "2026-07-16T10:37:46.674Z",
+    "versions": [
+      {
+        "version": "v1.1.0",
+        "label": "Desktop Onboarding",
+        "track": "desktop",
+        "targetWindow": "2026-11",
+        "status": "externally-blocked",
+        "localReady": true,
+        "productionReady": false,
+        "localCompletionPct": 93,
+        "releaseCompletionPct": 93,
+        "route": "/experiments",
+        "summary": "Desktop onboarding is rc-ready.",
+        "layers": {
+          "hardening": 1,
+          "acceptance": 1,
+          "lifecycle": 2,
+          "total": 4,
+          "ready": 4
+        },
+        "localBlockers": [],
+        "externalBlockers": [
+          "FIRST_LLM_APPLE_SIGNING_IDENTITY is not configured.",
+          "The configured Developer ID Application identity is not available in the keychain.",
+          "FIRST_LLM_APPLE_NOTARY_PROFILE is not configured.",
+          "No current Developer ID signed, Apple-notarized, stapled, and Gatekeeper-verified package receipt is available.",
+          "No notarized desktop acceptance request is available.",
+          "No external clean-machine acceptance receipt is imported.",
+          "The organization receipt signature material is incomplete.",
+          "The organization public-key fingerprint is not pinned out of band."
+        ],
+        "evidence": [
+          "/api/desktop/onboarding-release",
+          "/api/desktop/update-channel",
+          "/api/desktop/data-lifecycle",
+          "/api/desktop/service-supervisor",
+          "/api/desktop/permission-repair"
+        ],
+        "nextActions": [
+          "FIRST_LLM_APPLE_SIGNING_IDENTITY is not configured.",
+          "The configured Developer ID Application identity is not available in the keychain.",
+          "FIRST_LLM_APPLE_NOTARY_PROFILE is not configured.",
+          "No current Developer ID signed, Apple-notarized, stapled, and Gatekeeper-verified package receipt is available.",
+          "No notarized desktop acceptance request is available.",
+          "No external clean-machine acceptance receipt is imported.",
+          "The organization receipt signature material is incomplete.",
+          "The organization public-key fingerprint is not pinned out of band."
+        ],
+        "slices": [
+          {
+            "id": "desktop-update",
+            "layer": "hardening",
+            "label": "Signed update and rollback channel",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "8 update channel rehearsal(s)."
+          },
+          {
+            "id": "desktop-data",
+            "layer": "acceptance",
+            "label": "Data migration and uninstall policy",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "7 isolated migration/uninstall receipt(s)."
+          },
+          {
+            "id": "desktop-services",
+            "layer": "lifecycle",
+            "label": "Background-service lifecycle",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "1 supervised service(s), 5 recovery receipt(s)."
+          },
+          {
+            "id": "desktop-permissions",
+            "layer": "lifecycle",
+            "label": "Permission repair",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "5 isolated permission repair receipt(s)."
+          }
+        ]
+      },
+      {
+        "version": "v1.1.1",
+        "label": "Model Hub Lifecycle",
+        "track": "models",
+        "targetWindow": "2026-11",
+        "status": "local-ready",
+        "localReady": true,
+        "productionReady": false,
+        "localCompletionPct": 93,
+        "releaseCompletionPct": 93,
+        "route": "/models",
+        "summary": "Model acquisition, source manifest, migration, deduplication, removal, compatibility, and Benchmark handoff contracts are executable.",
+        "layers": {
+          "hardening": 3,
+          "acceptance": 3,
+          "lifecycle": 3,
+          "total": 9,
+          "ready": 9
+        },
+        "localBlockers": [],
+        "externalBlockers": [
+          "A real authenticated Hub multi-file transfer and physical external-disk migration receipt are still required."
+        ],
+        "evidence": [
+          "/api/models/acquisitions",
+          "/api/models/source-manifests",
+          "/api/models/content-deduplication",
+          "/api/models/hub-transfers/reconcile",
+          "/api/models/external-storage",
+          "/api/models/compatibility",
+          "/api/models/benchmark-handoff",
+          "/api/models/transfer-scheduler",
+          "/api/models/removal-lifecycle"
+        ],
+        "nextActions": [
+          "A real authenticated Hub multi-file transfer and physical external-disk migration receipt are still required."
+        ],
+        "slices": [
+          {
+            "id": "dedup-plan",
+            "layer": "hardening",
+            "label": "Filesystem-aware dedup plan",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "1 candidate(s), 1 same-device eligible."
+          },
+          {
+            "id": "dedup-rehearsal",
+            "layer": "hardening",
+            "label": "Atomic hardlink rehearsal",
+            "status": "ready",
+            "completionPct": 100,
+            "summary": "5 isolated hardlink rehearsal(s)."
+          },
+          {
+            "id": "hub-reconcile",
+            "layer": "hardening",
+            "label": "Hub session reconciliation",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "3 session(s), 7 file(s) in the latest receipt."
+          },
+          {
+            "id": "external-storage",
+            "layer": "acceptance",
+            "label": "External-storage atomic migration",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "4 isolated external-style migration receipt(s)."
+          },
+          {
+            "id": "model-compatibility",
+            "layer": "acceptance",
+            "label": "Model compatibility manifest",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "4 format/license/tokenizer/template/hardware manifest(s)."
+          },
+          {
+            "id": "benchmark-handoff",
+            "layer": "acceptance",
+            "label": "Install-to-benchmark handoff",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "4 model-to-benchmark handoff receipt(s)."
+          },
+          {
+            "id": "model-sources",
+            "layer": "lifecycle",
+            "label": "Authenticated source manifests",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "2 pinned multi-file source manifest(s)."
+          },
+          {
+            "id": "transfer-scheduler",
+            "layer": "lifecycle",
+            "label": "Transfer concurrency scheduler",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "2 bounded concurrency schedule receipt(s)."
+          },
+          {
+            "id": "model-removal",
+            "layer": "lifecycle",
+            "label": "Ownership-safe removal",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "2 quarantine/rollback/shared-blob cleanup receipt(s)."
+          }
+        ]
+      },
+      {
+        "version": "v1.2.0",
+        "label": "Local Server Fleet",
+        "track": "runtime",
+        "targetWindow": "2026-12",
+        "status": "local-ready",
+        "localReady": true,
+        "productionReady": false,
+        "localCompletionPct": 92,
+        "releaseCompletionPct": 92,
+        "route": "/models",
+        "summary": "Server registry, lifecycle, access, network, switch, idle-unload, logs, and request accounting contracts are executable.",
+        "layers": {
+          "hardening": 2,
+          "acceptance": 2,
+          "lifecycle": 2,
+          "total": 6,
+          "ready": 6
+        },
+        "localBlockers": [],
+        "externalBlockers": [
+          "Live concurrent traffic, authenticated LAN access, and long-running idle eviction evidence are still required."
+        ],
+        "evidence": [
+          "/api/models/server-instances",
+          "/api/models/server-instances/actions",
+          "/api/models/server-instances/idle-unload",
+          "/api/models/server-instances/access",
+          "/api/models/server-instances/network-policy",
+          "/api/models/server-instances/switch-controller",
+          "/api/models/server-instances/log-retention"
+        ],
+        "nextActions": [
+          "Live concurrent traffic, authenticated LAN access, and long-running idle eviction evidence are still required."
+        ],
+        "slices": [
+          {
+            "id": "server-lifecycle",
+            "layer": "hardening",
+            "label": "Executable server lifecycle",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "10 register/hot-switch/unload receipt(s)."
+          },
+          {
+            "id": "idle-unload",
+            "layer": "hardening",
+            "label": "Idle-unload daemon decisions",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "5 bounded daemon tick(s)."
+          },
+          {
+            "id": "caller-attribution",
+            "layer": "acceptance",
+            "label": "Caller-key request attribution",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "4 hashed key record(s), 4 revoked."
+          },
+          {
+            "id": "network-policy",
+            "layer": "acceptance",
+            "label": "LAN, CORS, auth, and rate policy",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "5 expected network-policy decision(s)."
+          },
+          {
+            "id": "server-switch",
+            "layer": "lifecycle",
+            "label": "Drain-aware hot switch",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "2 drain/activate/rollback controller receipt(s)."
+          },
+          {
+            "id": "log-retention",
+            "layer": "lifecycle",
+            "label": "Request-log retention and export",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "2 redacted retention/export receipt(s)."
+          }
+        ]
+      },
+      {
+        "version": "v1.2.1",
+        "label": "Runtime Fabric",
+        "track": "runtime",
+        "targetWindow": "2026-12",
+        "status": "local-ready",
+        "localReady": true,
+        "productionReady": false,
+        "localCompletionPct": 92,
+        "releaseCompletionPct": 92,
+        "route": "/models",
+        "summary": "5/6 runtime descriptors satisfy the shared capability contract; live Ollama evidence is passing.",
+        "layers": {
+          "hardening": 1,
+          "acceptance": 2,
+          "lifecycle": 1,
+          "total": 4,
+          "ready": 4
+        },
+        "localBlockers": [],
+        "externalBlockers": [
+          "4 runtime adapter(s) remain planned and require backend-owned conformance evidence."
+        ],
+        "evidence": [
+          "/api/runtime/adapters",
+          "/api/runtime/ollama/conformance",
+          "/api/runtime/fleet-conformance",
+          "/api/runtime/operation-port",
+          "/api/runtime/remote-nodes",
+          "/api/runtime/remote-failover"
+        ],
+        "nextActions": [
+          "4 runtime adapter(s) remain planned and require backend-owned conformance evidence."
+        ],
+        "slices": [
+          {
+            "id": "fleet-conformance",
+            "layer": "hardening",
+            "label": "Runtime fleet conformance",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "2 registered server(s) in the latest snapshot."
+          },
+          {
+            "id": "runtime-operation-port",
+            "layer": "acceptance",
+            "label": "Backend-neutral runtime operation port",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "6 backend contract(s) normalize supported and unsupported actions."
+          },
+          {
+            "id": "remote-node-routing",
+            "layer": "acceptance",
+            "label": "Remote-node capability routing",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "1/1 remote node(s) ready."
+          },
+          {
+            "id": "remote-failover",
+            "layer": "lifecycle",
+            "label": "Heartbeat lease and fencing",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "2 lease expiry/failover/fencing receipt(s)."
+          }
+        ]
+      },
+      {
+        "version": "v1.3.0",
+        "label": "MCP and Extensions",
+        "track": "ecosystem",
+        "targetWindow": "2027-01",
+        "status": "local-ready",
+        "localReady": true,
+        "productionReady": false,
+        "localCompletionPct": 92,
+        "releaseCompletionPct": 92,
+        "route": "/experiments",
+        "summary": "Signed install, dependency, sandbox, secret scope, permission grant, rollback, and quarantine review contracts are executable.",
+        "layers": {
+          "hardening": 2,
+          "acceptance": 2,
+          "lifecycle": 2,
+          "total": 6,
+          "ready": 6
+        },
+        "localBlockers": [],
+        "externalBlockers": [
+          "A real community registry package and OS-enforced sandbox acceptance receipt are still required."
+        ],
+        "evidence": [
+          "/api/extensions",
+          "/api/extensions/installations",
+          "/api/extensions/secret-scope",
+          "/api/extensions/permission-grants",
+          "/api/extensions/quarantine-review"
+        ],
+        "nextActions": [
+          "A real community registry package and OS-enforced sandbox acceptance receipt are still required."
+        ],
+        "slices": [
+          {
+            "id": "extension-install",
+            "layer": "hardening",
+            "label": "Atomic extension install",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "4 installed version(s), 2 active."
+          },
+          {
+            "id": "extension-rollback",
+            "layer": "hardening",
+            "label": "Extension version rollback",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "5 passing rollback receipt(s)."
+          },
+          {
+            "id": "extension-lifecycle",
+            "layer": "acceptance",
+            "label": "Extension update, disable, and enable audit",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "12 update(s), 8 enable/disable action(s)."
+          },
+          {
+            "id": "secret-scope",
+            "layer": "acceptance",
+            "label": "Extension secret-scope policy",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "5 secret-scope decision(s), no values persisted."
+          },
+          {
+            "id": "extension-grants",
+            "layer": "lifecycle",
+            "label": "Permission grant and revoke",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "1 active / 2 revoked grant(s)."
+          },
+          {
+            "id": "quarantine-review",
+            "layer": "lifecycle",
+            "label": "Quarantine review and release",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "2 released / 2 rejected case(s)."
+          }
+        ]
+      },
+      {
+        "version": "v1.3.1",
+        "label": "Workflow Graph Studio",
+        "track": "workflow",
+        "targetWindow": "2027-01",
+        "status": "complete",
+        "localReady": true,
+        "productionReady": true,
+        "localCompletionPct": 92,
+        "releaseCompletionPct": 100,
+        "route": "/workflows",
+        "summary": "Versioned graph, breakpoint, worker, replay, state diff, Retrieval deployment, and deploy access contracts are executable.",
+        "layers": {
+          "hardening": 2,
+          "acceptance": 2,
+          "lifecycle": 1,
+          "total": 5,
+          "ready": 5
+        },
+        "localBlockers": [],
+        "externalBlockers": [],
+        "evidence": [
+          "/workflows",
+          "/api/workflows",
+          "/api/workflows/worker",
+          "/api/workflows/replay",
+          "/api/workflows/state-diff",
+          "/api/workflows/retrieval-graph",
+          "/api/workflows/deployment-access"
+        ],
+        "nextActions": [
+          "Retain fresh release evidence and regression coverage."
+        ],
+        "slices": [
+          {
+            "id": "workflow-worker",
+            "layer": "hardening",
+            "label": "Leased safe-node worker",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "22 worker receipt(s), 13 completed drain(s)."
+          },
+          {
+            "id": "workflow-replay",
+            "layer": "hardening",
+            "label": "Side-effect-safe replay fork",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "9 replay fork(s) without copied side effects."
+          },
+          {
+            "id": "workflow-state-diff",
+            "layer": "acceptance",
+            "label": "Workflow state diff and breakpoint replay",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "4 replay state-diff receipt(s)."
+          },
+          {
+            "id": "retrieval-workflow",
+            "layer": "acceptance",
+            "label": "Retrieval workflow deployment",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "4 versioned retrieval graph deployment receipt(s)."
+          },
+          {
+            "id": "workflow-access",
+            "layer": "lifecycle",
+            "label": "Deployment auth and version pin",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "3 digest-backed deployment key record(s)."
+          }
+        ]
+      },
+      {
+        "version": "v1.4.0",
+        "label": "Team Governance",
+        "track": "governance",
+        "targetWindow": "2027-02",
+        "status": "externally-blocked",
+        "localReady": true,
+        "productionReady": false,
+        "localCompletionPct": 93,
+        "releaseCompletionPct": 93,
+        "route": "/experiments",
+        "summary": "Database tenant isolation is passing; external identity remains separate.",
+        "layers": {
+          "hardening": 1,
+          "acceptance": 1,
+          "lifecycle": 1,
+          "total": 3,
+          "ready": 3
+        },
+        "localBlockers": [],
+        "externalBlockers": [
+          "OIDC issuer/client are not configured.",
+          "SCIM bearer token is not configured."
+        ],
+        "evidence": [
+          "/api/governance",
+          "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/postgres-rls-rehearsal.json",
+          "/api/governance/policy-simulator",
+          "/api/governance/shared-assets",
+          "/api/governance/access-reviews"
+        ],
+        "nextActions": [
+          "OIDC issuer/client are not configured.",
+          "SCIM bearer token is not configured."
+        ],
+        "slices": [
+          {
+            "id": "policy-simulator",
+            "layer": "hardening",
+            "label": "RBAC policy simulator",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "7 policy scenarios matched expectation."
+          },
+          {
+            "id": "shared-asset-audit",
+            "layer": "acceptance",
+            "label": "Shared asset ACL and immutable audit export",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "4 shared asset(s), 16 chained event(s)."
+          },
+          {
+            "id": "access-review",
+            "layer": "lifecycle",
+            "label": "Four-eyes access review",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "3 approved / 0 pending review(s)."
+          }
+        ]
+      },
+      {
+        "version": "v1.4.1",
+        "label": "Quality and Training Lab",
+        "track": "evaluation",
+        "targetWindow": "2027-02",
+        "status": "local-ready",
+        "localReady": true,
+        "productionReady": false,
+        "localCompletionPct": 93,
+        "releaseCompletionPct": 93,
+        "route": "/fine-tune",
+        "summary": "1 backend can execute and 1 backend has a fail-closed preview plan; unsupported combinations cannot reach a worker.",
+        "layers": {
+          "hardening": 1,
+          "acceptance": 1,
+          "lifecycle": 1,
+          "total": 3,
+          "ready": 3
+        },
+        "localBlockers": [],
+        "externalBlockers": [
+          "1 training backend is preview-only and 1 remains planned."
+        ],
+        "evidence": [
+          "/api/finetune/training-capabilities",
+          "/api/finetune/training-execution-plan",
+          "/api/evaluation/regression-suite",
+          "/api/evaluation/sweep-calibration",
+          "/api/evaluation/baseline-promotion"
+        ],
+        "nextActions": [
+          "1 training backend is preview-only and 1 remains planned."
+        ],
+        "slices": [
+          {
+            "id": "regression-suite",
+            "layer": "hardening",
+            "label": "Multi-metric regression suite",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "2 confidence-gated metric(s)."
+          },
+          {
+            "id": "sweep-calibration",
+            "layer": "acceptance",
+            "label": "Budgeted sweep, early stop, and judge calibration",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "4 sweep trial(s) with judge agreement gate."
+          },
+          {
+            "id": "baseline-promotion",
+            "layer": "lifecycle",
+            "label": "Reproducible baseline promotion",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "2 pinned baseline promotion receipt(s)."
+          }
+        ]
+      },
+      {
+        "version": "v1.5.0",
+        "label": "Artifact Marketplace",
+        "track": "ecosystem",
+        "targetWindow": "2027-03",
+        "status": "local-ready",
+        "localReady": true,
+        "productionReady": false,
+        "localCompletionPct": 93,
+        "releaseCompletionPct": 93,
+        "route": "/release",
+        "summary": "1/1 local package(s) are verified; 3/4 remote targets have non-mutating staging plans.",
+        "layers": {
+          "hardening": 1,
+          "acceptance": 1,
+          "lifecycle": 1,
+          "total": 3,
+          "ready": 3
+        },
+        "localBlockers": [],
+        "externalBlockers": [
+          "GitHub, ModelScope, and Hugging Face staging publish/install round trips are still required."
+        ],
+        "evidence": [
+          "/api/artifacts/packages",
+          "/api/artifacts/registry",
+          "/api/artifacts/registry-adapters",
+          "/api/artifacts/quality-claims",
+          "/api/artifacts/install-lifecycle"
+        ],
+        "nextActions": [
+          "GitHub, ModelScope, and Hugging Face staging publish/install round trips are still required."
+        ],
+        "slices": [
+          {
+            "id": "artifact-registry",
+            "layer": "hardening",
+            "label": "Artifact registry round-trip",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "1/1 package(s) round-trip verified."
+          },
+          {
+            "id": "quality-billing-link",
+            "layer": "acceptance",
+            "label": "Artifact quality claim and billing linkage",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "2 regression metric(s) linked to reconciled usage."
+          },
+          {
+            "id": "artifact-install",
+            "layer": "lifecycle",
+            "label": "Artifact install lifecycle",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "2 install/upgrade/rollback/unpublish receipt(s)."
+          }
+        ]
+      },
+      {
+        "version": "v1.5.1",
+        "label": "Enterprise HA and FinOps",
+        "track": "platform",
+        "targetWindow": "2027-03",
+        "status": "externally-blocked",
+        "localReady": true,
+        "productionReady": false,
+        "localCompletionPct": 93,
+        "releaseCompletionPct": 93,
+        "route": "/experiments",
+        "summary": "Local HA/FinOps readiness is undefined; cloud production readiness is undefined.",
+        "layers": {
+          "hardening": 1,
+          "acceptance": 1,
+          "lifecycle": 1,
+          "total": 3,
+          "ready": 3
+        },
+        "localBlockers": [],
+        "externalBlockers": [
+          "Cloud production adapter is not configured. Set FIRST_LLM_DEPLOYMENT_CLOUD_PROVIDER=aws.",
+          "No AWS S3 Object Lock audit archive evidence has been recorded.",
+          "No verified AWS KMS signing receipt has been recorded.",
+          "No completed failover rehearsal ties together Object Lock archive and AWS KMS receipt."
+        ],
+        "evidence": [
+          "/api/deployment",
+          "/api/deployment/usage-settlement",
+          "/api/deployment/usage-reconciliation",
+          "/api/artifacts/quality-claims"
+        ],
+        "nextActions": [
+          "Cloud production adapter is not configured. Set FIRST_LLM_DEPLOYMENT_CLOUD_PROVIDER=aws.",
+          "No AWS S3 Object Lock audit archive evidence has been recorded.",
+          "No verified AWS KMS signing receipt has been recorded.",
+          "No completed failover rehearsal ties together Object Lock archive and AWS KMS receipt."
+        ],
+        "slices": [
+          {
+            "id": "usage-reconciliation",
+            "layer": "hardening",
+            "label": "Durable usage reconciliation",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "19 request ledger entries reconciled."
+          },
+          {
+            "id": "quality-billing-link",
+            "layer": "acceptance",
+            "label": "Artifact quality claim and billing linkage",
+            "status": "ready",
+            "completionPct": 90,
+            "summary": "2 regression metric(s) linked to reconciled usage."
+          },
+          {
+            "id": "usage-settlement",
+            "layer": "lifecycle",
+            "label": "Durable usage settlement",
+            "status": "ready",
+            "completionPct": 92,
+            "summary": "3 delivered usage settlement event(s)."
+          }
+        ]
+      }
+    ],
+    "totals": {
+      "versions": 10,
+      "complete": 1,
+      "localReady": 6,
+      "inProgress": 0,
+      "externallyBlocked": 3,
+      "locallyReadyVersions": 10,
+      "productionReadyVersions": 1,
+      "averageLocalCompletionPct": 93,
+      "averageReleaseCompletionPct": 93
+    },
+    "evidenceLayers": {
+      "hardening": {
+        "slices": 15,
+        "ready": 15,
+        "partial": 0,
+        "blocked": 0,
+        "averageCompletionPct": 91
+      },
+      "acceptance": {
+        "slices": 15,
+        "ready": 15,
+        "partial": 0,
+        "blocked": 0,
+        "averageCompletionPct": 90
+      },
+      "lifecycle": {
+        "slices": 15,
+        "ready": 15,
+        "partial": 0,
+        "blocked": 0,
+        "averageCompletionPct": 92
+      }
+    }
+  }
+}

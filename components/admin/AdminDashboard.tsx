@@ -33,6 +33,7 @@ import {
   buildAdminRuntimeTargetViewModel,
   type AdminRuntimeMetricSample as RuntimeMetricSample,
 } from "@/features/admin/runtime-target-view-model";
+import { selectAdminRuntimeRecoveryEvidence } from "@/features/admin/runtime-recovery-evidence";
 import {
   executeAdminRuntimeAction,
   fetchAdminRuntimeStatus,
@@ -2323,6 +2324,7 @@ export function AdminDashboard() {
                 benchmarkContextHelper,
                 lastSwitchMsForTarget,
                 lastSwitchAtForTarget,
+                recoveryEvidence,
                 runtimeIsIdle,
                 overviewCards,
               } = buildAdminRuntimeTargetViewModel({
@@ -2342,6 +2344,10 @@ export function AdminDashboard() {
                 runtimeLogLimit: runtimeLogLimits[target.id] || 120,
                 lastSwitchMs: runtimeLastSwitchMs[target.id] ?? null,
                 lastSwitchAt: runtimeLastSwitchAt[target.id] ?? null,
+                recoveryEvidence: selectAdminRuntimeRecoveryEvidence(
+                  benchmarkProgress,
+                  target.id,
+                ),
                 text: {
                   supervisor: uiText.runtimeSupervisor,
                   gateway: uiText.runtimeGateway,
@@ -2386,6 +2392,22 @@ export function AdminDashboard() {
                       <p className="mt-1 text-xs text-slate-500">
                         {uiText.runtimeLastSwitchAt}: {formatAdminRuntimeTimestamp(lastSwitchAtForTarget, locale)}
                       </p>
+                      {recoveryEvidence ? (
+                        <div className="mt-3 border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-50">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-semibold uppercase tracking-[0.16em]">
+                              {locale.startsWith("en") ? "Latest recovery" : "最近恢复动作"}
+                            </span>
+                            <span className="text-amber-100/70">
+                              {formatAdminRuntimeTimestamp(recoveryEvidence.occurredAt, locale)}
+                            </span>
+                          </div>
+                          <p className="mt-1">{recoveryEvidence.action}</p>
+                          <p className="mt-1 text-[11px] text-amber-100/60">
+                            {recoveryEvidence.phase} · {recoveryEvidence.runId}
+                          </p>
+                        </div>
+                      ) : null}
                       {runtime?.loadingError ? (
                         <p className="mt-1 break-all text-xs text-rose-200">Loading error: {runtime.loadingError}</p>
                       ) : null}

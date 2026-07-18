@@ -2,6 +2,8 @@
 
 Thanks for taking a look at Local Agent Lab.
 
+Chinese quickstart: [`docs/chinese-contributor-quickstart.md`](./docs/chinese-contributor-quickstart.md)
+
 ## Development setup
 
 ```bash
@@ -56,3 +58,5 @@ If you hit a bug, include:
 - what happened instead
 - whether the issue was local, remote, or benchmark-specific
 - relevant logs or screenshots if available
+
+For benchmark regressions, use the per-run **Issue summary** export in `/benchmarks` so the issue includes the run profile, target metrics, and classified failures.

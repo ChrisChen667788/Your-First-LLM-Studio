@@ -1,5 +1,13 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-07-18 v1.2.0 real Local Server acceptance
+
+The live Ollama `0.31.1` runtime and installed `qwen3:0.6b` now pass 15/15 local acceptance slices covering process health, discovery, registration, prewarm, residency, OpenAI-compatible non-stream and SSE chat, bounded concurrency, request accounting, caller-key attribution, LAN policy, log retention, drain/rollback policy, idle-eviction dry-run, and unload/reload recovery. The official `reasoning_effort: none` field reduced completion tokens from 143 to 24 and average recorded latency from 546 ms to 179 ms. Local promotion is PASS; production remains HOLD for separate-device authenticated LAN and a sustained daemon window. Evidence: [`docs/release-evidence/v1.2.0-local-server-acceptance-2026-07-18.md`](./release-evidence/v1.2.0-local-server-acceptance-2026-07-18.md).
+
+## 2026-07-16 ten-version local productization gate
+
+The `v1.1.0` through `v1.5.1` roadmap is now scored from one runtime contract instead of ten stale planned cards. All ten milestones satisfy their current local foundation, hardening, product-acceptance, and lifecycle checks; `v1.3.1` is complete, six milestones are local-ready with external evidence still required, and `v1.1.0`, `v1.4.0`, and `v1.5.1` remain explicitly externally blocked. This batch also adds a worker-ready MLX-LM training plan, a fail-closed LLaMA-Factory preview plan, and non-mutating staging plans for GitHub Releases, ModelScope, Hugging Face, and private OCI registries. Local readiness is not a shipped production release. Evidence: [`docs/release-evidence/post-v1-promotion-gate-2026-07-16.md`](./release-evidence/post-v1-promotion-gate-2026-07-16.md).
+
 ## 2026-07-16 third post-v1 operational lifecycle batch
 
 The next 15 local acceptance slices are now executable as explicit lifecycle state machines: desktop service recovery and permission repair; authenticated model source manifests, bounded transfer scheduling, and ownership-safe removal; drain-aware server switching, redacted log retention, and remote heartbeat fencing; reversible extension grants and quarantine review; version-pinned workflow deployment access; four-eyes governance review; reproducible evaluation baseline promotion; artifact install rollback; and retry-safe usage settlement. `/experiments` reports 15 ready, 0 partial, and 0 blocked at 92% average local completion. Real launchd, hub network transfers, live traffic, multi-machine failover, public registry, external billing, and cloud/identity gates remain planned or fail-closed. Evidence: [`docs/release-evidence/post-v1-operational-lifecycle-15-slice-2026-07-16.md`](./release-evidence/post-v1-operational-lifecycle-15-slice-2026-07-16.md).
@@ -56,7 +64,7 @@ This continuation moves Agent session command creation, session export, and turn
 
 This closure moves Agent base chat/session state, Benchmark result cards, Admin recent operations breakdowns, and local runtime probe/ensure policy into feature ownership; adds a five-route pre-sunset compatibility deletion rehearsal; refreshes nine product/evidence screenshots at 1920x1200 with 2x DPR and per-flow viewport/full-page policy; and records a successful real DeepSeek release probe. The only remaining gates are time-bound compatibility deletion and explicitly deferred real-cloud production evidence.
 
-Last updated: 2026-07-14
+Last updated: 2026-07-18
 
 This release train and post-v1 roadmap form the active product contract after `v0.4.2`. They are mirrored in code by:
 
@@ -81,12 +89,12 @@ This release train and post-v1 roadmap form the active product contract after `v
 
 ## Post-v1 Version Train
 
-These versions are planned, not shipped. Their acceptance and evidence requirements are mirrored in `features/experiments/release-train.ts` and appear as planned rounds in `/experiments`.
+These versions are not all shipped. Their implementation, local readiness, and external production evidence are scored separately by `features/experiments/post-v1-promotion-gate.ts` and surfaced in `/experiments`.
 
 | Version | Track | Target | Borrowed strength | Core outcome |
 | --- | --- | --- | --- | --- |
 | `v1.1.0` | Desktop | 2026-11 | LM Studio / Jan onboarding | Signed desktop package, first-run diagnosis, upgrades, permissions, background services, rollback and uninstall evidence. |
-| `v1.1.1` | Models | 2026-11 | Desktop model hubs | Resumable downloads, checksums, external-disk migration, deduplication, compatibility checks, and install-to-benchmark handoff. |
+| `v1.1.1` | Models + DX | 2026-11 | Desktop model hubs and maintainable OSS workflows | Resumable downloads, checksums, external-disk migration, deduplication, compatibility checks, install-to-benchmark handoff, issue-ready runtime/tool/benchmark evidence, CI route smoke, bilingual contributor onboarding, and reproducible demo capture. |
 | `v1.2.0` | Runtime | 2026-12 | LM Studio / Jan local server | Server-instance registry, hot-switch, idle eviction, request logs, auth, trusted hosts, accounting, and LAN safety. |
 | `v1.2.1` | Runtime | 2026-12 | Ollama / LocalAI runtime breadth | Backend-neutral adapters for MLX, llama.cpp, Ollama, LocalAI, vLLM, SGLang, cross-platform hardware, and remote nodes. |
 | `v1.3.0` | Ecosystem | 2027-01 | Open WebUI / Jan extensibility | Permissioned MCP and signed extension registry with secret scope, audit, update, rollback, and quarantine. |
@@ -98,7 +106,15 @@ These versions are planned, not shipped. Their acceptance and evidence requireme
 
 ## Current Slice
 
-The active version is `v1.1.0-rc.2`. The native-launcher Desktop package and fail-closed production distribution workflow are RC-ready; real Developer ID notarization and a separately trusted clean-machine organization receipt remain the explicit GA gate.
+The latest tagged release remains `v1.1.0-rc.2`. Active development is now `v1.2.1`; the Desktop package still requires real Developer ID notarization and a separately trusted clean-machine organization receipt before GA promotion.
+
+The earlier `v1.1.1` Community/DX batch absorbed the remaining GitHub issues: latest runtime recovery visibility, line-level `read_file` evidence, compact benchmark issue exports, production route-smoke artifacts, Chinese contributor onboarding, a repository setup checklist, local/remote lane guidance, and a reproducible MP4 workflow. The real multi-file transfer and physical external-disk receipt pass; only refreshed ModelScope identity evidence remains required for authenticated promotion.
+
+Evidence: [`docs/release-evidence/v1.1.1-community-dx-2026-07-16.md`](./release-evidence/v1.1.1-community-dx-2026-07-16.md).
+
+The real Model Hub continuation now resolves ModelScope manifests to immutable commits, verifies provider SHA-256 for every selected file, emits a final transfer receipt, and performs operator-approved physical-volume migration with per-file re-hashing and a volume-bound ownership manifest. The public 9-file workload and `HP ZHAN SSD` migration pass; the combined gate remains `7/8 PASS` because the previous ModelScope token returned `401` from the official identity endpoint. Evidence: [`docs/release-evidence/v1.1.1-model-hub-promotion-2026-07-16.md`](./release-evidence/v1.1.1-model-hub-promotion-2026-07-16.md).
+
+The `v1.2.1` local Runtime Fabric is complete. Six adapters share one normalized operation contract, and real MLX, Ollama, and llama.cpp processes pass health, discovery, chat, SSE, and usage normalization on Apple Silicon. Production promotion remains HOLD for real LocalAI, Linux/NVIDIA vLLM and SGLang, and heterogeneous remote-node failover receipts. Evidence: [`docs/release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md`](./release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md).
 
 ## 2026-07-16 v1.1.0-rc.2 Desktop Distribution Gate
 
@@ -173,4 +189,4 @@ Next implementation slice:
 - `app/api/experiments/release-train/route.ts`
 - `features/experiments/ReleaseTrainPanel.tsx`
 
-当前 active version 是 `v1.1.0-rc.2`。原生 launcher 桌面包和 fail-closed 生产分发链已经 RC-ready；真实 Developer ID notarization 和独立可信的 clean-machine/组织签收继续作为明确 GA 门禁。后续从 `v1.1.1` 到 `v1.5.1` 依次推进 Model Hub 生命周期、Local Server/runtime fabric、MCP/扩展、可视化 workflow、团队治理、训练/评测 CI、artifact marketplace 与企业 HA/FinOps。
+当前正式标签仍是 `v1.1.0-rc.2`，active development 已推进到 `v1.2.1`。本地 Runtime Fabric 已实现六 backend 统一合同，真实 MLX、Ollama、llama.cpp 三后端验收通过；真实 LocalAI、Linux/NVIDIA vLLM/SGLang 与异构远端节点证据继续作为生产门禁。原生 launcher 的 Developer ID notarization 和独立可信 clean-machine/组织签收同样保持 fail-closed。下一条非阻塞主线进入 `v1.3.0` MCP/扩展。

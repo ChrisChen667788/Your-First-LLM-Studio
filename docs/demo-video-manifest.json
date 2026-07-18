@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "first-llm-studio.demo-video-manifest.v1",
+  "baseUrl": "http://localhost:3011",
+  "ffmpegPath": "/opt/homebrew/bin/ffmpeg",
+  "flows": [
+    {
+      "id": "agent-workbench",
+      "label": "Agent workbench motion demo",
+      "route": "/agent",
+      "width": 1280,
+      "height": 800,
+      "outputPath": "docs/assets/demo/agent-workbench.mp4",
+      "gifPath": "output/demo-video/agent-workbench.gif",
+      "actions": [
+        { "type": "pause", "durationMs": 1800 },
+        { "type": "scroll", "y": 560, "durationMs": 1800 },
+        { "type": "pause", "durationMs": 1800 },
+        { "type": "scroll", "y": 0, "durationMs": 1800 }
+      ]
+    }
+  ]
+}

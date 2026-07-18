@@ -3,6 +3,10 @@
 For pinned repo copy, profile wording, homepage descriptions, and bilingual launch-post variants, also see:
 
 - `docs/open-source-growth-copy.md`
+- `docs/github-repository-setup-checklist.md`
+- `docs/chinese-contributor-quickstart.md`
+- `docs/benchmark-lane-comparison.md`
+- `docs/demo-video-workflow.md`
 
 ## One-line pitch
 

@@ -3,7 +3,7 @@ import type {
   ReleaseTrainResponse,
 } from "@/features/experiments/contracts";
 
-export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.1.0-rc.2" as const;
+export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.2.1" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -275,8 +275,8 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   },
   {
     version: "v1.1.1",
-    label: "Model Hub Lifecycle",
-    status: "planned",
+    label: "Model Hub Lifecycle + Community DX",
+    status: "evidence-needed",
     track: "models",
     targetWindow: "2026-11",
     objective:
@@ -286,21 +286,28 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "External-disk placement, migration, deduplication, and cleanup",
       "Format, license, tokenizer, template, and hardware compatibility checks",
       "Install-to-load-to-benchmark handoff from one model card",
+      "Runtime recovery evidence, line-level tool citations, and compact benchmark issue exports",
+      "Bilingual contributor onboarding, repository setup checklist, lane comparison, and reproducible demo capture",
     ],
     acceptance: [
       "Interrupted downloads resume without corrupting model state.",
       "Every installed model exposes verified bytes, provenance, runtime compatibility, and storage ownership.",
+      "Runtime, benchmark, and tool evidence can be copied into an issue without reconstructing state from logs.",
+      "A Chinese-speaking contributor can run, validate, document, and submit a focused change from one quickstart.",
     ],
     evidence: [
       "Interrupted-download and external-disk migration tests",
       "Model provenance and integrity manifest",
+      "CI route-smoke artifact, benchmark issue-summary export, and Agent demo-video receipt",
+      "Community/DX issue closure matrix linked to durable repository documentation",
+      "Immutable multi-file Hub checksum receipt and physical-volume ownership manifest",
     ],
-    nextSlice: "Add authenticated Hugging Face/ModelScope multi-file manifests, download concurrency, deduplication, and external-disk migration UI.",
+    nextSlice: "Refresh the rejected ModelScope token and rerun the passing 9-file/physical-volume workflow without anonymous mode to close authenticatedHubReceipt.",
   },
   {
     version: "v1.2.0",
     label: "Local Server Fleet",
-    status: "planned",
+    status: "evidence-needed",
     track: "runtime",
     targetWindow: "2026-12",
     objective:
@@ -318,13 +325,14 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     evidence: [
       "Hot-switch and idle-unload stress run",
       "Authenticated LAN server and request-accounting report",
+      "Real Ollama 15-slice local acceptance with streaming, concurrency, accounting, and unload/reload evidence",
     ],
-    nextSlice: "Connect durable server instances to live start/stop/hot-switch actions and per-instance request accounting.",
+    nextSlice: "Retain separate-device authenticated LAN traffic and a sustained idle-eviction daemon window; local real-model acceptance is already 15/15.",
   },
   {
     version: "v1.2.1",
     label: "Runtime Fabric",
-    status: "planned",
+    status: "evidence-needed",
     track: "runtime",
     targetWindow: "2026-12",
     objective:
@@ -342,13 +350,15 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     evidence: [
       "Backend conformance suite",
       "Cross-platform capability and failure-mapping matrix",
+      "Real MLX, Ollama, and llama.cpp chat/stream acceptance through one normalized port",
+      "Six implemented adapters with 42/42 normalized operation decisions",
     ],
-    nextSlice: "Run the Ollama bridge against a real installed model, add chat/embedding conformance, and surface hot-switch controls in Model Hub.",
+    nextSlice: "Retain real LocalAI, Linux/NVIDIA vLLM and SGLang, plus heterogeneous remote-node failover receipts; the local three-backend fabric is complete.",
   },
   {
     version: "v1.3.0",
     label: "MCP and Extensions",
-    status: "planned",
+    status: "evidence-needed",
     track: "ecosystem",
     targetWindow: "2027-01",
     objective:
@@ -367,12 +377,12 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Malicious and incompatible extension rejection tests",
       "Signed package install, update, and rollback rehearsal",
     ],
-    nextSlice: "Add dependency resolution, sandbox execution, quarantine review/release actions, and a disabled-by-default community install UI.",
+    nextSlice: "Install one real community registry package and retain an OS-enforced sandbox acceptance receipt.",
   },
   {
     version: "v1.3.1",
     label: "Workflow Graph Studio",
-    status: "planned",
+    status: "complete",
     track: "workflow",
     targetWindow: "2027-01",
     objective:
@@ -391,12 +401,12 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Graph replay and protected-tool resume report",
       "Workflow version diff and deployed API smoke",
     ],
-    nextSlice: "Add breakpoint persistence, Retrieval graph execution, state diff/replay UI, and the first visual graph editor slice.",
+    nextSlice: "Retain fresh graph replay, protected-tool resume, state-diff, and deployed API route evidence.",
   },
   {
     version: "v1.4.0",
     label: "Team Governance",
-    status: "planned",
+    status: "evidence-needed",
     track: "governance",
     targetWindow: "2027-02",
     objective:
@@ -415,12 +425,12 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Database-level tenant and ACL isolation suite",
       "OIDC/SCIM lifecycle and policy-replay rehearsal",
     ],
-    nextSlice: "Promote the SQLite isolation contract to Postgres RLS migrations, then connect OIDC/SCIM identities and external secret scopes.",
+    nextSlice: "Connect trusted OIDC and SCIM identities plus external secret scopes to the passing Postgres RLS boundary.",
   },
   {
     version: "v1.4.1",
     label: "Quality and Training Lab",
-    status: "planned",
+    status: "evidence-needed",
     track: "evaluation",
     targetWindow: "2027-02",
     objective:
@@ -439,12 +449,12 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Training backend conformance and unsupported-combination report",
       "Pinned evaluation sweep with calibrated judge and CI gate",
     ],
-    nextSlice: "Bind recipe validation to the capability registry and add a fail-closed LLaMA-Factory execution adapter preview.",
+    nextSlice: "Promote the fail-closed LLaMA-Factory preview into a production executor and add the remaining Transformers/PEFT adapter.",
   },
   {
     version: "v1.5.0",
     label: "Artifact Marketplace",
-    status: "planned",
+    status: "evidence-needed",
     track: "ecosystem",
     targetWindow: "2027-03",
     objective:
@@ -463,12 +473,12 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Cross-registry publish/install round trip",
       "Tampered package and incompatible dependency rejection report",
     ],
-    nextSlice: "Materialize package digests/signatures and run a GitHub/ModelScope/Hugging Face publish-install round trip in a staging registry.",
+    nextSlice: "Run GitHub, ModelScope, and Hugging Face staging publish-install round trips from the signed local registry source.",
   },
   {
     version: "v1.5.1",
     label: "Enterprise HA and FinOps",
-    status: "planned",
+    status: "blocked",
     track: "platform",
     targetWindow: "2027-03",
     objective:

@@ -43,10 +43,22 @@ const entries = flows.map((flow) => {
   const buffer = readFileSync(absolutePath);
   const dimensions = readPngDimensions(buffer);
   if (!dimensions) issues.push(`Screenshot is not a valid PNG: ${relativePath}.`);
-  if (dimensions?.width !== expectedWidth) {
+  const selectorCapture = Boolean(flow.selector);
+  if (selectorCapture) {
+    const minimumWidth = Number(flow.minimumPixelWidth) || Math.round(expectedWidth * 0.75);
+    const minimumHeight = Number(flow.minimumPixelHeight) || Math.round(expectedHeight * 0.33);
+    if ((dimensions?.width || 0) < minimumWidth) {
+      issues.push(`${id} selector width ${dimensions?.width || 0} is below ${minimumWidth}.`);
+    }
+    if ((dimensions?.height || 0) < minimumHeight) {
+      issues.push(`${id} selector height ${dimensions?.height || 0} is below ${minimumHeight}.`);
+    }
+  } else if (dimensions?.width !== expectedWidth) {
     issues.push(`${id} width ${dimensions?.width || 0} does not match ${expectedWidth}.`);
   }
-  if (flow.fullPage === true) {
+  if (selectorCapture) {
+    // A selector capture is intentionally sized to its component, not the viewport.
+  } else if (flow.fullPage === true) {
     if ((dimensions?.height || 0) < expectedHeight) {
       issues.push(`${id} full-page height is below ${expectedHeight}.`);
     }
@@ -58,6 +70,8 @@ const entries = flows.map((flow) => {
     id,
     path: relativePath,
     exists: true,
+    captureMode: selectorCapture ? "selector" : flow.fullPage === true ? "full-page" : "viewport",
+    selector: selectorCapture ? String(flow.selector) : null,
     fullPage: flow.fullPage === true,
     width: dimensions?.width || 0,
     height: dimensions?.height || 0,

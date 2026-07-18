@@ -1,6 +1,26 @@
 # Agent Lab Development Roadmap
 
-Last updated: 2026-07-16
+Last updated: 2026-07-18
+
+## v1.2.1 real Runtime Fabric checkpoint
+
+`v1.2.1` 的本地实现已完成：六个 backend adapter（MLX、Ollama、llama.cpp、LocalAI、vLLM、SGLang）全部进入同一 `health / discover / chat / stream / prewarm / unload / cancel` 合同，42/42 操作均返回标准化成功或标准化拒绝，不再把 backend 私有 payload 泄漏给上层。Apple M1 Max 32 GB 上使用同一 Qwen3 0.6B 任务完成真实三后端验收：MLX、Ollama `0.31.1`、llama.cpp `b8680-15f786e65` 均通过 health、模型发现、非流式 marker、OpenAI-compatible SSE 和 usage 归一化，3/3 PASS，平均请求延迟 404 ms。MLX Gateway 同步补齐标准 `/v1/chat/completions` SSE，旧 NDJSON 路径继续兼容。vLLM/SGLang 在当前 Darwin/Apple Silicon 主机上会以 `platform_unsupported` 与 `accelerator_unavailable` 于执行前拒绝。生产 promotion 继续因真实 LocalAI、Linux/NVIDIA vLLM/SGLang 与异构远端节点 receipt 保持 HOLD。详见 [`docs/release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md`](./release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md)。
+
+## v1.2.0 real Local Server 15-slice checkpoint
+
+本机 Ollama `0.31.1` 与真实 `qwen3:0.6b` 已完成 15/15 Local Server acceptance：runtime/version、模型发现、实例注册、预热、`/api/ps` 驻留、OpenAI-compatible models/chat、SSE、双并发、token/latency ledger、API key 归因/撤销、LAN trusted-host/CORS/auth/rate policy、日志脱敏/保留、排空切换/回滚、idle eviction dry-run 和真实 unload/reload recovery。正式使用 `reasoning_effort: none` 后，completion tokens 从首轮 143 降为 24，平均记录延迟从 546 ms 降为 179 ms。`/models` 已显示完整 15-slice panel，`/experiments` 区分 local PASS 与 production HOLD。剩余生产门槛只有独立设备 authenticated LAN receipt 和持续 daemon-window receipt。详见 [`docs/release-evidence/v1.2.0-local-server-acceptance-2026-07-18.md`](./release-evidence/v1.2.0-local-server-acceptance-2026-07-18.md)。
+
+## v1.1.1 real Model Hub and physical storage checkpoint
+
+ModelScope `onnx-community/tiny-gpt2-ONNX` 已完成真实 9 文件下载、不可变 commit 解析、`9/9` provider SHA-256 对照和 `8,288,366` 字节落盘，并通过同卷 staging、逐文件重哈希、原子 rename、AppleDouble 清理和 volume UUID ownership manifest 迁移到 USB 外置 `HP ZHAN SSD`。`/models` 现在直接显示组合 promotion read model。当前 `7/8` 检查通过，旧 ModelScope token 在官方 `users/me` 返回 `401`，所以 `authenticatedHubReceipt` 保持 HOLD；token 明文未进入 env 文件或 evidence。CI workflow 同步升级到 `actions/*@v7`，待远端 run 确认 Node 20 action-runtime 弃用提示消失。详见 [`docs/release-evidence/v1.1.1-model-hub-promotion-2026-07-16.md`](./release-evidence/v1.1.1-model-hub-promotion-2026-07-16.md)。
+
+## v1.1.1 Community/DX execution slice
+
+未闭环 GitHub issue 已并入 `v1.1.1 Model Hub Lifecycle + Community DX`，并优先完成不受 Apple 凭据阻塞的部分：runtime 卡片展示最新 recovery action/time，Agent `read_file` 形成 `path:start-end` 行级证据，Benchmark 提供可直接贴进 issue 的紧凑摘要，CI 构建后运行 production route smoke 并上传 JSON/日志，以及中文贡献指南、仓库设置清单、本地/远端 lane 对照和可复现 MP4 capture。真实多文件下载与物理外置盘迁移已经完成；现在只剩 refreshed ModelScope identity token 对应的 authenticated receipt，不能由匿名公开下载或本地 fixture 替代。详见 [`docs/release-evidence/v1.1.1-community-dx-2026-07-16.md`](./release-evidence/v1.1.1-community-dx-2026-07-16.md)。
+
+## Post-v1 ten-version productization checkpoint
+
+`v1.1.0` 到 `v1.5.1` 已从十张静态 planned 卡片升级为统一 runtime promotion gate。当前十个版本全部满足本地 foundation、hardening、product acceptance 与 lifecycle 检查；`v1.3.1` 完成，六个版本达到 local-ready，`v1.1.0`、`v1.4.0`、`v1.5.1` 因 Apple、企业身份或真实云证据继续 externally blocked。本轮另加入 MLX-LM worker-ready training plan、LLaMA-Factory fail-closed preview，以及 GitHub Releases、ModelScope、Hugging Face、private OCI 的非写入 staging plan。这里的 local-ready 不等于正式生产发布，详见 [`docs/release-evidence/post-v1-promotion-gate-2026-07-16.md`](./release-evidence/post-v1-promotion-gate-2026-07-16.md)。
 
 ## Post-v1 third operational lifecycle checkpoint
 

@@ -48,6 +48,7 @@ type DemoCaptureManifest = {
     id?: string;
     label?: string;
     route?: string;
+    selector?: string;
     screenshotPath?: string;
     command?: string;
     purpose?: string;
@@ -128,6 +129,7 @@ function buildDemoCapture() {
     const id = flow.id || `demo-flow-${index + 1}`;
     const label = flow.label || id;
     const route = flow.route || "";
+    const selector = flow.selector || undefined;
     const command = flow.command || "";
     const purpose = flow.purpose || "";
     const ok = Boolean(route && command && purpose && screenshotPath && screenshot.ok);
@@ -135,6 +137,7 @@ function buildDemoCapture() {
       id,
       label,
       route,
+      selector,
       screenshotPath,
       command,
       purpose,

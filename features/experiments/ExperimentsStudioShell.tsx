@@ -20,6 +20,7 @@ import { PostV1HardeningPanel } from "@/features/experiments/PostV1HardeningPane
 import { PostV1AcceptancePanel } from "@/features/experiments/PostV1AcceptancePanel";
 import { PostV1LifecyclePanel } from "@/features/experiments/PostV1LifecyclePanel";
 import { DesktopOnboardingReleasePanel } from "@/features/experiments/DesktopOnboardingReleasePanel";
+import { PostV1PromotionGatePanel } from "@/features/experiments/PostV1PromotionGatePanel";
 
 export function ExperimentsStudioShell() {
   const { locale } = useLocale();
@@ -36,6 +37,7 @@ export function ExperimentsStudioShell() {
       />
       <StudioSegmentedChips labels={[en ? "Artifact references" : "产物引用", en ? "Cross-feature lineage" : "跨模块 lineage", en ? "Retention policy" : "保留策略", en ? "Release train" : "版本列车"]} />
       <DesktopOnboardingReleasePanel locale={locale} />
+      <PostV1PromotionGatePanel locale={locale} />
       <PromotionGatePanel locale={locale} />
       <GaReleaseEvidenceBundlePanel locale={locale} />
       <RouteSmokeEvidencePanel locale={locale} />

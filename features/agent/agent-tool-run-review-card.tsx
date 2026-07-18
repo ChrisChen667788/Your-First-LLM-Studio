@@ -7,6 +7,7 @@ import {
   readBooleanField,
   readStringField,
 } from "@/features/compare/review";
+import { readAgentToolFileEvidence } from "@/features/agent/tool-file-evidence";
 
 type ToolRunDecisionState = "approved" | "rejected";
 
@@ -89,6 +90,7 @@ export function AgentToolRunReviewCard({
   onResumeAgent,
 }: AgentToolRunReviewCardProps) {
   const parsedOutput = parseToolOutput(toolRun.output);
+  const fileEvidence = readAgentToolFileEvidence(toolRun.name, parsedOutput);
   const status = readStringField(parsedOutput, "status");
   const policyLevel = readStringField(parsedOutput, "policyLevel");
   const diffPreview = readStringField(parsedOutput, "diffPreview");
@@ -291,6 +293,22 @@ export function AgentToolRunReviewCard({
           </p>
           <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-slate-200">
             {contentPreview}
+          </pre>
+        </div>
+      ) : null}
+
+      {fileEvidence ? (
+        <div className="mt-3 border border-cyan-300/20 bg-cyan-300/10 px-3 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">
+              {isEnglish ? "File evidence" : "文件证据"}
+            </p>
+            <code className="border border-cyan-300/20 bg-black/20 px-2 py-1 text-[11px] text-cyan-50">
+              {fileEvidence.citation}
+            </code>
+          </div>
+          <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs leading-6 text-cyan-50">
+            {fileEvidence.numberedContent}
           </pre>
         </div>
       ) : null}

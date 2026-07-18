@@ -1,0 +1,215 @@
+{
+  "schemaVersion": "runtime.v1.2.1-real-fabric-evidence.v1",
+  "generatedAt": "2026-07-18T16:06:30.371Z",
+  "status": "local-pass",
+  "acceptance": {
+    "id": "runtime-fabric-2e51cd60-602d-4a88-aaf0-299f67f3eb8a",
+    "generatedAt": "2026-07-18T16:06:30.334Z",
+    "schemaVersion": "runtime.fabric-acceptance.v1",
+    "status": "pass",
+    "host": {
+      "platform": "darwin",
+      "arch": "arm64",
+      "platformKey": "darwin-arm64",
+      "memoryGb": 32,
+      "accelerator": "apple-silicon",
+      "nvidiaVisible": false
+    },
+    "backends": [
+      {
+        "backend": "mlx",
+        "status": "pass",
+        "realProcess": true,
+        "model": "local-qwen3-0.6b",
+        "discoveredModels": 7,
+        "runtimeVersion": null,
+        "fingerprint": null,
+        "checks": {
+          "health": true,
+          "discovery": true,
+          "chat": true,
+          "stream": true,
+          "normalizedUsage": true
+        },
+        "metrics": {
+          "probeLatencyMs": 30,
+          "chatLatencyMs": 510,
+          "streamLatencyMs": 276,
+          "streamChunks": 10,
+          "promptTokens": 24,
+          "completionTokens": 8
+        },
+        "error": null
+      },
+      {
+        "backend": "ollama",
+        "status": "pass",
+        "realProcess": true,
+        "model": "qwen3:0.6b",
+        "discoveredModels": 1,
+        "runtimeVersion": "0.31.1",
+        "fingerprint": "fp_ollama",
+        "checks": {
+          "health": true,
+          "discovery": true,
+          "chat": true,
+          "stream": true,
+          "normalizedUsage": true
+        },
+        "metrics": {
+          "probeLatencyMs": 7,
+          "chatLatencyMs": 836,
+          "streamLatencyMs": 580,
+          "streamChunks": 63,
+          "promptTokens": 26,
+          "completionTokens": 64
+        },
+        "error": null
+      },
+      {
+        "backend": "llama.cpp",
+        "status": "pass",
+        "realProcess": true,
+        "model": "qwen3-0.6b-llamacpp",
+        "discoveredModels": 1,
+        "runtimeVersion": null,
+        "fingerprint": "b8680-15f786e65",
+        "checks": {
+          "health": true,
+          "discovery": true,
+          "chat": true,
+          "stream": true,
+          "normalizedUsage": true
+        },
+        "metrics": {
+          "probeLatencyMs": 5,
+          "chatLatencyMs": 110,
+          "streamLatencyMs": 112,
+          "streamChunks": 10,
+          "promptTokens": 24,
+          "completionTokens": 13
+        },
+        "error": null
+      }
+    ],
+    "adapterContract": {
+      "implemented": 6,
+      "conformant": 6,
+      "planned": 0,
+      "operationChecks": 42,
+      "normalizedOperationChecks": 42
+    },
+    "compatibilityMatrix": [
+      {
+        "backend": "mlx",
+        "modelFormat": "mlx",
+        "minimumMemoryGb": 2,
+        "compatible": true,
+        "reasons": [],
+        "codes": []
+      },
+      {
+        "backend": "ollama",
+        "modelFormat": "ollama",
+        "minimumMemoryGb": 2,
+        "compatible": true,
+        "reasons": [],
+        "codes": []
+      },
+      {
+        "backend": "llama.cpp",
+        "modelFormat": "gguf",
+        "minimumMemoryGb": 2,
+        "compatible": true,
+        "reasons": [],
+        "codes": []
+      },
+      {
+        "backend": "localai",
+        "modelFormat": "gguf",
+        "minimumMemoryGb": 2,
+        "compatible": true,
+        "reasons": [],
+        "codes": []
+      },
+      {
+        "backend": "vllm",
+        "modelFormat": "safetensors",
+        "minimumMemoryGb": 16,
+        "compatible": false,
+        "reasons": [
+          "vLLM does not support darwin-arm64 in this runtime profile.",
+          "vLLM requires a visible NVIDIA accelerator."
+        ],
+        "codes": [
+          "platform_unsupported",
+          "accelerator_unavailable"
+        ]
+      },
+      {
+        "backend": "sglang",
+        "modelFormat": "safetensors",
+        "minimumMemoryGb": 16,
+        "compatible": false,
+        "reasons": [
+          "SGLang does not support darwin-arm64 in this runtime profile.",
+          "SGLang requires a visible NVIDIA accelerator."
+        ],
+        "codes": [
+          "platform_unsupported",
+          "accelerator_unavailable"
+        ]
+      }
+    ],
+    "totals": {
+      "realBackends": 3,
+      "passingBackends": 3,
+      "adapterContracts": 6,
+      "compatibleProfiles": 4,
+      "rejectedProfiles": 2,
+      "promptTokens": 74,
+      "completionTokens": 85,
+      "averageLatencyMs": 404
+    },
+    "blockers": [],
+    "evidenceDigest": "6642c7e3fd045dbd5792f7eaf8a7adcc09c32b72d9ce2115312a9146a0a19441"
+  },
+  "promotion": {
+    "ok": true,
+    "schemaVersion": "runtime.fabric-promotion.v1",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "localChecks": {
+      "realMlx": true,
+      "realOllama": true,
+      "realLlamaCpp": true,
+      "sixImplementedAdapters": true,
+      "sixConformantAdapters": true,
+      "noPlannedAdapters": true,
+      "normalizedOperationMatrix": true,
+      "actionableCompatibilityRejections": true
+    },
+    "productionChecks": {
+      "realLocalAiNode": false,
+      "realLinuxNvidiaVllmAndSglang": false,
+      "heterogeneousRemoteNodeFailover": false
+    },
+    "localBlockers": [],
+    "productionBlockers": [
+      "A real LocalAI endpoint receipt is still required.",
+      "vLLM and SGLang still require real Linux/NVIDIA conformance receipts.",
+      "Heterogeneous remote-node failover still requires separate-machine evidence."
+    ],
+    "receiptId": "runtime-fabric-2e51cd60-602d-4a88-aaf0-299f67f3eb8a",
+    "receiptDigest": "6642c7e3fd045dbd5792f7eaf8a7adcc09c32b72d9ce2115312a9146a0a19441",
+    "generatedAt": "2026-07-18T16:06:30.370Z",
+    "evidenceDigest": "d1a862e4b1d553f55ff34a31ba609d1696d72055f958498f678a9ea9e0142c5c",
+    "acceptancePath": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/runtime-fabric-acceptance.json"
+  },
+  "runner": {
+    "spawnedLlama": true,
+    "llamaBaseUrl": "http://127.0.0.1:11435",
+    "llamaAlias": "qwen3-0.6b-llamacpp",
+    "localOnly": true
+  }
+}

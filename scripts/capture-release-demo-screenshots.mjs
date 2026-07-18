@@ -41,7 +41,13 @@ try {
     }
     const page = await context.newPage();
     await page.goto(`${baseUrl}${route}`, { waitUntil: "networkidle", timeout: 60_000 });
-    await page.screenshot({ path: outputPath, fullPage: flow.fullPage === true });
+    if (flow.selector) {
+      const target = page.locator(String(flow.selector));
+      await target.waitFor({ state: "visible", timeout: 30_000 });
+      await target.screenshot({ path: outputPath });
+    } else {
+      await page.screenshot({ path: outputPath, fullPage: flow.fullPage === true });
+    }
     await page.close();
     const relative = path.relative(root, outputPath);
     console.log(`[capture] ${flow.id || route} -> ${relative}`);

@@ -44,6 +44,9 @@ It is not another chat shell. It is built for people who need to compare behavio
 | `v1.0` Integrated GA baseline | Unifies Agent, Compare, Model Hub, Retrieval, Fine-tune, Benchmark, Experiments, Admin monitoring, thin application APIs, route ownership, release security, and reproducible evidence contracts. |
 | `v1.1.0-rc.1` Desktop Onboarding | Adds a self-contained Apple Silicon app with bundled Node, ZIP/DMG packaging, first-run diagnosis, permission and service recovery, migration/update/rollback/uninstall rehearsals, a real Ollama local-chat proof, and clean-profile boot evidence. Developer ID notarization remains a separate GA gate. |
 | `v1.1.0-rc.2` Desktop Distribution Gate | Replaces the shell entrypoint with a native arm64 launcher and adds nested-code/app/DMG signing, dual notarization logs, staple/Gatekeeper verification, a portable clean-machine runner, and RSA-signed organization receipts with an out-of-band trust pin. Real external receipts still gate GA. |
+| `v1.1.1` Model Hub Lifecycle | Adds immutable multi-file Hub manifests, provider SHA-256 receipts, operator-approved physical external-volume migration, ownership manifests, and a visible promotion read model. Refreshed Hub identity evidence remains a separate gate. |
+| `v1.2.0` Local Server Acceptance | Adds a real Ollama 15-slice acceptance loop for process health, model residency, OpenAI-compatible chat/SSE, concurrency, accounting, access policy, log retention, idle eviction, and unload/reload recovery. Separate-device LAN and sustained daemon evidence still gate production promotion. |
+| `v1.2.1` Runtime Fabric | Implements one normalized runtime contract across MLX, Ollama, llama.cpp, LocalAI, vLLM, and SGLang. Real MLX/Ollama/llama.cpp chat and SSE pass on Apple Silicon; unsupported hardware and missing endpoints fail before execution with actionable codes. External LocalAI, Linux/NVIDIA, and heterogeneous-node receipts still gate production promotion. |
 
 Current release: [`VERSION`](./VERSION).
 
@@ -117,6 +120,10 @@ First LLM Studio's advantage is the connected evidence chain across Agent, Compa
 - `GLM API`
 - `Qwen API`
 
+Selection and stability guidance: [`docs/benchmark-lane-comparison.md`](./docs/benchmark-lane-comparison.md).
+
+Contributor onboarding: [English](./CONTRIBUTING.md) · [中文快速上手](./docs/chinese-contributor-quickstart.md) · [GitHub setup checklist](./docs/github-repository-setup-checklist.md).
+
 ## Screenshots
 
 Captured from the running local app after `npm run typecheck` and `npm run smoke:routes`. README screenshots are generated with `npm run screenshots:readme` at 2x DPR so text stays sharp on GitHub and ModelScope; the LoRA evidence chart is exported from SVG at 2x DPR.
@@ -124,6 +131,10 @@ Captured from the running local app after `npm run typecheck` and `npm run smoke
 Agent workbench with target catalog, runtime rail, and tool-enabled composer:
 
 ![Agent workbench](./docs/assets/screenshots/agent-workbench.png)
+
+Reproducible motion capture workflow: [`docs/demo-video-workflow.md`](./docs/demo-video-workflow.md).
+
+[Watch the Agent workbench MP4 demo](./docs/assets/demo/agent-workbench.mp4) · [SHA-256 metadata](./docs/assets/demo/agent-workbench.mp4.metadata.json)
 
 Fine-tune Studio with workflow tabs, training controls, and report/evidence panels:
 
@@ -147,7 +158,7 @@ Benchmark run evidence from a real local smoke run:
 
 ![Benchmark run evidence](./docs/assets/screenshots/benchmark-run-evidence.png)
 
-Models Studio with hardware-fit chips and one-click community discovery:
+Models Studio with immutable Hub/storage receipts, real Ollama Local Server acceptance, and the real MLX/Ollama/llama.cpp Runtime Fabric matrix:
 
 ![Models Studio](./docs/assets/screenshots/models-studio.png)
 
@@ -308,6 +319,9 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v1.0` 一体化 GA 基线 | 统一 Agent、Compare、Model Hub、Retrieval、Fine-tune、Benchmark、Experiments、Admin 监控、thin application API、route ownership、release security 与可复现证据契约。 |
 | `v1.1.0-rc.1` 桌面首次启动 | 加入自包含 Apple Silicon app、内置 Node、ZIP/DMG、首次诊断、权限与服务恢复、迁移/更新/回滚/卸载演练、真实 Ollama 本地对话证明和 clean-profile 启动证据；Developer ID notarization 继续作为独立 GA 门禁。 |
 | `v1.1.0-rc.2` 桌面分发门禁 | 将 shell 入口替换为原生 arm64 launcher，并加入内部代码/app/DMG 分层签名、双层公证日志、staple/Gatekeeper 验证、独立 Mac 验收脚本及带线下信任锚的 RSA 组织签收；真实外部 receipt 仍是 GA 门禁。 |
+| `v1.1.1` Model Hub 生命周期 | 加入不可变多文件 Hub manifest、provider SHA-256 receipt、operator-approved 物理外置盘迁移、ownership manifest 和可视 promotion read model；更新后的 Hub identity receipt 仍是独立门禁。 |
+| `v1.2.0` Local Server 验收 | 加入真实 Ollama 15-slice 验收，覆盖进程健康、模型驻留、OpenAI-compatible chat/SSE、并发、计量、访问策略、日志保留、idle eviction 和 unload/reload recovery；跨设备 LAN 与持续 daemon 证据继续作为生产门禁。 |
+| `v1.2.1` Runtime Fabric | 用同一标准化合同实现 MLX、Ollama、llama.cpp、LocalAI、vLLM 与 SGLang 适配器；Apple Silicon 上真实 MLX/Ollama/llama.cpp chat 与 SSE 全部通过，硬件或端点不满足时会在执行前给出可操作错误码；外部 LocalAI、Linux/NVIDIA 与异构节点 receipt 继续作为生产门禁。 |
 
 当前发布版本见 [`VERSION`](./VERSION)。
 
@@ -381,6 +395,10 @@ First LLM Studio 的优势是把 Agent、Compare、Retrieval、Benchmark、Fine-
 - `GLM API`
 - `Qwen API`
 
+Target 选择、稳定性与适用任务对照：[`docs/benchmark-lane-comparison.md`](./docs/benchmark-lane-comparison.md)。
+
+贡献者入口：[English](./CONTRIBUTING.md) · [中文快速上手](./docs/chinese-contributor-quickstart.md) · [GitHub 仓库设置清单](./docs/github-repository-setup-checklist.md)。
+
 ## 截图
 
 以下截图来自本地运行版本，并已通过 `npm run typecheck` 与 `npm run smoke:routes`。README 截图使用 `npm run screenshots:readme` 以 2x DPR 生成，LoRA 证据图从 SVG 以 2x DPR 导出，确保在 GitHub 和 ModelScope 缩放后文字仍然清晰。
@@ -388,6 +406,10 @@ First LLM Studio 的优势是把 Agent、Compare、Retrieval、Benchmark、Fine-
 Agent 工作台：target catalog、runtime rail 与工具化输入区：
 
 ![Agent 工作台](./docs/assets/screenshots/agent-workbench.png)
+
+可复现动态演示流程：[`docs/demo-video-workflow.md`](./docs/demo-video-workflow.md)。
+
+[查看 Agent 工作台 MP4 演示](./docs/assets/demo/agent-workbench.mp4) · [SHA-256 元数据](./docs/assets/demo/agent-workbench.mp4.metadata.json)
 
 Fine-tune Studio：工作流 tab、训练控制与 report/evidence 面板：
 
@@ -411,7 +433,7 @@ Benchmark：本地 smoke run 生成的真实评测证据：
 
 ![Benchmark 运行证据](./docs/assets/screenshots/benchmark-run-evidence.png)
 
-Models Studio：硬件适配 chips 与社区模型扫描：
+Models Studio：不可变 Hub/外置盘证据、真实 Ollama Local Server 验收，以及真实 MLX/Ollama/llama.cpp Runtime Fabric 矩阵：
 
 ![Models Studio](./docs/assets/screenshots/models-studio.png)
 
