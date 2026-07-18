@@ -2,6 +2,10 @@
 
 Last updated: 2026-07-18
 
+## v1.3.0 MCP and secure extension checkpoint
+
+`v1.3.0` 的本地实现已完成：新增固定版本 MCP server registry，并使用官方 TypeScript SDK 通过 stdio 启动和探测 `@modelcontextprotocol/server-filesystem@2026.7.10`。真实验收发现 14 个工具，其中 10 个只读、3 个 destructive；读取允许目录成功，写入和网络访问均被 macOS Seatbelt 拒绝。扩展 lifecycle 覆盖 Ed25519 签名安装、升级、回滚、disable/enable、权限 grant/revoke、secret scope、quarantine review；tampered payload、签名 path traversal 和缺失依赖均 fail closed。统一 acceptance 为 11/11 PASS，重复运行 acceptance/promotion digest 保持稳定。生产 promotion 仍因独立 community publisher 信任根、Linux bubblewrap/container、Windows sandbox 和远程 MCP Streamable HTTP OAuth receipt 保持 HOLD。详见 [`docs/release-evidence/v1.3.0-mcp-extension-acceptance-2026-07-19.md`](./release-evidence/v1.3.0-mcp-extension-acceptance-2026-07-19.md)。
+
 ## v1.2.1 real Runtime Fabric checkpoint
 
 `v1.2.1` 的本地实现已完成：六个 backend adapter（MLX、Ollama、llama.cpp、LocalAI、vLLM、SGLang）全部进入同一 `health / discover / chat / stream / prewarm / unload / cancel` 合同，42/42 操作均返回标准化成功或标准化拒绝，不再把 backend 私有 payload 泄漏给上层。Apple M1 Max 32 GB 上使用同一 Qwen3 0.6B 任务完成真实三后端验收：MLX、Ollama `0.31.1`、llama.cpp `b8680-15f786e65` 均通过 health、模型发现、非流式 marker、OpenAI-compatible SSE 和 usage 归一化，3/3 PASS，平均请求延迟 404 ms。MLX Gateway 同步补齐标准 `/v1/chat/completions` SSE，旧 NDJSON 路径继续兼容。vLLM/SGLang 在当前 Darwin/Apple Silicon 主机上会以 `platform_unsupported` 与 `accelerator_unavailable` 于执行前拒绝。生产 promotion 继续因真实 LocalAI、Linux/NVIDIA vLLM/SGLang 与异构远端节点 receipt 保持 HOLD。详见 [`docs/release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md`](./release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md)。

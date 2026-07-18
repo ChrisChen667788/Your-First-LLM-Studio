@@ -1,4 +1,14 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import {
+  appendFileSync,
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import type {
   AgentBenchmarkBaseline,
   AgentCacheMode,
@@ -127,6 +137,35 @@ function readJsonl<T>(filePath: string): T[] {
     });
 }
 
+function readJsonlTail<T>(filePath: string, maxBytes = 8 * 1024 * 1024): T[] {
+  if (!existsSync(filePath)) return [];
+  const size = statSync(filePath).size;
+  if (size <= maxBytes) return readJsonl<T>(filePath);
+
+  const start = Math.max(0, size - maxBytes);
+  const length = size - start;
+  const buffer = Buffer.allocUnsafe(length);
+  const fd = openSync(filePath, "r");
+  try {
+    readSync(fd, buffer, 0, length, start);
+  } finally {
+    closeSync(fd);
+  }
+  const source = buffer.toString("utf8");
+  const completeSource = start > 0 ? source.slice(source.indexOf("\n") + 1) : source;
+  return completeSource
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => {
+      try {
+        return [JSON.parse(line) as T];
+      } catch {
+        return [];
+      }
+    });
+}
+
 function rewriteJsonl(filePath: string, values: Record<string, unknown>[]) {
   ensureDataDir();
   const source = values.map((value) => JSON.stringify(value)).join("\n");
@@ -223,7 +262,7 @@ export function readTelemetrySnapshots(options?: {
   targetId?: string;
   limit?: number;
 }) {
-  const rows = readJsonl<StoredTelemetrySnapshot>(TELEMETRY_LOG_FILE);
+  const rows = readJsonlTail<StoredTelemetrySnapshot>(TELEMETRY_LOG_FILE);
   const filtered = filterSince(rows, options?.sinceIso).filter((row) =>
     options?.targetId ? row.targetId === options.targetId : true
   );

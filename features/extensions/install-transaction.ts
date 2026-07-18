@@ -28,8 +28,21 @@ function parseBundle(payload: Buffer): Bundle {
   return bundle as Bundle;
 }
 
-export function installVerifiedExtension(input: { manifest: ExtensionManifest; payloadBase64: string; publicKeyPem?: string }) {
-  const verification = verifyExtensionPackage({ manifest: input.manifest, payloadBase64: input.payloadBase64, publicKeyPem: input.publicKeyPem });
+export function installVerifiedExtension(input: {
+  manifest: ExtensionManifest;
+  payloadBase64: string;
+  publicKeyPem?: string;
+  internalAcceptanceTrustRoot?: {
+    publisher: string;
+    publicKeyPem: string;
+  };
+}) {
+  const verification = verifyExtensionPackage({
+    manifest: input.manifest,
+    payloadBase64: input.payloadBase64,
+    publicKeyPem: input.publicKeyPem,
+    internalAcceptanceTrustRoot: input.internalAcceptanceTrustRoot,
+  });
   if (!verification.accepted) throw new Error(verification.errors.join(" ") || "Extension package verification failed.");
   const policy = buildExtensionSandboxPolicy(input.manifest);
   if (!policy.executionAllowed) throw new Error(policy.blockers.join(" "));

@@ -7,6 +7,9 @@ import {
   verifyExtensionPackage,
 } from "@/features/extensions/package-verification";
 import { resolveExtensionDependencies } from "@/features/extensions/dependency-resolver";
+import { readMcpServerRegistry } from "@/features/extensions/mcp-server-registry";
+import { readExtensionEcosystemAcceptanceEvidence } from "@/features/extensions/extension-ecosystem-acceptance";
+import { buildExtensionEcosystemPromotionEvidence } from "@/features/extensions/extension-ecosystem-promotion";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +21,9 @@ export async function GET() {
     dependencyResolution: resolveExtensionDependencies(registry.packages.map((entry) => entry.manifest)),
     quarantine: readExtensionQuarantine(),
     verificationReceipts: readExtensionVerificationReceipts(),
+    mcpRegistry: readMcpServerRegistry(),
+    ecosystemAcceptance: readExtensionEcosystemAcceptanceEvidence(),
+    promotion: buildExtensionEcosystemPromotionEvidence(),
   });
 }
 

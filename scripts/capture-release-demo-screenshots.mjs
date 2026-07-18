@@ -40,11 +40,29 @@ try {
       throw new Error(`Flow ${flow.id || route} is missing screenshotPath.`);
     }
     const page = await context.newPage();
-    await page.goto(`${baseUrl}${route}`, { waitUntil: "networkidle", timeout: 60_000 });
+    await page.goto(`${baseUrl}${route}`, {
+      waitUntil: flow.waitUntil || "networkidle",
+      timeout: Number(flow.gotoTimeoutMs) || 120_000,
+    });
+    if (flow.readySelector) {
+      await page.locator(String(flow.readySelector)).waitFor({
+        state: "visible",
+        timeout: Number(flow.readyTimeoutMs) || 60_000,
+      });
+    }
+    await page.addStyleTag({
+      content:
+        "*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}",
+    });
+    await page.waitForTimeout(Number(flow.settleMs) || 500);
     if (flow.selector) {
       const target = page.locator(String(flow.selector));
       await target.waitFor({ state: "visible", timeout: 30_000 });
-      await target.screenshot({ path: outputPath });
+      await target.screenshot({
+        path: outputPath,
+        animations: "disabled",
+        timeout: Number(flow.screenshotTimeoutMs) || 120_000,
+      });
     } else {
       await page.screenshot({ path: outputPath, fullPage: flow.fullPage === true });
     }

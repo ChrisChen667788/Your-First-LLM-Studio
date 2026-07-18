@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "extensions.v1.3.0-real-ecosystem-evidence.v1",
+  "generatedAt": "2026-07-18T18:08:31.830Z",
+  "status": "local-pass",
+  "productionStatus": "hold",
+  "acceptance": {
+    "id": "extension-ecosystem-109bd7cd-919b-43b8-ae2c-756aaf170c89",
+    "generatedAt": "2026-07-18T18:08:29.793Z",
+    "schemaVersion": "extensions.ecosystem-acceptance.v1",
+    "status": "pass",
+    "checks": {
+      "signedInstallAccepted": true,
+      "signedUpdateAccepted": true,
+      "rollbackRestoredPreviousVersion": true,
+      "tamperedPackageRejected": true,
+      "traversalBundleRejected": true,
+      "dependencyConflictVisible": true,
+      "permissionGrantLifecycle": true,
+      "secretScopeEnforced": true,
+      "quarantineReviewAudited": true,
+      "osSandboxEnforced": true,
+      "realMcpServerAccepted": true
+    },
+    "lifecycle": {
+      "extensionId": "first-llm-studio.acceptance-tool",
+      "installedVersion": "1.0.0",
+      "updatedVersion": "1.1.0",
+      "rollbackVersion": "1.0.0"
+    },
+    "security": {
+      "sandbox": "macos-seatbelt",
+      "osEnforced": true,
+      "maliciousPackageQuarantined": true,
+      "traversalBundleRejected": true,
+      "dependencyConflictBlocked": true
+    },
+    "mcp": {
+      "serverId": "io.github.modelcontextprotocol/server-filesystem",
+      "packageName": "@modelcontextprotocol/server-filesystem",
+      "packageVersion": "2026.7.10",
+      "tools": 14,
+      "readOnlyTools": 10,
+      "destructiveTools": 3,
+      "transport": "stdio"
+    },
+    "blockers": [],
+    "evidenceDigest": "a05e4c98948342b7132e0479a7bdc71dae1bb9d3ab1b975ff2b5f261339dbb77"
+  },
+  "promotion": {
+    "ok": true,
+    "schemaVersion": "extensions.ecosystem-promotion.v1",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "localChecks": {
+      "unifiedAcceptancePassing": true,
+      "signedInstallUpdateRollback": true,
+      "maliciousAndIncompatibleRejected": true,
+      "permissionAndSecretBoundaries": true,
+      "osEnforcedSandbox": true,
+      "realCommunityMcpServer": true,
+      "registryLifecycle": true
+    },
+    "productionChecks": {
+      "independentPublisherTrustRoot": false,
+      "linuxBubblewrapOrContainerReceipt": false,
+      "windowsSandboxReceipt": false,
+      "remoteStreamableHttpOAuthReceipt": false
+    },
+    "localBlockers": [],
+    "productionBlockers": [
+      "An independently managed community publisher trust root and signing receipt are still required.",
+      "A real Linux bubblewrap or container isolation receipt is still required.",
+      "A real Windows sandbox acceptance receipt is still required.",
+      "A remote MCP Streamable HTTP OAuth lifecycle receipt is still required."
+    ],
+    "acceptanceDigest": "a05e4c98948342b7132e0479a7bdc71dae1bb9d3ab1b975ff2b5f261339dbb77",
+    "mcpDigest": "de6252d2d227ad979ab3552574cac5908f5b2cb7ae4fa3d97d542389f774db54",
+    "generatedAt": "2026-07-18T18:08:29.848Z",
+    "evidenceDigest": "6c5bf09c22978a958bd527d2efe64cc4d3ad5b1fa3a16204d797f12f9c08bc97",
+    "paths": {
+      "acceptance": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/extension-ecosystem-acceptance.json",
+      "mcp": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/mcp-filesystem-acceptance.json",
+      "registry": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/mcp-server-registry.json"
+    }
+  },
+  "postV1Gate": {
+    "totals": {
+      "versions": 10,
+      "complete": 1,
+      "localReady": 5,
+      "inProgress": 0,
+      "externallyBlocked": 4,
+      "locallyReadyVersions": 10,
+      "productionReadyVersions": 1,
+      "averageLocalCompletionPct": 93,
+      "averageReleaseCompletionPct": 93
+    },
+    "version": {
+      "version": "v1.3.0",
+      "label": "MCP and Extensions",
+      "track": "ecosystem",
+      "targetWindow": "2027-01",
+      "status": "local-ready",
+      "localReady": true,
+      "productionReady": false,
+      "localCompletionPct": 92,
+      "releaseCompletionPct": 92,
+      "route": "/experiments",
+      "summary": "Extension ecosystem local acceptance is pass; production promotion remains hold.",
+      "layers": {
+        "hardening": 2,
+        "acceptance": 2,
+        "lifecycle": 2,
+        "total": 6,
+        "ready": 6
+      },
+      "localBlockers": [],
+      "externalBlockers": [
+        "An independently managed community publisher trust root and signing receipt are still required.",
+        "A real Linux bubblewrap or container isolation receipt is still required.",
+        "A real Windows sandbox acceptance receipt is still required.",
+        "A remote MCP Streamable HTTP OAuth lifecycle receipt is still required."
+      ],
+      "evidence": [
+        "/api/extensions",
+        "/api/extensions/mcp-servers",
+        "/api/extensions/acceptance",
+        "/api/extensions/promotion",
+        "/api/extensions/installations",
+        "/api/extensions/secret-scope",
+        "/api/extensions/permission-grants",
+        "/api/extensions/quarantine-review"
+      ],
+      "nextActions": [
+        "An independently managed community publisher trust root and signing receipt are still required.",
+        "A real Linux bubblewrap or container isolation receipt is still required.",
+        "A real Windows sandbox acceptance receipt is still required.",
+        "A remote MCP Streamable HTTP OAuth lifecycle receipt is still required."
+      ],
+      "slices": [
+        {
+          "id": "extension-install",
+          "layer": "hardening",
+          "label": "Atomic extension install",
+          "status": "ready",
+          "completionPct": 90,
+          "summary": "6 installed version(s), 3 active."
+        },
+        {
+          "id": "extension-rollback",
+          "layer": "hardening",
+          "label": "Extension version rollback",
+          "status": "ready",
+          "completionPct": 90,
+          "summary": "11 passing rollback receipt(s)."
+        },
+        {
+          "id": "extension-lifecycle",
+          "layer": "acceptance",
+          "label": "Extension update, disable, and enable audit",
+          "status": "ready",
+          "completionPct": 90,
+          "summary": "18 update(s), 8 enable/disable action(s)."
+        },
+        {
+          "id": "secret-scope",
+          "layer": "acceptance",
+          "label": "Extension secret-scope policy",
+          "status": "ready",
+          "completionPct": 90,
+          "summary": "5 secret-scope decision(s), no values persisted."
+        },
+        {
+          "id": "extension-grants",
+          "layer": "lifecycle",
+          "label": "Permission grant and revoke",
+          "status": "ready",
+          "completionPct": 92,
+          "summary": "1 active / 2 revoked grant(s)."
+        },
+        {
+          "id": "quarantine-review",
+          "layer": "lifecycle",
+          "label": "Quarantine review and release",
+          "status": "ready",
+          "completionPct": 92,
+          "summary": "8 released / 8 rejected case(s)."
+        }
+      ]
+    }
+  },
+  "runner": {
+    "baseUrl": "http://127.0.0.1:3011",
+    "localOnly": true,
+    "processSandbox": "macos-seatbelt",
+    "mcpTransport": "stdio"
+  }
+}
