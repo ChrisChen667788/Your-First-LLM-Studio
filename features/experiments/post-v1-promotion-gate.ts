@@ -10,6 +10,7 @@ import { readIdentityProvisioningReadiness } from "@/features/governance/identit
 import { readPostgresRlsEvidence } from "@/features/governance/postgres-rls-evidence";
 import { buildRuntimeFabricPromotionEvidence } from "@/features/runtime/runtime-fabric-promotion";
 import { buildExtensionEcosystemPromotionEvidence } from "@/features/extensions/extension-ecosystem-promotion";
+import { buildWorkflowStudioPromotionEvidence } from "@/features/workflows/studio-promotion";
 
 import { readPostV1AcceptanceEvidence } from "@/features/experiments/post-v1-acceptance";
 import { readPostV1HardeningEvidence } from "@/features/experiments/post-v1-hardening";
@@ -82,6 +83,7 @@ export function readPostV1PromotionGate() {
   const localServer = buildLocalServerPromotionEvidence();
   const runtimeFabric = buildRuntimeFabricPromotionEvidence();
   const extensionEcosystem = buildExtensionEcosystemPromotionEvidence();
+  const workflowStudio = buildWorkflowStudioPromotionEvidence();
 
   const slices: EvidenceSlice[] = [
     ...hardening.slices.map((entry) => ({ ...entry, layer: "hardening" as const })),
@@ -125,9 +127,9 @@ export function readPostV1PromotionGate() {
       ],
     },
     "v1.3.1": {
-      ready: true,
-      summary: "Versioned graph, breakpoint, worker, replay, state diff, Retrieval deployment, and deploy access contracts are executable.",
-      evidence: ["/workflows", "/api/workflows"],
+      ready: workflowStudio.localStatus === "pass",
+      summary: `Workflow Studio local acceptance is ${workflowStudio.localStatus}; production promotion remains ${workflowStudio.productionStatus}.`,
+      evidence: workflowStudio.evidence,
     },
     "v1.4.0": {
       ready: Boolean(postgresRls.latestPassing),
@@ -163,7 +165,7 @@ export function readPostV1PromotionGate() {
       ...extensionEcosystem.localBlockers,
       ...extensionEcosystem.productionBlockers,
     ],
-    "v1.3.1": [],
+    "v1.3.1": [...workflowStudio.localBlockers, ...workflowStudio.productionBlockers],
     "v1.4.0": identity.blockers,
     "v1.4.1": training.totals.preview || training.totals.planned
       ? [`${training.totals.preview} training backend is preview-only and ${training.totals.planned} remains planned.`]
@@ -172,7 +174,7 @@ export function readPostV1PromotionGate() {
     "v1.5.1": haFinOps.blockers,
   };
 
-  const externallyBlocked = new Set(["v1.1.0", "v1.1.1", "v1.4.0", "v1.5.1"]);
+  const externallyBlocked = new Set(["v1.1.0", "v1.1.1", "v1.3.1", "v1.4.0", "v1.5.1"]);
   const versions = POST_V1_VERSIONS.map((milestone) => {
     const versionSlices = slices.filter((entry) => sliceMatchesVersion(entry.version, milestone.version));
     const foundation = foundationChecks[milestone.version];

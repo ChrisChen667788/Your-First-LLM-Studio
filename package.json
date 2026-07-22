@@ -46,6 +46,7 @@
     "evidence:v120-local-server": "node scripts/run-v120-local-server-evidence.mjs",
     "evidence:v121-runtime-fabric": "node scripts/run-v121-runtime-fabric-evidence.mjs",
     "evidence:v130-extensions": "node scripts/run-v130-extension-ecosystem-evidence.mjs",
+    "evidence:v131-workflows": "node scripts/run-v131-workflow-studio-evidence.mjs",
     "preflight:aws-production-promotion": "node scripts/preflight-aws-production-promotion.mjs",
     "preflight:release-security": "node scripts/release-security-preflight.mjs",
     "rehearse:post-v1-foundations": "node scripts/rehearse-post-v1-foundations.mjs",
@@ -98,6 +99,7 @@
     "typescript": "5.5.4"
   },
   "overrides": {
-    "postcss": "8.5.16"
+    "postcss": "8.5.16",
+    "fast-uri": "3.1.4"
   }
 }

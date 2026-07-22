@@ -3,7 +3,7 @@ import type {
   ReleaseTrainResponse,
 } from "@/features/experiments/contracts";
 
-export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.3.0" as const;
+export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.3.1" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -384,7 +384,7 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
     version: "v1.3.1",
     label: "Workflow Graph Studio",
-    status: "complete",
+    status: "evidence-needed",
     track: "workflow",
     targetWindow: "2027-01",
     objective:
@@ -403,7 +403,7 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
       "Graph replay and protected-tool resume report",
       "Workflow version diff and deployed API smoke",
     ],
-    nextSlice: "Retain fresh graph replay, protected-tool resume, state-diff, and deployed API route evidence.",
+    nextSlice: "Retain fresh local graph-authoring acceptance, then collect authenticated non-loopback invocation, distributed worker recovery, and collaborative conflict evidence.",
   },
   {
     version: "v1.4.0",
