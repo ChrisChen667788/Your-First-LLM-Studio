@@ -32,7 +32,12 @@ export function runWorkflowSafeWorker(input: { executionId: string; workerId?: s
       const graph = resolveWorkflowGraph(state.graphId, state.graphVersion); if (!graph) throw new Error("Workflow graph version is unavailable.");
       const node = graph.nodes.find((entry) => entry.id === state?.currentNodeId); if (!node) throw new Error("Current workflow node is unavailable.");
       if (node.sideEffect === "write" || node.sideEffect === "external") { outcome = "protected-side-effect"; break; }
-      state = dispatchPersistedWorkflowEvent(state.id, { type: "node-succeeded", nodeId: node.id, condition: node.kind === "model" ? "protected_tool_requested" : undefined, output: node.kind === "output" ? `Workflow completed for: ${state.input}` : `${node.label} completed by safe worker.` });
+      const condition = node.kind === "model"
+        ? String(node.config.defaultCondition || "protected_tool_requested")
+        : node.kind === "guard" && node.config.defaultCondition
+          ? String(node.config.defaultCondition)
+          : undefined;
+      state = dispatchPersistedWorkflowEvent(state.id, { type: "node-succeeded", nodeId: node.id, condition, output: node.kind === "output" ? `Workflow completed for: ${state.input}` : `${node.label} completed by safe worker.` });
       steps += 1;
     }
     if (state.status === "completed") outcome = "completed";

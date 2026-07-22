@@ -1,5 +1,9 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-07-23 v1.3.1 visual Workflow Studio
+
+`/workflows` now provides route-owned typed graph authoring instead of a read-only node grid: draggable persisted layout, node/transition mutation, guard and approval policies, runtime-profile and immutable-artifact pins, strict reachability and side-effect validation, optimistic draft revisions, immutable publish, breakpoints, safe-worker execution, replay/state diff, version diff, and generated OpenAI-compatible deployment examples. A repeatable local acceptance runner verifies graph publication, stale-write rejection, approval boundaries, duplicate side-effect suppression, replay isolation, deployment-version authorization, and the API contract. Local acceptance passes 16/16 with a stable report digest; production remains blocked on authenticated non-loopback invocation, distributed worker restart/failover, and multi-user conflict evidence. Evidence: [`docs/release-evidence/v1.3.1-workflow-studio-acceptance-2026-07-23.md`](./release-evidence/v1.3.1-workflow-studio-acceptance-2026-07-23.md).
+
 ## 2026-07-18 v1.2.0 real Local Server acceptance
 
 The live Ollama `0.31.1` runtime and installed `qwen3:0.6b` now pass 15/15 local acceptance slices covering process health, discovery, registration, prewarm, residency, OpenAI-compatible non-stream and SSE chat, bounded concurrency, request accounting, caller-key attribution, LAN policy, log retention, drain/rollback policy, idle-eviction dry-run, and unload/reload recovery. The official `reasoning_effort: none` field reduced completion tokens from 143 to 24 and average recorded latency from 546 ms to 179 ms. Local promotion is PASS; production remains HOLD for separate-device authenticated LAN and a sustained daemon window. Evidence: [`docs/release-evidence/v1.2.0-local-server-acceptance-2026-07-18.md`](./release-evidence/v1.2.0-local-server-acceptance-2026-07-18.md).
@@ -106,7 +110,7 @@ These versions are not all shipped. Their implementation, local readiness, and e
 
 ## Current Slice
 
-The latest tagged release remains `v1.1.0-rc.2`. Active development is now `v1.3.0`; the Desktop package still requires real Developer ID notarization and a separately trusted clean-machine organization receipt before GA promotion.
+The latest tagged release remains `v1.1.0-rc.2`. Active development is now `v1.3.1`; the Desktop package still requires real Developer ID notarization and a separately trusted clean-machine organization receipt before GA promotion.
 
 The earlier `v1.1.1` Community/DX batch absorbed the remaining GitHub issues: latest runtime recovery visibility, line-level `read_file` evidence, compact benchmark issue exports, production route-smoke artifacts, Chinese contributor onboarding, a repository setup checklist, local/remote lane guidance, and a reproducible MP4 workflow. The real multi-file transfer and physical external-disk receipt pass; only refreshed ModelScope identity evidence remains required for authenticated promotion.
 
@@ -117,6 +121,8 @@ The real Model Hub continuation now resolves ModelScope manifests to immutable c
 The `v1.2.1` local Runtime Fabric is complete. Six adapters share one normalized operation contract, and real MLX, Ollama, and llama.cpp processes pass health, discovery, chat, SSE, and usage normalization on Apple Silicon. Production promotion remains HOLD for real LocalAI, Linux/NVIDIA vLLM and SGLang, and heterogeneous remote-node failover receipts. Evidence: [`docs/release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md`](./release-evidence/v1.2.1-runtime-fabric-acceptance-2026-07-18.md).
 
 The `v1.3.0` local MCP and secure extension ecosystem is complete. A pinned official filesystem server passes real MCP stdio initialization, tool discovery, and read execution under macOS Seatbelt; signed install/update/rollback, permission/secret boundaries, quarantine, malicious bundle rejection, and dependency blocking pass 11/11 checks. Production promotion remains HOLD for an independently managed publisher trust root, Linux and Windows isolation receipts, and a remote Streamable HTTP OAuth lifecycle. Evidence: [`docs/release-evidence/v1.3.0-mcp-extension-acceptance-2026-07-19.md`](./release-evidence/v1.3.0-mcp-extension-acceptance-2026-07-19.md).
+
+The `v1.3.1` Workflow Studio implementation is now active. Its local promotion state is derived from a fresh durable acceptance receipt rather than a hardcoded complete flag; production remains fail-closed until authenticated non-loopback invocation, distributed worker recovery, and collaborative conflict evidence exist.
 
 ## 2026-07-16 v1.1.0-rc.2 Desktop Distribution Gate
 
@@ -191,4 +197,4 @@ Next implementation slice:
 - `app/api/experiments/release-train/route.ts`
 - `features/experiments/ReleaseTrainPanel.tsx`
 
-当前正式标签仍是 `v1.1.0-rc.2`，active development 已推进到 `v1.3.0`。本地 MCP/安全扩展生态已完成 11/11 验收，真实官方 filesystem MCP server、签名生命周期和 macOS Seatbelt 隔离通过；独立 publisher 信任根、Linux/Windows sandbox 与远程 Streamable HTTP OAuth receipt 继续作为生产门禁。原生 launcher 的 Developer ID notarization 和独立可信 clean-machine/组织签收同样保持 fail-closed。下一条非阻塞主线进入 `v1.3.1` 可视化 Workflow。
+当前正式标签仍是 `v1.1.0-rc.2`，active development 已推进到 `v1.3.1`。可视化 Workflow Studio 已进入本地验收阶段，画布编辑、严格校验、版本发布、断点/回放、受保护工具恢复和 OpenAI-compatible 调用由新 promotion contract 动态判定；认证非回环调用、分布式 worker 恢复和多用户冲突证据继续保持生产阻塞。原生 launcher 的 Developer ID notarization 和独立可信 clean-machine/组织签收同样保持 fail-closed。

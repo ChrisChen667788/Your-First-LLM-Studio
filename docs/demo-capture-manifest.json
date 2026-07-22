@@ -1,6 +1,6 @@
 {
   "schemaVersion": "first-llm-studio.demo-capture-manifest.v1",
-  "generatedAt": "2026-07-18T17:32:26.090Z",
+  "generatedAt": "2026-07-22T19:31:28.860Z",
   "baseUrl": "http://127.0.0.1:3011",
   "command": "BASE_URL=http://localhost:3011 npm run screenshots:release",
   "viewport": {
@@ -109,6 +109,23 @@
       "screenshotPath": "docs/assets/screenshots/extension-ecosystem-acceptance.png",
       "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow extension-ecosystem-acceptance",
       "purpose": "Show real MCP stdio discovery, signed extension lifecycle, malicious package rejection, OS-enforced sandbox evidence, and explicit production gates."
+    },
+    {
+      "id": "workflow-graph-studio",
+      "label": "Visual Workflow Graph Studio",
+      "route": "/workflows",
+      "selector": "#workflow-graph-studio",
+      "readySelector": "#workflow-graph-studio[data-evidence-ready=\"true\"]",
+      "waitUntil": "domcontentloaded",
+      "gotoTimeoutMs": 120000,
+      "readyTimeoutMs": 60000,
+      "settleMs": 1000,
+      "minimumPixelWidth": 3000,
+      "minimumPixelHeight": 1200,
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/workflow-graph-studio.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow workflow-graph-studio",
+      "purpose": "Show typed visual graph authoring, immutable versions, breakpoints, execution recovery, OpenAI-compatible deployment, and fail-closed promotion evidence."
     },
     {
       "id": "desktop-onboarding-release",

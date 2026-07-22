@@ -1041,7 +1041,7 @@ Definition of done:
 - Model Hub: Hugging Face automatic manifests and ModelScope explicit multi-file manifests now feed the durable Range/checksum worker; private tokens are read from environment variables and never returned by the API.
 - Runtime fabric: Ollama `qwen3:0.6b` has passing model-level conformance evidence for discover, prewarm, generation, metrics, and unload.
 - Extensions: dependency validation and a Node permission subprocess rehearsal are implemented. Container or OS sandboxing remains a later production gate.
-- Workflow Studio: `/workflows` owns graph inspection, persisted breakpoints, step/continue actions, and execution history.
+- Workflow Studio: `/workflows` owns typed node and transition authoring, persisted canvas layout, runtime-profile and immutable-artifact pins, optimistic draft revisions, immutable publish, breakpoints, step/worker execution, replay, version diff, and OpenAI-compatible deployment examples.
 - Team governance: Postgres 16 RLS rehearsal passes. External OIDC discovery and SCIM provisioning endpoints are fail-closed pending real IdP configuration.
 
 Next production slices:
@@ -1049,5 +1049,5 @@ Next production slices:
 - notarize a signed desktop package with a real Developer ID and retain Apple submission/staple receipts;
 - add Hub snapshot retry/backoff, signed URL refresh, and large-shard concurrency controls;
 - move extension execution from the Node permission preview into a hardened container/seatbelt profile;
-- add workflow graph mutation, schema validation, version publish, and deploy-as-API;
+- retain authenticated non-loopback workflow invocation, distributed worker restart/failover, and multi-user draft-conflict evidence without promoting local receipts into production proof;
 - exercise OIDC JWT/JWKS verification and SCIM provisioning against a real identity provider, then run Postgres RLS under pooled application roles.
