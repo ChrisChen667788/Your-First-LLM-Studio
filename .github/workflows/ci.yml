@@ -28,8 +28,16 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Setup Python for official evaluators
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Bootstrap official evaluators
+        run: npm run bootstrap:evaluators
 
       - name: Validate release truth
         run: |
