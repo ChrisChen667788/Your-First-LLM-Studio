@@ -1,9 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { getLocalAgentDataDir, getLocalAgentDataPath } from "@/lib/agent/data-dir";
+import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
 import { defaultStudioRecipes } from "@/lib/agent/studio-recipes";
 import type { AgentStudioRecipe } from "@/lib/agent/types";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 
-const DATA_DIR = getLocalAgentDataDir();
 const RECIPE_FILE = getLocalAgentDataPath("studio-recipes.json");
 
 type MutableStudioRecipeInput = Omit<AgentStudioRecipe, "id" | "source" | "createdAt" | "updatedAt"> & {
@@ -16,10 +18,6 @@ export type StudioRecipeImportResult = {
   replacedCount: number;
   skippedCount: number;
 };
-
-function ensureDataDir() {
-  mkdirSync(DATA_DIR, { recursive: true });
-}
 
 function buildSlug(label: string) {
   return (
@@ -47,11 +45,6 @@ function normalizeRecipe(input: AgentStudioRecipe): AgentStudioRecipe {
     createdAt,
     updatedAt
   };
-}
-
-function writeRecipes(rows: AgentStudioRecipe[]) {
-  ensureDataDir();
-  writeFileSync(RECIPE_FILE, `${JSON.stringify(rows, null, 2)}\n`, "utf8");
 }
 
 function getInitialRecipes() {
@@ -85,99 +78,100 @@ function buildUniqueRecipeId(existingRows: AgentStudioRecipe[], label: string, p
   return nextId;
 }
 
+function updateRecipes(
+  mutate: (rows: AgentStudioRecipe[]) => AgentStudioRecipe[],
+) {
+  return updateJsonFileDurably(
+    RECIPE_FILE,
+    getInitialRecipes,
+    (current) => mutate(mergeRecipes(current)),
+    (value): value is AgentStudioRecipe[] => Array.isArray(value),
+  );
+}
+
 export function readStudioRecipes() {
-  ensureDataDir();
-  if (!existsSync(RECIPE_FILE)) {
-    const rows = getInitialRecipes();
-    writeRecipes(rows);
-    return rows;
+  const payload = readJsonFileDurably(
+    RECIPE_FILE,
+    getInitialRecipes,
+    (value): value is AgentStudioRecipe[] => Array.isArray(value),
+  );
+  const normalized = payload
+    .map((entry) => normalizeRecipe(entry))
+    .filter((entry) => entry.id && entry.label && entry.kind === "compare");
+  const merged = mergeRecipes(normalized);
+  if (JSON.stringify(merged) !== JSON.stringify(normalized)) {
+    updateJsonFileDurably(
+      RECIPE_FILE,
+      getInitialRecipes,
+      () => merged,
+      (value): value is AgentStudioRecipe[] => Array.isArray(value),
+    );
   }
-  try {
-    const payload = JSON.parse(readFileSync(RECIPE_FILE, "utf8")) as AgentStudioRecipe[];
-    if (!Array.isArray(payload)) {
-      const rows = getInitialRecipes();
-      writeRecipes(rows);
-      return rows;
-    }
-    const normalized = payload
-      .map((entry) => normalizeRecipe(entry))
-      .filter((entry) => entry.id && entry.label && entry.kind === "compare");
-    const merged = mergeRecipes(normalized);
-    if (JSON.stringify(merged) !== JSON.stringify(normalized)) {
-      writeRecipes(merged);
-    }
-    return merged;
-  } catch {
-    const rows = getInitialRecipes();
-    writeRecipes(rows);
-    return rows;
-  }
+  return merged;
 }
 
 export function createStudioRecipe(input: MutableStudioRecipeInput) {
-  const rows = readStudioRecipes();
-  const nextId = buildUniqueRecipeId(rows, input.label, input.id);
-  const timestamp = new Date().toISOString();
-  const record = normalizeRecipe({
-    ...input,
-    id: nextId,
-    source: "user",
-    createdAt: timestamp,
-    updatedAt: timestamp
-  });
-  rows.push(record);
-  writeRecipes(rows);
-  return record;
-}
-
-export function importStudioRecipes(inputs: MutableStudioRecipeInput[]): StudioRecipeImportResult {
-  const rows = readStudioRecipes();
-  const imported: AgentStudioRecipe[] = [];
-  let replacedCount = 0;
-  let skippedCount = 0;
-
-  for (const input of inputs) {
-    const builtinRecipe = input.id
-      ? rows.find((entry) => entry.id === input.id && entry.source === "builtin") || null
-      : null;
-    if (builtinRecipe) {
-      skippedCount += 1;
-      continue;
-    }
-    const existingUserRecipe = input.id
-      ? rows.find((entry) => entry.id === input.id && entry.source === "user") || null
-      : null;
-
-    if (existingUserRecipe) {
-      const nextRecord = normalizeRecipe({
-        ...existingUserRecipe,
-        ...input,
-        id: existingUserRecipe.id,
-        source: "user",
-        createdAt: existingUserRecipe.createdAt,
-        updatedAt: new Date().toISOString()
-      });
-      const index = rows.findIndex((entry) => entry.id === existingUserRecipe.id);
-      rows[index] = nextRecord;
-      imported.push(nextRecord);
-      replacedCount += 1;
-      continue;
-    }
-
+  const outcome: { record?: AgentStudioRecipe } = {};
+  updateRecipes((rows) => {
     const nextId = buildUniqueRecipeId(rows, input.label, input.id);
     const timestamp = new Date().toISOString();
-    const record = normalizeRecipe({
+    outcome.record = normalizeRecipe({
       ...input,
       id: nextId,
       source: "user",
       createdAt: timestamp,
-      updatedAt: timestamp
+      updatedAt: timestamp,
     });
-    rows.push(record);
-    imported.push(record);
-  }
+    return [...rows, outcome.record];
+  });
+  return outcome.record!;
+}
 
-  writeRecipes(rows);
+export function importStudioRecipes(inputs: MutableStudioRecipeInput[]): StudioRecipeImportResult {
+  const imported: AgentStudioRecipe[] = [];
+  let replacedCount = 0;
+  let skippedCount = 0;
+  updateRecipes((current) => {
+    const rows = [...current];
+    for (const input of inputs) {
+      const builtinRecipe = input.id
+        ? rows.find((entry) => entry.id === input.id && entry.source === "builtin") || null
+        : null;
+      if (builtinRecipe) {
+        skippedCount += 1;
+        continue;
+      }
+      const existingUserRecipe = input.id
+        ? rows.find((entry) => entry.id === input.id && entry.source === "user") || null
+        : null;
+      if (existingUserRecipe) {
+        const nextRecord = normalizeRecipe({
+          ...existingUserRecipe,
+          ...input,
+          id: existingUserRecipe.id,
+          source: "user",
+          createdAt: existingUserRecipe.createdAt,
+          updatedAt: new Date().toISOString(),
+        });
+        rows[rows.findIndex((entry) => entry.id === existingUserRecipe.id)] = nextRecord;
+        imported.push(nextRecord);
+        replacedCount += 1;
+        continue;
+      }
+      const nextId = buildUniqueRecipeId(rows, input.label, input.id);
+      const timestamp = new Date().toISOString();
+      const record = normalizeRecipe({
+        ...input,
+        id: nextId,
+        source: "user",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+      rows.push(record);
+      imported.push(record);
+    }
+    return rows;
+  });
   return {
     imported,
     importedCount: imported.length,
@@ -187,11 +181,19 @@ export function importStudioRecipes(inputs: MutableStudioRecipeInput[]): StudioR
 }
 
 export function deleteStudioRecipe(id: string) {
-  const rows = readStudioRecipes();
-  const recipe = rows.find((entry) => entry.id === id);
-  if (!recipe) return { ok: false as const, reason: "not-found" };
-  if (recipe.source === "builtin") return { ok: false as const, reason: "builtin" };
-  const nextRows = rows.filter((entry) => entry.id !== id);
-  writeRecipes(nextRows);
-  return { ok: true as const };
+  const outcome: { result?: { ok: true } | { ok: false; reason: "not-found" | "builtin" } } = {};
+  updateRecipes((rows) => {
+    const recipe = rows.find((entry) => entry.id === id);
+    if (!recipe) {
+      outcome.result = { ok: false, reason: "not-found" };
+      return rows;
+    }
+    if (recipe.source === "builtin") {
+      outcome.result = { ok: false, reason: "builtin" };
+      return rows;
+    }
+    outcome.result = { ok: true };
+    return rows.filter((entry) => entry.id !== id);
+  });
+  return outcome.result!;
 }

@@ -1,6 +1,9 @@
 import crypto from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 import { benchmarkDatasets, benchmarkMilestoneSuites } from "@/lib/agent/benchmark-datasets";
 import { readManagedBenchmarkPromptSets } from "@/lib/agent/benchmark-prompt-set-store";
 import {
@@ -133,30 +136,13 @@ function expandRetrievalQueries(query: string) {
   return Array.from(new Set(variants.map((value) => value.trim()).filter(Boolean))).slice(0, 4);
 }
 
-function ensureDataDir() {
-  mkdirSync(getObservabilityPaths().dataDir, { recursive: true });
-}
-
-function readJsonFile<T>(filePath: string, fallback: T): T {
-  if (!existsSync(filePath)) return fallback;
-  try {
-    return JSON.parse(readFileSync(filePath, "utf8")) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJsonFile(filePath: string, value: unknown) {
-  ensureDataDir();
-  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-}
-
 function buildKnowledgePaths() {
   const paths = getObservabilityPaths();
   return {
     documentFile: paths.knowledgeDocumentFile,
     chunkFile: paths.knowledgeChunkFile,
-    vectorFile: paths.knowledgeVectorIndexFile
+    vectorFile: paths.knowledgeVectorIndexFile,
+    snapshotFile: path.join(paths.dataDir, "knowledge-base-snapshot.json"),
   };
 }
 
@@ -294,17 +280,36 @@ function buildChunkRecords(document: AgentKnowledgeDocument) {
 }
 
 function readSnapshot(): KnowledgeBaseSnapshot {
-  const { documentFile, chunkFile } = buildKnowledgePaths();
-  return {
-    documents: readJsonFile<AgentKnowledgeDocument[]>(documentFile, []),
-    chunks: readJsonFile<KnowledgeChunkRecord[]>(chunkFile, [])
-  };
+  const { documentFile, chunkFile, snapshotFile } = buildKnowledgePaths();
+  const legacyInitial = () => ({
+    documents: readJsonFileDurably(documentFile, () => [] as AgentKnowledgeDocument[]),
+    chunks: readJsonFileDurably(chunkFile, () => [] as KnowledgeChunkRecord[]),
+  });
+  return readJsonFileDurably(
+    snapshotFile,
+    legacyInitial,
+    (value): value is KnowledgeBaseSnapshot => {
+      if (!value || typeof value !== "object") return false;
+      const candidate = value as Partial<KnowledgeBaseSnapshot>;
+      return Array.isArray(candidate.documents) && Array.isArray(candidate.chunks);
+    },
+  );
 }
 
-function writeSnapshot(snapshot: KnowledgeBaseSnapshot) {
-  const { documentFile, chunkFile } = buildKnowledgePaths();
-  writeJsonFile(documentFile, snapshot.documents);
-  writeJsonFile(chunkFile, snapshot.chunks);
+function updateSnapshot(
+  mutate: (snapshot: KnowledgeBaseSnapshot) => KnowledgeBaseSnapshot,
+) {
+  const { snapshotFile } = buildKnowledgePaths();
+  return updateJsonFileDurably(
+    snapshotFile,
+    readSnapshot,
+    mutate,
+    (value): value is KnowledgeBaseSnapshot => {
+      if (!value || typeof value !== "object") return false;
+      const candidate = value as Partial<KnowledgeBaseSnapshot>;
+      return Array.isArray(candidate.documents) && Array.isArray(candidate.chunks);
+    },
+  );
 }
 
 function buildAllKnowledgeChunks(snapshot: KnowledgeBaseSnapshot) {
@@ -516,36 +521,39 @@ export function upsertKnowledgeDocument(input: UpsertKnowledgeDocumentInput) {
     throw new Error("content is required.");
   }
 
-  const snapshot = readSnapshot();
-  const now = new Date().toISOString();
-  const existing = input.id ? snapshot.documents.find((document) => document.id === input.id) : null;
-  const documentId = existing?.id || `kb-doc-${crypto.randomUUID()}`;
   const normalizedTags = normalizeTags(input.tags || []);
-  const nextDocument: AgentKnowledgeDocument = {
-    id: documentId,
-    title,
-    source: input.source?.trim() || undefined,
-    tags: normalizedTags,
-    content,
-    createdAt: existing?.createdAt || now,
-    updatedAt: now,
-    chunkCount: 0,
-    charCount: content.length
-  };
-
-  const nextChunks = buildChunkRecords(nextDocument);
-  nextDocument.chunkCount = nextChunks.length;
-
-  const nextDocuments = snapshot.documents
-    .filter((document) => document.id !== documentId)
-    .concat(nextDocument)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  const otherChunks = snapshot.chunks.filter((chunk) => chunk.documentId !== documentId);
-  const nextSnapshot = {
-    documents: nextDocuments,
-    chunks: [...otherChunks, ...nextChunks]
-  };
-  writeSnapshot(nextSnapshot);
+  const outcome: { document?: AgentKnowledgeDocument } = {};
+  const nextSnapshot = updateSnapshot((snapshot) => {
+    const now = new Date().toISOString();
+    const existing = input.id
+      ? snapshot.documents.find((document) => document.id === input.id)
+      : null;
+    const documentId = existing?.id || `kb-doc-${crypto.randomUUID()}`;
+    const nextDocument: AgentKnowledgeDocument = {
+      id: documentId,
+      title,
+      source: input.source?.trim() || undefined,
+      tags: normalizedTags,
+      content,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+      chunkCount: 0,
+      charCount: content.length,
+    };
+    const nextChunks = buildChunkRecords(nextDocument);
+    nextDocument.chunkCount = nextChunks.length;
+    outcome.document = nextDocument;
+    return {
+      documents: snapshot.documents
+        .filter((document) => document.id !== documentId)
+        .concat(nextDocument)
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+      chunks: [
+        ...snapshot.chunks.filter((chunk) => chunk.documentId !== documentId),
+        ...nextChunks,
+      ],
+    };
+  });
   const { vectorFile } = buildKnowledgePaths();
   ensureRetrievalVectorIndex(
     vectorFile,
@@ -562,23 +570,25 @@ export function upsertKnowledgeDocument(input: UpsertKnowledgeDocumentInput) {
   );
 
   return {
-    document: nextDocument,
+    document: outcome.document!,
     stats: buildKnowledgeBaseStats(nextSnapshot)
   };
 }
 
 export function deleteKnowledgeDocument(documentId: string) {
-  const snapshot = readSnapshot();
-  const nextDocuments = snapshot.documents.filter((document) => document.id !== documentId);
-  if (nextDocuments.length === snapshot.documents.length) {
-    return false;
-  }
-  const nextChunks = snapshot.chunks.filter((chunk) => chunk.documentId !== documentId);
-  const nextSnapshot = {
-    documents: nextDocuments,
-    chunks: nextChunks
-  };
-  writeSnapshot(nextSnapshot);
+  const outcome = { deleted: false };
+  const nextSnapshot = updateSnapshot((snapshot) => {
+    const nextDocuments = snapshot.documents.filter(
+      (document) => document.id !== documentId,
+    );
+    if (nextDocuments.length === snapshot.documents.length) return snapshot;
+    outcome.deleted = true;
+    return {
+      documents: nextDocuments,
+      chunks: snapshot.chunks.filter((chunk) => chunk.documentId !== documentId),
+    };
+  });
+  if (!outcome.deleted) return false;
   const { vectorFile } = buildKnowledgePaths();
   ensureRetrievalVectorIndex(
     vectorFile,

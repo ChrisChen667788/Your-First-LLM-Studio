@@ -1,27 +1,65 @@
 import { createPublicKey, randomUUID, timingSafeEqual, verify, type JsonWebKey as CryptoJsonWebKey } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 
-export const IDENTITY_PROVISIONING_SCHEMA_VERSION = "governance.identity-provisioning.v1" as const;
+export const IDENTITY_PROVISIONING_SCHEMA_VERSION = "governance.identity-provisioning.v2" as const;
 
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const SCIM_FILE = path.join(DATA_DIR, "scim-directory.json");
 
-type ScimUser = { id: string; userName: string; displayName?: string; active: boolean; externalId?: string; meta: { resourceType: "User"; created: string; lastModified: string } };
-type ScimGroup = { id: string; displayName: string; members: Array<{ value: string; display?: string }>; meta: { resourceType: "Group"; created: string; lastModified: string } };
+export type ScimUser = { id: string; userName: string; displayName?: string; active: boolean; externalId?: string; meta: { resourceType: "User"; created: string; lastModified: string } };
+export type ScimGroup = { id: string; displayName: string; members: Array<{ value: string; display?: string }>; meta: { resourceType: "Group"; created: string; lastModified: string } };
+type ScimDirectoryStore = { schemaVersion: "governance.scim-directory.v1"; users: ScimUser[]; groups: ScimGroup[] };
 
-function readDirectory(): { users: ScimUser[]; groups: ScimGroup[] } {
-  if (!existsSync(SCIM_FILE)) return { users: [], groups: [] };
-  try {
-    const parsed = JSON.parse(readFileSync(SCIM_FILE, "utf8")) as { users?: ScimUser[]; groups?: ScimGroup[] };
-    return { users: Array.isArray(parsed.users) ? parsed.users : [], groups: Array.isArray(parsed.groups) ? parsed.groups : [] };
-  } catch { return { users: [], groups: [] }; }
+function emptyDirectory(): ScimDirectoryStore {
+  return { schemaVersion: "governance.scim-directory.v1", users: [], groups: [] };
 }
 
-function writeDirectory(directory: { users: ScimUser[]; groups: ScimGroup[] }) {
-  mkdirSync(path.dirname(SCIM_FILE), { recursive: true });
-  writeFileSync(SCIM_FILE, `${JSON.stringify({ schemaVersion: "governance.scim-directory.v1", ...directory }, null, 2)}\n`, "utf8");
+function isDirectory(value: unknown): value is ScimDirectoryStore {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<ScimDirectoryStore>;
+  return candidate.schemaVersion === "governance.scim-directory.v1" && Array.isArray(candidate.users) && Array.isArray(candidate.groups);
+}
+
+function readDirectory(): ScimDirectoryStore {
+  return readJsonFileDurably(SCIM_FILE, emptyDirectory, isDirectory);
+}
+
+export function readScimDirectorySnapshot() {
+  const directory = readDirectory();
+  return {
+    users: directory.users.map((user) => ({ ...user, meta: { ...user.meta } })),
+    groups: directory.groups.map((group) => ({
+      ...group,
+      members: group.members.map((member) => ({ ...member })),
+      meta: { ...group.meta },
+    })),
+  };
+}
+
+function updateDirectory(mutate: (directory: ScimDirectoryStore) => ScimDirectoryStore) {
+  return updateJsonFileDurably(SCIM_FILE, emptyDirectory, mutate, isDirectory);
+}
+
+export function replaceScimDirectorySnapshot(input: {
+  users: ScimUser[];
+  groups: ScimGroup[];
+}) {
+  const next: ScimDirectoryStore = {
+    schemaVersion: "governance.scim-directory.v1",
+    users: input.users.map((user) => ({ ...user, meta: { ...user.meta } })),
+    groups: input.groups.map((group) => ({
+      ...group,
+      members: group.members.map((member) => ({ ...member })),
+      meta: { ...group.meta },
+    })),
+  };
+  updateDirectory(() => next);
+  return readScimDirectorySnapshot();
 }
 
 export function assertScimAuthorization(authorization: string | null) {
@@ -67,7 +105,7 @@ export async function verifyOidcIdToken(idToken: string, expectedNonce?: string)
   const parts = idToken.split(".");
   if (parts.length !== 3) throw new Error("OIDC ID token must use compact JWS serialization.");
   const header = decodeJwtPart(parts[0]) as { alg?: string; kid?: string };
-  const claims = decodeJwtPart(parts[1]) as { iss?: string; aud?: string | string[]; sub?: string; exp?: number; iat?: number; nonce?: string; email?: string; name?: string };
+  const claims = decodeJwtPart(parts[1]) as { iss?: string; aud?: string | string[]; sub?: string; exp?: number; iat?: number; nonce?: string; email?: string; name?: string; groups?: string[] };
   if (header.alg !== "RS256" || !header.kid) throw new Error("Only RS256 ID tokens with kid are supported.");
   const discovery = await discoverOidcProvider();
   const response = await fetch(discovery.endpoints.jwks, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
@@ -87,7 +125,7 @@ export async function verifyOidcIdToken(idToken: string, expectedNonce?: string)
   if (!claims.exp || claims.exp <= now - 60) throw new Error("OIDC ID token is expired.");
   if (claims.iat && claims.iat > now + 60) throw new Error("OIDC ID token was issued in the future.");
   if (expectedNonce !== undefined && claims.nonce !== expectedNonce) throw new Error("OIDC ID token nonce does not match.");
-  return { ok: true as const, identity: { subject: claims.sub, issuer: claims.iss, email: claims.email || null, name: claims.name || null }, validation: { signature: true, issuer: true, audience: true, expiry: true, nonce: expectedNonce === undefined ? "not-requested" : "matched" } };
+  return { ok: true as const, identity: { subject: claims.sub, issuer: claims.iss, email: claims.email || null, name: claims.name || null, groups: Array.isArray(claims.groups) ? claims.groups.filter((group): group is string => typeof group === "string" && group.length > 0) : [] }, validation: { signature: true, issuer: true, audience: true, expiry: true, nonce: expectedNonce === undefined ? "not-requested" : "matched" } };
 }
 
 export function listScimResources(kind: "users" | "groups") {
@@ -96,18 +134,18 @@ export function listScimResources(kind: "users" | "groups") {
 }
 
 export function createScimResource(kind: "users" | "groups", input: Record<string, unknown>) {
-  const directory = readDirectory(); const now = new Date().toISOString(); const id = randomUUID();
+  const now = new Date().toISOString(); const id = randomUUID();
   if (kind === "users") {
     const userName = typeof input.userName === "string" ? input.userName.trim() : "";
     if (!userName) throw new Error("SCIM userName is required.");
     const user: ScimUser = { id, userName, displayName: typeof input.displayName === "string" ? input.displayName : undefined, active: input.active !== false, externalId: typeof input.externalId === "string" ? input.externalId : undefined, meta: { resourceType: "User", created: now, lastModified: now } };
-    writeDirectory({ ...directory, users: [user, ...directory.users] }); return user;
+    updateDirectory((directory) => ({ ...directory, users: [user, ...directory.users] })); return user;
   }
   const displayName = typeof input.displayName === "string" ? input.displayName.trim() : "";
   if (!displayName) throw new Error("SCIM group displayName is required.");
   const members = Array.isArray(input.members) ? input.members.filter((member): member is { value: string; display?: string } => Boolean(member && typeof member === "object" && typeof (member as { value?: unknown }).value === "string")) : [];
   const group: ScimGroup = { id, displayName, members, meta: { resourceType: "Group", created: now, lastModified: now } };
-  writeDirectory({ ...directory, groups: [group, ...directory.groups] }); return group;
+  updateDirectory((directory) => ({ ...directory, groups: [group, ...directory.groups] })); return group;
 }
 
 export function readScimResource(kind: "users" | "groups", id: string) {
@@ -115,34 +153,40 @@ export function readScimResource(kind: "users" | "groups", id: string) {
 }
 
 export function patchScimResource(kind: "users" | "groups", id: string, operations: Array<{ op?: string; path?: string; value?: unknown }>) {
-  const directory = readDirectory();
-  const collection = directory[kind];
-  const index = collection.findIndex((resource) => resource.id === id);
-  if (index < 0) throw new Error("SCIM resource was not found.");
-  let resource = { ...collection[index] } as ScimUser | ScimGroup;
-  for (const operation of operations) {
-    const op = operation.op?.toLowerCase();
-    if (op !== "replace" && op !== "add" && op !== "remove") throw new Error(`Unsupported SCIM patch operation: ${operation.op || "missing"}.`);
-    const field = operation.path?.trim();
-    if (!field || !["active", "displayName", "userName", "members"].includes(field)) throw new Error(`Unsupported SCIM patch path: ${field || "missing"}.`);
-    if (field === "active" && kind === "users") resource = { ...(resource as ScimUser), active: op === "remove" ? false : operation.value !== false };
-    else if (field === "displayName") resource = { ...resource, displayName: op === "remove" ? "" : String(operation.value || "") } as typeof resource;
-    else if (field === "userName" && kind === "users") resource = { ...(resource as ScimUser), userName: String(operation.value || "").trim() };
-    else if (field === "members" && kind === "groups") resource = { ...(resource as ScimGroup), members: op === "remove" ? [] : Array.isArray(operation.value) ? operation.value.filter((member): member is { value: string; display?: string } => Boolean(member && typeof member === "object" && typeof (member as { value?: unknown }).value === "string")) : [] };
-  }
-  resource = { ...resource, meta: { ...resource.meta, lastModified: new Date().toISOString() } } as typeof resource;
-  if (kind === "users") writeDirectory({ ...directory, users: directory.users.map((entry) => entry.id === id ? resource as ScimUser : entry) });
-  else writeDirectory({ ...directory, groups: directory.groups.map((entry) => entry.id === id ? resource as ScimGroup : entry) });
-  return resource;
+  let saved: ScimUser | ScimGroup | null = null;
+  updateDirectory((directory) => {
+    const collection = directory[kind];
+    const index = collection.findIndex((resource) => resource.id === id);
+    if (index < 0) throw new Error("SCIM resource was not found.");
+    let resource = { ...collection[index] } as ScimUser | ScimGroup;
+    for (const operation of operations) {
+      const op = operation.op?.toLowerCase();
+      if (op !== "replace" && op !== "add" && op !== "remove") throw new Error(`Unsupported SCIM patch operation: ${operation.op || "missing"}.`);
+      const field = operation.path?.trim();
+      if (!field || !["active", "displayName", "userName", "members"].includes(field)) throw new Error(`Unsupported SCIM patch path: ${field || "missing"}.`);
+      if (field === "active" && kind === "users") resource = { ...(resource as ScimUser), active: op === "remove" ? false : operation.value !== false };
+      else if (field === "displayName") resource = { ...resource, displayName: op === "remove" ? "" : String(operation.value || "") } as typeof resource;
+      else if (field === "userName" && kind === "users") resource = { ...(resource as ScimUser), userName: String(operation.value || "").trim() };
+      else if (field === "members" && kind === "groups") resource = { ...(resource as ScimGroup), members: op === "remove" ? [] : Array.isArray(operation.value) ? operation.value.filter((member): member is { value: string; display?: string } => Boolean(member && typeof member === "object" && typeof (member as { value?: unknown }).value === "string")) : [] };
+    }
+    resource = { ...resource, meta: { ...resource.meta, lastModified: new Date().toISOString() } } as typeof resource;
+    saved = resource;
+    return kind === "users"
+      ? { ...directory, users: directory.users.map((entry) => entry.id === id ? resource as ScimUser : entry) }
+      : { ...directory, groups: directory.groups.map((entry) => entry.id === id ? resource as ScimGroup : entry) };
+  });
+  return saved!;
 }
 
 export function deleteScimResource(kind: "users" | "groups", id: string) {
-  const directory = readDirectory();
   if (!readScimResource(kind, id)) throw new Error("SCIM resource was not found.");
   if (kind === "users") {
     patchScimResource("users", id, [{ op: "replace", path: "active", value: false }]);
     return { deleted: false, deactivated: true };
   }
-  writeDirectory({ ...directory, groups: directory.groups.filter((group) => group.id !== id) });
+  updateDirectory((directory) => ({
+    ...directory,
+    groups: directory.groups.filter((group) => group.id !== id),
+  }));
   return { deleted: true, deactivated: false };
 }

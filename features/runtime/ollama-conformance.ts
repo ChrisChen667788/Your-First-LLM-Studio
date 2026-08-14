@@ -1,6 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import {
+  prependDurableListEntry,
+  readDurableList,
+} from "@/features/persistence/durable-list-store";
 import {
   discoverOllamaModels,
   normalizeOllamaError,
@@ -28,18 +31,21 @@ type OllamaConformanceReport = {
 };
 
 function readReports(): OllamaConformanceReport[] {
-  if (!existsSync(REPORT_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(REPORT_FILE, "utf8")) as { reports?: OllamaConformanceReport[] };
-    return Array.isArray(parsed.reports) ? parsed.reports : [];
-  } catch {
-    return [];
-  }
+  return readDurableList(
+    REPORT_FILE,
+    OLLAMA_CONFORMANCE_SCHEMA_VERSION,
+    "reports",
+  );
 }
 
 function persist(report: OllamaConformanceReport) {
-  mkdirSync(path.dirname(REPORT_FILE), { recursive: true });
-  writeFileSync(REPORT_FILE, `${JSON.stringify({ schemaVersion: OLLAMA_CONFORMANCE_SCHEMA_VERSION, reports: [report, ...readReports()].slice(0, 50) }, null, 2)}\n`, "utf8");
+  prependDurableListEntry(
+    REPORT_FILE,
+    OLLAMA_CONFORMANCE_SCHEMA_VERSION,
+    "reports",
+    report,
+    50,
+  );
 }
 
 export function readOllamaConformanceEvidence() {

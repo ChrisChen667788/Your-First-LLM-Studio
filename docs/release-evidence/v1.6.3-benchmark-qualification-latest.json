@@ -1,0 +1,199 @@
+{
+  "schemaVersion": "experiments.v163-benchmark-qualification-runner-evidence.v1",
+  "generatedAt": "2026-08-10T00:51:29.194Z",
+  "sourceUrl": "http://127.0.0.1:3011/api/experiments/v163-benchmark-qualification",
+  "receipt": {
+    "id": "v163-benchmark-qualification-19f07fe3-b9ba-4a18-a9c2-9ead9d36afe3",
+    "generatedAt": "2026-08-10T00:51:29.161Z",
+    "status": "pass",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "slices": [
+      {
+        "id": "source-allowlist",
+        "label": "Official source allowlist",
+        "status": "pass",
+        "summary": "Only HuggingFaceH4/MATH-500 on huggingface.co is accepted.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "metadata-response",
+        "label": "Official metadata response",
+        "status": "pass",
+        "summary": "Metadata revision was last modified 2025-12-15T11:01:40.000Z.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "immutable-revision",
+        "label": "Immutable revision pin",
+        "status": "pass",
+        "summary": "Pinned full commit 6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "pinned-file-path",
+        "label": "Pinned source file",
+        "status": "pass",
+        "summary": "test.jsonl is resolved through the immutable revision URL.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "transfer-complete",
+        "label": "Bounded transfer",
+        "status": "pass",
+        "summary": "446,564 bytes downloaded within the 2 MiB ceiling.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "content-digest",
+        "label": "Content SHA-256",
+        "status": "pass",
+        "summary": "Snapshot digest 35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "row-count",
+        "label": "Official row count",
+        "status": "pass",
+        "summary": "500/500 non-empty JSONL rows validated.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "required-schema",
+        "label": "Required row schema",
+        "status": "pass",
+        "summary": "500/500 rows include problem, solution, answer, subject, level, and unique_id.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "unique-identifiers",
+        "label": "Unique sample identifiers",
+        "status": "pass",
+        "summary": "500/500 unique_id values are unique.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "split-contract",
+        "label": "Official test split",
+        "status": "pass",
+        "summary": "Every sample identifier belongs to the official test split.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "subject-coverage",
+        "label": "Subject coverage",
+        "status": "pass",
+        "summary": "7/7 official subject groups found.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "level-coverage",
+        "label": "Difficulty coverage",
+        "status": "pass",
+        "summary": "Difficulty levels: 1, 2, 3, 4, 5.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "prompt-pack-digest",
+        "label": "Deterministic prompt pack",
+        "status": "pass",
+        "summary": "32 manifest samples and full prompt-pack digest 88c9d73588d19e87eef44565e7e7b490461c669fbe04b127227b501876f65dee.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "evaluator-disclosure",
+        "label": "Evaluator disclosure",
+        "status": "pass",
+        "summary": "Runnable prompts retain reference answers, but no official leaderboard score is emitted.",
+        "version": "v1.6.3"
+      },
+      {
+        "id": "durable-snapshot-reverify",
+        "label": "Durable snapshot reverify",
+        "status": "pass",
+        "summary": "Persisted snapshot digest matches the qualification receipt.",
+        "version": "v1.6.3"
+      }
+    ],
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "manifest": {
+      "standardId": "math-500",
+      "datasetId": "math-500-qualified",
+      "repository": "HuggingFaceH4/MATH-500",
+      "sourceSplit": "test",
+      "sourceFile": "test.jsonl",
+      "revision": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
+      "sourceUrl": "https://huggingface.co/datasets/HuggingFaceH4/MATH-500/resolve/6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be/test.jsonl",
+      "downloadedAt": "2026-08-10T00:26:47.329Z",
+      "lastModifiedAt": "2025-12-15T11:01:40.000Z",
+      "snapshotPath": "<LOCAL_AGENT_DATA_DIR>/benchmark-snapshots/math-500/6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be/test.jsonl",
+      "bytes": 446564,
+      "sha256": "35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132",
+      "rowCount": 500,
+      "uniqueIdCount": 500,
+      "subjects": [
+        "Algebra",
+        "Counting & Probability",
+        "Geometry",
+        "Intermediate Algebra",
+        "Number Theory",
+        "Prealgebra",
+        "Precalculus"
+      ],
+      "levels": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "promptPackDigest": "88c9d73588d19e87eef44565e7e7b490461c669fbe04b127227b501876f65dee",
+      "sampleManifestDigest": "67cb3e35cde54e6a0a934196faf9398b3ae54393bfd87983ef2880afcb9bbfe0",
+      "sampleManifestSize": 32,
+      "evaluatorMode": "manual-review-compatibility",
+      "officialScoreEligible": false
+    },
+    "benchmarkQualificationReceiptId": "benchmark-qualification-da446717-69d1-45ec-8186-d088b2f47b04",
+    "evidenceDigest": "45ecd1a79a05d3ff614a76ef91ad3733c498dec6c0f082b11ece923472162774",
+    "productionBlockers": [
+      "The official MATH-500 evaluator and score normalization are not yet integrated.",
+      "A qualified local snapshot proves dataset provenance, not an official leaderboard score or production deployment."
+    ]
+  },
+  "readModel": {
+    "schemaVersion": "experiments.v163-benchmark-qualification.v1",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "snapshotIntegrity": "verified",
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "qualifiedDataset": {
+      "id": "math-500-qualified",
+      "label": "HuggingFaceH4/MATH-500 (qualified snapshot)",
+      "description": "Immutable official test snapshot with provenance and schema checks. Outputs are retained for manual review until the official evaluator is integrated.",
+      "sourceLabel": "Hugging Face · HuggingFaceH4/MATH-500@6e4ed1a2a79a",
+      "sourceUrl": "https://huggingface.co/datasets/HuggingFaceH4/MATH-500/resolve/6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be/test.jsonl",
+      "taskCategory": "Mathematical reasoning",
+      "scoringLabel": "Manual review compatibility · official score HOLD",
+      "sampleCount": 500,
+      "revision": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
+      "sha256": "35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132"
+    },
+    "productionBlockers": [
+      "The official MATH-500 evaluator and score normalization are not yet integrated.",
+      "A qualified local snapshot proves dataset provenance, not an official leaderboard score or production deployment."
+    ]
+  },
+  "runtimeSmoke": {
+    "runId": "34aff595-3d79-423c-9b36-6d95116ef8fd",
+    "reportDigest": "8039f21feb48c8d2b9cbac0c225f439e1e77225c5c1a9cc1d51559a4f64c6a75",
+    "report": "# Benchmark Regression Report\n\nGenerated at: 2026-08-10T00:51:29.515Z\nWindow: last 720 minutes\nExport schema: 0.2.1\n\n## Workload\n\n- Mode: dataset\n- Prompt: [dataset] HuggingFaceH4/MATH-500 (qualified snapshot)\n- Context window: 4096\n- Runs: 1\n- Provider profile: speed\n- Thinking mode: standard\n- Run ID: 34aff595-3d79-423c-9b36-6d95116ef8fd\n- Match source: exact runId\n- Dataset: HuggingFaceH4/MATH-500 (qualified snapshot) (1 samples)\n- Dataset source: Hugging Face · HuggingFaceH4/MATH-500@6e4ed1a2a79a\n- Dataset URL: https://huggingface.co/datasets/HuggingFaceH4/MATH-500/resolve/6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be/test.jsonl\n\n## Workload breakdown\n\n- [dataset] HuggingFaceH4/MATH-500 (qualified snapshot) · n=1 · Hugging Face · HuggingFaceH4/MATH-500@6e4ed1a2a79a\n\n## Current results\n\n| Target | Profile | Thinking | Success | Skipped | Avg first token (ms) | Avg total latency (ms) | Avg throughput (tps) | Avg score | Pass rate |\n| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n| Local Qwen3 0.6B | speed | standard | 1/1 | 0 | 1686.00 | 1688.00 | 94.79 | -- | -- |\n\n## Baseline\n\n- No matching baseline found for this workload.\n\n## Heatmap summary\n\n| Profile | Thinking | Samples | Avg first token (ms) | Avg total latency (ms) | Avg throughput (tps) | Success rate |\n| --- | --- | ---: | ---: | ---: | ---: | ---: |\n| balanced | standard | 72 | 415.55 | 471.83 | 157.58 | 100.00% |\n| speed | standard | 1 | 1686.00 | 1688.00 | 94.79 | 100.00% |\n\n## Anomaly summary\n\n- No obvious regression anomaly detected in the current workload.\n"
+  }
+}

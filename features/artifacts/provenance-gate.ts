@@ -1,8 +1,8 @@
 import { createHash, randomUUID, verify } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { validateArtifactPackage, type ArtifactPackageManifest } from "@/features/artifacts/package-contract";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const ARTIFACT_PROVENANCE_GATE_SCHEMA_VERSION = "artifacts.provenance-gate.v1" as const;
 
@@ -10,10 +10,11 @@ const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Li
 const RECEIPT_FILE = path.join(DATA_DIR, "artifact-provenance-receipts.json");
 
 type ProvenanceInput = { sourceUris?: string[]; builderId?: string; sourceRevision?: string; sbomUri?: string; secretScanPassed?: boolean; evidenceVerified?: boolean; publicKeyPem?: string };
+type InternalAcceptanceTrustRoot = { publisher: string; publicKeyPem: string };
 type ProvenanceReceipt = { id: string; generatedAt: string; artifactId: string; version: string; status: "pass" | "hold" | "blocked"; score: number; checks: Record<string, boolean>; blockers: string[]; warnings: string[] };
 
-function readReceipts(): ProvenanceReceipt[] { if (!existsSync(RECEIPT_FILE)) return []; try { const parsed = JSON.parse(readFileSync(RECEIPT_FILE, "utf8")) as { receipts?: ProvenanceReceipt[] }; return Array.isArray(parsed.receipts) ? parsed.receipts : []; } catch { return []; } }
-function persist(receipt: ProvenanceReceipt) { mkdirSync(path.dirname(RECEIPT_FILE), { recursive: true }); writeFileSync(RECEIPT_FILE, `${JSON.stringify({ schemaVersion: ARTIFACT_PROVENANCE_GATE_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 200) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): ProvenanceReceipt[] { return readDurableReceipts(RECEIPT_FILE, ARTIFACT_PROVENANCE_GATE_SCHEMA_VERSION); }
+function persist(receipt: ProvenanceReceipt) { prependDurableReceipt(RECEIPT_FILE, ARTIFACT_PROVENANCE_GATE_SCHEMA_VERSION, receipt, 200); }
 
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
@@ -31,12 +32,19 @@ function readTrustRoots() {
   catch { return {}; }
 }
 
-export function evaluateArtifactProvenance(manifest: ArtifactPackageManifest, provenance: ProvenanceInput) {
+export function evaluateArtifactProvenance(
+  manifest: ArtifactPackageManifest,
+  provenance: ProvenanceInput,
+  internalAcceptanceTrustRoot?: InternalAcceptanceTrustRoot,
+) {
   const validation = validateArtifactPackage(manifest);
   const materializedDigest = materializeArtifactManifestDigest(manifest);
   const configuredKey = readTrustRoots()[manifest.publisher];
   const rehearsalKey = process.env.NODE_ENV !== "production" && manifest.publisher.startsWith("local-rehearsal") ? provenance.publicKeyPem : undefined;
-  const publicKey = configuredKey || rehearsalKey;
+  const acceptanceKey = internalAcceptanceTrustRoot?.publisher === manifest.publisher
+    ? internalAcceptanceTrustRoot.publicKeyPem
+    : undefined;
+  const publicKey = configuredKey || rehearsalKey || acceptanceKey;
   let signatureVerified = false;
   if (publicKey && manifest.signature && manifest.digest === materializedDigest) {
     try { signatureVerified = verify(null, Buffer.from(materializedDigest, "hex"), publicKey, Buffer.from(manifest.signature, "base64")); } catch { signatureVerified = false; }

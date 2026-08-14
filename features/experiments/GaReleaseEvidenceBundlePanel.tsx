@@ -316,8 +316,8 @@ export function GaReleaseEvidenceBundlePanel({
               </div>
               <div className="mt-2 grid gap-2 lg:grid-cols-3">
                 {history.entries.slice(0, 3).map((entry) => (
-                  <div key={entry.file} className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-[11px] text-slate-400">
-                    <div className="flex items-center justify-between gap-2">
+                  <div key={entry.file} className="min-w-0 rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-[11px] text-slate-400">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <span>{entry.generatedAt ? new Date(entry.generatedAt).toLocaleString() : "unknown"}</span>
                       <span className={entry.integrityStatus === "verified" ? "text-emerald-200" : "text-rose-200"}>{entry.integrityStatus}</span>
                     </div>

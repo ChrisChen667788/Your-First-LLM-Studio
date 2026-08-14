@@ -55,6 +55,7 @@ AS $$
       AND CASE requested_action
         WHEN 'read' THEN memberships.role IN ('owner', 'admin', 'builder', 'viewer')
         WHEN 'write' THEN memberships.role IN ('owner', 'admin', 'builder')
+        WHEN 'execute' THEN memberships.role IN ('owner', 'admin', 'builder')
         WHEN 'admin' THEN memberships.role IN ('owner', 'admin')
         ELSE false
       END

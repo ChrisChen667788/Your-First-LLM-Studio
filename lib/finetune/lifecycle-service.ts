@@ -13,7 +13,7 @@ import type {
 import {
   ADAPTER_LIFECYCLE_FILE,
   readJsonFile,
-  writeJsonFile,
+  updateJsonFile,
 } from "./store-internal";
 import { buildFineTuneAdapterArtifacts } from "./bundle-service";
 import { readJobs, readOperations, readRecipes } from "./repository";
@@ -63,12 +63,6 @@ function readLifecycleStore(): LifecycleStore {
   };
 }
 
-function writeLifecycleStore(store: LifecycleStore) {
-  writeJsonFile(ADAPTER_LIFECYCLE_FILE, {
-    actions: store.actions.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-  });
-}
-
 function saveLifecycleAction(input: LifecycleActionInput) {
   const now = new Date().toISOString();
   const action: AgentFineTuneAdapterLifecycleAction = {
@@ -77,13 +71,14 @@ function saveLifecycleAction(input: LifecycleActionInput) {
     createdAt: input.createdAt || now,
     updatedAt: input.updatedAt || now,
   };
-  const current = readLifecycleStore();
-  writeLifecycleStore({
-    actions: [
+  updateJsonFile<LifecycleStore>(
+    ADAPTER_LIFECYCLE_FILE,
+    { actions: [] },
+    (current) => ({ actions: [
       action,
       ...current.actions.filter((entry) => entry.id !== action.id),
-    ],
-  });
+    ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) }),
+  );
   return action;
 }
 
@@ -408,10 +403,10 @@ export async function runFineTuneAdapterRollbackProof(input: {
         adapterId: adapter.id,
       });
       detachedReleasedRuntime = Boolean(detached.releasedRuntime);
-      const restored = attachFineTuneAdapterRuntime({ adapterId: adapter.id });
+      const restored = await attachFineTuneAdapterRuntime({ adapterId: adapter.id });
       finalAttachedAlias = restored.attachment.alias;
     } else {
-      const attached = attachFineTuneAdapterRuntime({ adapterId: adapter.id });
+      const attached = await attachFineTuneAdapterRuntime({ adapterId: adapter.id });
       finalAttachedAlias = attached.attachment.alias;
       const detached = await detachFineTuneAdapterRuntime({
         adapterId: adapter.id,

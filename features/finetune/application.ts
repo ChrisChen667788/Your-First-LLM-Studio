@@ -719,7 +719,13 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      const attached = attachFineTuneAdapterRuntime({ adapterId });
+      const attached = await attachFineTuneAdapterRuntime({
+        adapterId,
+        checkpointPath:
+          typeof body.checkpointPath === "string"
+            ? body.checkpointPath
+            : undefined,
+      });
       return NextResponse.json({
         ok: true,
         attached,
@@ -745,7 +751,7 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "run-evaluation") {
-      const operation = runFineTuneEvaluation({
+      const operation = await runFineTuneEvaluation({
         adapterId:
           typeof body.adapterId === "string" ? body.adapterId.trim() : "",
         datasetId:
@@ -771,7 +777,7 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "run-chat-adapter") {
-      const operation = runFineTuneAdapterChat({
+      const operation = await runFineTuneAdapterChat({
         adapterId:
           typeof body.adapterId === "string" ? body.adapterId.trim() : "",
         role: typeof body.role === "string" ? body.role : undefined,
@@ -836,7 +842,7 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "run-distillation") {
-      const result = runFineTuneDistillation({
+      const result = await runFineTuneDistillation({
         teacherTargetId:
           typeof body.teacherTargetId === "string"
             ? body.teacherTargetId.trim()
@@ -844,7 +850,7 @@ export async function POST(request: Request) {
         outputPath:
           typeof body.outputPath === "string" ? body.outputPath : undefined,
         sampleCount:
-          typeof body.sampleCount === "number" ? body.sampleCount : 64,
+          typeof body.sampleCount === "number" ? body.sampleCount : 16,
         maxNewTokens:
           typeof body.maxNewTokens === "number" ? body.maxNewTokens : 512,
         temperature:

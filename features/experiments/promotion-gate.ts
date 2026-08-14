@@ -201,7 +201,7 @@ function buildBenchmarkSource(): PromotionGateSource {
       skippedRuns: summary.totals.skippedRuns,
     },
     evidence: [
-      "/api/admin/benchmark/evidence",
+      "/api/benchmarks/evidence",
       "benchmark.release-evidence-summary.v1",
     ],
     blockers,

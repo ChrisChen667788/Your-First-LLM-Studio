@@ -12,10 +12,20 @@ import { truncatePreview } from "./store-internal";
 import {
   readFineTuneSamples,
   resolveFineTuneAdapter,
-  scoreTokenOverlap,
 } from "./operation-shared";
+import {
+  mapFineTuneInferenceWithConcurrency,
+  runFineTuneAdapterInference,
+} from "./inference-service";
+import { attachFineTuneAdapterRuntime } from "./runtime-service";
+import {
+  FINETUNE_EVALUATION_METRIC_SCHEMA_VERSION,
+  evaluateFineTuneMetricSet,
+  normalizeFineTuneMetricIds,
+  summarizeFineTuneMetricResults,
+} from "@/features/finetune/evaluation-metric-registry";
 
-export function runFineTuneEvaluation(input: {
+export async function runFineTuneEvaluation(input: {
   adapterId: string;
   datasetId: string;
   checkpointPath?: string;
@@ -38,33 +48,88 @@ export function runFineTuneEvaluation(input: {
   const id = `ft-op-eval-${crypto.randomUUID()}`;
   const paths = getOperationPaths("evaluation", id);
   mkdirSync(paths.outputDir, { recursive: true });
-
-  const predictions = samples.map((sample, index) => {
-    const prediction = sample.reference
-      ? sample.reference
-      : `Adapter ${adapter.adapterName} received: ${truncatePreview(sample.prompt, 160)}`;
-    return {
-      index,
-      prompt: sample.prompt,
-      reference: sample.reference,
-      prediction,
-      tokenOverlapF1: scoreTokenOverlap(sample.reference, prediction),
-    };
+  const mounted = await attachFineTuneAdapterRuntime({
+    adapterId: adapter.id,
+    checkpointPath: input.checkpointPath,
   });
-  const averageOverlap =
-    predictions.reduce((sum, item) => sum + item.tokenOverlapF1, 0) /
-    predictions.length;
-  const exactMatchRate =
-    predictions.filter(
-      (item) =>
-        item.reference.trim() &&
-        item.reference.trim() === item.prediction.trim(),
-    ).length / predictions.length;
+  const resolvedCheckpointPath = mounted.attachment.adapterPath;
+  const requestedMetrics = normalizeFineTuneMetricIds(input.metrics);
+
+  const predictions = await mapFineTuneInferenceWithConcurrency(
+    samples,
+    2,
+    async (sample, index) => {
+      const startedAt = Date.now();
+      try {
+        const response = await runFineTuneAdapterInference({
+          adapterId: adapter.id,
+          prompt: sample.prompt,
+          options: {
+            maxNewTokens: input.maxNewTokens,
+            temperature: input.temperature,
+            topP: input.topP,
+          },
+        });
+        const prediction = response.content.trim();
+        if (!prediction) throw new Error("Adapter returned an empty response.");
+        const latencyMs = Date.now() - startedAt;
+        return {
+          index,
+          prompt: sample.prompt,
+          reference: sample.reference,
+          prediction,
+          latencyMs,
+          metricResults: await evaluateFineTuneMetricSet({
+            reference: sample.reference,
+            prediction,
+            latencyMs,
+            metrics: requestedMetrics,
+          }),
+          targetId: adapter.attachedTargetId,
+          resolvedModel: response.resolvedModel,
+          usage: response.usage || null,
+          error: null as string | null,
+        };
+      } catch (error) {
+        return {
+          index,
+          prompt: sample.prompt,
+          reference: sample.reference,
+          prediction: "",
+          latencyMs: Date.now() - startedAt,
+          metricResults: [],
+          targetId: adapter.attachedTargetId,
+          resolvedModel: null,
+          usage: null,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
+  );
+  const successfulPredictions = predictions.filter((row) => !row.error);
+  if (!successfulPredictions.length) {
+    throw new Error(
+      `Adapter evaluation produced no usable predictions. ${predictions[0]?.error || "Check the attached runtime."}`,
+    );
+  }
+  const metricSummary = summarizeFineTuneMetricResults(
+    successfulPredictions.map((row) => row.metricResults),
+  );
+  const metricValue = (id: string) =>
+    metricSummary.find((metric) => metric.id === id)?.value ?? null;
   const generatedAt = new Date().toISOString();
   const metrics = {
-    sampleCount: predictions.length,
-    exactMatchRate: Number(exactMatchRate.toFixed(4)),
-    tokenOverlapF1: Number(averageOverlap.toFixed(4)),
+    evaluationMetricSchemaVersion: FINETUNE_EVALUATION_METRIC_SCHEMA_VERSION,
+    sampleCount: successfulPredictions.length,
+    requestedSampleCount: predictions.length,
+    failedSampleCount: predictions.length - successfulPredictions.length,
+    exactMatchRate: metricValue("exact-match"),
+    tokenOverlapF1: metricValue("token-overlap-f1"),
+    rougeL: metricValue("rouge-l"),
+    bleu1: metricValue("bleu-1"),
+    latencyMs: metricValue("latency-ms"),
+    mathEquivalence: metricValue("math-equivalence"),
+    jsonValidity: metricValue("json-validity"),
     maxNewTokens: Math.max(16, Math.min(input.maxNewTokens || 256, 4096)),
     temperature: Number(
       Math.max(0, Math.min(input.temperature ?? 0.2, 2)).toFixed(3),
@@ -72,11 +137,13 @@ export function runFineTuneEvaluation(input: {
     topP: Number(Math.max(0.01, Math.min(input.topP ?? 0.9, 1)).toFixed(3)),
   };
 
-  writeFileSync(
-    paths.predictionsFile,
-    `${predictions.map((row) => JSON.stringify(row)).join("\n")}\n`,
-    "utf8",
-  );
+  if (input.savePredictions) {
+    writeFileSync(
+      paths.predictionsFile,
+      `${predictions.map((row) => JSON.stringify(row)).join("\n")}\n`,
+      "utf8",
+    );
+  }
   const report = [
     `# Adapter Evaluation: ${adapter.adapterName}`,
     "",
@@ -85,22 +152,28 @@ export function runFineTuneEvaluation(input: {
     `- Adapter: ${adapter.id}`,
     `- Dataset: ${dataset.label}`,
     `- Samples: ${metrics.sampleCount}`,
-    `- Token overlap F1: ${metrics.tokenOverlapF1}`,
-    `- Exact match rate: ${metrics.exactMatchRate}`,
-    `- Checkpoint: ${input.checkpointPath?.trim() || adapter.outputDir}`,
+    `- Checkpoint: ${resolvedCheckpointPath}`,
+    `- Checkpoint selection: ${mounted.selectionSource}`,
+    `- Metric contract: ${FINETUNE_EVALUATION_METRIC_SCHEMA_VERSION}`,
+    ...metricSummary.map(
+      (metric) =>
+        `- ${metric.id}: ${metric.status === "scored" ? metric.value : "unavailable"} (${metric.evaluatorIds.join(", ")})`,
+    ),
     "",
     "## Sample predictions",
     "",
-    ...predictions
-      .slice(0, 8)
-      .flatMap((row) => [
-        `### ${row.index + 1}`,
-        "",
-        `Prompt: ${truncatePreview(row.prompt, 220)}`,
-        "",
-        `Prediction: ${truncatePreview(row.prediction, 260)}`,
-        "",
-      ]),
+    ...(input.savePredictions
+      ? predictions.slice(0, 8).flatMap((row) => [
+          `### ${row.index + 1}`,
+          "",
+          `Prompt: ${truncatePreview(row.prompt, 220)}`,
+          "",
+          row.error
+            ? `Skipped: ${truncatePreview(row.error, 260)}`
+            : `Prediction: ${truncatePreview(row.prediction, 260)}`,
+          "",
+        ])
+      : ["Prediction retention was disabled for this evaluation."]),
   ].join("\n");
   writeFileSync(paths.reportFile, report, "utf8");
   const manifest = {
@@ -110,6 +183,12 @@ export function runFineTuneEvaluation(input: {
     adapter,
     jobId: job?.id,
     dataset,
+    checkpoint: {
+      path: resolvedCheckpointPath,
+      selectionSource: mounted.selectionSource,
+    },
+    requestedMetrics,
+    metricSummary,
     metrics,
   };
   writeFileSync(paths.manifestFile, JSON.stringify(manifest, null, 2), "utf8");
@@ -123,20 +202,24 @@ export function runFineTuneEvaluation(input: {
     jobId: adapter.jobId,
     datasetId: dataset.id,
     outputDir: paths.outputDir,
-    summary: `${predictions.length} samples · overlap F1 ${metrics.tokenOverlapF1}`,
+    summary: `${metrics.sampleCount}/${metrics.requestedSampleCount} real adapter predictions · overlap F1 ${metrics.tokenOverlapF1}`,
     metrics,
     artifacts: [
       artifactFor(paths.reportFile, "Evaluation report", "text/markdown"),
-      artifactFor(
-        paths.predictionsFile,
-        "Predictions JSONL",
-        "application/jsonl",
-      ),
+      ...(input.savePredictions
+        ? [artifactFor(
+            paths.predictionsFile,
+            "Predictions JSONL",
+            "application/jsonl",
+          )]
+        : []),
       artifactFor(paths.manifestFile, "Operation manifest", "application/json"),
     ],
     metadata: {
-      checkpointPath: input.checkpointPath?.trim() || adapter.outputDir,
-      requestedMetrics: (input.metrics || ["token-overlap-f1"]).join(", "),
+      checkpointPath: resolvedCheckpointPath,
+      checkpointSelectionSource: mounted.selectionSource,
+      requestedMetrics,
+      savePredictions: Boolean(input.savePredictions),
     },
   });
   appendExperimentEvent({

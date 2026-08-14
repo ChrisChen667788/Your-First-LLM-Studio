@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { readDurableJsonStore, updateDurableJsonStore } from "@/features/persistence/durable-json-store";
 import { authorizeWorkflowDeployment, issueWorkflowDeploymentKey, revokeWorkflowDeploymentKey } from "@/features/workflows/deployment-access";
-import { buildOpenAIWorkflowAcceptance, buildWorkflowDeploymentExamples, invokeDeployedWorkflow } from "@/features/workflows/deployment-application";
+import { buildOpenAIWorkflowCompletion, buildOpenAIWorkflowStream, buildWorkflowDeploymentExamples, invokeDeployedWorkflow } from "@/features/workflows/deployment-application";
 import { dispatchPersistedWorkflowEvent, readWorkflowExecutions } from "@/features/workflows/execution-reducer";
 import { createProtectedToolResumeGraph, validateWorkflowGraph, type WorkflowGraph } from "@/features/workflows/graph-contract";
 import { diffWorkflowGraphs, type WorkflowGraphVersionDiff } from "@/features/workflows/graph-diff";
@@ -30,20 +30,12 @@ type Store = { schemaVersion: typeof WORKFLOW_STUDIO_ACCEPTANCE_SCHEMA_VERSION; 
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const STORE_FILE = path.join(DATA_DIR, "workflow-studio-acceptance.json");
 
-function readStore(): Store {
-  if (!existsSync(STORE_FILE)) return { schemaVersion: WORKFLOW_STUDIO_ACCEPTANCE_SCHEMA_VERSION, receipts: [] };
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as Partial<Store>;
-    return { schemaVersion: WORKFLOW_STUDIO_ACCEPTANCE_SCHEMA_VERSION, receipts: Array.isArray(parsed.receipts) ? parsed.receipts : [] };
-  } catch {
-    return { schemaVersion: WORKFLOW_STUDIO_ACCEPTANCE_SCHEMA_VERSION, receipts: [] };
-  }
-}
+function isStore(value: unknown): value is Store { if (!value || typeof value !== "object") return false; const candidate = value as Partial<Store>; return candidate.schemaVersion === WORKFLOW_STUDIO_ACCEPTANCE_SCHEMA_VERSION && Array.isArray(candidate.receipts); }
+const storeOptions = { filePath: STORE_FILE, initial: (): Store => ({ schemaVersion: WORKFLOW_STUDIO_ACCEPTANCE_SCHEMA_VERSION, receipts: [] }), validate: isStore };
+function readStore() { return readDurableJsonStore(storeOptions); }
 
 function persist(receipt: WorkflowStudioAcceptanceReceipt) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  const store = readStore();
-  writeFileSync(STORE_FILE, `${JSON.stringify({ ...store, receipts: [receipt, ...store.receipts].slice(0, 50) }, null, 2)}\n`, "utf8");
+  updateDurableJsonStore(storeOptions, (store) => ({ ...store, receipts: [receipt, ...store.receipts].slice(0, 50) }));
 }
 
 function createAcceptanceGraph(version: number): WorkflowGraph {
@@ -94,7 +86,7 @@ function reportDigest(value: Omit<WorkflowStudioAcceptanceReceipt, "id" | "gener
   return `sha256:${createHash("sha256").update(JSON.stringify(stableEvidence)).digest("hex")}`;
 }
 
-export function rehearseWorkflowStudioAcceptance() {
+export async function rehearseWorkflowStudioAcceptance() {
   const registry = readWorkflowGraphRegistry();
   const versions = registry.records.filter((record) => record.graph.id === "workflow-studio-acceptance").map((record) => record.graph.version);
   const version = Math.max(0, ...versions) + 1;
@@ -149,9 +141,13 @@ export function rehearseWorkflowStudioAcceptance() {
     }
     const invocation = invokeDeployedWorkflow(deploymentSlug, { model: `workflow:${deploymentSlug}`, messages: [{ role: "user", content: "Execute a protected change and retain recovery evidence." }] });
     sourceId = invocation.execution.id;
-    const accepted = buildOpenAIWorkflowAcceptance(deploymentSlug, sourceId);
-    checks.openAIContractAccepted = accepted.object === "chat.completion" && accepted.workflow.executionId === sourceId && buildWorkflowDeploymentExamples({ origin: "http://127.0.0.1:3011", slug: deploymentSlug }).curl.includes("messages");
-    let worker = runWorkflowSafeWorker({ executionId: sourceId, workerId: "workflow-studio-acceptance", maxSteps: 12 });
+    const acceptanceModelPort = {
+      runModelNode: async () => ({ output: "Acceptance model requested one protected tool action." }),
+    };
+    let worker = await runWorkflowSafeWorker(
+      { executionId: sourceId, workerId: "workflow-studio-acceptance", maxSteps: 12 },
+      acceptanceModelPort,
+    );
     checks.approvalBoundaryObserved = worker.execution?.status === "waiting-approval";
     let execution = dispatchPersistedWorkflowEvent(sourceId, { type: "approval-granted", condition: "approved" });
     const eventId = `workflow-side-effect-${randomUUID()}`;
@@ -159,10 +155,17 @@ export function rehearseWorkflowStudioAcceptance() {
     const eventsAfterCommit = execution.events.length;
     execution = dispatchPersistedWorkflowEvent(sourceId, { id: eventId, type: "node-succeeded", nodeId: "tool", idempotencyKey: `${sourceId}:tool`, output: "Duplicate must not run." });
     checks.protectedSideEffectIdempotent = execution.events.length === eventsAfterCommit && execution.usedIdempotencyKeys.length === 1;
-    worker = runWorkflowSafeWorker({ executionId: sourceId, workerId: "workflow-studio-acceptance", maxSteps: 12 });
+    worker = await runWorkflowSafeWorker(
+      { executionId: sourceId, workerId: "workflow-studio-acceptance", maxSteps: 12 },
+      acceptanceModelPort,
+    );
     finalStatus = worker.execution?.status;
     eventCount = worker.execution?.events.length || 0;
     checks.executionCompleted = finalStatus === "completed";
+    if (!worker.execution) throw new Error("Workflow completion state is unavailable.");
+    const completion = buildOpenAIWorkflowCompletion(deploymentSlug, worker.execution);
+    const stream = buildOpenAIWorkflowStream(deploymentSlug, worker.execution, true);
+    checks.openAIContractAccepted = completion.object === "chat.completion" && completion.choices[0]?.finish_reason === "stop" && completion.usage.total_tokens > 0 && stream.includes("chat.completion.chunk") && stream.includes("data: [DONE]") && buildWorkflowDeploymentExamples({ origin: "http://127.0.0.1:3011", slug: deploymentSlug }).curl.includes("messages");
     const replay = forkWorkflowExecutionForReplay({ sourceExecutionId: sourceId });
     replayId = replay.replay.id;
     checks.replayForkClean = replay.receipt.copiedSideEffects === false && replay.replay.events.length === 0 && replay.replay.usedIdempotencyKeys.length === 0;

@@ -2,13 +2,14 @@ import { createHash, randomUUID } from "crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const DESKTOP_DATA_LIFECYCLE_SCHEMA_VERSION = "desktop.data-lifecycle.v1" as const;
 type Receipt = { id: string; generatedAt: string; status: "pass" | "failed"; checks: Record<string, boolean>; sourceDigest?: string; migratedDigest?: string; warning: string; error?: string };
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const STORE_FILE = path.join(DATA_DIR, "desktop-data-lifecycle.json");
-function readReceipts(): Receipt[] { if (!existsSync(STORE_FILE)) return []; try { const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { receipts?: Receipt[] }; return Array.isArray(parsed.receipts) ? parsed.receipts : []; } catch { return []; } }
-function persist(receipt: Receipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(STORE_FILE, `${JSON.stringify({ schemaVersion: DESKTOP_DATA_LIFECYCLE_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 100) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): Receipt[] { return readDurableReceipts(STORE_FILE, DESKTOP_DATA_LIFECYCLE_SCHEMA_VERSION); }
+function persist(receipt: Receipt) { prependDurableReceipt(STORE_FILE, DESKTOP_DATA_LIFECYCLE_SCHEMA_VERSION, receipt, 100); }
 function treeDigest(root: string) { const hash = createHash("sha256"); const walk = (directory: string) => readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name)).forEach((entry) => { const absolute = path.join(directory, entry.name); const relative = path.relative(root, absolute); hash.update(relative); if (entry.isDirectory()) walk(absolute); else hash.update(readFileSync(absolute)); }); walk(root); return hash.digest("hex"); }
 
 export function rehearseDesktopDataLifecycle() {

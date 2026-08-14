@@ -1,7 +1,9 @@
 import crypto from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import path from "path";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 import {
   readAdminCompatibilityDeletionManifest,
   type AdminCompatibilityDeletionManifest,
@@ -11,6 +13,10 @@ const SIGNOFF_PATH = getLocalAgentDataPath(
   "admin-compatibility-deletion-signoffs.json",
 );
 const MAX_SIGNOFFS = 100;
+type SignoffStore = {
+  schemaVersion: "admin.compatibility-deletion-signoffs.v1";
+  signoffs: AdminCompatibilityDeletionSignoff[];
+};
 
 export type AdminCompatibilityDeletionSignoff = {
   id: string;
@@ -59,28 +65,18 @@ export function digestAdminCompatibilityDeletionManifest(
     .digest("hex");
 }
 
-function readStoredSignoffs(): AdminCompatibilityDeletionSignoff[] {
-  if (!existsSync(SIGNOFF_PATH)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(SIGNOFF_PATH, "utf8")) as {
-      signoffs?: AdminCompatibilityDeletionSignoff[];
-    };
-    return Array.isArray(parsed.signoffs) ? parsed.signoffs : [];
-  } catch {
-    return [];
-  }
+function emptySignoffStore(): SignoffStore {
+  return { schemaVersion: "admin.compatibility-deletion-signoffs.v1", signoffs: [] };
 }
 
-function writeSignoffs(signoffs: AdminCompatibilityDeletionSignoff[]) {
-  mkdirSync(path.dirname(SIGNOFF_PATH), { recursive: true });
-  writeFileSync(
-    SIGNOFF_PATH,
-    `${JSON.stringify({
-      schemaVersion: "admin.compatibility-deletion-signoffs.v1",
-      signoffs: signoffs.slice(0, MAX_SIGNOFFS),
-    }, null, 2)}\n`,
-    "utf8",
-  );
+function isSignoffStore(value: unknown): value is SignoffStore {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<SignoffStore>;
+  return candidate.schemaVersion === "admin.compatibility-deletion-signoffs.v1" && Array.isArray(candidate.signoffs);
+}
+
+function readStoredSignoffs(): AdminCompatibilityDeletionSignoff[] {
+  return readJsonFileDurably(SIGNOFF_PATH, emptySignoffStore, isSignoffStore).signoffs;
 }
 
 export function readAdminCompatibilityDeletionSignoffs(): AdminCompatibilityDeletionSignoffSummary {
@@ -124,34 +120,40 @@ export function createAdminCompatibilityDeletionSignoff(input: {
     );
   }
   const manifestDigest = digestAdminCompatibilityDeletionManifest(manifest);
-  const existing = readStoredSignoffs();
-  const duplicate = existing.find(
-    (signoff) =>
-      signoff.operatorId === operatorId &&
-      signoff.manifestDigest === manifestDigest,
+  const outcome: {
+    created: boolean;
+    signoff?: AdminCompatibilityDeletionSignoff;
+  } = { created: false };
+  updateJsonFileDurably(
+    SIGNOFF_PATH,
+    emptySignoffStore,
+    (store) => {
+      const duplicate = store.signoffs.find(
+        (entry) => entry.operatorId === operatorId && entry.manifestDigest === manifestDigest,
+      );
+      if (duplicate) {
+        outcome.signoff = duplicate;
+        return store;
+      }
+      outcome.created = true;
+      outcome.signoff = {
+        id: `compatibility-signoff-${crypto.randomUUID()}`,
+        createdAt: new Date().toISOString(),
+        operatorId,
+        reason,
+        manifestDigest,
+        manifestStatus: "ready",
+        sunsetAt: manifest.sunsetAt,
+      };
+      return { ...store, signoffs: [outcome.signoff, ...store.signoffs].slice(0, MAX_SIGNOFFS) };
+    },
+    isSignoffStore,
   );
-  if (duplicate) {
-    return {
-      ok: true,
-      created: false,
-      signoff: duplicate,
-      summary: readAdminCompatibilityDeletionSignoffs(),
-    };
-  }
-  const signoff: AdminCompatibilityDeletionSignoff = {
-    id: `compatibility-signoff-${crypto.randomUUID()}`,
-    createdAt: new Date().toISOString(),
-    operatorId,
-    reason,
-    manifestDigest,
-    manifestStatus: "ready",
-    sunsetAt: manifest.sunsetAt,
-  };
-  writeSignoffs([signoff, ...existing]);
+  if (!outcome.signoff) throw new Error("Compatibility sign-off update did not produce a result.");
   return {
     ok: true,
-    created: true,
-    signoff,
+    created: outcome.created,
+    signoff: outcome.signoff,
     summary: readAdminCompatibilityDeletionSignoffs(),
   };
 }

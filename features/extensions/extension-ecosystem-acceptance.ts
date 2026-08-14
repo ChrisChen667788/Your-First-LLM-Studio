@@ -4,18 +4,14 @@ import {
   randomUUID,
   sign,
 } from "crypto";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 import { createExtensionInstallPlan } from "@/features/extensions/install-planner";
 import {
   installVerifiedExtension,
   rollbackExtensionVersion,
+  setExtensionVersionEnabled,
 } from "@/features/extensions/install-transaction";
 import { runMcpFilesystemAcceptance } from "@/features/extensions/mcp-filesystem-acceptance";
 import { verifyExtensionPackage } from "@/features/extensions/package-verification";
@@ -39,6 +35,8 @@ type AcceptanceReceipt = {
     installedVersion: string;
     updatedVersion: string;
     rollbackVersion: string;
+    disabledVersion: string;
+    enabledVersion: string;
   };
   security: {
     sandbox: string;
@@ -79,31 +77,11 @@ const ACCEPTANCE_PUBLISHER = "first-llm-studio.acceptance";
 const ACCEPTANCE_EXTENSION_ID = "first-llm-studio.acceptance-tool";
 
 function readReceipts(): AcceptanceReceipt[] {
-  if (!existsSync(STORE_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as {
-      receipts?: AcceptanceReceipt[];
-    };
-    return Array.isArray(parsed.receipts) ? parsed.receipts : [];
-  } catch {
-    return [];
-  }
+  return readDurableReceipts(STORE_FILE, EXTENSION_ECOSYSTEM_ACCEPTANCE_SCHEMA_VERSION);
 }
 
 function persist(receipt: AcceptanceReceipt) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(
-    STORE_FILE,
-    `${JSON.stringify(
-      {
-        schemaVersion: EXTENSION_ECOSYSTEM_ACCEPTANCE_SCHEMA_VERSION,
-        receipts: [receipt, ...readReceipts()].slice(0, 50),
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
+  prependDurableReceipt(STORE_FILE, EXTENSION_ECOSYSTEM_ACCEPTANCE_SCHEMA_VERSION, receipt, 50);
 }
 
 function digest(value: unknown) {
@@ -188,6 +166,16 @@ export async function runExtensionEcosystemAcceptance() {
     extensionId: ACCEPTANCE_EXTENSION_ID,
     targetVersion: "1.0.0",
   });
+  const disabled = setExtensionVersionEnabled({
+    extensionId: ACCEPTANCE_EXTENSION_ID,
+    version: "1.0.0",
+    enabled: false,
+  });
+  const enabled = setExtensionVersionEnabled({
+    extensionId: ACCEPTANCE_EXTENSION_ID,
+    version: "1.0.0",
+    enabled: true,
+  });
 
   const tamperedPayload = Buffer.from(
     `${Buffer.from(versionOne.payloadBase64, "base64").toString("utf8")} `,
@@ -244,6 +232,10 @@ export async function runExtensionEcosystemAcceptance() {
       updated.installation.version === "1.1.0",
     rollbackRestoredPreviousVersion:
       rollback.status === "pass" && rollback.toVersion === "1.0.0",
+    disableAudited:
+      disabled.status === "pass" && disabled.action === "disable",
+    enableAudited:
+      enabled.status === "pass" && enabled.action === "enable",
     tamperedPackageRejected:
       !tampered.accepted && Boolean(tampered.quarantine),
     traversalBundleRejected,
@@ -271,6 +263,8 @@ export async function runExtensionEcosystemAcceptance() {
       installedVersion: installed.installation.version,
       updatedVersion: updated.installation.version,
       rollbackVersion: rollback.toVersion,
+      disabledVersion: disabled.toVersion,
+      enabledVersion: enabled.toVersion,
     },
     security: {
       sandbox: sandboxReceipt.isolation,

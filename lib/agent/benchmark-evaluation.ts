@@ -1,9 +1,19 @@
 import type { AgentBenchmarkDatasetItem, AgentBenchmarkDatasetEvaluationRule } from "@/lib/agent/types";
+import { evaluateMathEquivalence } from "@/features/benchmark/math-evaluator-port";
 
 export type BenchmarkEvaluationResult = {
   score: number | null;
   passed: boolean | null;
   rationale: string;
+  evaluation?: {
+    evaluatorId: string;
+    evaluatorVersion: string;
+    configId: string;
+    status: "scored" | "unavailable" | "error" | "manual-review";
+    rationale: string;
+    extractedGold?: string[];
+    extractedPrediction?: string[];
+  };
 };
 
 function stripCodeFences(value: string) {
@@ -160,10 +170,10 @@ function evaluateJsonToolCall(output: string, rule: Extract<AgentBenchmarkDatase
   };
 }
 
-export function evaluateBenchmarkDatasetOutput(
+export async function evaluateBenchmarkDatasetOutput(
   item: AgentBenchmarkDatasetItem,
   output: string
-): BenchmarkEvaluationResult {
+): Promise<BenchmarkEvaluationResult> {
   switch (item.evaluator.kind) {
     case "choice-exact":
       return evaluateChoiceExact(output, item.evaluator);
@@ -175,11 +185,20 @@ export function evaluateBenchmarkDatasetOutput(
       return evaluateLineRules(output, item.evaluator);
     case "json-tool-call":
       return evaluateJsonToolCall(output, item.evaluator);
+    case "math-equivalence":
+      return evaluateMathEquivalence(item.evaluator.gold, output);
     case "manual-review":
       return {
         score: null,
         passed: null,
-        rationale: item.evaluator.note
+        rationale: item.evaluator.note,
+        evaluation: {
+          evaluatorId: "manual-review",
+          evaluatorVersion: "1",
+          configId: "manual-review",
+          status: "manual-review",
+          rationale: item.evaluator.note,
+        },
       };
     default:
       return {

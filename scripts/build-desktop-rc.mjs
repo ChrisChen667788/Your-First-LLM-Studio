@@ -6,6 +6,7 @@ import {
   lstatSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   readdirSync,
   rmSync,
   statSync,
@@ -18,9 +19,14 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const version = "1.1.0-rc.2";
 const nodeVersion = process.env.FIRST_LLM_DESKTOP_NODE_VERSION || "22.23.1";
-const distDirName = ".next-build";
+const distDirName = process.env.NEXT_BUILD_DIST_DIR?.trim() || ".next-build";
+if (path.isAbsolute(distDirName) || distDirName.split(path.sep).includes("..")) {
+  throw new Error("NEXT_BUILD_DIST_DIR must be a repository-relative build directory.");
+}
 const distDir = path.join(root, distDirName);
-const outputDir = path.join(root, "output", "desktop-release", version);
+const releaseRoot =
+  process.env.FIRST_LLM_DESKTOP_RELEASE_ROOT || path.join(root, "output", "desktop-release");
+const outputDir = path.join(releaseRoot, version);
 const appPath = path.join(outputDir, "First LLM Studio.app");
 const zipPath = path.join(outputDir, `First-LLM-Studio-${version}-darwin-arm64.zip`);
 const dmgPath = path.join(outputDir, `First-LLM-Studio-${version}-darwin-arm64.dmg`);
@@ -99,6 +105,17 @@ function listFiles(directory, base = directory) {
   return files;
 }
 
+function removePackageBinDirectories(directory) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory() && entry.name === ".bin") {
+      rmSync(absolute, { recursive: true, force: true });
+    } else if (entry.isDirectory()) {
+      removePackageBinDirectories(absolute);
+    }
+  }
+}
+
 function writeAppBundle(serverRoot) {
   rmSync(outputDir, { recursive: true, force: true });
   const contents = path.join(appPath, "Contents");
@@ -107,7 +124,14 @@ function writeAppBundle(serverRoot) {
   const appDir = path.join(resourcesDir, "app");
   const runtimeDir = path.join(resourcesDir, "runtime");
   mkdirSync(macosDir, { recursive: true });
-  cpSync(serverRoot, appDir, { recursive: true });
+  cpSync(serverRoot, appDir, { recursive: true, dereference: true });
+  const sourceNodeModules = path.join(serverRoot, "node_modules");
+  const bundledNodeModules = path.join(appDir, "node_modules");
+  if (existsSync(sourceNodeModules) && lstatSync(sourceNodeModules).isSymbolicLink()) {
+    rmSync(bundledNodeModules, { recursive: true, force: true });
+    cpSync(realpathSync(sourceNodeModules), bundledNodeModules, { recursive: true, dereference: true });
+  }
+  removePackageBinDirectories(bundledNodeModules);
   rmSync(path.join(appDir, "output"), { recursive: true, force: true });
   mkdirSync(path.join(runtimeDir, "bin"), { recursive: true });
   cpSync(path.join(runtimeExtractRoot, "bin", "node"), path.join(runtimeDir, "bin", "node"));

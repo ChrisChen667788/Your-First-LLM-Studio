@@ -242,7 +242,10 @@ export function FineTuneEvaluateRunSection(
                 "rouge-l",
                 "bleu",
                 "exact-match",
+                "token-overlap-f1",
                 "latency",
+                "math-equivalence",
+                "json-validity",
               ] as FineTuneEvalMetric[]
             ).map((metric) => (
               <button

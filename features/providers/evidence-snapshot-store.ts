@@ -1,6 +1,8 @@
 import crypto from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import path from "path";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
 import {
   PROVIDER_OPS_EVIDENCE_SNAPSHOT_SCHEMA_VERSION,
@@ -20,8 +22,8 @@ const SNAPSHOT_FILE = getLocalAgentDataPath("provider-ops-evidence-snapshots.jso
 const MAX_STORED_SNAPSHOTS = 200;
 
 type ProviderOpsEvidenceSnapshotStore = {
-  schemaVersion?: string;
-  snapshots?: Array<Omit<ProviderOpsEvidenceSnapshot, "integrity"> & {
+  schemaVersion: typeof PROVIDER_OPS_EVIDENCE_SNAPSHOT_SCHEMA_VERSION;
+  snapshots: Array<Omit<ProviderOpsEvidenceSnapshot, "integrity"> & {
     integrity?: Partial<ProviderOpsEvidenceSnapshot["integrity"]>;
   }>;
 };
@@ -74,20 +76,20 @@ function hydrateSnapshot(
   };
 }
 
-function ensureSnapshotDir() {
-  mkdirSync(path.dirname(SNAPSHOT_FILE), { recursive: true });
+const emptyStore = (): ProviderOpsEvidenceSnapshotStore => ({
+  schemaVersion: PROVIDER_OPS_EVIDENCE_SNAPSHOT_SCHEMA_VERSION,
+  snapshots: [],
+});
+
+function isSnapshotStore(value: unknown): value is ProviderOpsEvidenceSnapshotStore {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<ProviderOpsEvidenceSnapshotStore>;
+  return candidate.schemaVersion === PROVIDER_OPS_EVIDENCE_SNAPSHOT_SCHEMA_VERSION
+    && Array.isArray(candidate.snapshots);
 }
 
 function readStoredSnapshots(): StoredProviderOpsEvidenceSnapshot[] {
-  if (!existsSync(SNAPSHOT_FILE)) return [];
-  try {
-    const parsed = JSON.parse(
-      readFileSync(SNAPSHOT_FILE, "utf8"),
-    ) as ProviderOpsEvidenceSnapshotStore;
-    return Array.isArray(parsed.snapshots) ? parsed.snapshots : [];
-  } catch {
-    return [];
-  }
+  return readJsonFileDurably(SNAPSHOT_FILE, emptyStore, isSnapshotStore).snapshots;
 }
 
 function readSnapshots() {
@@ -117,9 +119,8 @@ function buildIntegritySummary(
   };
 }
 
-function writeSnapshots(snapshots: ProviderOpsEvidenceSnapshot[]) {
-  ensureSnapshotDir();
-  const storedSnapshots = snapshots.slice(0, MAX_STORED_SNAPSHOTS).map(
+function serializeSnapshots(snapshots: ProviderOpsEvidenceSnapshot[]) {
+  return snapshots.slice(0, MAX_STORED_SNAPSHOTS).map(
     (snapshot) => {
       const { integrity, ...payload } = snapshot;
       return {
@@ -135,18 +136,15 @@ function writeSnapshots(snapshots: ProviderOpsEvidenceSnapshot[]) {
       };
     },
   );
-  writeFileSync(
-    SNAPSHOT_FILE,
-    `${JSON.stringify(
-      {
-        schemaVersion: PROVIDER_OPS_EVIDENCE_SNAPSHOT_SCHEMA_VERSION,
-        snapshots: storedSnapshots,
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
+}
+
+function updateSnapshots(
+  mutator: (snapshots: ProviderOpsEvidenceSnapshot[]) => ProviderOpsEvidenceSnapshot[],
+) {
+  return updateJsonFileDurably(SNAPSHOT_FILE, emptyStore, (store) => ({
+    schemaVersion: PROVIDER_OPS_EVIDENCE_SNAPSHOT_SCHEMA_VERSION,
+    snapshots: serializeSnapshots(mutator(store.snapshots.map(hydrateSnapshot))),
+  }), isSnapshotStore);
 }
 
 function sortSnapshots(snapshots: ProviderOpsEvidenceSnapshot[]) {
@@ -183,8 +181,8 @@ export function verifyProviderOpsEvidenceSnapshotIntegrity(options?: {
   const snapshots = sortSnapshots(readSnapshots());
   const before = buildIntegritySummary(snapshots);
   if (options?.repairMissing) {
-    writeSnapshots(
-      snapshots.map((snapshot) => ({
+    updateSnapshots((current) =>
+      current.map((snapshot) => ({
         ...snapshot,
         integrity: {
           algorithm: "sha256",
@@ -248,7 +246,7 @@ export function captureProviderOpsEvidenceSnapshot(input?: {
       status: "verified",
     },
   };
-  writeSnapshots([snapshot, ...sortSnapshots(readSnapshots())]);
+  updateSnapshots((snapshots) => [snapshot, ...sortSnapshots(snapshots)]);
   return {
     ok: true,
     snapshot,
@@ -260,36 +258,30 @@ export function setProviderOpsEvidenceSnapshotPinned(input: {
   id: string;
   pinned: boolean;
 }) {
-  const snapshots = readSnapshots();
-  const index = snapshots.findIndex((snapshot) => snapshot.id === input.id);
-  if (index < 0) {
-    throw new Error(`Unknown Provider evidence snapshot: ${input.id}`);
-  }
-  if (input.pinned && !snapshots[index].qualifiesAsFreshEvidence) {
-    throw new Error("Only qualifying Provider evidence snapshots can be pinned.");
-  }
-  snapshots[index] = {
-    ...snapshots[index],
-    pinned: input.pinned,
-  };
-  writeSnapshots(sortSnapshots(snapshots));
+  const outcome: { value?: ProviderOpsEvidenceSnapshot } = {};
+  updateSnapshots((snapshots) => {
+    const index = snapshots.findIndex((snapshot) => snapshot.id === input.id);
+    if (index < 0) throw new Error(`Unknown Provider evidence snapshot: ${input.id}`);
+    if (input.pinned && !snapshots[index].qualifiesAsFreshEvidence) throw new Error("Only qualifying Provider evidence snapshots can be pinned.");
+    snapshots[index] = { ...snapshots[index], pinned: input.pinned };
+    outcome.value = snapshots[index];
+    return sortSnapshots(snapshots);
+  });
+  if (!outcome.value) throw new Error("Provider evidence pin update did not complete.");
   return {
     ok: true,
-    snapshot: snapshots[index],
+    snapshot: outcome.value,
     store: readProviderOpsEvidenceSnapshots(),
   };
 }
 
 export function deleteProviderOpsEvidenceSnapshot(id: string) {
-  const snapshots = readSnapshots();
-  const target = snapshots.find((snapshot) => snapshot.id === id);
-  if (!target) {
-    throw new Error(`Unknown Provider evidence snapshot: ${id}`);
-  }
-  if (target.pinned) {
-    throw new Error("Pinned Provider evidence must be unpinned before deletion.");
-  }
-  writeSnapshots(snapshots.filter((snapshot) => snapshot.id !== id));
+  updateSnapshots((snapshots) => {
+    const target = snapshots.find((snapshot) => snapshot.id === id);
+    if (!target) throw new Error(`Unknown Provider evidence snapshot: ${id}`);
+    if (target.pinned) throw new Error("Pinned Provider evidence must be unpinned before deletion.");
+    return snapshots.filter((snapshot) => snapshot.id !== id);
+  });
   return {
     ok: true,
     deletedId: id,
@@ -305,35 +297,40 @@ export function applyProviderOpsEvidenceRetention(
     maxAgeDays: Math.max(7, Math.min(input?.maxAgeDays || 90, 730)),
     preservePinned: input?.preservePinned !== false,
   };
-  const snapshots = sortSnapshots(readSnapshots());
   const cutoffMs = Date.now() - policy.maxAgeDays * 24 * 60 * 60 * 1000;
-  const retained: ProviderOpsEvidenceSnapshot[] = [];
-  let protectedCount = 0;
-  for (const snapshot of snapshots) {
-    if (policy.preservePinned && snapshot.pinned) {
+  const outcome = { beforeCount: 0, afterCount: 0, protectedCount: 0 };
+  updateSnapshots((current) => {
+    const snapshots = sortSnapshots(current);
+    const retained: ProviderOpsEvidenceSnapshot[] = [];
+    let protectedCount = 0;
+    for (const snapshot of snapshots) {
+      if (policy.preservePinned && snapshot.pinned) {
+        retained.push(snapshot);
+        protectedCount += 1;
+        continue;
+      }
+      const createdMs = new Date(snapshot.createdAt).getTime();
+      if (!Number.isFinite(createdMs) || createdMs < cutoffMs) continue;
+      const nonPinnedCount = retained.filter((entry) => !entry.pinned).length;
+      if (nonPinnedCount >= policy.maxSnapshots) continue;
       retained.push(snapshot);
-      protectedCount += 1;
-      continue;
     }
-    const createdMs = new Date(snapshot.createdAt).getTime();
-    if (!Number.isFinite(createdMs) || createdMs < cutoffMs) continue;
-    const nonPinnedCount = retained.filter((entry) => !entry.pinned).length;
-    if (nonPinnedCount >= policy.maxSnapshots) continue;
-    retained.push(snapshot);
-  }
-  writeSnapshots(retained);
+    outcome.beforeCount = snapshots.length;
+    outcome.afterCount = retained.length;
+    outcome.protectedCount = protectedCount;
+    return retained;
+  });
   return {
     appliedAt: new Date().toISOString(),
-    beforeCount: snapshots.length,
-    afterCount: retained.length,
-    removedCount: snapshots.length - retained.length,
-    protectedCount,
+    beforeCount: outcome.beforeCount,
+    afterCount: outcome.afterCount,
+    removedCount: outcome.beforeCount - outcome.afterCount,
+    protectedCount: outcome.protectedCount,
     policy,
   };
 }
 
 export function getProviderOpsEvidenceSnapshotPath() {
-  ensureSnapshotDir();
   return SNAPSHOT_FILE;
 }
 

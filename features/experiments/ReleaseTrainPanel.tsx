@@ -102,13 +102,21 @@ export function ReleaseTrainPanel({ locale }: ReleaseTrainPanelProps) {
             {text.subtitle}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void loadTrain()}
-          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-        >
-          {pending ? text.loading : text.refresh}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
+            {en ? "Release" : "发布"} {payload?.activeVersion || "--"}
+          </span>
+          <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100">
+            {en ? "Development" : "开发"} {payload?.developmentVersion || "--"}
+          </span>
+          <button
+            type="button"
+            onClick={() => void loadTrain()}
+            className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+          >
+            {pending ? text.loading : text.refresh}
+          </button>
+        </div>
       </div>
 
       {error ? (
@@ -122,15 +130,15 @@ export function ReleaseTrainPanel({ locale }: ReleaseTrainPanelProps) {
           milestones.map((milestone) => (
             <article
               key={milestone.version}
-              className="rounded-[26px] border border-white/10 bg-black/25 p-4"
+              className="min-w-0 rounded-[26px] border border-white/10 bg-black/25 p-4"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold text-white">{milestone.version}</p>
                   <p className="mt-1 text-xs text-slate-400">{milestone.label}</p>
                 </div>
                 <span
-                  className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] ${statusClass(
+                  className={`max-w-full break-all rounded-full border px-2.5 py-1 text-center text-[10px] uppercase tracking-[0.16em] ${statusClass(
                     milestone.status,
                   )}`}
                 >
@@ -150,7 +158,7 @@ export function ReleaseTrainPanel({ locale }: ReleaseTrainPanelProps) {
               </div>
               <div className="mt-3 space-y-2">
                 {compactScope(milestone).map((item) => (
-                  <p key={item} className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs leading-5 text-slate-300">
+                  <p key={item} className="break-words rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs leading-5 text-slate-300">
                     {item}
                   </p>
                 ))}
@@ -159,7 +167,7 @@ export function ReleaseTrainPanel({ locale }: ReleaseTrainPanelProps) {
                 <p className="text-[10px] uppercase tracking-[0.18em] text-amber-200">
                   {text.next}
                 </p>
-                <p className="mt-1 text-xs leading-5 text-amber-50">{milestone.nextSlice}</p>
+                <p className="mt-1 break-words text-xs leading-5 text-amber-50">{milestone.nextSlice}</p>
               </div>
             </article>
           ))

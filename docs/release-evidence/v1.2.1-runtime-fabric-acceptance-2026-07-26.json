@@ -1,0 +1,222 @@
+{
+  "schemaVersion": "runtime.v1.2.1-real-fabric-evidence.v1",
+  "generatedAt": "2026-07-26T06:14:48.125Z",
+  "status": "evidence-needed",
+  "acceptance": {
+    "id": "runtime-fabric-b3823a0f-44f8-467d-a48d-9cd3229bff2e",
+    "generatedAt": "2026-07-26T06:14:48.096Z",
+    "schemaVersion": "runtime.fabric-acceptance.v1",
+    "status": "hold",
+    "host": {
+      "platform": "darwin",
+      "arch": "arm64",
+      "platformKey": "darwin-arm64",
+      "memoryGb": 32,
+      "accelerator": "apple-silicon",
+      "nvidiaVisible": false
+    },
+    "backends": [
+      {
+        "backend": "mlx",
+        "status": "hold",
+        "realProcess": true,
+        "model": "local-qwen3-0.6b",
+        "discoveredModels": 5,
+        "runtimeVersion": null,
+        "fingerprint": null,
+        "checks": {
+          "health": true,
+          "discovery": true,
+          "chat": false,
+          "stream": false,
+          "normalizedUsage": true
+        },
+        "metrics": {
+          "probeLatencyMs": 8,
+          "chatLatencyMs": 1021,
+          "streamLatencyMs": 16,
+          "streamChunks": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        "error": {
+          "code": "request_failed",
+          "message": "[Errno 2] No such file or directory"
+        }
+      },
+      {
+        "backend": "ollama",
+        "status": "pass",
+        "realProcess": true,
+        "model": "qwen3:0.6b",
+        "discoveredModels": 1,
+        "runtimeVersion": "0.31.1",
+        "fingerprint": "fp_ollama",
+        "checks": {
+          "health": true,
+          "discovery": true,
+          "chat": true,
+          "stream": true,
+          "normalizedUsage": true
+        },
+        "metrics": {
+          "probeLatencyMs": 47,
+          "chatLatencyMs": 3235,
+          "streamLatencyMs": 588,
+          "streamChunks": 63,
+          "promptTokens": 26,
+          "completionTokens": 64
+        },
+        "error": null
+      },
+      {
+        "backend": "llama.cpp",
+        "status": "pass",
+        "realProcess": true,
+        "model": "qwen3-0.6b-llamacpp",
+        "discoveredModels": 1,
+        "runtimeVersion": null,
+        "fingerprint": "b8680-15f786e65",
+        "checks": {
+          "health": true,
+          "discovery": true,
+          "chat": true,
+          "stream": true,
+          "normalizedUsage": true
+        },
+        "metrics": {
+          "probeLatencyMs": 10,
+          "chatLatencyMs": 202,
+          "streamLatencyMs": 111,
+          "streamChunks": 10,
+          "promptTokens": 24,
+          "completionTokens": 13
+        },
+        "error": null
+      }
+    ],
+    "adapterContract": {
+      "implemented": 6,
+      "conformant": 6,
+      "planned": 0,
+      "operationChecks": 42,
+      "normalizedOperationChecks": 42
+    },
+    "compatibilityMatrix": [
+      {
+        "backend": "mlx",
+        "modelFormat": "mlx",
+        "minimumMemoryGb": 2,
+        "compatible": true,
+        "reasons": [],
+        "codes": []
+      },
+      {
+        "backend": "ollama",
+        "modelFormat": "ollama",
+        "minimumMemoryGb": 2,
+        "compatible": true,
+        "reasons": [],
+        "codes": []
+      },
+      {
+        "backend": "llama.cpp",
+        "modelFormat": "gguf",
+        "minimumMemoryGb": 2,
+        "compatible": true,
+        "reasons": [],
+        "codes": []
+      },
+      {
+        "backend": "localai",
+        "modelFormat": "gguf",
+        "minimumMemoryGb": 2,
+        "compatible": true,
+        "reasons": [],
+        "codes": []
+      },
+      {
+        "backend": "vllm",
+        "modelFormat": "safetensors",
+        "minimumMemoryGb": 16,
+        "compatible": false,
+        "reasons": [
+          "vLLM does not support darwin-arm64 in this runtime profile.",
+          "vLLM requires a visible NVIDIA accelerator."
+        ],
+        "codes": [
+          "platform_unsupported",
+          "accelerator_unavailable"
+        ]
+      },
+      {
+        "backend": "sglang",
+        "modelFormat": "safetensors",
+        "minimumMemoryGb": 16,
+        "compatible": false,
+        "reasons": [
+          "SGLang does not support darwin-arm64 in this runtime profile.",
+          "SGLang requires a visible NVIDIA accelerator."
+        ],
+        "codes": [
+          "platform_unsupported",
+          "accelerator_unavailable"
+        ]
+      }
+    ],
+    "totals": {
+      "realBackends": 3,
+      "passingBackends": 2,
+      "adapterContracts": 6,
+      "compatibleProfiles": 4,
+      "rejectedProfiles": 2,
+      "promptTokens": 50,
+      "completionTokens": 77,
+      "averageLatencyMs": 862
+    },
+    "blockers": [
+      "mlx live conformance is HOLD: [Errno 2] No such file or directory"
+    ],
+    "evidenceDigest": "312aac70eb0b940b08aa5ce26bb61d1f49dece2774167cad6563ade0ef7b67bd"
+  },
+  "promotion": {
+    "ok": true,
+    "schemaVersion": "runtime.fabric-promotion.v1",
+    "localStatus": "evidence-needed",
+    "productionStatus": "hold",
+    "localChecks": {
+      "realMlx": false,
+      "realOllama": true,
+      "realLlamaCpp": true,
+      "sixImplementedAdapters": true,
+      "sixConformantAdapters": true,
+      "noPlannedAdapters": true,
+      "normalizedOperationMatrix": true,
+      "actionableCompatibilityRejections": true
+    },
+    "productionChecks": {
+      "realLocalAiNode": false,
+      "realLinuxNvidiaVllmAndSglang": false,
+      "heterogeneousRemoteNodeFailover": false
+    },
+    "localBlockers": [
+      "Runtime Fabric local check failed: realMlx."
+    ],
+    "productionBlockers": [
+      "A real LocalAI endpoint receipt is still required.",
+      "vLLM and SGLang still require real Linux/NVIDIA conformance receipts.",
+      "Heterogeneous remote-node failover still requires separate-machine evidence."
+    ],
+    "receiptId": "runtime-fabric-b3823a0f-44f8-467d-a48d-9cd3229bff2e",
+    "receiptDigest": "312aac70eb0b940b08aa5ce26bb61d1f49dece2774167cad6563ade0ef7b67bd",
+    "generatedAt": "2026-07-26T06:14:48.124Z",
+    "evidenceDigest": "854a96bfbe243a48c9d743d484966daa4142b4f2375191f70900b5e9265864cf",
+    "acceptancePath": "/Users/chenhaorui/Documents/New project/data/agent-observability/runtime-fabric-acceptance.json"
+  },
+  "runner": {
+    "spawnedLlama": true,
+    "llamaBaseUrl": "http://127.0.0.1:11435",
+    "llamaAlias": "qwen3-0.6b-llamacpp",
+    "localOnly": true
+  }
+}

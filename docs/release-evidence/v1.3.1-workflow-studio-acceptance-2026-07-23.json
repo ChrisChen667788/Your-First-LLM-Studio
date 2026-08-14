@@ -1,17 +1,17 @@
 {
   "schemaVersion": "workflows.v1.3.1-studio-evidence.v1",
-  "generatedAt": "2026-07-22T19:27:30.288Z",
+  "generatedAt": "2026-08-01T13:42:14.067Z",
   "status": "local-pass",
   "productionStatus": "blocked",
   "acceptance": {
-    "id": "workflow-studio-acceptance-414ce120-d750-4780-ba37-f538ebcbe266",
-    "generatedAt": "2026-07-22T19:27:30.104Z",
+    "id": "workflow-studio-acceptance-172bce19-7263-4a1c-9bdc-92d41901f2bc",
+    "generatedAt": "2026-08-01T13:42:13.006Z",
     "status": "pass",
     "graph": {
       "id": "workflow-studio-acceptance",
-      "version": 4,
-      "digest": "sha256:94dfc609f3064699d33542d859c0e8006c6d8e5f4c3f3196b1eb9cf237724b77",
-      "deploymentSlug": "workflow-studio-acceptance-v4"
+      "version": 1,
+      "digest": "sha256:9c2a9b4dfb29c242c8172bf7e8e835ac47b0b2316d342b1643a26752cea9ebf1",
+      "deploymentSlug": "workflow-studio-acceptance-v1"
     },
     "checks": {
       "strictGraphValidation": true,
@@ -38,7 +38,7 @@
       },
       "to": {
         "id": "workflow-studio-acceptance",
-        "version": 4
+        "version": 1
       },
       "nodes": {
         "added": [
@@ -66,8 +66,8 @@
       "artifactInputsChanged": true
     },
     "execution": {
-      "sourceId": "workflow-run-00b325d6-8988-4295-8240-3f2bbdd32731",
-      "replayId": "workflow-run-2677682c-24dc-4d37-9a73-1bccb3a6eed5",
+      "sourceId": "workflow-run-a00b99e4-2dcd-4392-994b-20decc79fe8b",
+      "replayId": "workflow-run-8deee249-48c3-4666-9287-4bbace7a7af8",
       "finalStatus": "completed",
       "eventCount": 8
     },
@@ -76,12 +76,12 @@
   "promotion": {
     "ok": true,
     "schemaVersion": "workflows.studio-promotion.v1",
-    "generatedAt": "2026-07-22T19:27:30.130Z",
+    "generatedAt": "2026-08-01T13:42:13.324Z",
     "version": "v1.3.1",
     "localStatus": "pass",
     "productionStatus": "blocked",
     "status": "local-ready",
-    "summary": "Latest local acceptance workflow-studio-acceptance-414ce120-d750-4780-ba37-f538ebcbe266 passed 16/16 checks with graph digest sha256:94dfc609f3064699d33542d859c0e8006c6d8e5f4c3f3196b1eb9cf237724b77.",
+    "summary": "Latest local acceptance workflow-studio-acceptance-172bce19-7263-4a1c-9bdc-92d41901f2bc passed 16/16 checks with graph digest sha256:9c2a9b4dfb29c242c8172bf7e8e835ac47b0b2316d342b1643a26752cea9ebf1.",
     "localBlockers": [],
     "productionBlockers": [
       "Authenticated non-loopback OpenAI-compatible workflow invocation evidence is required.",
@@ -94,14 +94,14 @@
       "Multi-user draft conflict and audit evidence is required before collaborative authoring promotion."
     ],
     "latestAcceptance": {
-      "id": "workflow-studio-acceptance-414ce120-d750-4780-ba37-f538ebcbe266",
-      "generatedAt": "2026-07-22T19:27:30.104Z",
+      "id": "workflow-studio-acceptance-172bce19-7263-4a1c-9bdc-92d41901f2bc",
+      "generatedAt": "2026-08-01T13:42:13.006Z",
       "status": "pass",
       "graph": {
         "id": "workflow-studio-acceptance",
-        "version": 4,
-        "digest": "sha256:94dfc609f3064699d33542d859c0e8006c6d8e5f4c3f3196b1eb9cf237724b77",
-        "deploymentSlug": "workflow-studio-acceptance-v4"
+        "version": 1,
+        "digest": "sha256:9c2a9b4dfb29c242c8172bf7e8e835ac47b0b2316d342b1643a26752cea9ebf1",
+        "deploymentSlug": "workflow-studio-acceptance-v1"
       },
       "checks": {
         "strictGraphValidation": true,
@@ -128,7 +128,7 @@
         },
         "to": {
           "id": "workflow-studio-acceptance",
-          "version": 4
+          "version": 1
         },
         "nodes": {
           "added": [
@@ -156,8 +156,8 @@
         "artifactInputsChanged": true
       },
       "execution": {
-        "sourceId": "workflow-run-00b325d6-8988-4295-8240-3f2bbdd32731",
-        "replayId": "workflow-run-2677682c-24dc-4d37-9a73-1bccb3a6eed5",
+        "sourceId": "workflow-run-a00b99e4-2dcd-4392-994b-20decc79fe8b",
+        "replayId": "workflow-run-8deee249-48c3-4666-9287-4bbace7a7af8",
         "finalStatus": "completed",
         "eventCount": 8
       },
@@ -175,13 +175,13 @@
     "totals": {
       "versions": 10,
       "complete": 0,
-      "localReady": 5,
-      "inProgress": 0,
-      "externallyBlocked": 5,
-      "locallyReadyVersions": 10,
+      "localReady": 3,
+      "inProgress": 3,
+      "externallyBlocked": 4,
+      "locallyReadyVersions": 7,
       "productionReadyVersions": 0,
-      "averageLocalCompletionPct": 93,
-      "averageReleaseCompletionPct": 93
+      "averageLocalCompletionPct": 89,
+      "averageReleaseCompletionPct": 89
     },
     "version": {
       "version": "v1.3.1",
@@ -194,7 +194,7 @@
       "localCompletionPct": 92,
       "releaseCompletionPct": 92,
       "route": "/workflows",
-      "summary": "Workflow Studio local acceptance is pass; production promotion remains blocked.",
+      "summary": "Workflow Studio local acceptance is pass; distributed lease/fencing checks are passing; production promotion remains blocked.",
       "layers": {
         "hardening": 2,
         "acceptance": 2,
@@ -206,7 +206,11 @@
       "externalBlockers": [
         "Authenticated non-loopback OpenAI-compatible workflow invocation evidence is required.",
         "Distributed worker lease failover and restart recovery evidence is required.",
-        "Multi-user draft conflict and audit evidence is required before collaborative authoring promotion."
+        "Multi-user draft conflict and audit evidence is required before collaborative authoring promotion.",
+        "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+        "Process termination during a protected side effect must prove duplicate suppression.",
+        "Remote queue or database lease storage must demonstrate partition and clock-skew behavior.",
+        "Blind multi-seed evaluation must be run against the release candidate worker."
       ],
       "evidence": [
         "/workflows",
@@ -214,6 +218,7 @@
         "/api/workflows/acceptance",
         "/api/workflows/promotion",
         "/api/workflows/deploy/[slug]/v1/chat/completions",
+        "/api/experiments/v14-acceptance",
         "/api/workflows/worker",
         "/api/workflows/replay",
         "/api/workflows/state-diff",
@@ -223,7 +228,11 @@
       "nextActions": [
         "Authenticated non-loopback OpenAI-compatible workflow invocation evidence is required.",
         "Distributed worker lease failover and restart recovery evidence is required.",
-        "Multi-user draft conflict and audit evidence is required before collaborative authoring promotion."
+        "Multi-user draft conflict and audit evidence is required before collaborative authoring promotion.",
+        "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+        "Process termination during a protected side effect must prove duplicate suppression.",
+        "Remote queue or database lease storage must demonstrate partition and clock-skew behavior.",
+        "Blind multi-seed evaluation must be run against the release candidate worker."
       ],
       "slices": [
         {
@@ -232,7 +241,7 @@
           "label": "Leased safe-node worker",
           "status": "ready",
           "completionPct": 90,
-          "summary": "30 worker receipt(s), 17 completed drain(s)."
+          "summary": "14 worker receipt(s), 8 completed drain(s)."
         },
         {
           "id": "workflow-replay",
@@ -240,7 +249,7 @@
           "label": "Side-effect-safe replay fork",
           "status": "ready",
           "completionPct": 90,
-          "summary": "13 replay fork(s) without copied side effects."
+          "summary": "6 replay fork(s) without copied side effects."
         },
         {
           "id": "workflow-state-diff",
@@ -248,7 +257,7 @@
           "label": "Workflow state diff and breakpoint replay",
           "status": "ready",
           "completionPct": 90,
-          "summary": "8 replay state-diff receipt(s)."
+          "summary": "3 replay state-diff receipt(s)."
         },
         {
           "id": "retrieval-workflow",
@@ -256,7 +265,7 @@
           "label": "Retrieval workflow deployment",
           "status": "ready",
           "completionPct": 90,
-          "summary": "4 versioned retrieval graph deployment receipt(s)."
+          "summary": "2 versioned retrieval graph deployment receipt(s)."
         },
         {
           "id": "workflow-access",
@@ -264,7 +273,7 @@
           "label": "Deployment auth and version pin",
           "status": "ready",
           "completionPct": 92,
-          "summary": "7 digest-backed deployment key record(s)."
+          "summary": "4 digest-backed deployment key record(s)."
         }
       ]
     }
@@ -272,7 +281,7 @@
   "runner": {
     "baseUrl": "http://127.0.0.1:3011",
     "localOnly": true,
-    "graphDigest": "sha256:94dfc609f3064699d33542d859c0e8006c6d8e5f4c3f3196b1eb9cf237724b77",
+    "graphDigest": "sha256:9c2a9b4dfb29c242c8172bf7e8e835ac47b0b2316d342b1643a26752cea9ebf1",
     "reportDigest": "sha256:1608a1c61137464b2c034653d9d33c7a66eafe2d119371d86e8d87bcbcf864c0"
   }
 }

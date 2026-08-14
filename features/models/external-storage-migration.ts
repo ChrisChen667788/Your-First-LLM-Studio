@@ -18,6 +18,7 @@ import {
 } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const MODEL_EXTERNAL_STORAGE_SCHEMA_VERSION = "models.external-storage-migration.v2" as const;
 
@@ -59,21 +60,11 @@ const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(
 const STORE_FILE = path.join(DATA_DIR, "model-external-storage-migrations.json");
 
 function readReceipts(): Receipt[] {
-  if (!existsSync(STORE_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { receipts?: Receipt[] };
-    return Array.isArray(parsed.receipts) ? parsed.receipts : [];
-  } catch {
-    return [];
-  }
+  return readDurableReceipts(STORE_FILE, MODEL_EXTERNAL_STORAGE_SCHEMA_VERSION);
 }
 
 function persist(receipt: Receipt) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(STORE_FILE, `${JSON.stringify({
-    schemaVersion: MODEL_EXTERNAL_STORAGE_SCHEMA_VERSION,
-    receipts: [receipt, ...readReceipts()].slice(0, 100),
-  }, null, 2)}\n`, "utf8");
+  prependDurableReceipt(STORE_FILE, MODEL_EXTERNAL_STORAGE_SCHEMA_VERSION, receipt, 100);
 }
 
 function sha256File(filePath: string) {

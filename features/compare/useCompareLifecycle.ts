@@ -13,6 +13,7 @@ import type {
   AgentTarget,
   AgentThinkingMode
 } from "@/lib/agent/types";
+import { COMPARE_PROGRESS_API_PATH } from "./contracts";
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
 
@@ -163,7 +164,7 @@ export function useCompareLifecycle({
     async function loadCompareProgress() {
       try {
         const query = new URLSearchParams({ requestId: compareRequestId });
-        const response = await fetch(`/api/agent/compare/progress?${query.toString()}`, {
+        const response = await fetch(`${COMPARE_PROGRESS_API_PATH}?${query.toString()}`, {
           cache: "no-store"
         });
         const payload = (await response.json()) as AgentCompareProgress & { error?: string };

@@ -1,7 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { appendServerRequestEntry } from "@/features/models/server-request-ledger";
+import {
+  prependDurableListEntry,
+  readDurableList,
+} from "@/features/persistence/durable-list-store";
 
 export const OPENAI_CONFORMANCE_SCHEMA_VERSION = "runtime.openai-compatible-conformance.v1" as const;
 
@@ -11,14 +14,21 @@ const REPORT_FILE = path.join(DATA_DIR, "openai-compatible-conformance.json");
 type ConformanceReport = { id: string; generatedAt: string; serverId: string; baseUrl: string; model: string; ok: boolean; checks: Record<string, boolean>; metrics: Record<string, number>; error?: string };
 
 function readReports(): ConformanceReport[] {
-  if (!existsSync(REPORT_FILE)) return [];
-  try { const parsed = JSON.parse(readFileSync(REPORT_FILE, "utf8")) as { reports?: ConformanceReport[] }; return Array.isArray(parsed.reports) ? parsed.reports : []; }
-  catch { return []; }
+  return readDurableList(
+    REPORT_FILE,
+    OPENAI_CONFORMANCE_SCHEMA_VERSION,
+    "reports",
+  );
 }
 
 function persist(report: ConformanceReport) {
-  mkdirSync(path.dirname(REPORT_FILE), { recursive: true });
-  writeFileSync(REPORT_FILE, `${JSON.stringify({ schemaVersion: OPENAI_CONFORMANCE_SCHEMA_VERSION, reports: [report, ...readReports()].slice(0, 100) }, null, 2)}\n`, "utf8");
+  prependDurableListEntry(
+    REPORT_FILE,
+    OPENAI_CONFORMANCE_SCHEMA_VERSION,
+    "reports",
+    report,
+    100,
+  );
 }
 
 function normalizeBaseUrl(value: string) {

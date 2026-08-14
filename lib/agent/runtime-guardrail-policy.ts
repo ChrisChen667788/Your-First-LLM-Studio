@@ -1,5 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { dirname } from "path";
+import { existsSync } from "fs";
+import {
+  readJsonFileDurably,
+  replaceJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
 
 export type RuntimeResourceGuardrailStrategy = {
@@ -47,29 +50,26 @@ export function readPersistedRuntimeResourceGuardrailStrategy() {
   if (!existsSync(RUNTIME_GUARDRAIL_POLICY_FILE)) {
     return null;
   }
-  try {
-    const parsed = JSON.parse(readFileSync(RUNTIME_GUARDRAIL_POLICY_FILE, "utf8")) as
-      | Partial<RuntimeResourceGuardrailStrategy>
-      | null;
-    return normalizeRuntimeResourceGuardrailStrategy(parsed || undefined);
-  } catch {
-    return null;
-  }
+  const parsed = readJsonFileDurably(
+    RUNTIME_GUARDRAIL_POLICY_FILE,
+    () => DEFAULT_RUNTIME_RESOURCE_GUARDRAIL_STRATEGY,
+  );
+  return normalizeRuntimeResourceGuardrailStrategy(parsed);
 }
 
 export function saveRuntimeResourceGuardrailStrategy(value: Partial<RuntimeResourceGuardrailStrategy>) {
   const normalized = normalizeRuntimeResourceGuardrailStrategy(value);
-  mkdirSync(dirname(RUNTIME_GUARDRAIL_POLICY_FILE), { recursive: true });
-  writeFileSync(RUNTIME_GUARDRAIL_POLICY_FILE, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
+  replaceJsonFileDurably(
+    RUNTIME_GUARDRAIL_POLICY_FILE,
+    normalized,
+  );
   return normalized;
 }
 
 export function resetRuntimeResourceGuardrailStrategy() {
-  mkdirSync(dirname(RUNTIME_GUARDRAIL_POLICY_FILE), { recursive: true });
-  writeFileSync(
+  replaceJsonFileDurably(
     RUNTIME_GUARDRAIL_POLICY_FILE,
-    `${JSON.stringify(DEFAULT_RUNTIME_RESOURCE_GUARDRAIL_STRATEGY, null, 2)}\n`,
-    "utf8"
+    DEFAULT_RUNTIME_RESOURCE_GUARDRAIL_STRATEGY,
   );
   return DEFAULT_RUNTIME_RESOURCE_GUARDRAIL_STRATEGY;
 }

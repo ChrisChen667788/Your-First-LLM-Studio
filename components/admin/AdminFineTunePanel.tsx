@@ -3,7 +3,7 @@
 import {
   FineTuneStudioPanel,
   type FineTuneStudioPanelProps,
-} from "@/components/finetune/FineTuneStudioPanel";
+} from "@/features/finetune/FineTuneStudioPanel";
 
 type AdminFineTunePanelProps = FineTuneStudioPanelProps;
 

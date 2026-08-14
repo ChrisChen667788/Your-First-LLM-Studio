@@ -1,0 +1,871 @@
+{
+  "schemaVersion": "experiments.v14-acceptance-runner-evidence.v1",
+  "generatedAt": "2026-08-01T13:43:01.046Z",
+  "baseUrl": "http://127.0.0.1:3011",
+  "receipt": {
+    "id": "v14-acceptance-b8f7faed-3193-4747-b5c5-c41d2a80b95e",
+    "generatedAt": "2026-08-01T13:43:01.023Z",
+    "status": "pass",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "slices": [
+      {
+        "id": "governance.oidc-issuer-pin",
+        "version": "v1.4.0",
+        "domain": "governance",
+        "label": "OIDC issuer pin",
+        "status": "pass",
+        "summary": "OIDC issuer pin passed the local contract rehearsal."
+      },
+      {
+        "id": "governance.jwks-rotation",
+        "version": "v1.4.0",
+        "domain": "governance",
+        "label": "JWKS overlap rotation",
+        "status": "pass",
+        "summary": "JWKS overlap rotation passed the local contract rehearsal."
+      },
+      {
+        "id": "governance.signed-delivery",
+        "version": "v1.4.0",
+        "domain": "governance",
+        "label": "Signed identity delivery",
+        "status": "pass",
+        "summary": "Signed identity delivery passed the local contract rehearsal."
+      },
+      {
+        "id": "governance.replay-denial",
+        "version": "v1.4.0",
+        "domain": "governance",
+        "label": "Identity replay denial",
+        "status": "pass",
+        "summary": "Identity replay denial passed the local contract rehearsal."
+      },
+      {
+        "id": "governance.deprovision-audit",
+        "version": "v1.4.0",
+        "domain": "governance",
+        "label": "Deprovision and audit",
+        "status": "pass",
+        "summary": "Deprovision and audit passed the local contract rehearsal."
+      },
+      {
+        "id": "workflow.exclusive-lease",
+        "version": "v1.3.1",
+        "domain": "workflow",
+        "label": "Exclusive execution lease",
+        "status": "pass",
+        "summary": "Exclusive execution lease passed the local contract rehearsal."
+      },
+      {
+        "id": "workflow.expired-recovery",
+        "version": "v1.3.1",
+        "domain": "workflow",
+        "label": "Expired lease recovery",
+        "status": "pass",
+        "summary": "Expired lease recovery passed the local contract rehearsal."
+      },
+      {
+        "id": "workflow.stale-fencing",
+        "version": "v1.3.1",
+        "domain": "workflow",
+        "label": "Stale worker fencing",
+        "status": "pass",
+        "summary": "Stale worker fencing passed the local contract rehearsal."
+      },
+      {
+        "id": "workflow.heartbeat",
+        "version": "v1.3.1",
+        "domain": "workflow",
+        "label": "Lease heartbeat extension",
+        "status": "pass",
+        "summary": "Lease heartbeat extension passed the local contract rehearsal."
+      },
+      {
+        "id": "workflow.recovery-receipt",
+        "version": "v1.3.1",
+        "domain": "workflow",
+        "label": "Recovery receipt completeness",
+        "status": "pass",
+        "summary": "Recovery receipt completeness passed the local contract rehearsal."
+      },
+      {
+        "id": "evaluation.frozen-manifest",
+        "version": "v1.4.1",
+        "domain": "evaluation",
+        "label": "Frozen artifact manifest",
+        "status": "pass",
+        "summary": "Frozen artifact manifest passed the local contract rehearsal."
+      },
+      {
+        "id": "evaluation.multi-seed",
+        "version": "v1.4.1",
+        "domain": "evaluation",
+        "label": "Multi-seed coverage",
+        "status": "pass",
+        "summary": "Multi-seed coverage passed the local contract rehearsal."
+      },
+      {
+        "id": "evaluation.paired-confidence",
+        "version": "v1.4.1",
+        "domain": "evaluation",
+        "label": "Paired confidence gate",
+        "status": "pass",
+        "summary": "Paired confidence gate passed the local contract rehearsal."
+      },
+      {
+        "id": "evaluation.judge-calibration",
+        "version": "v1.4.1",
+        "domain": "evaluation",
+        "label": "Judge calibration",
+        "status": "pass",
+        "summary": "Judge calibration passed the local contract rehearsal."
+      },
+      {
+        "id": "evaluation.reproducible-decision",
+        "version": "v1.4.1",
+        "domain": "evaluation",
+        "label": "Reproducible CI decision",
+        "status": "pass",
+        "summary": "Reproducible CI decision passed the local contract rehearsal."
+      }
+    ],
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "childReceipts": {
+      "governance": "enterprise-identity-851e9692-70d5-429a-a4d1-19083ed91cb8",
+      "workflow": "distributed-worker-eace91ed-e39f-4f42-9fee-dec83e011e53",
+      "evaluation": "quality-ci-ba75222d-5457-4bdb-ab1b-e18a45d96444"
+    },
+    "domainProductionBlockers": {
+      "governance": [
+        "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+        "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+        "External immutable audit export and organization sign-off are required."
+      ],
+      "workflow": [
+        "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+        "Process termination during a protected side effect must prove duplicate suppression.",
+        "Remote queue or database lease storage must demonstrate partition and clock-skew behavior."
+      ],
+      "evaluation": [
+        "A frozen task baseline and immutable production dataset receipt are required.",
+        "Blind multi-seed evaluation must be run against the release candidate worker.",
+        "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+      ]
+    },
+    "productionBlockers": [
+      "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+      "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+      "External immutable audit export and organization sign-off are required.",
+      "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+      "Process termination during a protected side effect must prove duplicate suppression.",
+      "Remote queue or database lease storage must demonstrate partition and clock-skew behavior.",
+      "A frozen task baseline and immutable production dataset receipt are required.",
+      "Blind multi-seed evaluation must be run against the release candidate worker.",
+      "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+    ],
+    "evidenceDigest": "0ef795af5f53381643f4ed191c5b835f4aa83431236a05a0218bc6f387625a2b"
+  },
+  "evidence": {
+    "ok": true,
+    "schemaVersion": "experiments.v14-acceptance-batch.v1",
+    "generatedAt": "2026-08-01T13:43:01.039Z",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "latest": {
+      "id": "v14-acceptance-b8f7faed-3193-4747-b5c5-c41d2a80b95e",
+      "generatedAt": "2026-08-01T13:43:01.023Z",
+      "status": "pass",
+      "localStatus": "pass",
+      "productionStatus": "hold",
+      "slices": [
+        {
+          "id": "governance.oidc-issuer-pin",
+          "version": "v1.4.0",
+          "domain": "governance",
+          "label": "OIDC issuer pin",
+          "status": "pass",
+          "summary": "OIDC issuer pin passed the local contract rehearsal."
+        },
+        {
+          "id": "governance.jwks-rotation",
+          "version": "v1.4.0",
+          "domain": "governance",
+          "label": "JWKS overlap rotation",
+          "status": "pass",
+          "summary": "JWKS overlap rotation passed the local contract rehearsal."
+        },
+        {
+          "id": "governance.signed-delivery",
+          "version": "v1.4.0",
+          "domain": "governance",
+          "label": "Signed identity delivery",
+          "status": "pass",
+          "summary": "Signed identity delivery passed the local contract rehearsal."
+        },
+        {
+          "id": "governance.replay-denial",
+          "version": "v1.4.0",
+          "domain": "governance",
+          "label": "Identity replay denial",
+          "status": "pass",
+          "summary": "Identity replay denial passed the local contract rehearsal."
+        },
+        {
+          "id": "governance.deprovision-audit",
+          "version": "v1.4.0",
+          "domain": "governance",
+          "label": "Deprovision and audit",
+          "status": "pass",
+          "summary": "Deprovision and audit passed the local contract rehearsal."
+        },
+        {
+          "id": "workflow.exclusive-lease",
+          "version": "v1.3.1",
+          "domain": "workflow",
+          "label": "Exclusive execution lease",
+          "status": "pass",
+          "summary": "Exclusive execution lease passed the local contract rehearsal."
+        },
+        {
+          "id": "workflow.expired-recovery",
+          "version": "v1.3.1",
+          "domain": "workflow",
+          "label": "Expired lease recovery",
+          "status": "pass",
+          "summary": "Expired lease recovery passed the local contract rehearsal."
+        },
+        {
+          "id": "workflow.stale-fencing",
+          "version": "v1.3.1",
+          "domain": "workflow",
+          "label": "Stale worker fencing",
+          "status": "pass",
+          "summary": "Stale worker fencing passed the local contract rehearsal."
+        },
+        {
+          "id": "workflow.heartbeat",
+          "version": "v1.3.1",
+          "domain": "workflow",
+          "label": "Lease heartbeat extension",
+          "status": "pass",
+          "summary": "Lease heartbeat extension passed the local contract rehearsal."
+        },
+        {
+          "id": "workflow.recovery-receipt",
+          "version": "v1.3.1",
+          "domain": "workflow",
+          "label": "Recovery receipt completeness",
+          "status": "pass",
+          "summary": "Recovery receipt completeness passed the local contract rehearsal."
+        },
+        {
+          "id": "evaluation.frozen-manifest",
+          "version": "v1.4.1",
+          "domain": "evaluation",
+          "label": "Frozen artifact manifest",
+          "status": "pass",
+          "summary": "Frozen artifact manifest passed the local contract rehearsal."
+        },
+        {
+          "id": "evaluation.multi-seed",
+          "version": "v1.4.1",
+          "domain": "evaluation",
+          "label": "Multi-seed coverage",
+          "status": "pass",
+          "summary": "Multi-seed coverage passed the local contract rehearsal."
+        },
+        {
+          "id": "evaluation.paired-confidence",
+          "version": "v1.4.1",
+          "domain": "evaluation",
+          "label": "Paired confidence gate",
+          "status": "pass",
+          "summary": "Paired confidence gate passed the local contract rehearsal."
+        },
+        {
+          "id": "evaluation.judge-calibration",
+          "version": "v1.4.1",
+          "domain": "evaluation",
+          "label": "Judge calibration",
+          "status": "pass",
+          "summary": "Judge calibration passed the local contract rehearsal."
+        },
+        {
+          "id": "evaluation.reproducible-decision",
+          "version": "v1.4.1",
+          "domain": "evaluation",
+          "label": "Reproducible CI decision",
+          "status": "pass",
+          "summary": "Reproducible CI decision passed the local contract rehearsal."
+        }
+      ],
+      "totals": {
+        "slices": 15,
+        "passed": 15,
+        "held": 0
+      },
+      "childReceipts": {
+        "governance": "enterprise-identity-851e9692-70d5-429a-a4d1-19083ed91cb8",
+        "workflow": "distributed-worker-eace91ed-e39f-4f42-9fee-dec83e011e53",
+        "evaluation": "quality-ci-ba75222d-5457-4bdb-ab1b-e18a45d96444"
+      },
+      "domainProductionBlockers": {
+        "governance": [
+          "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+          "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+          "External immutable audit export and organization sign-off are required."
+        ],
+        "workflow": [
+          "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+          "Process termination during a protected side effect must prove duplicate suppression.",
+          "Remote queue or database lease storage must demonstrate partition and clock-skew behavior."
+        ],
+        "evaluation": [
+          "A frozen task baseline and immutable production dataset receipt are required.",
+          "Blind multi-seed evaluation must be run against the release candidate worker.",
+          "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+        ]
+      },
+      "productionBlockers": [
+        "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+        "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+        "External immutable audit export and organization sign-off are required.",
+        "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+        "Process termination during a protected side effect must prove duplicate suppression.",
+        "Remote queue or database lease storage must demonstrate partition and clock-skew behavior.",
+        "A frozen task baseline and immutable production dataset receipt are required.",
+        "Blind multi-seed evaluation must be run against the release candidate worker.",
+        "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+      ],
+      "evidenceDigest": "0ef795af5f53381643f4ed191c5b835f4aa83431236a05a0218bc6f387625a2b"
+    },
+    "latestPassing": {
+      "id": "v14-acceptance-b8f7faed-3193-4747-b5c5-c41d2a80b95e",
+      "generatedAt": "2026-08-01T13:43:01.023Z",
+      "status": "pass",
+      "localStatus": "pass",
+      "productionStatus": "hold",
+      "slices": [
+        {
+          "id": "governance.oidc-issuer-pin",
+          "version": "v1.4.0",
+          "domain": "governance",
+          "label": "OIDC issuer pin",
+          "status": "pass",
+          "summary": "OIDC issuer pin passed the local contract rehearsal."
+        },
+        {
+          "id": "governance.jwks-rotation",
+          "version": "v1.4.0",
+          "domain": "governance",
+          "label": "JWKS overlap rotation",
+          "status": "pass",
+          "summary": "JWKS overlap rotation passed the local contract rehearsal."
+        },
+        {
+          "id": "governance.signed-delivery",
+          "version": "v1.4.0",
+          "domain": "governance",
+          "label": "Signed identity delivery",
+          "status": "pass",
+          "summary": "Signed identity delivery passed the local contract rehearsal."
+        },
+        {
+          "id": "governance.replay-denial",
+          "version": "v1.4.0",
+          "domain": "governance",
+          "label": "Identity replay denial",
+          "status": "pass",
+          "summary": "Identity replay denial passed the local contract rehearsal."
+        },
+        {
+          "id": "governance.deprovision-audit",
+          "version": "v1.4.0",
+          "domain": "governance",
+          "label": "Deprovision and audit",
+          "status": "pass",
+          "summary": "Deprovision and audit passed the local contract rehearsal."
+        },
+        {
+          "id": "workflow.exclusive-lease",
+          "version": "v1.3.1",
+          "domain": "workflow",
+          "label": "Exclusive execution lease",
+          "status": "pass",
+          "summary": "Exclusive execution lease passed the local contract rehearsal."
+        },
+        {
+          "id": "workflow.expired-recovery",
+          "version": "v1.3.1",
+          "domain": "workflow",
+          "label": "Expired lease recovery",
+          "status": "pass",
+          "summary": "Expired lease recovery passed the local contract rehearsal."
+        },
+        {
+          "id": "workflow.stale-fencing",
+          "version": "v1.3.1",
+          "domain": "workflow",
+          "label": "Stale worker fencing",
+          "status": "pass",
+          "summary": "Stale worker fencing passed the local contract rehearsal."
+        },
+        {
+          "id": "workflow.heartbeat",
+          "version": "v1.3.1",
+          "domain": "workflow",
+          "label": "Lease heartbeat extension",
+          "status": "pass",
+          "summary": "Lease heartbeat extension passed the local contract rehearsal."
+        },
+        {
+          "id": "workflow.recovery-receipt",
+          "version": "v1.3.1",
+          "domain": "workflow",
+          "label": "Recovery receipt completeness",
+          "status": "pass",
+          "summary": "Recovery receipt completeness passed the local contract rehearsal."
+        },
+        {
+          "id": "evaluation.frozen-manifest",
+          "version": "v1.4.1",
+          "domain": "evaluation",
+          "label": "Frozen artifact manifest",
+          "status": "pass",
+          "summary": "Frozen artifact manifest passed the local contract rehearsal."
+        },
+        {
+          "id": "evaluation.multi-seed",
+          "version": "v1.4.1",
+          "domain": "evaluation",
+          "label": "Multi-seed coverage",
+          "status": "pass",
+          "summary": "Multi-seed coverage passed the local contract rehearsal."
+        },
+        {
+          "id": "evaluation.paired-confidence",
+          "version": "v1.4.1",
+          "domain": "evaluation",
+          "label": "Paired confidence gate",
+          "status": "pass",
+          "summary": "Paired confidence gate passed the local contract rehearsal."
+        },
+        {
+          "id": "evaluation.judge-calibration",
+          "version": "v1.4.1",
+          "domain": "evaluation",
+          "label": "Judge calibration",
+          "status": "pass",
+          "summary": "Judge calibration passed the local contract rehearsal."
+        },
+        {
+          "id": "evaluation.reproducible-decision",
+          "version": "v1.4.1",
+          "domain": "evaluation",
+          "label": "Reproducible CI decision",
+          "status": "pass",
+          "summary": "Reproducible CI decision passed the local contract rehearsal."
+        }
+      ],
+      "totals": {
+        "slices": 15,
+        "passed": 15,
+        "held": 0
+      },
+      "childReceipts": {
+        "governance": "enterprise-identity-851e9692-70d5-429a-a4d1-19083ed91cb8",
+        "workflow": "distributed-worker-eace91ed-e39f-4f42-9fee-dec83e011e53",
+        "evaluation": "quality-ci-ba75222d-5457-4bdb-ab1b-e18a45d96444"
+      },
+      "domainProductionBlockers": {
+        "governance": [
+          "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+          "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+          "External immutable audit export and organization sign-off are required."
+        ],
+        "workflow": [
+          "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+          "Process termination during a protected side effect must prove duplicate suppression.",
+          "Remote queue or database lease storage must demonstrate partition and clock-skew behavior."
+        ],
+        "evaluation": [
+          "A frozen task baseline and immutable production dataset receipt are required.",
+          "Blind multi-seed evaluation must be run against the release candidate worker.",
+          "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+        ]
+      },
+      "productionBlockers": [
+        "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+        "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+        "External immutable audit export and organization sign-off are required.",
+        "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+        "Process termination during a protected side effect must prove duplicate suppression.",
+        "Remote queue or database lease storage must demonstrate partition and clock-skew behavior.",
+        "A frozen task baseline and immutable production dataset receipt are required.",
+        "Blind multi-seed evaluation must be run against the release candidate worker.",
+        "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+      ],
+      "evidenceDigest": "0ef795af5f53381643f4ed191c5b835f4aa83431236a05a0218bc6f387625a2b"
+    },
+    "receipts": [
+      {
+        "id": "v14-acceptance-b8f7faed-3193-4747-b5c5-c41d2a80b95e",
+        "generatedAt": "2026-08-01T13:43:01.023Z",
+        "status": "pass",
+        "localStatus": "pass",
+        "productionStatus": "hold",
+        "slices": [
+          {
+            "id": "governance.oidc-issuer-pin",
+            "version": "v1.4.0",
+            "domain": "governance",
+            "label": "OIDC issuer pin",
+            "status": "pass",
+            "summary": "OIDC issuer pin passed the local contract rehearsal."
+          },
+          {
+            "id": "governance.jwks-rotation",
+            "version": "v1.4.0",
+            "domain": "governance",
+            "label": "JWKS overlap rotation",
+            "status": "pass",
+            "summary": "JWKS overlap rotation passed the local contract rehearsal."
+          },
+          {
+            "id": "governance.signed-delivery",
+            "version": "v1.4.0",
+            "domain": "governance",
+            "label": "Signed identity delivery",
+            "status": "pass",
+            "summary": "Signed identity delivery passed the local contract rehearsal."
+          },
+          {
+            "id": "governance.replay-denial",
+            "version": "v1.4.0",
+            "domain": "governance",
+            "label": "Identity replay denial",
+            "status": "pass",
+            "summary": "Identity replay denial passed the local contract rehearsal."
+          },
+          {
+            "id": "governance.deprovision-audit",
+            "version": "v1.4.0",
+            "domain": "governance",
+            "label": "Deprovision and audit",
+            "status": "pass",
+            "summary": "Deprovision and audit passed the local contract rehearsal."
+          },
+          {
+            "id": "workflow.exclusive-lease",
+            "version": "v1.3.1",
+            "domain": "workflow",
+            "label": "Exclusive execution lease",
+            "status": "pass",
+            "summary": "Exclusive execution lease passed the local contract rehearsal."
+          },
+          {
+            "id": "workflow.expired-recovery",
+            "version": "v1.3.1",
+            "domain": "workflow",
+            "label": "Expired lease recovery",
+            "status": "pass",
+            "summary": "Expired lease recovery passed the local contract rehearsal."
+          },
+          {
+            "id": "workflow.stale-fencing",
+            "version": "v1.3.1",
+            "domain": "workflow",
+            "label": "Stale worker fencing",
+            "status": "pass",
+            "summary": "Stale worker fencing passed the local contract rehearsal."
+          },
+          {
+            "id": "workflow.heartbeat",
+            "version": "v1.3.1",
+            "domain": "workflow",
+            "label": "Lease heartbeat extension",
+            "status": "pass",
+            "summary": "Lease heartbeat extension passed the local contract rehearsal."
+          },
+          {
+            "id": "workflow.recovery-receipt",
+            "version": "v1.3.1",
+            "domain": "workflow",
+            "label": "Recovery receipt completeness",
+            "status": "pass",
+            "summary": "Recovery receipt completeness passed the local contract rehearsal."
+          },
+          {
+            "id": "evaluation.frozen-manifest",
+            "version": "v1.4.1",
+            "domain": "evaluation",
+            "label": "Frozen artifact manifest",
+            "status": "pass",
+            "summary": "Frozen artifact manifest passed the local contract rehearsal."
+          },
+          {
+            "id": "evaluation.multi-seed",
+            "version": "v1.4.1",
+            "domain": "evaluation",
+            "label": "Multi-seed coverage",
+            "status": "pass",
+            "summary": "Multi-seed coverage passed the local contract rehearsal."
+          },
+          {
+            "id": "evaluation.paired-confidence",
+            "version": "v1.4.1",
+            "domain": "evaluation",
+            "label": "Paired confidence gate",
+            "status": "pass",
+            "summary": "Paired confidence gate passed the local contract rehearsal."
+          },
+          {
+            "id": "evaluation.judge-calibration",
+            "version": "v1.4.1",
+            "domain": "evaluation",
+            "label": "Judge calibration",
+            "status": "pass",
+            "summary": "Judge calibration passed the local contract rehearsal."
+          },
+          {
+            "id": "evaluation.reproducible-decision",
+            "version": "v1.4.1",
+            "domain": "evaluation",
+            "label": "Reproducible CI decision",
+            "status": "pass",
+            "summary": "Reproducible CI decision passed the local contract rehearsal."
+          }
+        ],
+        "totals": {
+          "slices": 15,
+          "passed": 15,
+          "held": 0
+        },
+        "childReceipts": {
+          "governance": "enterprise-identity-851e9692-70d5-429a-a4d1-19083ed91cb8",
+          "workflow": "distributed-worker-eace91ed-e39f-4f42-9fee-dec83e011e53",
+          "evaluation": "quality-ci-ba75222d-5457-4bdb-ab1b-e18a45d96444"
+        },
+        "domainProductionBlockers": {
+          "governance": [
+            "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+            "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+            "External immutable audit export and organization sign-off are required."
+          ],
+          "workflow": [
+            "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+            "Process termination during a protected side effect must prove duplicate suppression.",
+            "Remote queue or database lease storage must demonstrate partition and clock-skew behavior."
+          ],
+          "evaluation": [
+            "A frozen task baseline and immutable production dataset receipt are required.",
+            "Blind multi-seed evaluation must be run against the release candidate worker.",
+            "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+          ]
+        },
+        "productionBlockers": [
+          "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+          "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+          "External immutable audit export and organization sign-off are required.",
+          "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+          "Process termination during a protected side effect must prove duplicate suppression.",
+          "Remote queue or database lease storage must demonstrate partition and clock-skew behavior.",
+          "A frozen task baseline and immutable production dataset receipt are required.",
+          "Blind multi-seed evaluation must be run against the release candidate worker.",
+          "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+        ],
+        "evidenceDigest": "0ef795af5f53381643f4ed191c5b835f4aa83431236a05a0218bc6f387625a2b"
+      },
+      {
+        "id": "v14-acceptance-b0a67bdd-af46-49c7-aa8e-38fad14db9a9",
+        "generatedAt": "2026-08-01T13:40:38.258Z",
+        "status": "pass",
+        "localStatus": "pass",
+        "productionStatus": "hold",
+        "slices": [
+          {
+            "id": "governance.oidc-issuer-pin",
+            "version": "v1.4.0",
+            "domain": "governance",
+            "label": "OIDC issuer pin",
+            "status": "pass",
+            "summary": "OIDC issuer pin passed the local contract rehearsal."
+          },
+          {
+            "id": "governance.jwks-rotation",
+            "version": "v1.4.0",
+            "domain": "governance",
+            "label": "JWKS overlap rotation",
+            "status": "pass",
+            "summary": "JWKS overlap rotation passed the local contract rehearsal."
+          },
+          {
+            "id": "governance.signed-delivery",
+            "version": "v1.4.0",
+            "domain": "governance",
+            "label": "Signed identity delivery",
+            "status": "pass",
+            "summary": "Signed identity delivery passed the local contract rehearsal."
+          },
+          {
+            "id": "governance.replay-denial",
+            "version": "v1.4.0",
+            "domain": "governance",
+            "label": "Identity replay denial",
+            "status": "pass",
+            "summary": "Identity replay denial passed the local contract rehearsal."
+          },
+          {
+            "id": "governance.deprovision-audit",
+            "version": "v1.4.0",
+            "domain": "governance",
+            "label": "Deprovision and audit",
+            "status": "pass",
+            "summary": "Deprovision and audit passed the local contract rehearsal."
+          },
+          {
+            "id": "workflow.exclusive-lease",
+            "version": "v1.3.1",
+            "domain": "workflow",
+            "label": "Exclusive execution lease",
+            "status": "pass",
+            "summary": "Exclusive execution lease passed the local contract rehearsal."
+          },
+          {
+            "id": "workflow.expired-recovery",
+            "version": "v1.3.1",
+            "domain": "workflow",
+            "label": "Expired lease recovery",
+            "status": "pass",
+            "summary": "Expired lease recovery passed the local contract rehearsal."
+          },
+          {
+            "id": "workflow.stale-fencing",
+            "version": "v1.3.1",
+            "domain": "workflow",
+            "label": "Stale worker fencing",
+            "status": "pass",
+            "summary": "Stale worker fencing passed the local contract rehearsal."
+          },
+          {
+            "id": "workflow.heartbeat",
+            "version": "v1.3.1",
+            "domain": "workflow",
+            "label": "Lease heartbeat extension",
+            "status": "pass",
+            "summary": "Lease heartbeat extension passed the local contract rehearsal."
+          },
+          {
+            "id": "workflow.recovery-receipt",
+            "version": "v1.3.1",
+            "domain": "workflow",
+            "label": "Recovery receipt completeness",
+            "status": "pass",
+            "summary": "Recovery receipt completeness passed the local contract rehearsal."
+          },
+          {
+            "id": "evaluation.frozen-manifest",
+            "version": "v1.4.1",
+            "domain": "evaluation",
+            "label": "Frozen artifact manifest",
+            "status": "pass",
+            "summary": "Frozen artifact manifest passed the local contract rehearsal."
+          },
+          {
+            "id": "evaluation.multi-seed",
+            "version": "v1.4.1",
+            "domain": "evaluation",
+            "label": "Multi-seed coverage",
+            "status": "pass",
+            "summary": "Multi-seed coverage passed the local contract rehearsal."
+          },
+          {
+            "id": "evaluation.paired-confidence",
+            "version": "v1.4.1",
+            "domain": "evaluation",
+            "label": "Paired confidence gate",
+            "status": "pass",
+            "summary": "Paired confidence gate passed the local contract rehearsal."
+          },
+          {
+            "id": "evaluation.judge-calibration",
+            "version": "v1.4.1",
+            "domain": "evaluation",
+            "label": "Judge calibration",
+            "status": "pass",
+            "summary": "Judge calibration passed the local contract rehearsal."
+          },
+          {
+            "id": "evaluation.reproducible-decision",
+            "version": "v1.4.1",
+            "domain": "evaluation",
+            "label": "Reproducible CI decision",
+            "status": "pass",
+            "summary": "Reproducible CI decision passed the local contract rehearsal."
+          }
+        ],
+        "totals": {
+          "slices": 15,
+          "passed": 15,
+          "held": 0
+        },
+        "childReceipts": {
+          "governance": "enterprise-identity-d3b277ba-e350-45fb-b2da-8bf5e1292ffc",
+          "workflow": "distributed-worker-79181f3f-09ab-4440-b94a-aba349612977",
+          "evaluation": "quality-ci-d95c7962-e7fd-4186-b6f0-e2d94a6d7fe6"
+        },
+        "productionBlockers": [
+          "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+          "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+          "External immutable audit export and organization sign-off are required.",
+          "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+          "Process termination during a protected side effect must prove duplicate suppression.",
+          "Remote queue or database lease storage must demonstrate partition and clock-skew behavior.",
+          "A frozen task baseline and immutable production dataset receipt are required.",
+          "Blind multi-seed evaluation must be run against the release candidate worker.",
+          "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+        ],
+        "evidenceDigest": "4cbb6f46c24a3c7402664e8e271b31a5d0926a4c5cdd94a431069f408d599ee9"
+      }
+    ],
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "domainProductionBlockers": {
+      "governance": [
+        "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+        "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+        "External immutable audit export and organization sign-off are required."
+      ],
+      "workflow": [
+        "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+        "Process termination during a protected side effect must prove duplicate suppression.",
+        "Remote queue or database lease storage must demonstrate partition and clock-skew behavior."
+      ],
+      "evaluation": [
+        "A frozen task baseline and immutable production dataset receipt are required.",
+        "Blind multi-seed evaluation must be run against the release candidate worker.",
+        "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+      ]
+    },
+    "productionBlockers": [
+      "A real OIDC issuer, JWKS rotation, and authenticated non-loopback login receipt are required.",
+      "A real SCIM provider lifecycle and organization-owned signing secret are required.",
+      "External immutable audit export and organization sign-off are required.",
+      "Two independently managed worker nodes must demonstrate lease recovery and fencing.",
+      "Process termination during a protected side effect must prove duplicate suppression.",
+      "Remote queue or database lease storage must demonstrate partition and clock-skew behavior.",
+      "A frozen task baseline and immutable production dataset receipt are required.",
+      "Blind multi-seed evaluation must be run against the release candidate worker.",
+      "Judge calibration must use organization-approved human labels and a pinned remote or local judge artifact."
+    ],
+    "path": "/private/tmp/first-llm-studio-v14-20260801/observability/v1.4-local-acceptance-batch.json"
+  }
+}

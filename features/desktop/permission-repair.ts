@@ -2,17 +2,15 @@ import { createHash, randomUUID } from "crypto";
 import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const DESKTOP_PERMISSION_REPAIR_SCHEMA_VERSION = "desktop.permission-repair.v1" as const;
 type Receipt = { id: string; generatedAt: string; status: "pass" | "failed"; checks: Record<string, boolean>; beforeMode: string; afterMode: string; warning: string; error?: string };
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const STORE_FILE = path.join(DATA_DIR, "desktop-permission-repair.json");
 
-function readReceipts(): Receipt[] {
-  if (!existsSync(STORE_FILE)) return [];
-  try { const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { receipts?: Receipt[] }; return Array.isArray(parsed.receipts) ? parsed.receipts : []; } catch { return []; }
-}
-function persist(receipt: Receipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(STORE_FILE, `${JSON.stringify({ schemaVersion: DESKTOP_PERMISSION_REPAIR_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 100) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): Receipt[] { return readDurableReceipts(STORE_FILE, DESKTOP_PERMISSION_REPAIR_SCHEMA_VERSION); }
+function persist(receipt: Receipt) { prependDurableReceipt(STORE_FILE, DESKTOP_PERMISSION_REPAIR_SCHEMA_VERSION, receipt, 100); }
 function digest(filePath: string) { return createHash("sha256").update(readFileSync(filePath)).digest("hex"); }
 function assertRepairTarget(target: string, root: string) {
   const resolvedRoot = path.resolve(root); const resolvedTarget = path.resolve(target);

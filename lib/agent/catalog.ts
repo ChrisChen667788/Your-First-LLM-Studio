@@ -172,11 +172,11 @@ export const agentTargets: AgentTarget[] = [
     transport: "openai-compatible",
     execution: "remote",
     description:
-      "DeepSeek flagship remote target wired through the official OpenAI-compatible endpoint. Standard mode uses deepseek-chat, while thinking mode keeps the same chat model and enables DeepSeek's official thinking parameter for tool and structured-output compatibility.",
+      "DeepSeek V4 flagship target wired through the official OpenAI-compatible endpoint. The runtime probes the account model catalog before inference and automatically falls back from V4 Pro to V4 Flash when required.",
     modelEnv: "DEEPSEEK_MODEL",
-    modelDefault: "deepseek-chat",
+    modelDefault: "deepseek-v4-pro",
     thinkingModelEnv: "DEEPSEEK_THINKING_MODEL",
-    thinkingModelDefault: "deepseek-chat",
+    thinkingModelDefault: "deepseek-v4-pro",
     baseUrlEnv: "DEEPSEEK_BASE_URL",
     baseUrlDefault: "https://api.deepseek.com/v1",
     apiKeyEnv: "DEEPSEEK_API_KEY",
@@ -184,9 +184,34 @@ export const agentTargets: AgentTarget[] = [
     recommendedContext: "128K server-side",
     memoryProfile: "Offloaded to DeepSeek.",
     notes: [
-      "Pinned to DeepSeek's current flagship chat alias, with thinking mode enabled through the official thinking parameter.",
+      "Pinned to the account-advertised DeepSeek V4 Pro model, with V4 Flash retained as an automatic downgrade.",
+      "The /models capability probe is cached briefly and runs before paid inference.",
       "Tool calling stays on the same OpenAI-compatible route, so compare / benchmark / connection check can reuse the shared provider stack.",
       "Thinking mode now prefers the chat + thinking path, which matches DeepSeek's current tool-calling examples and keeps structured-output workloads more stable."
+    ]
+  },
+  {
+    id: "minimax-m3",
+    label: "MiniMax M3",
+    providerLabel: "MiniMax",
+    transport: "openai-compatible",
+    execution: "remote",
+    description:
+      "MiniMax M3 Token Plan target for long-context reasoning, agent tool use, and native image or video input through the official OpenAI-compatible endpoint.",
+    modelEnv: "MINIMAX_MODEL",
+    modelDefault: "MiniMax-M3",
+    thinkingModelEnv: "MINIMAX_THINKING_MODEL",
+    thinkingModelDefault: "MiniMax-M3",
+    baseUrlEnv: "MINIMAX_BASE_URL",
+    baseUrlDefault: "https://api.minimaxi.com/v1",
+    apiKeyEnv: "MINIMAX_API_KEY",
+    supportsTools: true,
+    recommendedContext: "512K guaranteed / up to 1M",
+    memoryProfile: "Offloaded to MiniMax Token Plan / API.",
+    notes: [
+      "Pinned to the official MiniMax-M3 model id for both standard and adaptive-thinking requests.",
+      "M3 officially accepts native text, image, and video input; capability-gated image and video benchmark dispatch is tracked as the next adapter slice.",
+      "The shared provider adapter uses MiniMax's max_completion_tokens and reasoning_split request contract."
     ]
   },
   {

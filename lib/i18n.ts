@@ -546,6 +546,7 @@ export function getLocalizedTargetDescription(locale: AppLocale, targetId: strin
       "local-qwen3-4b-4bit": "保留的上一代本地 4B 对比配置，用于和 Qwen3.5-4B 做并排验证。",
       "openai-codex": "远端 Codex 类编码目标，适合高质量编码与复杂工具链任务。",
       "anthropic-claude": "通过 Claude 兼容的 OpenAI-compatible 网关接入的目标，适合稳定工具调用。",
+      "minimax-m3": "MiniMax M3 Token Plan 目标，支持长上下文、工具调用以及原生图片和视频输入。",
       "kimi-api": "Moonshot OpenAI-compatible 目标，适合和本地 Qwen 做对比。",
       "glm-api": "GLM OpenAI-compatible 编码目标，可作为成本更低的远端后端。",
       "qwen-api": "DashScope OpenAI-compatible 目标，在不占用本机内存的前提下保留 Qwen 语义。"
@@ -556,6 +557,7 @@ export function getLocalizedTargetDescription(locale: AppLocale, targetId: strin
       "local-qwen3-4b-4bit": "保留的上一代本地 4B 對比配置，用於和 Qwen3.5-4B 做並排驗證。",
       "openai-codex": "遠端 Codex 類編碼目標，適合高品質編碼與複雜工具鏈任務。",
       "anthropic-claude": "透過 Claude 相容的 OpenAI-compatible 閘道接入的目標，適合穩定工具呼叫。",
+      "minimax-m3": "MiniMax M3 Token Plan 目標，支援長上下文、工具呼叫及原生圖片與影片輸入。",
       "kimi-api": "Moonshot OpenAI-compatible 目標，適合和本地 Qwen 做比較。",
       "glm-api": "GLM OpenAI-compatible 編碼目標，可作為成本更低的遠端後端。",
       "qwen-api": "DashScope OpenAI-compatible 目標，在不占用本機記憶體的前提下保留 Qwen 語義。"
@@ -566,6 +568,7 @@ export function getLocalizedTargetDescription(locale: AppLocale, targetId: strin
       "local-qwen3-4b-4bit": "Legacy local 4B comparison profile kept for side-by-side validation against Qwen3.5-4B.",
       "openai-codex": "Remote Codex-style coding target for higher quality code tasks and deeper tool loops.",
       "anthropic-claude": "Claude routed through a compatible OpenAI-style gateway for stable tool calling.",
+      "minimax-m3": "MiniMax M3 Token Plan target for long context, tool use, and native image or video input.",
       "kimi-api": "Moonshot OpenAI-compatible target for comparison against local Qwen.",
       "glm-api": "GLM OpenAI-compatible coding target as a lower-cost remote back-end.",
       "qwen-api": "DashScope OpenAI-compatible target that preserves Qwen semantics without local memory pressure."
@@ -576,6 +579,7 @@ export function getLocalizedTargetDescription(locale: AppLocale, targetId: strin
       "local-qwen3-4b-4bit": "Qwen3.5-4B와 나란히 검증하기 위해 남겨 둔 이전 세대 로컬 4B 비교 프로필입니다.",
       "openai-codex": "더 강한 코딩 품질과 복잡한 도구 루프에 적합한 원격 Codex 계열 대상입니다.",
       "anthropic-claude": "호환 가능한 OpenAI-style 게이트웨이를 통한 Claude 대상이며 도구 호출 안정성이 높습니다.",
+      "minimax-m3": "긴 컨텍스트와 도구 호출, 네이티브 이미지 및 비디오 입력을 지원하는 MiniMax M3 Token Plan 대상입니다.",
       "kimi-api": "로컬 Qwen과 비교하기 좋은 Moonshot OpenAI-compatible 대상입니다.",
       "glm-api": "비용 효율을 노릴 수 있는 GLM OpenAI-compatible 원격 코딩 대상입니다.",
       "qwen-api": "로컬 메모리 부담 없이 Qwen 의미 체계를 유지하는 DashScope OpenAI-compatible 대상입니다."
@@ -586,6 +590,7 @@ export function getLocalizedTargetDescription(locale: AppLocale, targetId: strin
       "local-qwen3-4b-4bit": "Qwen3.5-4B と並行検証するために残してある旧世代ローカル 4B 比較構成です。",
       "openai-codex": "より高品質なコーディングと複雑なツールループに向いたリモート Codex 系ターゲットです。",
       "anthropic-claude": "互換 OpenAI-style ゲートウェイ経由の Claude ターゲットで、ツール呼び出しが安定しています。",
+      "minimax-m3": "長いコンテキスト、ツール利用、ネイティブ画像・動画入力に対応する MiniMax M3 Token Plan ターゲットです。",
       "kimi-api": "ローカル Qwen との比較に向いた Moonshot OpenAI-compatible ターゲットです。",
       "glm-api": "コストを抑えやすい GLM OpenAI-compatible リモートコーディングターゲットです。",
       "qwen-api": "ローカルメモリを圧迫せずに Qwen の意味特性を使える DashScope OpenAI-compatible ターゲットです。"

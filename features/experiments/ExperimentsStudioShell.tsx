@@ -22,6 +22,18 @@ import { PostV1LifecyclePanel } from "@/features/experiments/PostV1LifecyclePane
 import { DesktopOnboardingReleasePanel } from "@/features/experiments/DesktopOnboardingReleasePanel";
 import { PostV1PromotionGatePanel } from "@/features/experiments/PostV1PromotionGatePanel";
 import { ExtensionEcosystemEvidencePanel } from "@/features/experiments/ExtensionEcosystemEvidencePanel";
+import { V14AcceptancePanel } from "@/features/experiments/V14AcceptancePanel";
+import { V15AcceptancePanel } from "@/features/experiments/V15AcceptancePanel";
+import { V151ReleaseCandidatePanel } from "@/features/experiments/V151ReleaseCandidatePanel";
+import { V16FeatureOwnershipPanel } from "@/features/experiments/V16FeatureOwnershipPanel";
+import { V161ApplicationContractsPanel } from "@/features/experiments/V161ApplicationContractsPanel";
+import { V163BenchmarkQualificationPanel } from "@/features/experiments/V163BenchmarkQualificationPanel";
+import { V164OfficialEvaluatorsPanel } from "@/features/experiments/V164OfficialEvaluatorsPanel";
+import { V165BenchmarkReproducibilityPanel } from "@/features/experiments/V165BenchmarkReproducibilityPanel";
+import { V166BenchmarkDecisionPanel } from "@/features/experiments/V166BenchmarkDecisionPanel";
+import { V167WorkflowExecutionPanel } from "@/features/experiments/V167WorkflowExecutionPanel";
+import { V168FineTuneExecutionTruthPanel } from "@/features/experiments/V168FineTuneExecutionTruthPanel";
+import { V169FineTuneQualityExportPanel } from "@/features/experiments/V169FineTuneQualityExportPanel";
 
 export function ExperimentsStudioShell() {
   const { locale } = useLocale();
@@ -39,6 +51,18 @@ export function ExperimentsStudioShell() {
       <StudioSegmentedChips labels={[en ? "MCP and extensions" : "MCP 与扩展", en ? "Artifact references" : "产物引用", en ? "Cross-feature lineage" : "跨模块 lineage", en ? "Release train" : "版本列车"]} />
       <ExtensionEcosystemEvidencePanel locale={locale} />
       <DesktopOnboardingReleasePanel locale={locale} />
+      <V14AcceptancePanel locale={locale} />
+      <V15AcceptancePanel locale={locale} />
+      <V151ReleaseCandidatePanel locale={locale} />
+      <V16FeatureOwnershipPanel locale={locale} />
+      <V161ApplicationContractsPanel locale={locale} />
+      <V163BenchmarkQualificationPanel locale={locale} />
+      <V164OfficialEvaluatorsPanel locale={locale} />
+      <V165BenchmarkReproducibilityPanel locale={locale} />
+      <V166BenchmarkDecisionPanel locale={locale} />
+      <V167WorkflowExecutionPanel locale={locale} />
+      <V168FineTuneExecutionTruthPanel locale={locale} />
+      <V169FineTuneQualityExportPanel locale={locale} />
       <PostV1PromotionGatePanel locale={locale} />
       <PromotionGatePanel locale={locale} />
       <GaReleaseEvidenceBundlePanel locale={locale} />

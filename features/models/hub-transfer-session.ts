@@ -1,8 +1,12 @@
 import { createHash, randomUUID } from "crypto";
 import { execFileSync } from "child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
+import { withDurableFileLock } from "@/features/persistence/durable-json-store";
 import {
   createModelAcquisitionJob,
   readModelAcquisitionRegistry,
@@ -84,49 +88,42 @@ const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(
 );
 const STORE_FILE = path.join(DATA_DIR, "hub-transfer-sessions.json");
 const RECEIPT_FILE = path.join(DATA_DIR, "hub-transfer-receipts.json");
+type SessionStore = { schemaVersion: typeof HUB_TRANSFER_SESSION_SCHEMA_VERSION; sessions: HubSession[] };
+type ReceiptStore = { schemaVersion: typeof HUB_TRANSFER_RECEIPT_SCHEMA_VERSION; receipts: HubTransferReceipt[] };
+
+function emptySessionStore(): SessionStore { return { schemaVersion: HUB_TRANSFER_SESSION_SCHEMA_VERSION, sessions: [] }; }
+function isSessionStore(value: unknown): value is SessionStore { if (!value || typeof value !== "object") return false; const candidate = value as Partial<SessionStore>; return candidate.schemaVersion === HUB_TRANSFER_SESSION_SCHEMA_VERSION && Array.isArray(candidate.sessions); }
+function emptyReceiptStore(): ReceiptStore { return { schemaVersion: HUB_TRANSFER_RECEIPT_SCHEMA_VERSION, receipts: [] }; }
+function isReceiptStore(value: unknown): value is ReceiptStore { if (!value || typeof value !== "object") return false; const candidate = value as Partial<ReceiptStore>; return candidate.schemaVersion === HUB_TRANSFER_RECEIPT_SCHEMA_VERSION && Array.isArray(candidate.receipts); }
 
 function sha256(value: string) {
   return createHash("sha256").update(value).digest("hex");
 }
 
 function readSessions(): HubSession[] {
-  if (!existsSync(STORE_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { sessions?: HubSession[] };
-    return Array.isArray(parsed.sessions) ? parsed.sessions : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeSessions(sessions: HubSession[]) {
-  mkdirSync(path.dirname(STORE_FILE), { recursive: true });
-  writeFileSync(STORE_FILE, `${JSON.stringify({ schemaVersion: HUB_TRANSFER_SESSION_SCHEMA_VERSION, sessions }, null, 2)}\n`, "utf8");
+  return readJsonFileDurably(STORE_FILE, emptySessionStore, isSessionStore).sessions;
 }
 
 function readReceipts(): HubTransferReceipt[] {
-  if (!existsSync(RECEIPT_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(RECEIPT_FILE, "utf8")) as { receipts?: HubTransferReceipt[] };
-    return Array.isArray(parsed.receipts) ? parsed.receipts : [];
-  } catch {
-    return [];
-  }
+  return readJsonFileDurably(RECEIPT_FILE, emptyReceiptStore, isReceiptStore).receipts;
 }
 
 function persistReceipt(receipt: HubTransferReceipt) {
-  mkdirSync(path.dirname(RECEIPT_FILE), { recursive: true });
-  const prior = readReceipts().filter((entry) => entry.sessionId !== receipt.sessionId);
-  writeFileSync(RECEIPT_FILE, `${JSON.stringify({ schemaVersion: HUB_TRANSFER_RECEIPT_SCHEMA_VERSION, receipts: [receipt, ...prior].slice(0, 100) }, null, 2)}\n`, "utf8");
+  updateJsonFileDurably(RECEIPT_FILE, emptyReceiptStore, (store) => ({
+    ...store,
+    receipts: [receipt, ...store.receipts.filter((entry) => entry.sessionId !== receipt.sessionId)].slice(0, 100),
+  }), isReceiptStore);
 }
 
 function updateSessionFile(sessionId: string, jobId: string, update: Partial<HubFile>) {
-  const sessions = readSessions();
-  writeSessions(sessions.map((session) => session.id === sessionId ? {
-    ...session,
-    updatedAt: new Date().toISOString(),
-    files: session.files.map((file) => file.jobId === jobId ? { ...file, ...update } : file),
-  } : session));
+  updateJsonFileDurably(STORE_FILE, emptySessionStore, (store) => ({
+    ...store,
+    sessions: store.sessions.map((session) => session.id === sessionId ? {
+      ...session,
+      updatedAt: new Date().toISOString(),
+      files: session.files.map((file) => file.jobId === jobId ? { ...file, ...update } : file),
+    } : session),
+  }), isSessionStore);
 }
 
 function required(value: unknown, name: string) {
@@ -343,7 +340,12 @@ export async function createHubTransferSession(input: {
     createdAt: now,
     updatedAt: now,
   };
-  writeSessions([session, ...readSessions()].slice(0, 50));
+  updateJsonFileDurably(
+    STORE_FILE,
+    emptySessionStore,
+    (store) => ({ ...store, sessions: [session, ...store.sessions].slice(0, 50) }),
+    isSessionStore,
+  );
   return session;
 }
 
@@ -380,7 +382,7 @@ export function readHubTransferSessions() {
   };
 }
 
-export async function runHubTransferSessionStep(sessionId: string, chunkBytes?: number) {
+async function runHubTransferSessionStepUnlocked(sessionId: string, chunkBytes?: number) {
   const session = readSessions().find((candidate) => candidate.id === sessionId);
   if (!session) throw new Error("Hub transfer session was not found.");
   const registry = readModelAcquisitionRegistry();
@@ -414,6 +416,13 @@ export async function runHubTransferSessionStep(sessionId: string, chunkBytes?: 
     });
     throw error;
   }
+}
+
+export async function runHubTransferSessionStep(sessionId: string, chunkBytes?: number) {
+  return withDurableFileLock(
+    `${STORE_FILE}.${sessionId}.transfer`,
+    () => runHubTransferSessionStepUnlocked(sessionId, chunkBytes),
+  );
 }
 
 export function finalizeHubTransferSession(sessionId: string, requireAuthentication = true) {

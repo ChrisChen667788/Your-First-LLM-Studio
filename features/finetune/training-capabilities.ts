@@ -20,6 +20,9 @@ export type TrainingBackendCapability = {
   distributed: boolean;
   bestCheckpoint: boolean;
   supportedSchedulers: string[];
+  supportedPackingPolicies: string[];
+  supportedBestCheckpointMetrics: string[];
+  targetModulePolicy: "explicit-keys" | "backend-default";
 };
 
 export const TRAINING_BACKENDS: TrainingBackendCapability[] = [
@@ -32,7 +35,10 @@ export const TRAINING_BACKENDS: TrainingBackendCapability[] = [
     quantizationBits: [4, 8, 16],
     distributed: false,
     bestCheckpoint: true,
-    supportedSchedulers: ["linear", "cosine", "constant", "constant_with_warmup"],
+    supportedSchedulers: ["linear", "cosine", "constant-with-warmup"],
+    supportedPackingPolicies: ["disabled"],
+    supportedBestCheckpointMetrics: ["eval_loss"],
+    targetModulePolicy: "explicit-keys",
   },
   {
     id: "llama-factory",
@@ -44,6 +50,9 @@ export const TRAINING_BACKENDS: TrainingBackendCapability[] = [
     distributed: true,
     bestCheckpoint: true,
     supportedSchedulers: ["linear", "cosine", "cosine_with_restarts", "polynomial", "constant", "constant_with_warmup"],
+    supportedPackingPolicies: ["disabled", "pack-by-length", "chat-boundary-safe"],
+    supportedBestCheckpointMetrics: ["eval_loss", "win_rate", "exact_match"],
+    targetModulePolicy: "explicit-keys",
   },
   {
     id: "transformers-peft",
@@ -55,6 +64,9 @@ export const TRAINING_BACKENDS: TrainingBackendCapability[] = [
     distributed: true,
     bestCheckpoint: true,
     supportedSchedulers: ["linear", "cosine", "constant", "constant_with_warmup"],
+    supportedPackingPolicies: ["disabled", "pack-by-length", "chat-boundary-safe"],
+    supportedBestCheckpointMetrics: ["eval_loss", "win_rate", "exact_match"],
+    targetModulePolicy: "explicit-keys",
   },
 ];
 
@@ -64,6 +76,9 @@ export function evaluateTrainingCompatibility(input: {
   method: TrainingMethod;
   quantizationBits: number;
   scheduler: string;
+  packingPolicy?: string;
+  bestCheckpointMetric?: string;
+  targetModules?: string[];
   distributed?: boolean;
 }) {
   const backend = TRAINING_BACKENDS.find((candidate) => candidate.id === input.backendId);
@@ -80,6 +95,15 @@ export function evaluateTrainingCompatibility(input: {
       : []),
     ...(!backend.supportedSchedulers.includes(input.scheduler)
       ? [`${input.scheduler} is not supported by ${backend.id}.`]
+      : []),
+    ...(!backend.supportedPackingPolicies.includes(input.packingPolicy || "disabled")
+      ? [`${input.packingPolicy} packing is not supported by ${backend.id}; select disabled or another backend.`]
+      : []),
+    ...(!backend.supportedBestCheckpointMetrics.includes(input.bestCheckpointMetric || "eval_loss")
+      ? [`${input.bestCheckpointMetric} cannot select a training-time checkpoint on ${backend.id}.`]
+      : []),
+    ...(backend.targetModulePolicy === "explicit-keys" && !(input.targetModules || []).length
+      ? [`${backend.id} requires at least one target module key.`]
       : []),
     ...(input.distributed && !backend.distributed
       ? [`${backend.id} does not support distributed execution.`]
@@ -103,6 +127,9 @@ export function readTrainingCapabilityRegistry() {
       method: "lora",
       quantizationBits: 4,
       scheduler: "cosine",
+      packingPolicy: "disabled",
+      bestCheckpointMetric: "eval_loss",
+      targetModules: ["q_proj", "v_proj"],
     }),
     totals: {
       backends: TRAINING_BACKENDS.length,

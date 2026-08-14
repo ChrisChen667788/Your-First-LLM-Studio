@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, unlinkSync } from "fs";
 import type { AgentCompareLaneTimelineEntry, AgentCompareProgress, AgentExecution } from "@/lib/agent/types";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
+import { readJsonFileDurably, replaceJsonFileDurably, updateJsonFileDurably } from "@/features/persistence/durable-json-file";
 
 function getProgressDir() {
   return getLocalAgentDataPath("compare-progress");
@@ -15,8 +16,11 @@ function getProgressPath(requestId: string) {
 }
 
 function writeProgress(progress: AgentCompareProgress) {
-  ensureProgressDir();
-  writeFileSync(getProgressPath(progress.requestId), `${JSON.stringify(progress, null, 2)}\n`, "utf8");
+  replaceJsonFileDurably(getProgressPath(progress.requestId), progress);
+}
+
+function isProgress(value: unknown): value is AgentCompareProgress {
+  return Boolean(value) && typeof value === "object" && typeof (value as AgentCompareProgress).requestId === "string";
 }
 
 export function createCompareProgress(input: {
@@ -61,12 +65,11 @@ export function createCompareProgress(input: {
 
 export function readCompareProgress(requestId: string) {
   const filePath = getProgressPath(requestId);
-  if (!existsSync(filePath)) return null;
-  try {
-    return JSON.parse(readFileSync(filePath, "utf8")) as AgentCompareProgress;
-  } catch {
-    return null;
-  }
+  return readJsonFileDurably(
+    filePath,
+    () => null as AgentCompareProgress | null,
+    (value): value is AgentCompareProgress | null => value === null || isProgress(value),
+  );
 }
 
 export function updateCompareProgress(
@@ -75,9 +78,12 @@ export function updateCompareProgress(
 ) {
   const current = readCompareProgress(requestId);
   if (!current) return null;
-  const next = updater(current);
-  writeProgress(next);
-  return next;
+  return updateJsonFileDurably(
+    getProgressPath(requestId),
+    () => current,
+    updater,
+    isProgress,
+  );
 }
 
 export function touchCompareLaneProgress(

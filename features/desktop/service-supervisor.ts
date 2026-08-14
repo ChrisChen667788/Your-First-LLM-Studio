@@ -1,7 +1,10 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 
 export const DESKTOP_SERVICE_SUPERVISOR_SCHEMA_VERSION = "desktop.service-supervisor.v1" as const;
 
@@ -32,29 +35,32 @@ type Store = {
 
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const STORE_FILE = path.join(DATA_DIR, "desktop-service-supervisor.json");
+const emptyStore = (): Store => ({
+  schemaVersion: DESKTOP_SERVICE_SUPERVISOR_SCHEMA_VERSION,
+  services: [],
+  receipts: [],
+});
+const isStore = (value: unknown): value is Store => {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<Store>;
+  return candidate.schemaVersion === DESKTOP_SERVICE_SUPERVISOR_SCHEMA_VERSION
+    && Array.isArray(candidate.services)
+    && Array.isArray(candidate.receipts);
+};
 
 function readStore(): Store {
-  if (!existsSync(STORE_FILE)) return { schemaVersion: DESKTOP_SERVICE_SUPERVISOR_SCHEMA_VERSION, services: [], receipts: [] };
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as Partial<Store>;
-    return {
-      schemaVersion: DESKTOP_SERVICE_SUPERVISOR_SCHEMA_VERSION,
-      services: Array.isArray(parsed.services) ? parsed.services : [],
-      receipts: Array.isArray(parsed.receipts) ? parsed.receipts : [],
-    };
-  } catch {
-    return { schemaVersion: DESKTOP_SERVICE_SUPERVISOR_SCHEMA_VERSION, services: [], receipts: [] };
-  }
+  return readJsonFileDurably(STORE_FILE, emptyStore, isStore);
 }
 
-function writeStore(store: Store) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(STORE_FILE, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+function updateStore(mutator: (store: Store) => Store) {
+  return updateJsonFileDurably(STORE_FILE, emptyStore, mutator, isStore);
 }
 
 function persistService(service: ServiceRecord) {
-  const store = readStore();
-  writeStore({ ...store, services: [service, ...store.services.filter((entry) => entry.id !== service.id)] });
+  updateStore((store) => ({
+    ...store,
+    services: [service, ...store.services.filter((entry) => entry.id !== service.id)],
+  }));
   return service;
 }
 
@@ -105,8 +111,10 @@ export function rehearseDesktopServiceSupervisor() {
     transitions,
     warning: "This validates durable supervisor state and recovery policy; it does not install or exercise a real launchd service.",
   };
-  const store = readStore();
-  writeStore({ ...store, receipts: [receipt, ...store.receipts].slice(0, 100) });
+  updateStore((store) => ({
+    ...store,
+    receipts: [receipt, ...store.receipts].slice(0, 100),
+  }));
   return receipt;
 }
 

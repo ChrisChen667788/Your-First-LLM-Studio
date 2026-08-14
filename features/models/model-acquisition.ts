@@ -14,6 +14,11 @@ import {
 import { execFileSync } from "child_process";
 import os from "os";
 import path from "path";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
+import { withDurableFileLock } from "@/features/persistence/durable-json-store";
 
 export const MODEL_ACQUISITION_SCHEMA_VERSION = "models.acquisition-registry.v1" as const;
 
@@ -58,24 +63,18 @@ const DATA_DIR =
   path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const REGISTRY_FILE = path.join(DATA_DIR, "model-acquisition-registry.json");
 
-function readRegistry(): ModelAcquisitionRegistry {
-  if (!existsSync(REGISTRY_FILE)) {
-    return { schemaVersion: MODEL_ACQUISITION_SCHEMA_VERSION, jobs: [] };
-  }
-  try {
-    const parsed = JSON.parse(readFileSync(REGISTRY_FILE, "utf8")) as Partial<ModelAcquisitionRegistry>;
-    return {
-      schemaVersion: MODEL_ACQUISITION_SCHEMA_VERSION,
-      jobs: Array.isArray(parsed.jobs) ? parsed.jobs : [],
-    };
-  } catch {
-    return { schemaVersion: MODEL_ACQUISITION_SCHEMA_VERSION, jobs: [] };
-  }
+function emptyRegistry(): ModelAcquisitionRegistry {
+  return { schemaVersion: MODEL_ACQUISITION_SCHEMA_VERSION, jobs: [] };
 }
 
-function writeRegistry(registry: ModelAcquisitionRegistry) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(REGISTRY_FILE, `${JSON.stringify(registry, null, 2)}\n`, "utf8");
+function isRegistry(value: unknown): value is ModelAcquisitionRegistry {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<ModelAcquisitionRegistry>;
+  return candidate.schemaVersion === MODEL_ACQUISITION_SCHEMA_VERSION && Array.isArray(candidate.jobs);
+}
+
+function readRegistry(): ModelAcquisitionRegistry {
+  return readJsonFileDurably(REGISTRY_FILE, emptyRegistry, isRegistry);
 }
 
 function requiredText(value: unknown, name: string) {
@@ -117,11 +116,16 @@ function normalizeArtifactUrl(value: unknown) {
   return url.toString();
 }
 
-function replaceJob(registry: ModelAcquisitionRegistry, next: ModelAcquisitionJob) {
-  writeRegistry({
-    ...registry,
-    jobs: registry.jobs.map((job) => (job.id === next.id ? next : job)),
-  });
+function replaceJob(next: ModelAcquisitionJob) {
+  updateJsonFileDurably(
+    REGISTRY_FILE,
+    emptyRegistry,
+    (latest) => ({
+      ...latest,
+      jobs: latest.jobs.map((job) => (job.id === next.id ? next : job)),
+    }),
+    isRegistry,
+  );
 }
 
 async function sha256File(filePath: string) {
@@ -210,37 +214,47 @@ export function createModelAcquisitionJob(input: {
   const destination = assertAllowedDestination(requiredText(input.destination, "destination"));
   const revision = input.revision?.trim() || "main";
   const source = input.source || "hugging-face";
-  const registry = readRegistry();
   const identity = createHash("sha256")
     .update(`${source}:${modelId}:${revision}:${destination}`)
     .digest("hex")
     .slice(0, 20);
-  const existing = registry.jobs.find(
-    (job) => job.id === identity && job.status !== "cancelled",
+  const outcome: { job?: ModelAcquisitionJob } = {};
+  updateJsonFileDurably(
+    REGISTRY_FILE,
+    emptyRegistry,
+    (registry) => {
+      const existing = registry.jobs.find(
+        (job) => job.id === identity && job.status !== "cancelled",
+      );
+      if (existing) {
+        outcome.job = existing;
+        return registry;
+      }
+      const now = new Date().toISOString();
+      outcome.job = {
+        id: identity,
+        source,
+        modelId,
+        revision,
+        destination,
+        status: "queued",
+        bytesDownloaded: 0,
+        bytesTotal:
+          typeof input.bytesTotal === "number" && input.bytesTotal > 0
+            ? Math.round(input.bytesTotal)
+            : null,
+        expectedSha256: input.expectedSha256?.trim() || undefined,
+        artifactUrl: input.artifactUrl ? normalizeArtifactUrl(input.artifactUrl) : undefined,
+        partFile: `${destination}.part`,
+        resumeToken: randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+      };
+      return { ...registry, jobs: [outcome.job, ...registry.jobs].slice(0, 200) };
+    },
+    isRegistry,
   );
-  if (existing) return existing;
-  const now = new Date().toISOString();
-  const job: ModelAcquisitionJob = {
-    id: identity,
-    source,
-    modelId,
-    revision,
-    destination,
-    status: "queued",
-    bytesDownloaded: 0,
-    bytesTotal:
-      typeof input.bytesTotal === "number" && input.bytesTotal > 0
-        ? Math.round(input.bytesTotal)
-        : null,
-    expectedSha256: input.expectedSha256?.trim() || undefined,
-    artifactUrl: input.artifactUrl ? normalizeArtifactUrl(input.artifactUrl) : undefined,
-    partFile: `${destination}.part`,
-    resumeToken: randomUUID(),
-    createdAt: now,
-    updatedAt: now,
-  };
-  writeRegistry({ ...registry, jobs: [job, ...registry.jobs].slice(0, 200) });
-  return job;
+  return outcome.job!;
 }
 
 export function updateModelAcquisitionJob(input: {
@@ -248,37 +262,46 @@ export function updateModelAcquisitionJob(input: {
   action: "start" | "pause" | "resume" | "cancel";
 }) {
   const jobId = requiredText(input.jobId, "jobId");
-  const registry = readRegistry();
-  const target = registry.jobs.find((job) => job.id === jobId);
-  if (!target) throw new Error("Model acquisition job was not found.");
   const allowed: Record<typeof input.action, ModelAcquisitionStatus[]> = {
     start: ["queued", "paused", "failed"],
     pause: ["downloading"],
     resume: ["paused", "failed"],
     cancel: ["queued", "downloading", "paused", "verifying"],
   };
-  if (!allowed[input.action].includes(target.status)) {
-    throw new Error(`Cannot ${input.action} a ${target.status} acquisition job.`);
-  }
-  const status: ModelAcquisitionStatus =
-    input.action === "pause"
-      ? "paused"
-      : input.action === "cancel"
-        ? "cancelled"
-        : "downloading";
-  const next = { ...target, status, error: undefined, updatedAt: new Date().toISOString() };
-  writeRegistry({
-    ...registry,
-    jobs: registry.jobs.map((job) => (job.id === jobId ? next : job)),
-  });
-  return next;
+  const outcome: { job?: ModelAcquisitionJob } = {};
+  updateJsonFileDurably(
+    REGISTRY_FILE,
+    emptyRegistry,
+    (registry) => {
+      const target = registry.jobs.find((job) => job.id === jobId);
+      if (!target) throw new Error("Model acquisition job was not found.");
+      if (!allowed[input.action].includes(target.status)) {
+        throw new Error(`Cannot ${input.action} a ${target.status} acquisition job.`);
+      }
+      const status: ModelAcquisitionStatus =
+        input.action === "pause"
+          ? "paused"
+          : input.action === "cancel"
+            ? "cancelled"
+            : "downloading";
+      outcome.job = { ...target, status, error: undefined, updatedAt: new Date().toISOString() };
+      return {
+        ...registry,
+        jobs: registry.jobs.map((job) => (job.id === jobId ? outcome.job! : job)),
+      };
+    },
+    isRegistry,
+  );
+  return outcome.job!;
 }
 
-export async function runModelAcquisitionTransferStep(input: {
+type ModelAcquisitionTransferInput = {
   jobId?: string;
   chunkBytes?: number;
   timeoutMs?: number;
-}) {
+};
+
+async function runModelAcquisitionTransferStepUnlocked(input: ModelAcquisitionTransferInput) {
   const jobId = requiredText(input.jobId, "jobId");
   const registry = readRegistry();
   const target = registry.jobs.find((job) => job.id === jobId);
@@ -353,7 +376,7 @@ export async function runModelAcquisitionTransferStep(input: {
     };
     if (bytesTotal !== null && bytesDownloaded >= bytesTotal) {
       next = { ...next, status: "verifying" };
-      replaceJob(registry, next);
+      replaceJob(next);
       const verifiedSha256 = await sha256File(partFile);
       if (target.expectedSha256 && target.expectedSha256.toLowerCase() !== verifiedSha256) {
         next = {
@@ -363,7 +386,7 @@ export async function runModelAcquisitionTransferStep(input: {
           error: `SHA-256 mismatch: expected ${target.expectedSha256}, received ${verifiedSha256}.`,
           updatedAt: new Date().toISOString(),
         };
-        replaceJob(readRegistry(), next);
+        replaceJob(next);
         throw new Error(next.error);
       }
       renameSync(partFile, destination);
@@ -376,7 +399,7 @@ export async function runModelAcquisitionTransferStep(input: {
         updatedAt: new Date().toISOString(),
       };
     }
-    replaceJob(readRegistry(), next);
+    replaceJob(next);
     return next;
   } catch (error) {
     const current = readRegistry().jobs.find((job) => job.id === jobId) || target;
@@ -386,9 +409,19 @@ export async function runModelAcquisitionTransferStep(input: {
       error: error instanceof Error ? error.message : "Model transfer failed.",
       updatedAt: new Date().toISOString(),
     };
-    if (failed.status !== "completed") replaceJob(readRegistry(), failed);
+    if (failed.status !== "completed") replaceJob(failed);
     throw error;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function runModelAcquisitionTransferStep(
+  input: ModelAcquisitionTransferInput,
+) {
+  const jobId = requiredText(input.jobId, "jobId");
+  return withDurableFileLock(
+    `${REGISTRY_FILE}.${jobId}.transfer`,
+    () => runModelAcquisitionTransferStepUnlocked({ ...input, jobId }),
+  );
 }

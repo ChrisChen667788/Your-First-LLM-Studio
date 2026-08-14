@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "fs";
 import os from "os";
 import path from "path";
 
-export const POSTGRES_RLS_EVIDENCE_SCHEMA_VERSION = "governance.postgres-rls-evidence.v1" as const;
+export const POSTGRES_RLS_EVIDENCE_SCHEMA_VERSION = "governance.postgres-rls-evidence.v2" as const;
 
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const RECEIPT_FILE = path.join(DATA_DIR, "postgres-rls-rehearsal.json");
@@ -16,7 +16,11 @@ export function readPostgresRlsEvidence() {
     ok: true as const,
     schemaVersion: POSTGRES_RLS_EVIDENCE_SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
-    migration: "features/governance/migrations/002_postgres_workspace_rls.sql",
+    migrations: [
+      "features/governance/migrations/002_postgres_workspace_rls.sql",
+      "features/governance/migrations/003_postgres_request_context.sql",
+      "features/governance/migrations/004_postgres_workspace_audit.sql",
+    ],
     latestPassing: rehearsal?.ok === true ? rehearsal : null,
     latest: rehearsal,
     path: RECEIPT_FILE,

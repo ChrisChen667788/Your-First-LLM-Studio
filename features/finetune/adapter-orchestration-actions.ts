@@ -13,6 +13,7 @@ import {
   buildFineTuneCompareHandoffPlan,
 } from "@/lib/finetune/handoff";
 import { runCompareRequest } from "@/features/compare/actions";
+import { BENCHMARK_RUN_API_PATH } from "@/features/benchmark/contracts";
 import { postFineTuneAction } from "./actions";
 import type { FineTuneMessageTone } from "./state";
 
@@ -46,7 +47,7 @@ type FineTuneAdapterOrchestrationOptions = {
 };
 
 async function postBenchmarkHandoff(request: Record<string, unknown>) {
-  const response = await fetch("/api/admin/benchmark", {
+  const response = await fetch(BENCHMARK_RUN_API_PATH, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),

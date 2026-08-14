@@ -1,8 +1,11 @@
-import { basename, dirname } from "path";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { basename } from "path";
 import { agentTargets as builtinAgentTargets } from "@/lib/agent/catalog";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
 import type { AgentTarget } from "@/lib/agent/types";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 
 const DISCOVERED_LOCAL_TARGETS_FILE = getLocalAgentDataPath("discovered-local-targets.json");
 const LOCAL_GATEWAY_BASE_URL = (process.env.LOCAL_AGENT_BASE_URL || "http://127.0.0.1:4000/v1").replace(/\/$/, "");
@@ -22,10 +25,6 @@ type LocalGatewayModelRecord = {
 
 const BUILTIN_TARGET_IDS = new Set(builtinAgentTargets.map((target) => target.id));
 const BUILTIN_TARGET_FINGERPRINTS = new Set(builtinAgentTargets.map((target) => normalizeAliasFingerprint(target.id)));
-
-function ensureRegistryDirectory() {
-  mkdirSync(dirname(DISCOVERED_LOCAL_TARGETS_FILE), { recursive: true });
-}
 
 function normalizeAliasFingerprint(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -291,11 +290,12 @@ function buildDiscoveredLocalTarget(entry: LocalGatewayModelRecord): AgentTarget
 }
 
 function readDiscoveredLocalTargets() {
-  if (!existsSync(DISCOVERED_LOCAL_TARGETS_FILE)) return [] as AgentTarget[];
-  try {
-    const parsed = JSON.parse(readFileSync(DISCOVERED_LOCAL_TARGETS_FILE, "utf8")) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((target): target is AgentTarget => {
+  const parsed = readJsonFileDurably(
+    DISCOVERED_LOCAL_TARGETS_FILE,
+    () => [] as AgentTarget[],
+    (value): value is AgentTarget[] => Array.isArray(value),
+  );
+  return parsed.filter((target): target is AgentTarget => {
       return Boolean(
         target &&
           typeof target === "object" &&
@@ -307,22 +307,28 @@ function readDiscoveredLocalTargets() {
       if (BUILTIN_TARGET_IDS.has(target.id)) return false;
       return !BUILTIN_TARGET_FINGERPRINTS.has(normalizeAliasFingerprint(target.id));
     }).map((target) => enrichStoredDiscoveredTarget(target));
-  } catch {
-    return [];
-  }
 }
 
-function writeDiscoveredLocalTargets(targets: AgentTarget[]) {
-  ensureRegistryDirectory();
-  writeFileSync(DISCOVERED_LOCAL_TARGETS_FILE, JSON.stringify(targets, null, 2), "utf8");
+function updateDiscoveredLocalTargets(
+  mutate: (targets: AgentTarget[]) => AgentTarget[],
+) {
+  return updateJsonFileDurably(
+    DISCOVERED_LOCAL_TARGETS_FILE,
+    () => [] as AgentTarget[],
+    mutate,
+    (value): value is AgentTarget[] => Array.isArray(value),
+  );
 }
 
 export function upsertDiscoveredLocalTarget(target: AgentTarget) {
   if (BUILTIN_TARGET_IDS.has(target.id)) {
     return listServerAgentTargets();
   }
-  const current = readDiscoveredLocalTargets().filter((entry) => entry.id !== target.id);
-  writeDiscoveredLocalTargets([target, ...current].sort((left, right) => left.label.localeCompare(right.label)));
+  updateDiscoveredLocalTargets((current) =>
+    [target, ...current.filter((entry) => entry.id !== target.id)].sort((left, right) =>
+      left.label.localeCompare(right.label),
+    ),
+  );
   return listServerAgentTargets();
 }
 
@@ -330,7 +336,9 @@ export function removeDiscoveredLocalTarget(targetId: string) {
   if (BUILTIN_TARGET_IDS.has(targetId)) {
     return listServerAgentTargets();
   }
-  writeDiscoveredLocalTargets(readDiscoveredLocalTargets().filter((target) => target.id !== targetId));
+  updateDiscoveredLocalTargets((targets) =>
+    targets.filter((target) => target.id !== targetId),
+  );
   return listServerAgentTargets();
 }
 
@@ -361,7 +369,15 @@ export async function syncDiscoveredLocalTargetsFromGateway() {
       .filter((entry) => !BUILTIN_TARGET_IDS.has(entry.id!.trim().toLowerCase()))
       .map((entry) => buildDiscoveredLocalTarget(entry))
       .filter((target) => !BUILTIN_TARGET_IDS.has(target.id));
-    writeDiscoveredLocalTargets(discoveredTargets);
+    updateDiscoveredLocalTargets((current) => {
+      const gatewayIds = new Set(discoveredTargets.map((target) => target.id));
+      const preserved = current.filter(
+        (target) =>
+          (target as AgentTarget & { sourceKind?: string }).sourceKind === "adapter-runtime" &&
+          !gatewayIds.has(target.id),
+      );
+      return [...discoveredTargets, ...preserved];
+    });
   } catch {
     // keep the last successful registry on disk
   }

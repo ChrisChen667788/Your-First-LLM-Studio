@@ -1,5 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 import type { AgentCacheMode, AgentProviderProfile, AgentThinkingMode, AgentUsage } from "@/lib/agent/types";
 import { getObservabilityPaths } from "@/lib/agent/log-store";
 
@@ -22,23 +25,8 @@ const CACHE_FILE = path.join(getObservabilityPaths().dataDir, "prompt-cache.json
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_CACHE_ENTRIES = 400;
 
-function ensureDataDir() {
-  mkdirSync(getObservabilityPaths().dataDir, { recursive: true });
-}
-
 function readCache(): PromptCacheEntry[] {
-  if (!existsSync(CACHE_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(CACHE_FILE, "utf8")) as PromptCacheEntry[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeCache(entries: PromptCacheEntry[]) {
-  ensureDataDir();
-  writeFileSync(CACHE_FILE, `${JSON.stringify(entries, null, 2)}\n`, "utf8");
+  return readJsonFileDurably(CACHE_FILE, () => [], Array.isArray);
 }
 
 function normalizeInput(input: string) {
@@ -67,12 +55,16 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>) {
   return overlap / Math.max(a.size + b.size - overlap, 1);
 }
 
-function currentEntries() {
+function filterCurrentEntries(entries: PromptCacheEntry[]) {
   const now = Date.now();
-  return readCache().filter((entry) => {
+  return entries.filter((entry) => {
     const createdAt = new Date(entry.createdAt).getTime();
     return Number.isFinite(createdAt) && now - createdAt <= CACHE_TTL_MS;
   });
+}
+
+function currentEntries() {
+  return filterCurrentEntries(readCache());
 }
 
 type CacheLookupOptions = {
@@ -147,8 +139,8 @@ export function savePromptCache(options: CacheWriteOptions) {
     usage: options.usage
   };
 
-  const existing = currentEntries().filter((entry) => {
-    return !(
+  updateJsonFileDurably(CACHE_FILE, () => [], (entries) => {
+    const existing = filterCurrentEntries(entries).filter((entry) => !(
       entry.targetId === nextEntry.targetId &&
       entry.resolvedModel === nextEntry.resolvedModel &&
       entry.providerProfile === nextEntry.providerProfile &&
@@ -156,9 +148,7 @@ export function savePromptCache(options: CacheWriteOptions) {
       entry.contextWindow === nextEntry.contextWindow &&
       entry.retrievalEnabled === nextEntry.retrievalEnabled &&
       entry.normalizedInput === nextEntry.normalizedInput
-    );
-  });
-
-  const next = [nextEntry, ...existing].slice(0, MAX_CACHE_ENTRIES);
-  writeCache(next);
+    ));
+    return [nextEntry, ...existing].slice(0, MAX_CACHE_ENTRIES);
+  }, Array.isArray);
 }

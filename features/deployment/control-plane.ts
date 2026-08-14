@@ -1,7 +1,6 @@
 import { spawnSync } from "child_process";
 import crypto from "crypto";
 import {
-  appendFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -26,9 +25,15 @@ import {
   type DeploymentUsageOutboxRecord,
 } from "@/features/deployment/contracts";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
+import {
+  readJsonFileDurably,
+  replaceJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 
 const CONTROL_PLANE_DIR = getLocalAgentDataPath("deployment-control-plane");
-const USAGE_OUTBOX_FILE = path.join(CONTROL_PLANE_DIR, "usage-outbox.jsonl");
+const USAGE_OUTBOX_FILE = path.join(CONTROL_PLANE_DIR, "usage-outbox.json");
+const LEGACY_USAGE_OUTBOX_FILE = path.join(CONTROL_PLANE_DIR, "usage-outbox.jsonl");
 const AUDIT_ARCHIVE_DIR = path.join(CONTROL_PLANE_DIR, "external-audit-archive");
 const LOCAL_KMS_KEY_FILE = path.join(CONTROL_PLANE_DIR, "kms-local-ed25519-key.json");
 const KMS_RECEIPTS_FILE = path.join(CONTROL_PLANE_DIR, "kms-receipts.json");
@@ -127,22 +132,11 @@ function ensureControlPlaneDirs() {
 }
 
 function readJsonFile<T>(filePath: string, fallback: T): T {
-  if (!existsSync(filePath)) return fallback;
-  try {
-    return JSON.parse(readFileSync(filePath, "utf8")) as T;
-  } catch {
-    return fallback;
-  }
+  return readJsonFileDurably(filePath, () => fallback);
 }
 
 function writeJsonFile(filePath: string, value: unknown) {
-  mkdirSync(path.dirname(filePath), { recursive: true });
-  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-}
-
-function appendJsonl(filePath: string, value: unknown) {
-  mkdirSync(path.dirname(filePath), { recursive: true });
-  appendFileSync(filePath, `${JSON.stringify(value)}\n`, "utf8");
+  replaceJsonFileDurably(filePath, value);
 }
 
 function readJsonl<T>(filePath: string, guard: (value: unknown) => value is T): T[] {
@@ -178,12 +172,22 @@ function readRecordStore<T>(
   };
 }
 
-function writeRecordStore<T>(filePath: string, schemaVersion: string, records: T[]) {
-  writeJsonFile(filePath, {
+function updateRecordStore<T>(
+  filePath: string,
+  schemaVersion: string,
+  guard: (value: unknown) => value is T,
+  mutate: (records: T[]) => T[],
+) {
+  const initial = () => ({
+    schemaVersion,
+    updatedAt: new Date(0).toISOString(),
+    records: [] as T[],
+  });
+  return updateJsonFileDurably(filePath, initial, (store) => ({
     schemaVersion,
     updatedAt: new Date().toISOString(),
-    records,
-  });
+    records: mutate(Array.isArray(store.records) ? store.records.filter(guard) : []),
+  }));
 }
 
 function stableStringify(value: unknown): string {
@@ -577,30 +581,42 @@ function readFailoverRehearsals() {
 
 function readOrCreateLocalKmsKey(): LocalKmsKeyFile {
   ensureControlPlaneDirs();
-  const parsed = readJsonFile<Partial<LocalKmsKeyFile> | null>(LOCAL_KMS_KEY_FILE, null);
-  if (
-    parsed?.schemaVersion === "deployment.local-kms-key.v1" &&
-    parsed.signerMode === "local-ed25519-kms" &&
-    typeof parsed.keyId === "string" &&
-    typeof parsed.publicKeyPem === "string" &&
-    typeof parsed.privateKeyPem === "string"
-  ) {
-    return parsed as LocalKmsKeyFile;
-  }
-
-  const pair = crypto.generateKeyPairSync("ed25519");
-  const publicKeyPem = pair.publicKey.export({ type: "spki", format: "pem" }).toString();
-  const privateKeyPem = pair.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
-  const keyFile: LocalKmsKeyFile = {
-    schemaVersion: "deployment.local-kms-key.v1",
-    keyId: `local-ed25519-${sha256(publicKeyPem).slice(0, 16)}`,
-    createdAt: new Date().toISOString(),
-    signerMode: "local-ed25519-kms",
-    publicKeyPem,
-    privateKeyPem,
+  const isLocalKmsKey = (value: unknown): value is LocalKmsKeyFile => {
+    if (!value || typeof value !== "object") return false;
+    const parsed = value as Partial<LocalKmsKeyFile>;
+    return (
+      parsed.schemaVersion === "deployment.local-kms-key.v1" &&
+      parsed.signerMode === "local-ed25519-kms" &&
+      typeof parsed.keyId === "string" &&
+      typeof parsed.publicKeyPem === "string" &&
+      typeof parsed.privateKeyPem === "string"
+    );
   };
-  writeJsonFile(LOCAL_KMS_KEY_FILE, keyFile);
-  return keyFile;
+  let saved: LocalKmsKeyFile | null = null;
+  updateJsonFileDurably(
+    LOCAL_KMS_KEY_FILE,
+    () => null as LocalKmsKeyFile | null,
+    (current) => {
+      if (isLocalKmsKey(current)) {
+        saved = current;
+        return current;
+      }
+      const pair = crypto.generateKeyPairSync("ed25519");
+      const publicKeyPem = pair.publicKey.export({ type: "spki", format: "pem" }).toString();
+      const privateKeyPem = pair.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+      saved = {
+        schemaVersion: "deployment.local-kms-key.v1",
+        keyId: `local-ed25519-${sha256(publicKeyPem).slice(0, 16)}`,
+        createdAt: new Date().toISOString(),
+        signerMode: "local-ed25519-kms",
+        publicKeyPem,
+        privateKeyPem,
+      };
+      return saved;
+    },
+    (value): value is LocalKmsKeyFile | null => value === null || isLocalKmsKey(value),
+  );
+  return saved!;
 }
 
 function buildReceiptPayload(input: {
@@ -619,8 +635,12 @@ function buildReceiptPayload(input: {
 }
 
 function writeReceipt(receipt: DeploymentKmsReceipt) {
-  const receipts = [...readReceipts(), receipt].slice(-200);
-  writeRecordStore(KMS_RECEIPTS_FILE, "deployment.kms-receipts.v1", receipts);
+  updateRecordStore(
+    KMS_RECEIPTS_FILE,
+    "deployment.kms-receipts.v1",
+    isKmsReceipt,
+    (receipts) => [...receipts, receipt].slice(-200),
+  );
 }
 
 function signReceiptLocally(input: {
@@ -969,7 +989,7 @@ function buildProductionReadiness(input: {
 
 export function readDeploymentControlPlane(input?: { requireCloud?: boolean }): DeploymentControlPlaneSummary {
   ensureControlPlaneDirs();
-  const usageRecords = readJsonl(USAGE_OUTBOX_FILE, isUsageRecord);
+  const usageRecords = readDeploymentUsageOutboxRecords();
   const auditRecords = readAuditArchiveRecords();
   const receipts = readReceipts();
   const rehearsals = readFailoverRehearsals();
@@ -1090,7 +1110,43 @@ export function readDeploymentControlPlane(input?: { requireCloud?: boolean }): 
 }
 
 export function readDeploymentUsageOutboxRecords() {
-  return readJsonl(USAGE_OUTBOX_FILE, isUsageRecord);
+  if (!existsSync(USAGE_OUTBOX_FILE) && existsSync(LEGACY_USAGE_OUTBOX_FILE)) {
+    const legacyRecords = readJsonl(LEGACY_USAGE_OUTBOX_FILE, isUsageRecord);
+    updateRecordStore(
+      USAGE_OUTBOX_FILE,
+      "deployment.usage-outbox.v1",
+      isUsageRecord,
+      (records) => {
+        const seen = new Set(records.map((record) => record.id));
+        return [...records, ...legacyRecords.filter((record) => !seen.has(record.id))];
+      },
+    );
+  }
+  return readRecordStore(
+    USAGE_OUTBOX_FILE,
+    "deployment.usage-outbox.v1",
+    isUsageRecord,
+  ).records;
+}
+
+function appendUsageOutboxRecord(record: DeploymentUsageOutboxRecord) {
+  let saved = record;
+  updateRecordStore(
+    USAGE_OUTBOX_FILE,
+    "deployment.usage-outbox.v1",
+    isUsageRecord,
+    (records) => {
+      const existing = records.find(
+        (entry) => entry.idempotencyKey === record.idempotencyKey,
+      );
+      if (existing) {
+        saved = existing;
+        return records;
+      }
+      return [...records, record];
+    },
+  );
+  return saved;
 }
 
 export function appendDeploymentUsageAccountingRecord(input: {
@@ -1102,8 +1158,6 @@ export function appendDeploymentUsageAccountingRecord(input: {
   idempotencyKey: string;
 }) {
   ensureControlPlaneDirs();
-  const existing = readDeploymentUsageOutboxRecords().find((record) => record.idempotencyKey === input.idempotencyKey);
-  if (existing) return existing;
   const createdAt = new Date().toISOString();
   const payload = {
     createdAt,
@@ -1128,8 +1182,7 @@ export function appendDeploymentUsageAccountingRecord(input: {
     idempotencyKey: input.idempotencyKey,
     payloadHash: sha256(stableStringify(payload)),
   };
-  appendJsonl(USAGE_OUTBOX_FILE, record);
-  return record;
+  return appendUsageOutboxRecord(record);
 }
 
 export function runDeploymentControlPlaneRehearsal(
@@ -1175,17 +1228,17 @@ export function runDeploymentControlPlaneRehearsal(
     idempotencyKey: `usage-${tenantId}-${targetId}-${createdAt}`,
     payloadHash: sha256(stableStringify(usagePayload)),
   };
-  appendJsonl(USAGE_OUTBOX_FILE, usage);
+  const persistedUsage = appendUsageOutboxRecord(usage);
 
   const audit: DeploymentAuditArchiveRecord = writeAuditArchive({
     config: cloudConfig,
     auditId: `audit-${crypto.randomUUID()}`,
     createdAt: new Date().toISOString(),
     operatorId,
-    usageId: usage.id,
+    usageId: persistedUsage.id,
   });
 
-  const receipt = signKmsReceipt({ audit, usage, operatorId, config: cloudConfig });
+  const receipt = signKmsReceipt({ audit, usage: persistedUsage, operatorId, config: cloudConfig });
   const stepAt = () => new Date().toISOString();
   const archiveSummary =
     audit.archiveProvider === "aws-s3-object-lock"
@@ -1206,7 +1259,7 @@ export function runDeploymentControlPlaneRehearsal(
       id: "flush-usage-outbox",
       status: "completed",
       at: stepAt(),
-      summary: `Usage outbox record ${usage.id} persisted and marked delivered.`,
+      summary: `Usage outbox record ${persistedUsage.id} persisted and marked delivered.`,
     },
     {
       id: "archive-audit-event",
@@ -1242,7 +1295,7 @@ export function runDeploymentControlPlaneRehearsal(
     standbyRegion,
     oldPrimaryFenced: true,
     standbyPromoted: receipt.verified,
-    usageRecordId: usage.id,
+    usageRecordId: persistedUsage.id,
     auditRecordId: audit.id,
     receiptId: receipt.id,
     measuredRpoMs: 0,
@@ -1250,11 +1303,11 @@ export function runDeploymentControlPlaneRehearsal(
     steps,
     status: receipt.verified ? "completed" : "failed",
   };
-  const rehearsals = [...readFailoverRehearsals(), rehearsal].slice(-100);
-  writeRecordStore(
+  updateRecordStore(
     FAILOVER_REHEARSALS_FILE,
     "deployment.failover-rehearsals.v1",
-    rehearsals,
+    isFailoverRehearsal,
+    (rehearsals) => [...rehearsals, rehearsal].slice(-100),
   );
 
   return {
@@ -1262,7 +1315,7 @@ export function runDeploymentControlPlaneRehearsal(
     schemaVersion: DEPLOYMENT_CONTROL_PLANE_SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
     result: {
-      usage,
+      usage: persistedUsage,
       audit,
       receipt,
       failover: rehearsal,

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 import { runIdleUnloadDaemonTick } from "@/features/models/idle-unload-daemon";
 import { rehearseServerAccessAttribution } from "@/features/models/server-access-control";
 import {
@@ -75,31 +75,11 @@ const RECEIPT_FILE = path.join(DATA_DIR, "local-server-acceptance.json");
 const SERVER_ID = "local-ollama";
 
 function readReceipts(): AcceptanceReceipt[] {
-  if (!existsSync(RECEIPT_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(RECEIPT_FILE, "utf8")) as {
-      receipts?: AcceptanceReceipt[];
-    };
-    return Array.isArray(parsed.receipts) ? parsed.receipts : [];
-  } catch {
-    return [];
-  }
+  return readDurableReceipts(RECEIPT_FILE, LOCAL_SERVER_ACCEPTANCE_SCHEMA_VERSION);
 }
 
 function persist(receipt: AcceptanceReceipt) {
-  mkdirSync(path.dirname(RECEIPT_FILE), { recursive: true });
-  writeFileSync(
-    RECEIPT_FILE,
-    `${JSON.stringify(
-      {
-        schemaVersion: LOCAL_SERVER_ACCEPTANCE_SCHEMA_VERSION,
-        receipts: [receipt, ...readReceipts()].slice(0, 50),
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
+  prependDurableReceipt(RECEIPT_FILE, LOCAL_SERVER_ACCEPTANCE_SCHEMA_VERSION, receipt, 50);
 }
 
 function stableDigest(value: unknown) {

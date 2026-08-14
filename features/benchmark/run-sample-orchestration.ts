@@ -1,6 +1,7 @@
 import { runLocalBenchmarkSample } from "@/features/benchmark/local-sample-runner";
 import { runRemoteBenchmarkSample } from "@/features/benchmark/remote-sample-runner";
 import type {
+  AgentBenchmarkMediaAsset,
   AgentBenchmarkSample,
   AgentProviderProfile,
   AgentThinkingMode,
@@ -12,6 +13,7 @@ export type BenchmarkSampleRunnerOptions = {
   workloadId?: string;
   thinkingMode?: AgentThinkingMode;
   runId?: string;
+  media?: AgentBenchmarkMediaAsset[];
 };
 
 export function runBenchmarkSample(
@@ -55,6 +57,7 @@ export function isFatalLocalBenchmarkSampleFailure(sample: AgentBenchmarkSample)
 export function isFatalRemoteBenchmarkSampleFailure(sample: AgentBenchmarkSample) {
   if (sample.ok) return false;
   const warning = (sample.warning || "").toLowerCase();
+  if (sample.latencyMs === 0 && warning.includes("skipped")) return false;
   return (
     (warning.includes("missing") && warning.includes("api") && warning.includes("key")) ||
     warning.includes("not configured") ||

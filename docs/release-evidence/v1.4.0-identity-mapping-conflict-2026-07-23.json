@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "governance.rehearsal-evidence.v1",
+  "generatedAt": "2026-07-23T09:55:03.511Z",
+  "status": "PASS",
+  "identityMapping": {
+    "ok": true,
+    "checks": {
+      "activeScimMemberMaterialized": true,
+      "oidcSubjectAndGroupResolved": true,
+      "missingGroupClaimDenied": true,
+      "inactiveScimUserDenied": true,
+      "crossOrganizationRejected": true
+    },
+    "mapping": {
+      "externalGroupId": "engineering",
+      "organizationId": "local-organization",
+      "workspaceId": "local-workspace",
+      "role": "builder",
+      "activeMemberCount": 1
+    }
+  },
+  "multiUserConflict": {
+    "ok": true,
+    "checks": {
+      "firstWriterAdvancedRevision": true,
+      "secondWriterReceivedConflict": true,
+      "staleWriteDidNotOverwrite": true,
+      "revisionRemainsMonotonic": true,
+      "conflictAuditRecorded": true
+    },
+    "conflict": {
+      "code": "workspace_resource_revision_conflict",
+      "status": 409,
+      "expectedRevision": 1,
+      "actualRevision": 2
+    },
+    "winner": {
+      "id": "shared-workflow",
+      "label": "Shared workflow v2",
+      "revision": 2,
+      "updatedBy": "local-operator"
+    },
+    "auditEventCount": 4
+  },
+  "scope": "local SQLite organization/workspace mapping and optimistic concurrency rehearsal",
+  "productionClaim": false
+}

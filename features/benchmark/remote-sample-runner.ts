@@ -7,6 +7,7 @@ import {
 import { calculateTokenThroughputTps } from "@/lib/agent/metrics";
 import {
   buildOpenAICompatibleRequestShape,
+  buildOpenAICompatibleTokenLimit,
   buildProviderOutputContract,
   resolveSuggestedMaxTokens,
 } from "@/lib/agent/providers";
@@ -18,6 +19,7 @@ import {
   sleep,
 } from "@/features/benchmark/run-network";
 import type {
+  AgentBenchmarkMediaAsset,
   AgentBenchmarkSample,
   AgentProviderProfile,
   AgentThinkingMode,
@@ -30,7 +32,42 @@ type RemoteBenchmarkSampleRunnerOptions = {
   workloadId?: string;
   thinkingMode?: AgentThinkingMode;
   runId?: string;
+  media?: AgentBenchmarkMediaAsset[];
 };
+
+export function buildRemoteBenchmarkUserContent(
+  prompt: string,
+  media: AgentBenchmarkMediaAsset[] | undefined,
+) {
+  if (!media?.length) return prompt;
+  const content: Array<Record<string, unknown>> = [
+    { type: "text", text: prompt },
+  ];
+  for (const asset of media) {
+    if (asset.type === "image") {
+      content.push({
+        type: "image_url",
+        image_url: {
+          url: asset.url,
+          ...(asset.detail ? { detail: asset.detail } : {}),
+        },
+      });
+    } else if (asset.type === "video") {
+      content.push({
+        type: "video_url",
+        video_url: {
+          url: asset.url,
+          ...(asset.detail ? { detail: asset.detail } : {}),
+          ...(typeof asset.fps === "number" ? { fps: asset.fps } : {}),
+          ...(typeof asset.maxLongSidePixel === "number"
+            ? { max_long_side_pixel: asset.maxLongSidePixel }
+            : {}),
+        },
+      });
+    }
+  }
+  return content;
+}
 
 async function readRemoteBenchmarkStream(
   response: Response,
@@ -220,9 +257,12 @@ export async function runRemoteBenchmarkSample(
               model: requestShape.model,
               messages: [
                 { role: "system", content: benchmarkSystemPrompt },
-                { role: "user", content: prompt },
+                {
+                  role: "user",
+                  content: buildRemoteBenchmarkUserContent(prompt, options?.media),
+                },
               ],
-              max_tokens: effectiveMaxTokens,
+              ...buildOpenAICompatibleTokenLimit(target, effectiveMaxTokens),
               ...requestShape.bodyExtras,
               stream: true,
               stream_options: { include_usage: true },

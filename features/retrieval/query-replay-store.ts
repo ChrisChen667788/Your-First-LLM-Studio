@@ -1,6 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import path from "path";
 import crypto from "crypto";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
 import type { AgentRetrievalSummary } from "@/lib/agent/types";
 import type {
@@ -20,53 +22,34 @@ type ReplayStoreFile = {
   entries: RetrievalQueryReplayEntry[];
 };
 
-function ensureDirectory() {
-  mkdirSync(path.dirname(REPLAY_FILE), { recursive: true });
+const emptyStore = (): ReplayStoreFile => ({
+  schemaVersion: RETRIEVAL_QUERY_REPLAY_SCHEMA_VERSION,
+  updatedAt: new Date(0).toISOString(),
+  entries: [],
+});
+
+function isReplayStore(value: unknown): value is ReplayStoreFile {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<ReplayStoreFile>;
+  return candidate.schemaVersion === RETRIEVAL_QUERY_REPLAY_SCHEMA_VERSION
+    && typeof candidate.updatedAt === "string"
+    && Array.isArray(candidate.entries)
+    && candidate.entries.every(isReplayEntry);
 }
 
 function readStore(): ReplayStoreFile {
-  if (!existsSync(REPLAY_FILE)) {
-    return {
-      schemaVersion: RETRIEVAL_QUERY_REPLAY_SCHEMA_VERSION,
-      updatedAt: new Date(0).toISOString(),
-      entries: [],
-    };
-  }
-  try {
-    const parsed = JSON.parse(readFileSync(REPLAY_FILE, "utf8")) as Partial<ReplayStoreFile>;
-    return {
-      schemaVersion: RETRIEVAL_QUERY_REPLAY_SCHEMA_VERSION,
-      updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : new Date(0).toISOString(),
-      entries: Array.isArray(parsed.entries) ? parsed.entries.filter(isReplayEntry) : [],
-    };
-  } catch {
-    return {
-      schemaVersion: RETRIEVAL_QUERY_REPLAY_SCHEMA_VERSION,
-      updatedAt: new Date(0).toISOString(),
-      entries: [],
-    };
-  }
+  return readJsonFileDurably(REPLAY_FILE, emptyStore, isReplayStore);
 }
 
-function writeStore(entries: RetrievalQueryReplayEntry[]) {
-  ensureDirectory();
-  const sorted = entries
-    .slice()
-    .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
-    .slice(-MAX_REPLAY_ENTRIES);
-  writeFileSync(
-    REPLAY_FILE,
-    `${JSON.stringify(
-      {
-        schemaVersion: RETRIEVAL_QUERY_REPLAY_SCHEMA_VERSION,
-        updatedAt: new Date().toISOString(),
-        entries: sorted,
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
+function updateStore(mutator: (entries: RetrievalQueryReplayEntry[]) => RetrievalQueryReplayEntry[]) {
+  return updateJsonFileDurably(REPLAY_FILE, emptyStore, (store) => ({
+    schemaVersion: RETRIEVAL_QUERY_REPLAY_SCHEMA_VERSION,
+    updatedAt: new Date().toISOString(),
+    entries: mutator(store.entries)
+      .slice()
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .slice(-MAX_REPLAY_ENTRIES),
+  }), isReplayStore);
 }
 
 function isReplayEntry(value: unknown): value is RetrievalQueryReplayEntry {
@@ -232,9 +215,8 @@ export function appendRetrievalQueryReplay(input: {
   id?: string;
   retrieval: AgentRetrievalSummary;
 }) {
-  const store = readStore();
   const entry = buildReplayEntry(input);
-  writeStore([...store.entries.filter((item) => item.id !== entry.id), entry]);
+  updateStore((entries) => [...entries.filter((item) => item.id !== entry.id), entry]);
   return entry;
 }
 

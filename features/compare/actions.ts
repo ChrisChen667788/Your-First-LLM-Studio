@@ -10,6 +10,8 @@ import type {
   AgentThinkingMode,
 } from "@/lib/agent/types";
 import type { ExperimentSourceContext } from "@/features/experiments/contracts";
+import { BENCHMARK_RUN_API_PATH } from "@/features/benchmark/contracts";
+import { COMPARE_PROGRESS_API_PATH } from "./contracts";
 
 export type ExperimentAwareCompareRequest = AgentCompareRequest & {
   experimentContext?: ExperimentSourceContext;
@@ -61,7 +63,7 @@ export async function runCompareRequest(
 export async function patchCompareProgress(
   input: CompareProgressPatch,
 ): Promise<AgentCompareProgress> {
-  const response = await fetch("/api/agent/compare/progress", {
+  const response = await fetch(COMPARE_PROGRESS_API_PATH, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -100,7 +102,7 @@ export async function restartCompareRuntime(
 export async function sendCompareBenchmarkHandoff(
   input: CompareBenchmarkHandoffRequest,
 ): Promise<AgentBenchmarkResponse> {
-  const response = await fetch("/api/admin/benchmark", {
+  const response = await fetch(BENCHMARK_RUN_API_PATH, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),

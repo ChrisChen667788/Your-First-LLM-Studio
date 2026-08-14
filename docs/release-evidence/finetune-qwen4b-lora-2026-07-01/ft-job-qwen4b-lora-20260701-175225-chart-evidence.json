@@ -13,7 +13,7 @@
     "step": 800,
     "metric": "eval_loss",
     "value": 0.066,
-    "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000800",
+    "path": "runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000800",
     "source": "validation",
     "loadBestCheckpointAtEnd": true,
     "selectedAt": "2026-07-01T10:06:15.758825Z"
@@ -21,56 +21,56 @@
   "checkpointEvents": [
     {
       "step": 100,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000100",
+      "path": "runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000100",
       "metric": "eval_loss",
       "value": 0.25,
       "at": "2026-07-01T09:54:33.253613Z"
     },
     {
       "step": 200,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000200",
+      "path": "runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000200",
       "metric": "eval_loss",
       "value": 0.132,
       "at": "2026-07-01T09:56:10.737967Z"
     },
     {
       "step": 300,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000300",
+      "path": "runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000300",
       "metric": "eval_loss",
       "value": 0.079,
       "at": "2026-07-01T09:57:54.431113Z"
     },
     {
       "step": 400,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000400",
+      "path": "runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000400",
       "metric": "eval_loss",
       "value": 0.08,
       "at": "2026-07-01T09:59:42.482979Z"
     },
     {
       "step": 500,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000500",
+      "path": "runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000500",
       "metric": "eval_loss",
       "value": 0.071,
       "at": "2026-07-01T10:01:21.256139Z"
     },
     {
       "step": 600,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000600",
+      "path": "runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000600",
       "metric": "eval_loss",
       "value": 0.072,
       "at": "2026-07-01T10:02:59.305776Z"
     },
     {
       "step": 700,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000700",
+      "path": "runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000700",
       "metric": "eval_loss",
       "value": 0.077,
       "at": "2026-07-01T10:04:37.084503Z"
     },
     {
       "step": 800,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000800",
+      "path": "runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000800",
       "metric": "eval_loss",
       "value": 0.066,
       "at": "2026-07-01T10:06:16.694109Z"

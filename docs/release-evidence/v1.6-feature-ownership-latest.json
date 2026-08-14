@@ -1,0 +1,520 @@
+{
+  "schemaVersion": "experiments.v16-feature-ownership-runner-evidence.v1",
+  "generatedAt": "2026-08-05T04:45:58.383Z",
+  "baseUrl": "http://127.0.0.1:3011",
+  "receipt": {
+    "id": "v16-feature-ownership-9ab465fd-c383-4119-b2d7-29352e0639e6",
+    "generatedAt": "2026-08-05T04:45:58.347Z",
+    "status": "pass",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "slices": [
+      {
+        "id": "finetune-route",
+        "version": "v1.6.0",
+        "label": "Fine-tune route ownership",
+        "status": "pass",
+        "summary": "The foreground route imports the feature-owned shell directly."
+      },
+      {
+        "id": "finetune-shell",
+        "version": "v1.6.0",
+        "label": "Fine-tune shell ownership",
+        "status": "pass",
+        "summary": "The product shell is physically owned by features/finetune."
+      },
+      {
+        "id": "finetune-panel",
+        "version": "v1.6.0",
+        "label": "Fine-tune panel ownership",
+        "status": "pass",
+        "summary": "The foreground composition panel no longer lives under shared components."
+      },
+      {
+        "id": "finetune-setup-composer",
+        "version": "v1.6.0",
+        "label": "Setup composer ownership",
+        "status": "pass",
+        "summary": "Setup composition is physically feature-owned."
+      },
+      {
+        "id": "finetune-run-composer",
+        "version": "v1.6.0",
+        "label": "Run composer ownership",
+        "status": "pass",
+        "summary": "Run-mode composition is physically feature-owned."
+      },
+      {
+        "id": "finetune-evidence-composer",
+        "version": "v1.6.0",
+        "label": "Evidence composer ownership",
+        "status": "pass",
+        "summary": "Evidence and report composition is physically feature-owned."
+      },
+      {
+        "id": "finetune-benchmark-handoff",
+        "version": "v1.6.0",
+        "label": "Fine-tune Benchmark handoff",
+        "status": "pass",
+        "summary": "Fine-tune sends product handoffs through the canonical Benchmark API."
+      },
+      {
+        "id": "compare-benchmark-handoff",
+        "version": "v1.6.0",
+        "label": "Compare Benchmark handoff",
+        "status": "pass",
+        "summary": "Compare sends product handoffs through the canonical Benchmark API."
+      },
+      {
+        "id": "compare-progress-get",
+        "version": "v1.6.0",
+        "label": "Compare progress read port",
+        "status": "pass",
+        "summary": "Canonical progress reads are implemented by the feature application."
+      },
+      {
+        "id": "compare-progress-post",
+        "version": "v1.6.0",
+        "label": "Compare progress write port",
+        "status": "pass",
+        "summary": "Canonical progress updates are implemented by the same feature application."
+      },
+      {
+        "id": "compare-progress-compatibility",
+        "version": "v1.6.0",
+        "label": "Compare compatibility wrapper",
+        "status": "pass",
+        "summary": "The historical Agent progress route is a thin compatibility re-export."
+      },
+      {
+        "id": "compare-route-mode-port",
+        "version": "v1.6.0",
+        "label": "Compare foreground mode port",
+        "status": "pass",
+        "summary": "The foreground Compare route no longer creates Agent workbench mode state."
+      },
+      {
+        "id": "compare-copy-contract",
+        "version": "v1.6.0",
+        "label": "Compare product copy contract",
+        "status": "pass",
+        "summary": "Compare UI describes the canonical product endpoint."
+      },
+      {
+        "id": "architecture-budget",
+        "version": "v1.6.0",
+        "label": "Architecture budget alignment",
+        "status": "pass",
+        "summary": "The architecture budget tracks the physical feature owner."
+      },
+      {
+        "id": "canonical-route-contracts",
+        "version": "v1.6.0",
+        "label": "Canonical route contracts",
+        "status": "pass",
+        "summary": "Benchmark run and Compare progress expose stable product-facing routes."
+      }
+    ],
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "productionBlockers": [
+      "Feature ownership closure is local architecture evidence, not cloud production sign-off.",
+      "Managed multi-node failover, cloud KMS/archive, external IdP/SCIM, and organization acceptance remain HOLD."
+    ],
+    "evidenceDigest": "166922e74c753b5f36461cc8fc7b029ee8dd0f1846cc110db2eb88ba677923c2"
+  },
+  "evidence": {
+    "ok": true,
+    "schemaVersion": "experiments.v16-feature-ownership.v1",
+    "generatedAt": "2026-08-05T04:45:58.374Z",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "latest": {
+      "id": "v16-feature-ownership-9ab465fd-c383-4119-b2d7-29352e0639e6",
+      "generatedAt": "2026-08-05T04:45:58.347Z",
+      "status": "pass",
+      "localStatus": "pass",
+      "productionStatus": "hold",
+      "slices": [
+        {
+          "id": "finetune-route",
+          "version": "v1.6.0",
+          "label": "Fine-tune route ownership",
+          "status": "pass",
+          "summary": "The foreground route imports the feature-owned shell directly."
+        },
+        {
+          "id": "finetune-shell",
+          "version": "v1.6.0",
+          "label": "Fine-tune shell ownership",
+          "status": "pass",
+          "summary": "The product shell is physically owned by features/finetune."
+        },
+        {
+          "id": "finetune-panel",
+          "version": "v1.6.0",
+          "label": "Fine-tune panel ownership",
+          "status": "pass",
+          "summary": "The foreground composition panel no longer lives under shared components."
+        },
+        {
+          "id": "finetune-setup-composer",
+          "version": "v1.6.0",
+          "label": "Setup composer ownership",
+          "status": "pass",
+          "summary": "Setup composition is physically feature-owned."
+        },
+        {
+          "id": "finetune-run-composer",
+          "version": "v1.6.0",
+          "label": "Run composer ownership",
+          "status": "pass",
+          "summary": "Run-mode composition is physically feature-owned."
+        },
+        {
+          "id": "finetune-evidence-composer",
+          "version": "v1.6.0",
+          "label": "Evidence composer ownership",
+          "status": "pass",
+          "summary": "Evidence and report composition is physically feature-owned."
+        },
+        {
+          "id": "finetune-benchmark-handoff",
+          "version": "v1.6.0",
+          "label": "Fine-tune Benchmark handoff",
+          "status": "pass",
+          "summary": "Fine-tune sends product handoffs through the canonical Benchmark API."
+        },
+        {
+          "id": "compare-benchmark-handoff",
+          "version": "v1.6.0",
+          "label": "Compare Benchmark handoff",
+          "status": "pass",
+          "summary": "Compare sends product handoffs through the canonical Benchmark API."
+        },
+        {
+          "id": "compare-progress-get",
+          "version": "v1.6.0",
+          "label": "Compare progress read port",
+          "status": "pass",
+          "summary": "Canonical progress reads are implemented by the feature application."
+        },
+        {
+          "id": "compare-progress-post",
+          "version": "v1.6.0",
+          "label": "Compare progress write port",
+          "status": "pass",
+          "summary": "Canonical progress updates are implemented by the same feature application."
+        },
+        {
+          "id": "compare-progress-compatibility",
+          "version": "v1.6.0",
+          "label": "Compare compatibility wrapper",
+          "status": "pass",
+          "summary": "The historical Agent progress route is a thin compatibility re-export."
+        },
+        {
+          "id": "compare-route-mode-port",
+          "version": "v1.6.0",
+          "label": "Compare foreground mode port",
+          "status": "pass",
+          "summary": "The foreground Compare route no longer creates Agent workbench mode state."
+        },
+        {
+          "id": "compare-copy-contract",
+          "version": "v1.6.0",
+          "label": "Compare product copy contract",
+          "status": "pass",
+          "summary": "Compare UI describes the canonical product endpoint."
+        },
+        {
+          "id": "architecture-budget",
+          "version": "v1.6.0",
+          "label": "Architecture budget alignment",
+          "status": "pass",
+          "summary": "The architecture budget tracks the physical feature owner."
+        },
+        {
+          "id": "canonical-route-contracts",
+          "version": "v1.6.0",
+          "label": "Canonical route contracts",
+          "status": "pass",
+          "summary": "Benchmark run and Compare progress expose stable product-facing routes."
+        }
+      ],
+      "totals": {
+        "slices": 15,
+        "passed": 15,
+        "held": 0
+      },
+      "productionBlockers": [
+        "Feature ownership closure is local architecture evidence, not cloud production sign-off.",
+        "Managed multi-node failover, cloud KMS/archive, external IdP/SCIM, and organization acceptance remain HOLD."
+      ],
+      "evidenceDigest": "166922e74c753b5f36461cc8fc7b029ee8dd0f1846cc110db2eb88ba677923c2"
+    },
+    "latestPassing": {
+      "id": "v16-feature-ownership-9ab465fd-c383-4119-b2d7-29352e0639e6",
+      "generatedAt": "2026-08-05T04:45:58.347Z",
+      "status": "pass",
+      "localStatus": "pass",
+      "productionStatus": "hold",
+      "slices": [
+        {
+          "id": "finetune-route",
+          "version": "v1.6.0",
+          "label": "Fine-tune route ownership",
+          "status": "pass",
+          "summary": "The foreground route imports the feature-owned shell directly."
+        },
+        {
+          "id": "finetune-shell",
+          "version": "v1.6.0",
+          "label": "Fine-tune shell ownership",
+          "status": "pass",
+          "summary": "The product shell is physically owned by features/finetune."
+        },
+        {
+          "id": "finetune-panel",
+          "version": "v1.6.0",
+          "label": "Fine-tune panel ownership",
+          "status": "pass",
+          "summary": "The foreground composition panel no longer lives under shared components."
+        },
+        {
+          "id": "finetune-setup-composer",
+          "version": "v1.6.0",
+          "label": "Setup composer ownership",
+          "status": "pass",
+          "summary": "Setup composition is physically feature-owned."
+        },
+        {
+          "id": "finetune-run-composer",
+          "version": "v1.6.0",
+          "label": "Run composer ownership",
+          "status": "pass",
+          "summary": "Run-mode composition is physically feature-owned."
+        },
+        {
+          "id": "finetune-evidence-composer",
+          "version": "v1.6.0",
+          "label": "Evidence composer ownership",
+          "status": "pass",
+          "summary": "Evidence and report composition is physically feature-owned."
+        },
+        {
+          "id": "finetune-benchmark-handoff",
+          "version": "v1.6.0",
+          "label": "Fine-tune Benchmark handoff",
+          "status": "pass",
+          "summary": "Fine-tune sends product handoffs through the canonical Benchmark API."
+        },
+        {
+          "id": "compare-benchmark-handoff",
+          "version": "v1.6.0",
+          "label": "Compare Benchmark handoff",
+          "status": "pass",
+          "summary": "Compare sends product handoffs through the canonical Benchmark API."
+        },
+        {
+          "id": "compare-progress-get",
+          "version": "v1.6.0",
+          "label": "Compare progress read port",
+          "status": "pass",
+          "summary": "Canonical progress reads are implemented by the feature application."
+        },
+        {
+          "id": "compare-progress-post",
+          "version": "v1.6.0",
+          "label": "Compare progress write port",
+          "status": "pass",
+          "summary": "Canonical progress updates are implemented by the same feature application."
+        },
+        {
+          "id": "compare-progress-compatibility",
+          "version": "v1.6.0",
+          "label": "Compare compatibility wrapper",
+          "status": "pass",
+          "summary": "The historical Agent progress route is a thin compatibility re-export."
+        },
+        {
+          "id": "compare-route-mode-port",
+          "version": "v1.6.0",
+          "label": "Compare foreground mode port",
+          "status": "pass",
+          "summary": "The foreground Compare route no longer creates Agent workbench mode state."
+        },
+        {
+          "id": "compare-copy-contract",
+          "version": "v1.6.0",
+          "label": "Compare product copy contract",
+          "status": "pass",
+          "summary": "Compare UI describes the canonical product endpoint."
+        },
+        {
+          "id": "architecture-budget",
+          "version": "v1.6.0",
+          "label": "Architecture budget alignment",
+          "status": "pass",
+          "summary": "The architecture budget tracks the physical feature owner."
+        },
+        {
+          "id": "canonical-route-contracts",
+          "version": "v1.6.0",
+          "label": "Canonical route contracts",
+          "status": "pass",
+          "summary": "Benchmark run and Compare progress expose stable product-facing routes."
+        }
+      ],
+      "totals": {
+        "slices": 15,
+        "passed": 15,
+        "held": 0
+      },
+      "productionBlockers": [
+        "Feature ownership closure is local architecture evidence, not cloud production sign-off.",
+        "Managed multi-node failover, cloud KMS/archive, external IdP/SCIM, and organization acceptance remain HOLD."
+      ],
+      "evidenceDigest": "166922e74c753b5f36461cc8fc7b029ee8dd0f1846cc110db2eb88ba677923c2"
+    },
+    "receipts": [
+      {
+        "id": "v16-feature-ownership-9ab465fd-c383-4119-b2d7-29352e0639e6",
+        "generatedAt": "2026-08-05T04:45:58.347Z",
+        "status": "pass",
+        "localStatus": "pass",
+        "productionStatus": "hold",
+        "slices": [
+          {
+            "id": "finetune-route",
+            "version": "v1.6.0",
+            "label": "Fine-tune route ownership",
+            "status": "pass",
+            "summary": "The foreground route imports the feature-owned shell directly."
+          },
+          {
+            "id": "finetune-shell",
+            "version": "v1.6.0",
+            "label": "Fine-tune shell ownership",
+            "status": "pass",
+            "summary": "The product shell is physically owned by features/finetune."
+          },
+          {
+            "id": "finetune-panel",
+            "version": "v1.6.0",
+            "label": "Fine-tune panel ownership",
+            "status": "pass",
+            "summary": "The foreground composition panel no longer lives under shared components."
+          },
+          {
+            "id": "finetune-setup-composer",
+            "version": "v1.6.0",
+            "label": "Setup composer ownership",
+            "status": "pass",
+            "summary": "Setup composition is physically feature-owned."
+          },
+          {
+            "id": "finetune-run-composer",
+            "version": "v1.6.0",
+            "label": "Run composer ownership",
+            "status": "pass",
+            "summary": "Run-mode composition is physically feature-owned."
+          },
+          {
+            "id": "finetune-evidence-composer",
+            "version": "v1.6.0",
+            "label": "Evidence composer ownership",
+            "status": "pass",
+            "summary": "Evidence and report composition is physically feature-owned."
+          },
+          {
+            "id": "finetune-benchmark-handoff",
+            "version": "v1.6.0",
+            "label": "Fine-tune Benchmark handoff",
+            "status": "pass",
+            "summary": "Fine-tune sends product handoffs through the canonical Benchmark API."
+          },
+          {
+            "id": "compare-benchmark-handoff",
+            "version": "v1.6.0",
+            "label": "Compare Benchmark handoff",
+            "status": "pass",
+            "summary": "Compare sends product handoffs through the canonical Benchmark API."
+          },
+          {
+            "id": "compare-progress-get",
+            "version": "v1.6.0",
+            "label": "Compare progress read port",
+            "status": "pass",
+            "summary": "Canonical progress reads are implemented by the feature application."
+          },
+          {
+            "id": "compare-progress-post",
+            "version": "v1.6.0",
+            "label": "Compare progress write port",
+            "status": "pass",
+            "summary": "Canonical progress updates are implemented by the same feature application."
+          },
+          {
+            "id": "compare-progress-compatibility",
+            "version": "v1.6.0",
+            "label": "Compare compatibility wrapper",
+            "status": "pass",
+            "summary": "The historical Agent progress route is a thin compatibility re-export."
+          },
+          {
+            "id": "compare-route-mode-port",
+            "version": "v1.6.0",
+            "label": "Compare foreground mode port",
+            "status": "pass",
+            "summary": "The foreground Compare route no longer creates Agent workbench mode state."
+          },
+          {
+            "id": "compare-copy-contract",
+            "version": "v1.6.0",
+            "label": "Compare product copy contract",
+            "status": "pass",
+            "summary": "Compare UI describes the canonical product endpoint."
+          },
+          {
+            "id": "architecture-budget",
+            "version": "v1.6.0",
+            "label": "Architecture budget alignment",
+            "status": "pass",
+            "summary": "The architecture budget tracks the physical feature owner."
+          },
+          {
+            "id": "canonical-route-contracts",
+            "version": "v1.6.0",
+            "label": "Canonical route contracts",
+            "status": "pass",
+            "summary": "Benchmark run and Compare progress expose stable product-facing routes."
+          }
+        ],
+        "totals": {
+          "slices": 15,
+          "passed": 15,
+          "held": 0
+        },
+        "productionBlockers": [
+          "Feature ownership closure is local architecture evidence, not cloud production sign-off.",
+          "Managed multi-node failover, cloud KMS/archive, external IdP/SCIM, and organization acceptance remain HOLD."
+        ],
+        "evidenceDigest": "166922e74c753b5f36461cc8fc7b029ee8dd0f1846cc110db2eb88ba677923c2"
+      }
+    ],
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "productionBlockers": [
+      "Feature ownership closure is local architecture evidence, not cloud production sign-off.",
+      "Managed multi-node failover, cloud KMS/archive, external IdP/SCIM, and organization acceptance remain HOLD."
+    ],
+    "path": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/v1.6-feature-ownership.json"
+  }
+}

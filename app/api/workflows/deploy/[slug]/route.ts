@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authorizeWorkflowHttpRequest, buildWorkflowDeploymentExamples, invokeDeployedWorkflow, type WorkflowInvocationBody } from "@/features/workflows/deployment-application";
+import { authorizeWorkflowHttpRequest, buildWorkflowDeploymentExamples, invokeDeployedWorkflow, workflowDeploymentErrorStatus, type WorkflowInvocationBody } from "@/features/workflows/deployment-application";
 import { resolveDeployedWorkflow } from "@/features/workflows/graph-registry";
 
 export const runtime = "nodejs";
@@ -23,6 +23,6 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
     return NextResponse.json({ ok: true, accepted: true, deployment: slug, graphDigest: result.deployment.graphDigest, execution: result.execution }, { status: 202 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Workflow invocation failed.";
-    return NextResponse.json({ ok: false, error: message }, { status: message.startsWith("Unauthorized") ? 401 : 400 });
+    return NextResponse.json({ ok: false, error: message }, { status: workflowDeploymentErrorStatus(error) });
   }
 }

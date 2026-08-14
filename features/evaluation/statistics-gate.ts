@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableListEntry, readDurableList } from "@/features/persistence/durable-list-store";
 
 export const EVALUATION_STATISTICS_SCHEMA_VERSION = "evaluation.statistics-gate.v1" as const;
 
@@ -16,8 +16,8 @@ type StatisticsReport = {
 
 function mean(values: number[]) { return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0; }
 function sampleDeviation(values: number[]) { if (values.length < 2) return 0; const average = mean(values); return Math.sqrt(values.reduce((sum, value) => sum + (value - average) ** 2, 0) / (values.length - 1)); }
-function readReports(): StatisticsReport[] { if (!existsSync(REPORT_FILE)) return []; try { const parsed = JSON.parse(readFileSync(REPORT_FILE, "utf8")) as { reports?: StatisticsReport[] }; return Array.isArray(parsed.reports) ? parsed.reports : []; } catch { return []; } }
-function persist(report: StatisticsReport) { mkdirSync(path.dirname(REPORT_FILE), { recursive: true }); writeFileSync(REPORT_FILE, `${JSON.stringify({ schemaVersion: EVALUATION_STATISTICS_SCHEMA_VERSION, reports: [report, ...readReports()].slice(0, 200) }, null, 2)}\n`, "utf8"); }
+function readReports(): StatisticsReport[] { return readDurableList(REPORT_FILE, EVALUATION_STATISTICS_SCHEMA_VERSION, "reports"); }
+function persist(report: StatisticsReport) { prependDurableListEntry(REPORT_FILE, EVALUATION_STATISTICS_SCHEMA_VERSION, "reports", report, 200); }
 
 export function analyzePairedEvaluation(input: { baseline?: number[]; candidate?: number[]; minimumDelta?: number; minimumSamples?: number }) {
   const baseline = (input.baseline || []).filter(Number.isFinite); const candidate = (input.candidate || []).filter(Number.isFinite);

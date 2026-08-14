@@ -35,8 +35,14 @@ MODE="${1:-full}"
 TARGET="${2:-}"
 HEARTBEAT_SECONDS="${TYPECHECK_HEARTBEAT_SECONDS:-${LINT_HEARTBEAT_SECONDS:-30}}"
 STEP_TIMEOUT_SECONDS="${TYPECHECK_STEP_TIMEOUT_SECONDS:-${LINT_STEP_TIMEOUT_SECONDS:-900}}"
+GIT_STATUS_TIMEOUT_SECONDS="${TYPECHECK_GIT_STATUS_TIMEOUT_SECONDS:-15}"
 CACHE_DIR="node_modules/.cache/first-llm-studio/typecheck"
 mkdir -p "$CACHE_DIR"
+
+if ! [[ "$GIT_STATUS_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || [[ "$GIT_STATUS_TIMEOUT_SECONDS" -le 0 ]]; then
+  echo "[typecheck] TYPECHECK_GIT_STATUS_TIMEOUT_SECONDS must be a positive integer." >&2
+  exit 2
+fi
 
 partition_project() {
   case "$1" in
@@ -77,11 +83,37 @@ typecheck_pathspecs=(
 )
 
 changed_files() {
-  git status --porcelain=v1 -- "${typecheck_pathspecs[@]}" 2>/dev/null \
-    | sed -E 's/^...//' \
+  local raw_status
+  local status_pid
+  local elapsed=0
+  raw_status="$(mktemp "${TMPDIR:-/tmp}/first-llm-typecheck-status.XXXXXX")"
+
+  git status --porcelain=v1 -- "${typecheck_pathspecs[@]}" >"$raw_status" 2>/dev/null &
+  status_pid=$!
+  while kill -0 "$status_pid" 2>/dev/null; do
+    sleep 1
+    elapsed=$((elapsed + 1))
+    if [[ "$elapsed" -ge "$GIT_STATUS_TIMEOUT_SECONDS" ]]; then
+      echo "[typecheck] Git change discovery exceeded ${GIT_STATUS_TIMEOUT_SECONDS}s; falling back to all partitions." >&2
+      kill "$status_pid" 2>/dev/null || true
+      sleep 1
+      kill -9 "$status_pid" 2>/dev/null || true
+      wait "$status_pid" 2>/dev/null || true
+      rm -f "$raw_status"
+      return 75
+    fi
+  done
+  if ! wait "$status_pid"; then
+    echo "[typecheck] Git change discovery failed; falling back to all partitions." >&2
+    rm -f "$raw_status"
+    return 75
+  fi
+
+  sed -E 's/^...//' "$raw_status" \
     | sed -E 's/^.* -> //' \
     | awk 'NF' \
     | sort -u
+  rm -f "$raw_status"
 }
 
 emit_all_partitions() {
@@ -92,6 +124,7 @@ emit_all_partitions() {
 }
 
 partitions_for_changed_files() {
+  local changed_file_list
   local saw_any=0
   local needs_all=0
   local needs_core_shared=0
@@ -105,6 +138,13 @@ partitions_for_changed_files() {
   local needs_agent_ui=0
   local needs_admin=0
   local needs_app=0
+
+  changed_file_list="$(mktemp "${TMPDIR:-/tmp}/first-llm-typecheck-files.XXXXXX")"
+  if ! changed_files >"$changed_file_list"; then
+    rm -f "$changed_file_list"
+    emit_all_partitions
+    return
+  fi
 
   while IFS= read -r file; do
     [[ -n "$file" ]] || continue
@@ -201,13 +241,15 @@ partitions_for_changed_files() {
       *)
         ;;
     esac
-  done < <(changed_files)
+  done <"$changed_file_list"
 
   if [[ "$saw_any" -eq 0 ]]; then
+    rm -f "$changed_file_list"
     return
   fi
 
   if [[ "$needs_all" -eq 1 ]]; then
+    rm -f "$changed_file_list"
     emit_all_partitions
     return
   fi
@@ -223,6 +265,7 @@ partitions_for_changed_files() {
   [[ "$needs_agent_ui" -eq 1 ]] && echo "agent-ui"
   [[ "$needs_admin" -eq 1 ]] && echo "admin"
   [[ "$needs_app" -eq 1 ]] && echo "app"
+  rm -f "$changed_file_list"
 }
 
 run_with_heartbeat() {

@@ -230,12 +230,22 @@ def build_model_registry_entry(
 def build_base_model_registry():
     registry = {}
     for alias, repo in BASE_MODEL_REPOS.items():
-        source_path = repo if is_probable_local_path(repo) else None
+        configured_path = Path(repo).expanduser() if is_probable_local_path(repo) else None
+        cached_snapshot = None if configured_path else find_cached_repo_snapshot(repo)
+        source_path = configured_path or cached_snapshot
+        load_ref = str(source_path) if source_path else repo
         registry[alias] = build_model_registry_entry(
-            repo,
-            repo_id=None if source_path else repo,
+            load_ref,
+            repo_id=None if configured_path else repo,
             source_path=source_path,
-            source_kind="configured",
+            source_kind=(
+                "configured-local-path"
+                if configured_path
+                else "huggingface-cache"
+                if cached_snapshot
+                else "configured"
+            ),
+            discovery_root=cached_snapshot.parent.parent.parent if cached_snapshot else None,
         )
     return registry
 
@@ -265,6 +275,42 @@ def list_huggingface_cache_roots():
         seen.add(key)
         roots.append(candidate)
     return roots
+
+
+def find_cached_repo_snapshot(repo_id: str):
+    cache_name = f"models--{repo_id.replace('/', '--')}"
+    for root in list_huggingface_cache_roots():
+        repo_cache = root / cache_name
+        snapshots_dir = repo_cache / "snapshots"
+        if not snapshots_dir.exists():
+            continue
+        candidates = []
+        main_ref = repo_cache / "refs" / "main"
+        try:
+            revision = main_ref.read_text(encoding="utf-8").strip()
+            if revision:
+                candidates.append(snapshots_dir / revision)
+        except Exception:
+            pass
+        try:
+            candidates.extend(
+                sorted(
+                    [child for child in snapshots_dir.iterdir() if child.is_dir()],
+                    key=lambda child: child.stat().st_mtime,
+                    reverse=True,
+                )
+            )
+        except Exception:
+            continue
+        seen = set()
+        for snapshot_dir in candidates:
+            key = str(snapshot_dir)
+            if key in seen:
+                continue
+            seen.add(key)
+            if is_probably_generative_mlx_repo(repo_id, snapshot_dir):
+                return snapshot_dir
+    return None
 
 
 def list_local_model_scan_roots():

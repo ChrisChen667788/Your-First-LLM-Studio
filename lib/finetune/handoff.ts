@@ -52,6 +52,7 @@ export type FineTuneBenchmarkHandoffPlan = {
 
 const REMOTE_REFERENCE_TARGET_PRIORITY = [
   "openai-gpt54",
+  "minimax-m3",
   "anthropic-claude",
   "deepseek-api",
   "openai-codex"

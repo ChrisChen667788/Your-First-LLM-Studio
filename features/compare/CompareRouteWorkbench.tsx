@@ -28,7 +28,6 @@ import type {
   AgentProviderProfile,
   AgentTarget,
   AgentThinkingMode,
-  AgentWorkbenchMode,
 } from "@/lib/agent/types";
 
 const CONTEXT_WINDOW_OPTIONS = [4096, 8192, 16384, 32768];
@@ -97,7 +96,7 @@ export function CompareRouteWorkbench({
     useState<AgentTarget[]>(builtinAgentTargets);
   const agentTargets = availableTargets;
   const [selectedTargetId, setSelectedTargetId] = useState(getInitialTargetId);
-  const [, setWorkbenchMode] = useState<AgentWorkbenchMode>("compare");
+  const activateCompareMode = useCallback((_mode: "compare") => {}, []);
   const [input, setInput] = useState(
     () => getLocalizedStarterPrompts(locale)[0] || "",
   );
@@ -413,7 +412,7 @@ export function CompareRouteWorkbench({
     workbench: {
       selectedTargetId,
       setSelectedTargetId,
-      setWorkbenchMode,
+      setWorkbenchMode: activateCompareMode,
     },
     copyText: handleCopy,
   });

@@ -1,6 +1,44 @@
 # Agent Lab Development Roadmap
 
-Last updated: 2026-07-18
+## v1.5.1 local release-candidate completion
+
+The active source milestone is now `v1.5.1`. A real attached Qwen3 0.6B adapter checkpoint is pinned by SHA-256, packaged with a pinned base-model revision, round-tripped through the immutable local artifact registry, and bound to three real paired Benchmark batches with 36 samples. The deterministic Quality CI non-regression gate, usage reconciliation, retry-safe settlement, local audit/signing, primary fencing, standby promotion, and measured local RPO/RTO all pass. This is repository and single-machine evidence only: distribution remains `HOLD` and production remains `BLOCKED` until the independent worker, organization registry/sign-off, managed billing, cross-region failover, cloud KMS/Object Lock, identity, and deployed-database gates are accepted. See [`docs/release-evidence/v1.5.1-local-completion-2026-08-10.md`](./release-evidence/v1.5.1-local-completion-2026-08-10.md).
+
+## v1.3.1 runtime truth closure checkpoint
+
+DeepSeek V4 capability routing, the public OpenAI-compatible Provider router, real Fine-tune adapter/teacher inference, Workflow Provider nodes, LangGraph protected-tool resume shadow evidence, strict pgvector/cross-encoder/ACL retrieval ports, and shared OTLP/Langfuse tracing are now executable repository contracts. External identity, deployed PostgreSQL, Enterprise Retrieval services, telemetry destination, Apple distribution, cloud KMS/Object Lock, distributed workers, and organization acceptance remain production blockers. See [`docs/release-evidence/v1.3.1-runtime-truth-closure-2026-08-10.md`](./release-evidence/v1.3.1-runtime-truth-closure-2026-08-10.md).
+
+The complete remaining milestone and cross-cutting backlog is maintained in [`docs/remaining-roadmap-2026-08-10.md`](./remaining-roadmap-2026-08-10.md).
+
+Last updated: 2026-08-13
+
+## v1.6.6 benchmark decision intelligence checkpoint
+
+本轮 15 个本地切片把 v1.6.5 的可复现 scorecard 推进为模型晋级决策合同：完整 run 的 500 条样本全部进入互斥错误 taxonomy，真实结果为 160 条正确、340 条已提取但数学不等价，答案提取覆盖 100%；置信区间风险策略标出 Intermediate Algebra、Precalculus 与 Level 5，延迟和 completion token 使用各自 p95 阈值形成异常点，优先复核队列限制为 24 条。统计功效面板按双侧 95% / 80% power 提供 3pp、5pp、10pp 样本量规划；候选比较仅接受不同 run id 的完整 500 题运行，并执行逐题 paired delta 区间、exact McNemar、-2pp 非劣效和 p95 延迟 +20% 门槛。当前只有一个完整 run id，所以本地审计验收可 PASS，候选晋级保持 `EVIDENCE NEEDED`；独立 worker、官方多模态、榜单和生产 promotion 继续 `HOLD`。见 [`docs/release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md`](./release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md)。
+
+## v1.6.5 benchmark reproducibility and multimodal readiness checkpoint
+
+本轮 15 个本地切片把完整 MATH-500 run 从单一总分推进为可审计复现资产：按官方快照 `itemId` 对齐 500 题，生成 7 个学科、5 个难度的准确率与 Wilson 95% 区间，记录延迟/token/checkpoint/failure taxonomy，并固定 dataset、evaluator 和 run content digest。真实 run 的 500 个输出通过新隔离 Math-Verify worker 全量重判，500/500 可判分、500/500 decision 一致、0 disagreement、0 unavailable，15/15 本地 acceptance PASS。MMMU、MathVista、MMBench、Video-MME v2 形成目标能力、资产、judge/submission 和授权媒体 requirements 明细；同机重放不等同独立 worker，官方多模态全量执行与生产 promotion 继续 `HOLD`。见 [`docs/release-evidence/v1.6.5-benchmark-reproducibility-2026-08-10.md`](./release-evidence/v1.6.5-benchmark-reproducibility-2026-08-10.md)。
+
+## v1.6.4 official evaluators and full MATH-500 checkpoint
+
+本轮把 v1.6.3 的数据资格化推进到真实判分与全量执行：Math-Verify `0.9.0` 在隔离 Python runtime 中固定到 upstream revision `ba3d3aaff23b3f4cac7a14672b4f6e293d97c98b`，采用 `math-500-v1` 的 boxed gold 与 LaTeX/Expr prediction extraction；Benchmark runner 新增逐题 durable checkpoint、不可判分样本自动重判、长任务无 headers timeout 的 detached runner，以及 progress store 的领域 validator。真实 `local-qwen3-0.6b` run `math500-full-20260810112454-2b58c961` 完成 500/500、500 题可判分、160 题正确、0 个运行失败、497 题从 checkpoint 恢复，本地准确率 32.00%，15/15 本地 acceptance PASS。MMMU、MathVista、MMBench、Video-MME v2 已固定官方 revision 并完成协议级 parser/normalizer/scorer fixtures；完整图片/视频资产、MathVista judge extraction、MMBench 外部 submission、兼容视觉/视频 runtime 与独立 worker 复现继续 `HOLD`。见 [`docs/release-evidence/v1.6.4-official-evaluators-2026-08-10.md`](./release-evidence/v1.6.4-official-evaluators-2026-08-10.md)。
+
+## v1.6.3 official benchmark qualification checkpoint
+
+本轮 15 个本地切片把 MATH-500 从“标准目录条目”推进为真实、可固定、可复验的运行资产：官方 `HuggingFaceH4/MATH-500` test JSONL 固定到完整 commit `6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be`，446,564 字节原始 payload 以 SHA-256 `35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132` 持久化；500/500 行、500 个唯一 id、7 个学科、5 个难度等级、prompt pack 和 32 项 sample manifest 全部通过。资格化数据集已进入 Benchmark dataset selector 和 feature-owned run planner，`/experiments` 同步展示 15/15 durable evidence。该历史检查点当时尚未接入官方数学等价 evaluator；这一门槛已在 v1.6.4 本地闭环，但生产状态仍保持 `HOLD`。见 [`docs/release-evidence/v1.6.3-benchmark-qualification-2026-08-10.md`](./release-evidence/v1.6.3-benchmark-qualification-2026-08-10.md)。
+
+## v1.6.2 benchmark standards and native multimodal checkpoint
+
+本轮把 MiniMax M3 从单一远端目标推进到 capability-gated Benchmark：新增 11 项权威标准目录、官方协议与上游 revision registry，支持每 6 小时自动检查和手动刷新；内置 IFEval/EvalPlus starter 明确标注为兼容性子集，不再等同正式榜单分数。自定义评测任务可携带原生 image/video URL，只有模型官方能力与当前 transport 同时验证通过才会发送；不支持或模型 id 未验证时按目标独立跳过并给出官方文档链接，本地全不支持组在 prewarm 前完成零加载跳过。当前 M3 文本/工具/Thinking contract 与 image/video 消息结构已通过本地测试，但真实付费多模态质量对照、MMMU/MathVista/MMBench/Video-MME v2 官方 evaluator adapter 仍列为下一批证据，不提前声明完成。
+
+## v1.6.1 application contract closure checkpoint
+
+本轮继续把“前台可用”推进到“API ownership 也真实一致”：Benchmark baseline、progress/control、prompt sets、report、release evidence 与 export 全部新增 `/api/benchmarks/*` canonical routes，Benchmark Studio 和 runner evidence URI 不再引用 Admin 路径；Compare recipe 持久化切到 `/api/compare/recipes`，旧 `/api/agent/recipes` 与 6 个 Admin Benchmark 子路由只保留薄 re-export。`/experiments` 新增 15 项 application contract 验收，生产外部门槛继续保持 `HOLD`。
+
+## v1.6.0 foreground feature ownership checkpoint
+
+本轮 15 个本地切片集中关闭 Fine-tune/Compare 的前台 ownership 遗留：`/fine-tune` 直接加载 feature-owned shell，主 composition panel 与 setup/run/evidence composers 已物理迁入 `features/finetune`；Fine-tune、Compare 与 Benchmark Studio 统一调用 `/api/benchmarks`，Compare progress 统一调用 `/api/compare/progress`，旧 Agent progress 地址仅保留薄兼容转发；前台 `/compare` 不再创建或导入 `AgentWorkbenchMode`。`/experiments` 新增持久化的 15 项 feature ownership 验收面板。该检查只证明本地代码边界，真实 IdP/SCIM、远端 lease/worker failover、云 KMS/不可变归档与组织签收继续保持 `HOLD`。
 
 ## v1.3.0 MCP and secure extension checkpoint
 
@@ -24,7 +62,7 @@ ModelScope `onnx-community/tiny-gpt2-ONNX` 已完成真实 9 文件下载、不�
 
 ## Post-v1 ten-version productization checkpoint
 
-`v1.1.0` 到 `v1.5.1` 已从十张静态 planned 卡片升级为统一 runtime promotion gate。当前十个版本全部满足本地 foundation、hardening、product acceptance 与 lifecycle 检查；`v1.3.1` 完成，六个版本达到 local-ready，`v1.1.0`、`v1.4.0`、`v1.5.1` 因 Apple、企业身份或真实云证据继续 externally blocked。本轮另加入 MLX-LM worker-ready training plan、LLaMA-Factory fail-closed preview，以及 GitHub Releases、ModelScope、Hugging Face、private OCI 的非写入 staging plan。这里的 local-ready 不等于正式生产发布，详见 [`docs/release-evidence/post-v1-promotion-gate-2026-07-16.md`](./release-evidence/post-v1-promotion-gate-2026-07-16.md)。
+`v1.1.0` 到 `v1.5.1` 已从十张静态 planned 卡片升级为统一 runtime promotion gate。当前源码已推进到 `v1.5.1`，其中 v1.4.0-v1.5.1 的仓库内本地 contracts 与真实 release-candidate evidence 已闭环；Apple、企业身份、托管数据库、远端 registry、跨区、云签名归档和组织签收仍按各版本单独显示 externally blocked。本地完成不等于正式生产发布，当前证据见 [`docs/release-evidence/v1.5.1-local-completion-2026-08-10.md`](./release-evidence/v1.5.1-local-completion-2026-08-10.md)。
 
 ## Post-v1 third operational lifecycle checkpoint
 

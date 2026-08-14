@@ -1,6 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import os from "os";
 import path from "path";
+import {
+  readJsonFileDurably,
+  replaceJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 import {
   MODEL_RUNTIME_OPERATIONS_CONTRACT_VERSION,
   type ModelRuntimeDeveloperApiGuide,
@@ -145,17 +149,11 @@ function ensureDataDir() {
 }
 
 function readJsonFile<T>(filePath: string, fallback: T): T {
-  if (!existsSync(filePath)) return fallback;
-  try {
-    return JSON.parse(readFileSync(filePath, "utf8")) as T;
-  } catch {
-    return fallback;
-  }
+  return readJsonFileDurably(filePath, () => fallback);
 }
 
 function writeJsonFile(filePath: string, value: unknown) {
-  ensureDataDir();
-  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  replaceJsonFileDurably(filePath, value);
 }
 
 function slugify(value: string) {

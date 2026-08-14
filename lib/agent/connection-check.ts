@@ -4,6 +4,7 @@ import { appendExperimentEvent } from "@/features/experiments/timeline-service";
 import type { ExperimentArtifactReference } from "@/features/experiments/contracts";
 import { getServerAgentTarget } from "@/lib/agent/server-targets";
 import {
+  buildOpenAICompatibleTokenLimit,
   clearProviderEnvCache,
   parseOpenAICompatibleStreamText,
   readOpenAICompatibleStreamSource,
@@ -36,6 +37,9 @@ export function buildConnectionCheckDocsUrl(targetId: string) {
   }
   if (targetId === "deepseek-api") {
     return "https://api-docs.deepseek.com/zh-cn/";
+  }
+  if (targetId === "minimax-m3") {
+    return "https://platform.minimaxi.com/docs/api-reference/text-chat-openai";
   }
   return undefined;
 }
@@ -169,7 +173,7 @@ export async function runRemoteConnectionCheck(
       body: JSON.stringify({
         model: resolvedTarget.resolvedModel,
         messages: [{ role: "user", content: "Reply with exactly CHAT_OK." }],
-        max_tokens: 32,
+        ...buildOpenAICompatibleTokenLimit(resolvedTarget, 32),
         stream: true,
         stream_options: { include_usage: true }
       })
@@ -230,7 +234,7 @@ export async function runRemoteConnectionCheck(
             }
           ],
           tool_choice: "auto",
-          max_tokens: 128,
+          ...buildOpenAICompatibleTokenLimit(resolvedTarget, 128),
           stream: true,
           stream_options: { include_usage: true }
         })

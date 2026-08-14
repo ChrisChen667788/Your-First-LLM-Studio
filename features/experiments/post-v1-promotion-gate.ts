@@ -1,5 +1,4 @@
 import { readArtifactLocalRegistry } from "@/features/artifacts/local-registry";
-import { readArtifactRegistryAdapterCatalog } from "@/features/artifacts/registry-adapters";
 import { readDesktopOnboardingRelease } from "@/features/desktop/onboarding-release";
 import { readHaFinOpsReadiness } from "@/features/deployment/ha-finops-readiness";
 import { buildModelHubPromotionEvidence } from "@/features/models/model-hub-promotion-evidence";
@@ -11,6 +10,9 @@ import { readPostgresRlsEvidence } from "@/features/governance/postgres-rls-evid
 import { buildRuntimeFabricPromotionEvidence } from "@/features/runtime/runtime-fabric-promotion";
 import { buildExtensionEcosystemPromotionEvidence } from "@/features/extensions/extension-ecosystem-promotion";
 import { buildWorkflowStudioPromotionEvidence } from "@/features/workflows/studio-promotion";
+import { readV14AcceptanceBatchEvidence } from "@/features/experiments/v14-acceptance-batch";
+import { readV15AcceptanceBatchEvidence } from "@/features/experiments/v15-acceptance-batch";
+import { readReleaseCandidateAcceptanceEvidence } from "@/features/evaluation/release-candidate-acceptance";
 
 import { readPostV1AcceptanceEvidence } from "@/features/experiments/post-v1-acceptance";
 import { readPostV1HardeningEvidence } from "@/features/experiments/post-v1-hardening";
@@ -77,13 +79,15 @@ export function readPostV1PromotionGate() {
   const training = readTrainingCapabilityRegistry();
   const trainingPlans = readTrainingExecutionPlanCatalog();
   const artifacts = readArtifactLocalRegistry();
-  const registryAdapters = readArtifactRegistryAdapterCatalog();
   const haFinOps = readHaFinOpsReadiness();
   const modelHub = buildModelHubPromotionEvidence();
   const localServer = buildLocalServerPromotionEvidence();
   const runtimeFabric = buildRuntimeFabricPromotionEvidence();
   const extensionEcosystem = buildExtensionEcosystemPromotionEvidence();
   const workflowStudio = buildWorkflowStudioPromotionEvidence();
+  const v14Acceptance = readV14AcceptanceBatchEvidence();
+  const v15Acceptance = readV15AcceptanceBatchEvidence();
+  const releaseCandidate = readReleaseCandidateAcceptanceEvidence();
 
   const slices: EvidenceSlice[] = [
     ...hardening.slices.map((entry) => ({ ...entry, layer: "hardening" as const })),
@@ -127,29 +131,36 @@ export function readPostV1PromotionGate() {
       ],
     },
     "v1.3.1": {
-      ready: workflowStudio.localStatus === "pass",
-      summary: `Workflow Studio local acceptance is ${workflowStudio.localStatus}; production promotion remains ${workflowStudio.productionStatus}.`,
-      evidence: workflowStudio.evidence,
+      ready: workflowStudio.localStatus === "pass" && Boolean(v14Acceptance.latestPassing),
+      summary: `Workflow Studio local acceptance is ${workflowStudio.localStatus}; distributed lease/fencing checks are ${v14Acceptance.latestPassing ? "passing" : "missing"}; production promotion remains ${workflowStudio.productionStatus}.`,
+      evidence: [...workflowStudio.evidence, "/api/experiments/v14-acceptance"],
     },
     "v1.4.0": {
-      ready: Boolean(postgresRls.latestPassing),
-      summary: `Database tenant isolation is ${postgresRls.latestPassing ? "passing" : "missing"}; external identity remains separate.`,
-      evidence: ["/api/governance", postgresRls.path],
+      ready: Boolean(postgresRls.latestPassing && v14Acceptance.latestPassing),
+      summary: `Database tenant isolation is ${postgresRls.latestPassing ? "passing" : "missing"}; the five local enterprise identity checks are ${v14Acceptance.latestPassing ? "passing" : "missing"}; external identity remains separate.`,
+      evidence: [
+        "/api/governance",
+        "/api/governance/workspaces/resources",
+        "/api/governance/identity-events",
+        "/api/experiments/v14-acceptance",
+        "docs/release-evidence/v1.4.0-postgres-workspace-rls-2026-07-23.json",
+        postgresRls.path,
+      ],
     },
     "v1.4.1": {
-      ready: Boolean(training.sampleCompatibility.supported && trainingPlans.sample.executable),
-      summary: `${training.totals.implemented} backend can execute and ${training.totals.preview} backend has a fail-closed preview plan; unsupported combinations cannot reach a worker.`,
-      evidence: ["/api/finetune/training-capabilities", "/api/finetune/training-execution-plan", "/api/evaluation/regression-suite"],
+      ready: Boolean(training.sampleCompatibility.supported && trainingPlans.sample.executable && v14Acceptance.latestPassing && releaseCandidate.latestPassing),
+      summary: `${training.totals.implemented} backend can execute, ${training.totals.preview} backend has a fail-closed preview plan, and ${releaseCandidate.latestPassing?.workload.pairedSamples || 0} real paired release-candidate samples are bound to Quality CI.`,
+      evidence: ["/api/finetune/training-capabilities", "/api/finetune/training-execution-plan", "/api/evaluation/regression-suite", "/api/evaluation/release-candidate", "/api/experiments/v14-acceptance"],
     },
     "v1.5.0": {
-      ready: artifacts.totals.verified > 0,
-      summary: `${artifacts.totals.verified}/${artifacts.totals.records} local package(s) are verified; ${registryAdapters.totals.preview}/${registryAdapters.totals.targets} remote targets have non-mutating staging plans.`,
-      evidence: ["/api/artifacts/packages", "/api/artifacts/registry", "/api/artifacts/registry-adapters"],
+      ready: artifacts.totals.verified > 0 && Boolean(v15Acceptance.latestPassing && releaseCandidate.latestPassing),
+      summary: `${artifacts.totals.verified}/${artifacts.totals.records} local package(s) are verified; the 15-slice trusted artifact train is ${v15Acceptance.latestPassing ? "passing" : "missing"}; the real adapter release candidate is ${releaseCandidate.latestPassing ? "passing" : "missing"}.`,
+      evidence: ["/api/artifacts/packages", "/api/artifacts/registry", "/api/artifacts/registry-adapters", "/api/evaluation/release-candidate", "/api/experiments/v15-acceptance"],
     },
     "v1.5.1": {
-      ready: haFinOps.localReadiness.blockers.length === 0,
-      summary: `Local HA/FinOps readiness is ${haFinOps.localReadiness.blockers.length === 0 ? "pass" : "evidence-needed"}; cloud production readiness is ${haFinOps.productionReadiness.blockers.length === 0 ? "pass" : "blocked"}.`,
-      evidence: ["/api/deployment", "/api/deployment/usage-settlement"],
+      ready: haFinOps.localReadiness.blockers.length === 0 && Boolean(v15Acceptance.latestPassing && releaseCandidate.latestPassing),
+      summary: `Local HA/FinOps readiness is ${haFinOps.localReadiness.blockers.length === 0 ? "pass" : "evidence-needed"}; the release-candidate control receipt has ${Object.values(releaseCandidate.latestPassing?.checks || {}).filter(Boolean).length} passing checks; cloud production readiness is ${haFinOps.productionReadiness.blockers.length === 0 ? "pass" : "blocked"}.`,
+      evidence: ["/api/deployment", "/api/deployment/usage-settlement", "/api/deployment/durable-outbox", "/api/evaluation/release-candidate", "/api/experiments/v15-acceptance"],
     },
   };
 
@@ -165,16 +176,16 @@ export function readPostV1PromotionGate() {
       ...extensionEcosystem.localBlockers,
       ...extensionEcosystem.productionBlockers,
     ],
-    "v1.3.1": [...workflowStudio.localBlockers, ...workflowStudio.productionBlockers],
-    "v1.4.0": identity.blockers,
+    "v1.3.1": [...workflowStudio.localBlockers, ...workflowStudio.productionBlockers, ...v14Acceptance.domainProductionBlockers.workflow],
+    "v1.4.0": [...identity.blockers, ...v14Acceptance.domainProductionBlockers.governance],
     "v1.4.1": training.totals.preview || training.totals.planned
-      ? [`${training.totals.preview} training backend is preview-only and ${training.totals.planned} remains planned.`]
-      : [],
-    "v1.5.0": ["GitHub, ModelScope, and Hugging Face staging publish/install round trips are still required."],
-    "v1.5.1": haFinOps.blockers,
+      ? [`${training.totals.preview} training backend is preview-only and ${training.totals.planned} remains planned.`, ...v14Acceptance.domainProductionBlockers.evaluation]
+      : v14Acceptance.domainProductionBlockers.evaluation,
+    "v1.5.0": v15Acceptance.productionBlockers,
+    "v1.5.1": unique([...haFinOps.blockers, ...v15Acceptance.productionBlockers]),
   };
 
-  const externallyBlocked = new Set(["v1.1.0", "v1.1.1", "v1.3.1", "v1.4.0", "v1.5.1"]);
+  const externallyBlocked = new Set(["v1.1.0", "v1.1.1", "v1.3.1", "v1.4.0", "v1.4.1", "v1.5.1"]);
   const versions = POST_V1_VERSIONS.map((milestone) => {
     const versionSlices = slices.filter((entry) => sliceMatchesVersion(entry.version, milestone.version));
     const foundation = foundationChecks[milestone.version];

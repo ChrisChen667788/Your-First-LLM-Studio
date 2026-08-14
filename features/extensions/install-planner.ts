@@ -1,9 +1,9 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { resolveExtensionDependencies } from "@/features/extensions/dependency-resolver";
 import { readExtensionTrustPolicy, validateExtensionManifest, type ExtensionManifest } from "@/features/extensions/registry";
+import { prependDurableListEntry, readDurableList } from "@/features/persistence/durable-list-store";
 
 export const EXTENSION_INSTALL_PLAN_SCHEMA_VERSION = "extensions.install-plan.v1" as const;
 
@@ -13,14 +13,7 @@ const PLAN_FILE = path.join(DATA_DIR, "extension-install-plans.json");
 type InstallPlan = { id: string; createdAt: string; status: "ready" | "blocked"; installOrder: string[]; approvals: Array<{ extensionId: string; permissions: string[] }>; errors: string[]; manifestDigests: Array<{ id: string; digest: string | null }> };
 
 function readPlans(): InstallPlan[] {
-  if (!existsSync(PLAN_FILE)) return [];
-  try { const parsed = JSON.parse(readFileSync(PLAN_FILE, "utf8")) as { plans?: InstallPlan[] }; return Array.isArray(parsed.plans) ? parsed.plans : []; }
-  catch { return []; }
-}
-
-function writePlans(plans: InstallPlan[]) {
-  mkdirSync(path.dirname(PLAN_FILE), { recursive: true });
-  writeFileSync(PLAN_FILE, `${JSON.stringify({ schemaVersion: EXTENSION_INSTALL_PLAN_SCHEMA_VERSION, plans }, null, 2)}\n`, "utf8");
+  return readDurableList(PLAN_FILE, EXTENSION_INSTALL_PLAN_SCHEMA_VERSION, "plans");
 }
 
 export function createExtensionInstallPlan(manifests: ExtensionManifest[]) {
@@ -38,7 +31,7 @@ export function createExtensionInstallPlan(manifests: ExtensionManifest[]) {
     errors,
     manifestDigests: manifests.map((manifest) => ({ id: manifest.id, digest: manifest.digest || null })),
   };
-  writePlans([plan, ...readPlans()].slice(0, 100));
+  prependDurableListEntry(PLAN_FILE, EXTENSION_INSTALL_PLAN_SCHEMA_VERSION, "plans", plan, 100);
   return plan;
 }
 

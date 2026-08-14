@@ -49,8 +49,17 @@ export function buildBenchmarkRunPayload(
   context: BenchmarkRunPayloadContext,
   inputResults: AgentBenchmarkResult[] = context.results,
 ): AgentBenchmarkResponse {
+  const anySuccessfulSample = inputResults.some((result) => result.okRuns > 0);
+  const allSamplesSkipped =
+    inputResults.length > 0 &&
+    inputResults.every(
+      (result) => result.runs > 0 && result.skippedRuns === result.runs,
+    );
   return {
-    ok: inputResults.some((result) => result.okRuns > 0),
+    ok: anySuccessfulSample || allSamplesSkipped,
+    warning: allSamplesSkipped
+      ? "Benchmark completed with skips because none of the selected targets support every required task modality."
+      : undefined,
     generatedAt: new Date().toISOString(),
     benchmarkMode: context.plan.benchmarkMode,
     prompt: context.plan.prompt,

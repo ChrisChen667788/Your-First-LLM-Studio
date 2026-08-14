@@ -1,16 +1,9 @@
-import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 const baseUrl = (process.env.FIRST_LLM_STUDIO_BASE_URL || "http://127.0.0.1:3011").replace(/\/+$/, "");
 const dataDir = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
-const stable = (value) => Array.isArray(value)
-  ? `[${value.map(stable).join(",")}]`
-  : value && typeof value === "object"
-    ? `{${Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, entry]) => `${JSON.stringify(key)}:${stable(entry)}`).join(",")}}`
-    : JSON.stringify(value);
-
 async function json(pathname, init, accepted = [200]) {
   const response = await fetch(`${baseUrl}${pathname}`, init);
   const body = await response.json();
@@ -26,33 +19,6 @@ async function post(pathname, body, accepted) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   }, accepted);
-}
-
-function createSignedExtension(version, source) {
-  const bundle = {
-    schemaVersion: "first-llm-extension-bundle.v1",
-    files: [{ path: "index.mjs", contentBase64: Buffer.from(source).toString("base64") }],
-  };
-  const payload = Buffer.from(JSON.stringify(bundle));
-  const pair = generateKeyPairSync("ed25519");
-  const digest = createHash("sha256").update(payload).digest("hex");
-  return {
-    manifest: {
-      schemaVersion: "first-llm-extension.v1",
-      id: "local-rehearsal.safe-tool",
-      name: "Local safe tool rehearsal",
-      version,
-      publisher: "local-rehearsal-hardening",
-      kind: "tool",
-      entrypoint: "index.mjs",
-      permissions: ["workspace:read"],
-      compatibleStudio: ">=1.0.0",
-      digest,
-      signature: sign(null, Buffer.from(digest, "hex"), pair.privateKey).toString("base64"),
-    },
-    payloadBase64: payload.toString("base64"),
-    publicKeyPem: pair.publicKey.export({ type: "spki", format: "pem" }).toString(),
-  };
 }
 
 const desktop = await post("/api/desktop/update-channel", {
@@ -85,20 +51,14 @@ const idleUnload = await post("/api/models/server-instances/idle-unload", {
   now: new Date(Date.now() + 2 * 60_000).toISOString(),
 });
 
-const extensionV1 = createSignedExtension("1.0.0", "export default { name: 'safe-tool-v1' };\n");
-const extensionV2 = createSignedExtension("1.1.0", "export default { name: 'safe-tool-v2' };\n");
-const extensionInstallV1 = await post("/api/extensions/installations", extensionV1);
-const extensionInstallV2 = await post("/api/extensions/installations", extensionV2);
-const extensionRollback = await post("/api/extensions/installations", {
-  action: "rollback",
-  extensionId: extensionV1.manifest.id,
-  targetVersion: extensionV1.manifest.version,
-});
+const extensionAcceptance = await post("/api/extensions/acceptance");
+const extensionReceipt = extensionAcceptance.body.receipt;
 
-const deployment = await post("/api/workflows/deploy/protected-tool-resume", {
+const workflow = await post("/api/workflows", {
+  action: "create",
   input: "Post-v1 hardening safe worker rehearsal.",
-}, [202]);
-const executionId = deployment.body.execution.id;
+});
+const executionId = workflow.body.execution.id;
 const workflowApprovalStop = await post("/api/workflows/worker", { executionId, workerId: "hardening-rehearsal", maxSteps: 12 });
 if (workflowApprovalStop.body.receipt.outcome !== "waiting-approval") {
   throw new Error(`Workflow worker did not stop for approval: ${workflowApprovalStop.body.receipt.outcome}`);
@@ -127,40 +87,7 @@ const regressionSuite = await post("/api/evaluation/regression-suite", {
   ],
 });
 
-const artifactPayload = Buffer.from("first-llm-studio post-v1 hardening artifact fixture\n");
-const artifactFileDigest = createHash("sha256").update(artifactPayload).digest("hex");
-const artifactManifest = {
-  schemaVersion: "artifacts.package.v1",
-  id: "local-rehearsal.hardening-package",
-  version: "1.0.0",
-  kind: "workflow",
-  publisher: "local-rehearsal-hardening",
-  createdAt: "2026-07-14T00:00:00.000Z",
-  license: "Apache-2.0",
-  compatibleStudio: ">=1.0.0",
-  dependencies: [{ id: "runtime-profile", version: "1.0.0", digest: createHash("sha256").update("runtime-profile@1.0.0").digest("hex") }],
-  files: [{ path: "manifest.json", role: "manifest", sha256: artifactFileDigest, bytes: artifactPayload.length }],
-  evidenceUris: ["docs/release-evidence/post-v1-hardening-15-slice-2026-07-14.md"],
-};
-artifactManifest.digest = createHash("sha256").update(stable(artifactManifest)).digest("hex");
-const artifactPair = generateKeyPairSync("ed25519");
-artifactManifest.signature = sign(null, Buffer.from(artifactManifest.digest, "hex"), artifactPair.privateKey).toString("base64");
-const artifactProvenance = await post("/api/artifacts/packages", {
-  manifest: artifactManifest,
-  provenance: {
-    sourceUris: ["https://github.com/ChrisChen667788/local-agent-lab"],
-    builderId: "local-rehearsal-hardening",
-    sourceRevision: "working-tree-2026-07-14",
-    sbomUri: "package-lock.json",
-    secretScanPassed: true,
-    evidenceVerified: true,
-    publicKeyPem: artifactPair.publicKey.export({ type: "spki", format: "pem" }).toString(),
-  },
-});
-const artifactRegistry = await post("/api/artifacts/registry", {
-  manifest: artifactManifest,
-  packageBase64: artifactPayload.toString("base64"),
-});
+const artifactAcceptance = await post("/api/artifacts/acceptance");
 const usageReconciliation = await post("/api/deployment/usage-reconciliation", {
   operatorId: "local-reconciliation-worker",
   tenantId: "local-lab",
@@ -180,9 +107,12 @@ const report = {
     idleUnload: idleUnload.body.receipt,
   },
   extensions: {
-    v1: extensionInstallV1.body.result.receipt,
-    v2: extensionInstallV2.body.result.receipt,
-    rollback: extensionRollback.body.result,
+    acceptanceId: extensionReceipt.id,
+    status: extensionReceipt.status,
+    checks: extensionReceipt.checks,
+    lifecycle: extensionReceipt.lifecycle,
+    security: extensionReceipt.security,
+    mcp: extensionReceipt.mcp,
   },
   workflow: {
     executionId,
@@ -193,8 +123,9 @@ const report = {
   policy: policySimulation.body.receipt,
   regressionSuite: regressionSuite.body.receipt,
   artifact: {
-    provenance: artifactProvenance.body.receipt,
-    registry: artifactRegistry.body.record,
+    provenance: artifactAcceptance.body.receipt.provenance,
+    registry: artifactAcceptance.body.receipt.registry,
+    checks: artifactAcceptance.body.receipt.checks,
   },
   usage: usageReconciliation.body.receipt,
   totals: hardening.body.totals,
@@ -203,4 +134,6 @@ const report = {
 mkdirSync(dataDir, { recursive: true });
 const reportPath = path.join(dataDir, "post-v1-hardening-rehearsal.json");
 writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-console.log(JSON.stringify({ ok: hardening.body.totals.ready === hardening.body.totals.slices, reportPath, totals: hardening.body.totals }, null, 2));
+const ok = hardening.body.totals.ready === hardening.body.totals.slices;
+console.log(JSON.stringify({ ok, reportPath, totals: hardening.body.totals }, null, 2));
+if (!ok) process.exitCode = 1;

@@ -17,6 +17,7 @@ import {
   buildBenchmarkResultFromSamples,
   createSkippedBenchmarkSample,
 } from "@/features/benchmark/run-result-builders";
+import { assessBenchmarkTargetModalities } from "@/features/benchmark/model-capabilities";
 import {
   isFatalRemoteBenchmarkSampleFailure,
   isFatalLocalBenchmarkSampleFailure,
@@ -28,6 +29,10 @@ import {
   completeBenchmarkRunGroup,
   startBenchmarkRunGroup,
 } from "@/features/benchmark/run-progress";
+import {
+  persistBenchmarkSampleCheckpoint,
+  readBenchmarkSampleCheckpoint,
+} from "@/features/benchmark/run-sample-checkpoint";
 import type {
   AgentBenchmarkProfileBatchScope,
   AgentBenchmarkResult,
@@ -104,6 +109,40 @@ export async function runBenchmarkResultGroup(
   const runPlannedSample = async (task: PlannedSampleTask) => {
     assertBenchmarkRunActive(runId);
     input.heartbeat?.(`running-sample:${target.id}:${task.workloadId}`);
+    const checkpoint = readBenchmarkSampleCheckpoint(runId, groupKey, task);
+    if (checkpoint) {
+      const resumed = { ...checkpoint, resumedFromCheckpoint: true };
+      advanceBenchmarkRunSampleProgress(runId, {
+        ok: resumed.ok,
+        targetLabel: target.label,
+        providerProfile: mode.providerProfile,
+        thinkingMode: mode.thinkingMode,
+        workloadLabel: task.workloadLabel,
+      });
+      return resumed;
+    }
+    const unsupportedModality = assessBenchmarkTargetModalities(
+      target,
+      task.requiredModalities || ["text"],
+    ).find((assessment) => !assessment.supported);
+    if (unsupportedModality) {
+      const docsSuffix = unsupportedModality.officialDocsUrl
+        ? ` Official documentation: ${unsupportedModality.officialDocsUrl}`
+        : "";
+      const skipped = createSkippedBenchmarkSample(
+        task,
+        `Skipped ${target.label}: ${unsupportedModality.reason}${docsSuffix}`,
+      );
+      advanceBenchmarkRunSampleProgress(runId, {
+        ok: false,
+        targetLabel: target.label,
+        providerProfile: mode.providerProfile,
+        thinkingMode: mode.thinkingMode,
+        workloadLabel: task.workloadLabel,
+      });
+      persistBenchmarkSampleCheckpoint({ runId, groupKey, task, sample: skipped });
+      return skipped;
+    }
     let sample = await runBenchmarkSample(
       resolvedTarget,
       effectiveContextWindow,
@@ -115,6 +154,7 @@ export async function runBenchmarkResultGroup(
         workloadId: task.workloadId,
         thinkingMode: mode.thinkingMode,
         runId,
+        media: task.media,
       },
     );
 
@@ -134,6 +174,7 @@ export async function runBenchmarkResultGroup(
               workloadId: task.workloadId,
               thinkingMode: mode.thinkingMode,
               runId,
+              media: task.media,
             },
           );
         } catch {
@@ -144,7 +185,7 @@ export async function runBenchmarkResultGroup(
 
     const evaluation =
       sample.ok && task.evaluator
-        ? evaluateBenchmarkDatasetOutput(
+        ? await evaluateBenchmarkDatasetOutput(
             {
               id: task.itemId,
               prompt: task.prompt,
@@ -162,12 +203,21 @@ export async function runBenchmarkResultGroup(
       workloadLabel: task.workloadLabel,
       itemId: task.itemId,
       expectedAnswerPreview: task.expectedAnswerPreview,
+      requiredModalities: task.requiredModalities,
       score: evaluation?.score ?? null,
       passed: evaluation?.passed ?? null,
+      evaluation: evaluation?.evaluation,
       warning:
         sample.warning ||
         (evaluation && evaluation.passed === false ? evaluation.rationale : undefined),
     };
+
+    persistBenchmarkSampleCheckpoint({
+      runId,
+      groupKey,
+      task,
+      sample: finalSample,
+    });
 
     advanceBenchmarkRunSampleProgress(runId, {
       ok: finalSample.ok,

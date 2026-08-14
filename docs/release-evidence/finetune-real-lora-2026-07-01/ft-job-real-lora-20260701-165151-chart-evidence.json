@@ -13,7 +13,7 @@
     "step": 327,
     "metric": "eval_loss",
     "value": 0.06,
-    "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts",
+    "path": "runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts",
     "source": "validation",
     "loadBestCheckpointAtEnd": true,
     "selectedAt": "2026-07-01T08:54:28.806135Z"
@@ -21,21 +21,21 @@
   "checkpointEvents": [
     {
       "step": 100,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000100",
+      "path": "runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000100",
       "metric": "eval_loss",
       "value": null,
       "at": "2026-07-01T08:53:52.551250Z"
     },
     {
       "step": 200,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000200",
+      "path": "runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000200",
       "metric": "eval_loss",
       "value": null,
       "at": "2026-07-01T08:54:07.886797Z"
     },
     {
       "step": 300,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000300",
+      "path": "runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000300",
       "metric": "eval_loss",
       "value": null,
       "at": "2026-07-01T08:54:23.375668Z"

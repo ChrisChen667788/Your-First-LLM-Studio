@@ -2,12 +2,13 @@ import { createHash, randomUUID } from "crypto";
 import { existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const MODEL_REMOVAL_LIFECYCLE_SCHEMA_VERSION = "models.removal-lifecycle.v1" as const;
 type Receipt = { id: string; generatedAt: string; status: "pass" | "failed"; checks: Record<string, boolean>; ownersBefore: string[]; ownersAfter: string[]; blobDigest: string; warning: string; error?: string };
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability"); const STORE_FILE = path.join(DATA_DIR, "model-removal-lifecycle.json");
-function readReceipts(): Receipt[] { if (!existsSync(STORE_FILE)) return []; try { const value = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { receipts?: Receipt[] }; return Array.isArray(value.receipts) ? value.receipts : []; } catch { return []; } }
-function persist(receipt: Receipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(STORE_FILE, `${JSON.stringify({ schemaVersion: MODEL_REMOVAL_LIFECYCLE_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 100) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): Receipt[] { return readDurableReceipts(STORE_FILE, MODEL_REMOVAL_LIFECYCLE_SCHEMA_VERSION); }
+function persist(receipt: Receipt) { prependDurableReceipt(STORE_FILE, MODEL_REMOVAL_LIFECYCLE_SCHEMA_VERSION, receipt, 100); }
 export function rehearseModelRemovalLifecycle() {
   const root = mkdtempSync(path.join(os.tmpdir(), "first-llm-model-remove-")); const checks = { quarantinedAtomically: false, sharedBlobPreserved: false, rollbackRestoresOwner: false, finalOwnerRemovalAllowsCleanup: false }; let error: string | undefined; let blobDigest = ""; const ownersBefore = ["model-a", "model-b"]; let ownersAfter: string[] = [];
   try {

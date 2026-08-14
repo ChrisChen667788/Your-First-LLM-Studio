@@ -54,7 +54,7 @@ These are not failures; they are normal scaling signals. They need to be handled
 | Area | Current Signal | Risk |
 | --- | --- | --- |
 | Agent Workbench | `components/agent/AgentWorkbench.tsx` is roughly 3.1k lines after the latest shell, transcript, and provider self-check extractions. | Main shell still owns chat run orchestration and some layout wiring, but transcript panel/container rendering, turn rendering, provider self-check UI, and most shell tooling now live under `features/agent`. |
-| Fine-tune UI | `components/finetune/FineTuneStudioPanel.tsx` is roughly 2.4k lines after the first route-owned extraction. | Dataset, recipe, jobs, reports, charts, and operations now flow through feature-owned setup/run/evidence composer adapters, but the foreground composer still owns broad state assembly. |
+| Fine-tune UI | `features/finetune/FineTuneStudioPanel.tsx` is 1,194 lines and within the 1,200-line architecture budget. | Foreground composition and setup/run/evidence composers are physically feature-owned; remaining reusable leaf panels stay under `components/finetune/panels`. |
 | Compare UI | `components/agent/AgentCompareLab.tsx` is roughly 2.1k lines. | Compare target selection, prompt editor, lane preview, review, and benchmark handoff still need clearer sub-boundaries. |
 | Fine-tune Store | `lib/finetune/store.ts` is roughly 4.3k lines. | Persistence, job state, reporting, bundles, metrics, and artifact bookkeeping are concentrated in one store module. |
 | Product IA | Fine-tune, model discovery, benchmark reports, and dataset workflows are mostly under `/admin`. | Users must enter an operator-feeling area for normal product work. This weakens product clarity and makes admin feel crowded. |
@@ -396,7 +396,7 @@ The first ownership and contract seams now live in:
 - [`docs/route-module-ownership-matrix.md`](./route-module-ownership-matrix.md)
 - `features/finetune/contracts.ts`
 - `features/compare/contracts.ts`
-- `components/finetune/FineTuneStudioShell.tsx`
+- `features/finetune/FineTuneStudioShell.tsx`
 - `app/fine-tune/page.tsx`
 - `app/compare/page.tsx`
 
@@ -406,7 +406,7 @@ These files are intentionally contract-first. Existing routes and large componen
 
 - Fine-tune persistence and operations have been split behind `lib/finetune/*-service.ts`, with `store.ts` kept as a compatibility facade.
 - Evaluation, Chat Adapter, Export, and Distillation each have a dedicated operation service and are imported directly by the fine-tune API route.
-- `FineTuneStudioPanel.tsx` now owns foreground Fine-tune composition under `components/finetune`, delegates setup, run-mode, and evidence composition to `components/finetune/composers/*`, delegates their view-model state creation to `features/finetune/studio-view-model-adapters.ts`, delegates their prop assembly to `features/finetune/studio-composer-adapters.ts`, and reuses panels under `components/finetune/panels/*`; `AdminFineTunePanel.tsx` is only a compatibility wrapper for the admin mirror.
+- `FineTuneStudioPanel.tsx` now owns foreground Fine-tune composition under `features/finetune`, delegates setup, run-mode, and evidence composition to `features/finetune/composers/*`, delegates view-model state and prop assembly to feature adapters, and reuses leaf panels under `components/finetune/panels/*`; `AdminFineTunePanel.tsx` is only a compatibility wrapper for the admin mirror.
 - Compare physical extraction covers the prompt composer, lane matrix, review drawer, lane preview, recipe matrix/gallery, and execution handoff under `features/compare/components/*`; the zero-caller `components/agent/compare/*`, `AgentCompareLab.tsx`, and `AgentRecipeGallery.tsx` compatibility paths were removed on 2026-07-11.
 - Foreground `/fine-tune`, `/compare`, `/models`, `/benchmarks`, `/retrieval`, and `/experiments` routes are live as product IA shells. Retrieval now owns document/import/query UI and Experiments owns timeline navigation and retention; `/admin` remains the monitoring/configuration mirror while deeper governance services continue to move forward.
 - Compare reducer state, workbench implementation, composer/review/lane components, orchestration, lifecycle, persisted preferences, reproduce artifacts, recipe apply/run behavior, route shell, embedded Agent adapters, dynamic loading shell, and prop adapters live under `features/compare/*`; `AgentWorkbench.tsx` delegates embedded Compare orchestration, preference input persistence, and reproduce artifacts through feature ports without Agent-side compatibility exports.

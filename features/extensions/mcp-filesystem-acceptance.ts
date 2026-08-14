@@ -2,7 +2,6 @@ import { createHash, randomUUID } from "crypto";
 import {
   existsSync,
   mkdirSync,
-  readFileSync,
   writeFileSync,
 } from "fs";
 import os from "os";
@@ -15,6 +14,7 @@ import {
   recordMcpServerProbe,
   registerPinnedFilesystemMcpServer,
 } from "@/features/extensions/mcp-server-registry";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const MCP_FILESYSTEM_ACCEPTANCE_SCHEMA_VERSION =
   "extensions.mcp-filesystem-acceptance.v1" as const;
@@ -62,31 +62,11 @@ const DATA_DIR =
 const STORE_FILE = path.join(DATA_DIR, "mcp-filesystem-acceptance.json");
 
 function readReceipts(): McpFilesystemAcceptanceReceipt[] {
-  if (!existsSync(STORE_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as {
-      receipts?: McpFilesystemAcceptanceReceipt[];
-    };
-    return Array.isArray(parsed.receipts) ? parsed.receipts : [];
-  } catch {
-    return [];
-  }
+  return readDurableReceipts(STORE_FILE, MCP_FILESYSTEM_ACCEPTANCE_SCHEMA_VERSION);
 }
 
 function persist(receipt: McpFilesystemAcceptanceReceipt) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(
-    STORE_FILE,
-    `${JSON.stringify(
-      {
-        schemaVersion: MCP_FILESYSTEM_ACCEPTANCE_SCHEMA_VERSION,
-        receipts: [receipt, ...readReceipts()].slice(0, 50),
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
+  prependDurableReceipt(STORE_FILE, MCP_FILESYSTEM_ACCEPTANCE_SCHEMA_VERSION, receipt, 50);
 }
 
 function digest(value: unknown) {
@@ -127,7 +107,10 @@ export async function runMcpFilesystemAcceptance() {
     command: registration.transport.command,
     args: registration.transport.args,
     readPaths: [
-      path.join(process.cwd(), "node_modules"),
+      path.join(
+        process.env.FIRST_LLM_WORKSPACE_ROOT?.trim() || process.cwd(),
+        "node_modules",
+      ),
       ...registration.transport.roots,
     ],
   });

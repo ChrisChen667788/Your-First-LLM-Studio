@@ -14,13 +14,17 @@ import {
 } from "@/lib/agent/providers";
 import type {
   AgentBenchmarkDatasetItem,
+  AgentBenchmarkMediaAsset,
   AgentBenchmarkMode,
+  AgentBenchmarkModality,
   AgentBenchmarkProfileBatchScope,
   AgentBenchmarkWorkloadSummary,
   AgentProviderProfile,
   AgentThinkingMode,
 } from "@/lib/agent/types";
 import type { ExperimentSourceContext } from "@/features/experiments/contracts";
+import { validateBenchmarkMediaAssets } from "@/features/benchmark/model-capabilities";
+import { getQualifiedBenchmarkDataset } from "@/features/benchmark/qualified-dataset-service";
 
 export type BenchmarkRequestBody = {
   runId?: string;
@@ -30,6 +34,7 @@ export type BenchmarkRequestBody = {
   maxTokens?: number;
   benchmarkMode?: AgentBenchmarkMode;
   prompt?: string;
+  media?: AgentBenchmarkMediaAsset[];
   runNote?: string;
   promptSetId?: string;
   datasetId?: string;
@@ -69,6 +74,8 @@ export type PlannedBenchmarkItem = {
   workloadLabel: string;
   expectedAnswerPreview?: string;
   evaluator?: AgentBenchmarkDatasetItem["evaluator"];
+  requiredModalities?: AgentBenchmarkModality[];
+  media?: AgentBenchmarkMediaAsset[];
   runCount: number;
 };
 
@@ -80,6 +87,8 @@ export type PlannedSampleTask = {
   itemId: string;
   expectedAnswerPreview?: string;
   evaluator?: AgentBenchmarkDatasetItem["evaluator"];
+  requiredModalities?: AgentBenchmarkModality[];
+  media?: AgentBenchmarkMediaAsset[];
   contextWindow: number;
   maxTokens: number;
 };
@@ -87,6 +96,10 @@ export type PlannedSampleTask = {
 export type BenchmarkPlan = BenchmarkWorkload & {
   items: PlannedBenchmarkItem[];
 };
+
+function resolveBenchmarkDataset(id?: string | null) {
+  return getBenchmarkDataset(id) || getQualifiedBenchmarkDataset(id);
+}
 
 const REMOTE_PROFILE_COMPARISON_WORKLOAD_IDS = new Set([
   "latency-smoke",
@@ -129,7 +142,7 @@ function buildSuitePlan(
       continue;
     }
 
-    const dataset = getBenchmarkDataset(workload.datasetId);
+    const dataset = resolveBenchmarkDataset(workload.datasetId);
     if (!dataset) {
       return { error: `Unknown dataset in suite ${suite.id}: ${workload.datasetId}` };
     }
@@ -152,6 +165,8 @@ function buildSuitePlan(
         workloadLabel: dataset.label,
         expectedAnswerPreview: item.expectedAnswerPreview,
         evaluator: item.evaluator,
+        requiredModalities: item.requiredModalities,
+        media: item.media,
         runCount: workload.runs || runs,
       });
     }
@@ -278,6 +293,10 @@ function normalizeWorkloadBudget(
       contextWindow: requestedContextWindow,
       maxTokens: Math.min(requestedMaxTokens, 256),
     },
+    "math-500-qualified": {
+      contextWindow: requestedContextWindow,
+      maxTokens: Math.min(requestedMaxTokens, 1024),
+    },
   };
 
   return (
@@ -311,6 +330,8 @@ export function expandPlanTasks(
         itemId: benchmarkPrompt.id,
         expectedAnswerPreview: benchmarkPrompt.expectedAnswerPreview,
         evaluator: benchmarkPrompt.evaluator,
+        requiredModalities: benchmarkPrompt.requiredModalities,
+        media: benchmarkPrompt.media,
         contextWindow: budget.contextWindow,
         maxTokens: budget.maxTokens,
       });
@@ -387,7 +408,14 @@ export function buildPlan(
   runs: number,
 ): BenchmarkPlan | { error: string } {
   const benchmarkMode = body.benchmarkMode || (body.suiteId ? "suite" : body.datasetId ? "dataset" : "prompt");
-  const datasetSampleLimit = Math.max(1, Math.min(Math.trunc(body.datasetSampleLimit || 5), 50));
+  const requestedDatasetSampleLimit = Math.trunc(body.datasetSampleLimit || 5);
+  const datasetSampleLimit = Math.max(
+    1,
+    Math.min(
+      requestedDatasetSampleLimit,
+      body.datasetId === "math-500-qualified" ? 500 : 50,
+    ),
+  );
 
   if (benchmarkMode === "suite") {
     const suite = getBenchmarkMilestoneSuite(body.suiteId);
@@ -398,7 +426,7 @@ export function buildPlan(
   }
 
   if (benchmarkMode === "dataset") {
-    const dataset = getBenchmarkDataset(body.datasetId);
+    const dataset = resolveBenchmarkDataset(body.datasetId);
     if (!dataset) {
       return { error: `Unknown benchmark dataset: ${body.datasetId || "empty"}` };
     }
@@ -409,6 +437,8 @@ export function buildPlan(
       workloadLabel: dataset.label,
       expectedAnswerPreview: item.expectedAnswerPreview,
       evaluator: item.evaluator,
+      requiredModalities: item.requiredModalities,
+      media: item.media,
       runCount: runs,
     }));
     return {
@@ -471,6 +501,11 @@ export function buildPlan(
     };
   }
 
+  const validatedMedia = validateBenchmarkMediaAssets(body.media);
+  if ("error" in validatedMedia) {
+    return validatedMedia;
+  }
+
   return {
     benchmarkMode,
     prompt,
@@ -489,8 +524,17 @@ export function buildPlan(
         prompt,
         workloadId: "custom-prompt",
         workloadLabel: "Custom prompt",
+        requiredModalities: uniqueBenchmarkModalities([
+          "text",
+          ...validatedMedia.media.map((asset) => asset.type),
+        ]),
+        media: validatedMedia.media,
         runCount: runs,
       },
     ],
   };
+}
+
+function uniqueBenchmarkModalities(values: AgentBenchmarkModality[]) {
+  return [...new Set(values)];
 }

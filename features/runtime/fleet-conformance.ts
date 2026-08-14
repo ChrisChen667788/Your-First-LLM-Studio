@@ -1,16 +1,34 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { readServerInstanceRegistry } from "@/features/models/server-instance-registry";
+import {
+  prependDurableListEntry,
+  readDurableList,
+} from "@/features/persistence/durable-list-store";
 import { readOpenAiCompatibleConformance, runOpenAiCompatibleConformance } from "@/features/runtime/openai-compatible-conformance";
 
 export const RUNTIME_FLEET_CONFORMANCE_SCHEMA_VERSION = "runtime.fleet-conformance.v1" as const;
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const SNAPSHOT_FILE = path.join(DATA_DIR, "runtime-fleet-conformance.json");
 type Snapshot = { id: string; generatedAt: string; status: "pass" | "hold"; servers: Array<{ serverId: string; backend: string; modelId?: string; status: "passing" | "failing" | "stale" | "missing"; reportId?: string; ageMs?: number }>; blockers: string[] };
-function readSnapshots(): Snapshot[] { if (!existsSync(SNAPSHOT_FILE)) return []; try { const parsed = JSON.parse(readFileSync(SNAPSHOT_FILE, "utf8")) as { snapshots?: Snapshot[] }; return Array.isArray(parsed.snapshots) ? parsed.snapshots : []; } catch { return []; } }
-function persist(snapshot: Snapshot) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(SNAPSHOT_FILE, `${JSON.stringify({ schemaVersion: RUNTIME_FLEET_CONFORMANCE_SCHEMA_VERSION, snapshots: [snapshot, ...readSnapshots()].slice(0, 100) }, null, 2)}\n`, "utf8"); }
+function readSnapshots(): Snapshot[] {
+  return readDurableList(
+    SNAPSHOT_FILE,
+    RUNTIME_FLEET_CONFORMANCE_SCHEMA_VERSION,
+    "snapshots",
+  );
+}
+
+function persist(snapshot: Snapshot) {
+  prependDurableListEntry(
+    SNAPSHOT_FILE,
+    RUNTIME_FLEET_CONFORMANCE_SCHEMA_VERSION,
+    "snapshots",
+    snapshot,
+    100,
+  );
+}
 
 export function snapshotRuntimeFleetConformance() {
   const reports = readOpenAiCompatibleConformance().reports;

@@ -12,9 +12,14 @@ const outputDir = path.join(root, "output", "release-evidence");
 const outputName = "v1.3.1-workflow-studio-acceptance-2026-07-23.json";
 
 async function fetchJson(pathname, init = {}) {
+  const operatorToken = process.env.FIRST_LLM_OPERATOR_TOKEN?.trim();
   const response = await fetch(`${baseUrl}${pathname}`, {
     ...init,
-    headers: { "content-type": "application/json", ...(init.headers || {}) },
+    headers: {
+      "content-type": "application/json",
+      ...(operatorToken ? { "x-first-llm-operator-key": operatorToken } : {}),
+      ...(init.headers || {}),
+    },
     signal: AbortSignal.timeout(120_000),
   });
   const payload = await response.json();

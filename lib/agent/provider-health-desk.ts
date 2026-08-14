@@ -251,6 +251,9 @@ function inferProviderKind(target: AgentTarget): RemoteBenchmarkProviderKind {
   if (target.id === "deepseek-api" || baseUrl.includes("deepseek") || model.includes("deepseek")) {
     return "deepseek-compatible";
   }
+  if (target.id === "minimax-m3" || baseUrl.includes("minimaxi") || model.includes("minimax")) {
+    return "minimax-compatible";
+  }
   if (target.id === "kimi-api" || baseUrl.includes("moonshot") || model.includes("kimi")) {
     return "moonshot-compatible";
   }

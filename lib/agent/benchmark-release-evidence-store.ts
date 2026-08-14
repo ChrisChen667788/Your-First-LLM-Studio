@@ -1,5 +1,5 @@
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
-import { getLocalAgentDataDir, getLocalAgentDataPath } from "@/lib/agent/data-dir";
+import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
+import { readJsonFileDurably, updateJsonFileDurably } from "@/features/persistence/durable-json-file";
 
 export type StoredBenchmarkReleaseEvidence = {
   id: string;
@@ -12,8 +12,24 @@ export type StoredBenchmarkReleaseEvidence = {
 
 const EVIDENCE_FILE = getLocalAgentDataPath("benchmark-release-evidence.json");
 
-function ensureEvidenceDir() {
-  mkdirSync(getLocalAgentDataDir(), { recursive: true });
+type EvidenceStore = {
+  schemaVersion: "0.3.0";
+  updatedAt: string;
+  entries: StoredBenchmarkReleaseEvidence[];
+};
+
+const emptyStore = (): EvidenceStore => ({
+  schemaVersion: "0.3.0",
+  updatedAt: new Date(0).toISOString(),
+  entries: [],
+});
+
+function isEvidenceStore(value: unknown): value is EvidenceStore {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<EvidenceStore>;
+  return candidate.schemaVersion === "0.3.0"
+    && typeof candidate.updatedAt === "string"
+    && Array.isArray(candidate.entries);
 }
 
 function normalizeEntries(input: unknown) {
@@ -39,30 +55,17 @@ function normalizeEntries(input: unknown) {
 }
 
 export function readBenchmarkReleaseEvidence() {
-  try {
-    const source = readFileSync(EVIDENCE_FILE, "utf8");
-    const parsed = JSON.parse(source) as { entries?: unknown };
-    return normalizeEntries(parsed.entries);
-  } catch {
-    return [];
-  }
+  return normalizeEntries(readJsonFileDurably(EVIDENCE_FILE, emptyStore, isEvidenceStore).entries);
 }
 
-function writeBenchmarkReleaseEvidence(entries: StoredBenchmarkReleaseEvidence[]) {
-  ensureEvidenceDir();
-  writeFileSync(
-    EVIDENCE_FILE,
-    `${JSON.stringify(
-      {
-        schemaVersion: "0.3.0",
-        updatedAt: new Date().toISOString(),
-        entries
-      },
-      null,
-      2
-    )}\n`,
-    "utf8"
-  );
+function updateBenchmarkReleaseEvidence(
+  mutator: (entries: StoredBenchmarkReleaseEvidence[]) => StoredBenchmarkReleaseEvidence[],
+) {
+  return updateJsonFileDurably(EVIDENCE_FILE, emptyStore, (store) => ({
+    schemaVersion: "0.3.0" as const,
+    updatedAt: new Date().toISOString(),
+    entries: mutator(normalizeEntries(store.entries)),
+  }), isEvidenceStore);
 }
 
 export function upsertBenchmarkReleaseEvidence(input: {
@@ -70,32 +73,25 @@ export function upsertBenchmarkReleaseEvidence(input: {
   title?: string;
   note?: string;
 }) {
-  const entries = readBenchmarkReleaseEvidence();
-  const existing = entries.find((entry) => entry.runId === input.runId) || null;
-  const nextEntry: StoredBenchmarkReleaseEvidence = existing
-    ? {
-        ...existing,
-        title: input.title ?? existing.title,
-        note: input.note ?? existing.note,
-        pinnedAt: new Date().toISOString()
-      }
-    : {
-        id: crypto.randomUUID(),
-        kind: "benchmark-release-evidence",
-        runId: input.runId,
-        title: input.title,
-        note: input.note,
-        pinnedAt: new Date().toISOString()
-      };
-  const nextEntries = [nextEntry, ...entries.filter((entry) => entry.runId !== input.runId)].slice(0, 20);
-  writeBenchmarkReleaseEvidence(nextEntries);
-  return nextEntry;
+  const outcome: { value?: StoredBenchmarkReleaseEvidence } = {};
+  updateBenchmarkReleaseEvidence((entries) => {
+    const existing = entries.find((entry) => entry.runId === input.runId) || null;
+    const nextEntry: StoredBenchmarkReleaseEvidence = existing
+      ? { ...existing, title: input.title ?? existing.title, note: input.note ?? existing.note, pinnedAt: new Date().toISOString() }
+      : { id: crypto.randomUUID(), kind: "benchmark-release-evidence", runId: input.runId, title: input.title, note: input.note, pinnedAt: new Date().toISOString() };
+    outcome.value = nextEntry;
+    return [nextEntry, ...entries.filter((entry) => entry.runId !== input.runId)].slice(0, 20);
+  });
+  if (!outcome.value) throw new Error("Benchmark evidence update did not complete.");
+  return outcome.value;
 }
 
 export function removeBenchmarkReleaseEvidence(runId: string) {
-  const entries = readBenchmarkReleaseEvidence();
-  const nextEntries = entries.filter((entry) => entry.runId !== runId);
-  writeBenchmarkReleaseEvidence(nextEntries);
-  return nextEntries.length !== entries.length;
+  const outcome = { deleted: false };
+  updateBenchmarkReleaseEvidence((entries) => {
+    const nextEntries = entries.filter((entry) => entry.runId !== runId);
+    outcome.deleted = nextEntries.length !== entries.length;
+    return nextEntries;
+  });
+  return outcome.deleted;
 }
-

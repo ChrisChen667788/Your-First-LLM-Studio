@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 import { readServerInstanceRegistry } from "@/features/models/server-instance-registry";
 import { readServerRequestLedger } from "@/features/models/server-request-ledger";
 import { runServerLifecycleAction } from "@/features/models/server-lifecycle";
@@ -11,8 +11,8 @@ const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Li
 const RECEIPT_FILE = path.join(DATA_DIR, "idle-unload-daemon-receipts.json");
 type Decision = { serverId: string; modelId?: string; idleMs: number; thresholdMs: number; decision: "skip" | "would-unload" | "unloaded" | "failed"; reason: string };
 type Receipt = { id: string; generatedAt: string; mode: "dry-run" | "execute"; status: "pass" | "failed"; decisions: Decision[] };
-function readReceipts(): Receipt[] { if (!existsSync(RECEIPT_FILE)) return []; try { const parsed = JSON.parse(readFileSync(RECEIPT_FILE, "utf8")) as { receipts?: Receipt[] }; return Array.isArray(parsed.receipts) ? parsed.receipts : []; } catch { return []; } }
-function persist(receipt: Receipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(RECEIPT_FILE, `${JSON.stringify({ schemaVersion: IDLE_UNLOAD_DAEMON_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 100) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): Receipt[] { return readDurableReceipts(RECEIPT_FILE, IDLE_UNLOAD_DAEMON_SCHEMA_VERSION); }
+function persist(receipt: Receipt) { prependDurableReceipt(RECEIPT_FILE, IDLE_UNLOAD_DAEMON_SCHEMA_VERSION, receipt, 100); }
 
 export async function runIdleUnloadDaemonTick(input: { execute?: boolean; now?: string } = {}) {
   const nowMs = input.now ? Date.parse(input.now) : Date.now();

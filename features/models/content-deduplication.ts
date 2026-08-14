@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "crypto";
 import { existsSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 import { readModelContentAddressIndex } from "@/features/models/content-address-index";
 
 export const MODEL_CONTENT_DEDUP_SCHEMA_VERSION = "models.content-deduplication.v1" as const;
@@ -11,8 +12,8 @@ const RECEIPT_FILE = path.join(DATA_DIR, "model-content-dedup-receipts.json");
 
 type DedupReceipt = { id: string; generatedAt: string; status: "pass" | "failed"; checks: Record<string, boolean>; bytesSaved: number; error?: string };
 
-function readReceipts(): DedupReceipt[] { if (!existsSync(RECEIPT_FILE)) return []; try { const parsed = JSON.parse(readFileSync(RECEIPT_FILE, "utf8")) as { receipts?: DedupReceipt[] }; return Array.isArray(parsed.receipts) ? parsed.receipts : []; } catch { return []; } }
-function persist(receipt: DedupReceipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(RECEIPT_FILE, `${JSON.stringify({ schemaVersion: MODEL_CONTENT_DEDUP_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 50) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): DedupReceipt[] { return readDurableReceipts(RECEIPT_FILE, MODEL_CONTENT_DEDUP_SCHEMA_VERSION); }
+function persist(receipt: DedupReceipt) { prependDurableReceipt(RECEIPT_FILE, MODEL_CONTENT_DEDUP_SCHEMA_VERSION, receipt, 50); }
 
 export function buildModelContentDedupPlan() {
   const index = readModelContentAddressIndex();

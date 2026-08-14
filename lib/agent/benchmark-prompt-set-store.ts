@@ -1,4 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync } from "fs";
+import {
+  readJsonFileDurably,
+  replaceJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 import { defaultBenchmarkPromptSets } from "@/lib/agent/benchmark-presets";
 import { getLocalAgentDataDir, getLocalAgentDataPath } from "@/lib/agent/data-dir";
 import type { AgentBenchmarkPromptSet } from "@/lib/agent/types";
@@ -29,8 +34,7 @@ function buildSlug(label: string) {
 }
 
 function writePromptSets(rows: AgentBenchmarkPromptSet[]) {
-  ensureDataDir();
-  writeFileSync(PROMPT_SET_FILE, `${JSON.stringify(rows, null, 2)}\n`, "utf8");
+  replaceJsonFileDurably(PROMPT_SET_FILE, rows, Array.isArray);
 }
 
 function getInitialPromptSets() {
@@ -54,32 +58,19 @@ export function getBenchmarkPromptSetFilePath() {
 }
 
 export function readManagedBenchmarkPromptSets() {
-  ensureDataDir();
-  if (!existsSync(PROMPT_SET_FILE)) {
-    const rows = getInitialPromptSets();
-    writePromptSets(rows);
-    return rows;
+  const payload = readJsonFileDurably(
+    PROMPT_SET_FILE,
+    getInitialPromptSets,
+    Array.isArray,
+  );
+  const normalized = payload
+    .map((entry) => normalizePromptSet(entry))
+    .filter((entry) => entry.id && entry.label && entry.prompts.length > 0);
+  const merged = mergePromptSets(normalized);
+  if (JSON.stringify(merged) !== JSON.stringify(normalized)) {
+    writePromptSets(merged);
   }
-  try {
-    const payload = JSON.parse(readFileSync(PROMPT_SET_FILE, "utf8")) as AgentBenchmarkPromptSet[];
-    if (!Array.isArray(payload)) {
-      const rows = getInitialPromptSets();
-      writePromptSets(rows);
-      return rows;
-    }
-    const normalized = payload
-      .map((entry) => normalizePromptSet(entry))
-      .filter((entry) => entry.id && entry.label && entry.prompts.length > 0);
-    const merged = mergePromptSets(normalized);
-    if (JSON.stringify(merged) !== JSON.stringify(normalized)) {
-      writePromptSets(merged);
-    }
-    return merged;
-  } catch {
-    const rows = getInitialPromptSets();
-    writePromptSets(rows);
-    return rows;
-  }
+  return merged;
 }
 
 export function getManagedBenchmarkPromptSet(id?: string | null) {
@@ -93,23 +84,22 @@ export function createManagedBenchmarkPromptSet(input: {
   description?: string;
   prompts: string[];
 }) {
-  const rows = readManagedBenchmarkPromptSets();
   const baseId = (input.id?.trim() || buildSlug(input.label)).slice(0, 64);
-  let nextId = baseId;
-  let counter = 2;
-  while (rows.some((entry) => entry.id === nextId)) {
-    nextId = `${baseId}-${counter}`.slice(0, 64);
-    counter += 1;
-  }
-  const record = normalizePromptSet({
-    id: nextId,
-    label: input.label,
-    description: input.description || "",
-    prompts: input.prompts
-  });
-  rows.push(record);
-  writePromptSets(rows);
-  return record;
+  const outcome: { value?: AgentBenchmarkPromptSet } = {};
+  updateJsonFileDurably(PROMPT_SET_FILE, getInitialPromptSets, (stored) => {
+    const rows = mergePromptSets(stored);
+    let nextId = baseId;
+    let counter = 2;
+    while (rows.some((entry) => entry.id === nextId)) {
+      nextId = `${baseId}-${counter}`.slice(0, 64);
+      counter += 1;
+    }
+    const record = normalizePromptSet({ id: nextId, label: input.label, description: input.description || "", prompts: input.prompts });
+    outcome.value = record;
+    return [...rows, record];
+  }, Array.isArray);
+  if (!outcome.value) throw new Error("Benchmark prompt set creation did not complete.");
+  return outcome.value;
 }
 
 export function updateManagedBenchmarkPromptSet(
@@ -120,24 +110,26 @@ export function updateManagedBenchmarkPromptSet(
     prompts: string[];
   }
 ) {
-  const rows = readManagedBenchmarkPromptSets();
-  const index = rows.findIndex((entry) => entry.id === id);
-  if (index === -1) return null;
-  const updated = normalizePromptSet({
-    id,
-    label: input.label,
-    description: input.description || "",
-    prompts: input.prompts
-  });
-  rows[index] = updated;
-  writePromptSets(rows);
-  return updated;
+  const outcome: { value?: AgentBenchmarkPromptSet | null } = {};
+  updateJsonFileDurably(PROMPT_SET_FILE, getInitialPromptSets, (stored) => {
+    const rows = mergePromptSets(stored);
+    const index = rows.findIndex((entry) => entry.id === id);
+    if (index === -1) { outcome.value = null; return rows; }
+    const updated = normalizePromptSet({ id, label: input.label, description: input.description || "", prompts: input.prompts });
+    rows[index] = updated;
+    outcome.value = updated;
+    return rows;
+  }, Array.isArray);
+  return outcome.value ?? null;
 }
 
 export function deleteManagedBenchmarkPromptSet(id: string) {
-  const rows = readManagedBenchmarkPromptSets();
-  const nextRows = rows.filter((entry) => entry.id !== id);
-  if (nextRows.length === rows.length) return false;
-  writePromptSets(nextRows);
-  return true;
+  const outcome = { deleted: false };
+  updateJsonFileDurably(PROMPT_SET_FILE, getInitialPromptSets, (stored) => {
+    const rows = mergePromptSets(stored);
+    const nextRows = rows.filter((entry) => entry.id !== id);
+    outcome.deleted = nextRows.length !== rows.length;
+    return nextRows;
+  }, Array.isArray);
+  return outcome.deleted;
 }

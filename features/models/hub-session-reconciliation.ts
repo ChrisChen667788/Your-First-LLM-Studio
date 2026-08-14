@@ -1,16 +1,17 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import { existsSync, statSync } from "fs";
 import os from "os";
 import path from "path";
 import { readHubTransferSessions } from "@/features/models/hub-transfer-session";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const HUB_SESSION_RECONCILIATION_SCHEMA_VERSION = "models.hub-session-reconciliation.v1" as const;
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const RECEIPT_FILE = path.join(DATA_DIR, "hub-session-reconciliation.json");
 
 type Receipt = { id: string; generatedAt: string; status: "pass" | "hold"; sessions: number; files: number; completed: number; missing: number; checksumMetadataMissing: number; retryExhausted: number; findings: string[] };
-function readReceipts(): Receipt[] { if (!existsSync(RECEIPT_FILE)) return []; try { const parsed = JSON.parse(readFileSync(RECEIPT_FILE, "utf8")) as { receipts?: Receipt[] }; return Array.isArray(parsed.receipts) ? parsed.receipts : []; } catch { return []; } }
-function persist(receipt: Receipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(RECEIPT_FILE, `${JSON.stringify({ schemaVersion: HUB_SESSION_RECONCILIATION_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 50) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): Receipt[] { return readDurableReceipts(RECEIPT_FILE, HUB_SESSION_RECONCILIATION_SCHEMA_VERSION); }
+function persist(receipt: Receipt) { prependDurableReceipt(RECEIPT_FILE, HUB_SESSION_RECONCILIATION_SCHEMA_VERSION, receipt, 50); }
 
 export function reconcileHubTransferSessions() {
   const registry = readHubTransferSessions();

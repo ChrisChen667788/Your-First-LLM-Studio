@@ -88,17 +88,17 @@ export function PostV1PromotionGatePanel({ locale }: { locale: string }) {
 
       {error ? <p className="mt-4 border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">{error}</p> : null}
 
-      <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
         {payload?.versions.map((entry) => {
           const blocker = entry.localBlockers[0] || entry.externalBlockers[0];
           return (
-            <article key={entry.version} className="flex min-h-64 flex-col border border-white/10 bg-black/25 p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
+            <article key={entry.version} className="flex min-h-64 min-w-0 flex-col overflow-hidden border border-white/10 bg-black/25 p-3">
+              <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
                   <p className="text-xs font-semibold text-cyan-300">{entry.version}</p>
-                  <h3 className="mt-1 text-sm font-semibold text-white">{entry.label}</h3>
+                  <h3 className="mt-1 break-words text-sm font-semibold text-white">{entry.label}</h3>
                 </div>
-                <span className={`border px-2 py-1 text-[10px] font-semibold uppercase ${tone(entry.status)}`}>{entry.status}</span>
+                <span className={`max-w-full break-all border px-2 py-1 text-center text-[10px] font-semibold uppercase ${tone(entry.status)}`}>{entry.status}</span>
               </div>
               <div className="mt-3 h-1 bg-white/10">
                 <div className="h-full bg-cyan-300" style={{ width: `${entry.releaseCompletionPct}%` }} />
@@ -108,9 +108,9 @@ export function PostV1PromotionGatePanel({ locale }: { locale: string }) {
                 <span className="border border-white/10 px-1 py-1">A {entry.layers.acceptance}</span>
                 <span className="border border-white/10 px-1 py-1">L {entry.layers.lifecycle}</span>
               </div>
-              <p className="mt-3 text-xs leading-5 text-slate-400">{entry.summary}</p>
-              {blocker ? <p className="mt-2 text-xs leading-5 text-amber-200">{blocker}</p> : null}
-              <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+              <p className="mt-3 break-words text-xs leading-5 text-slate-400">{entry.summary}</p>
+              {blocker ? <p className="mt-2 break-words text-xs leading-5 text-amber-200">{blocker}</p> : null}
+              <div className="mt-auto flex min-w-0 flex-wrap items-center justify-between gap-2 pt-3">
                 <span className="text-[10px] uppercase text-slate-500">{entry.layers.ready}/{entry.layers.total} checks</span>
                 <Link href={entry.route} className="border border-cyan-300/20 bg-cyan-400/10 px-2 py-1 text-xs font-semibold text-cyan-50 hover:bg-cyan-400/20">
                   {en ? "Open" : "打开"}

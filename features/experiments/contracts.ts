@@ -164,6 +164,7 @@ export type ReleaseTrainResponse = {
   ok: true;
   generatedAt: string;
   activeVersion: string;
+  developmentVersion: string;
   milestones: ReleaseTrainMilestone[];
 };
 

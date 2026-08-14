@@ -9,8 +9,9 @@ import {
 } from "./repository";
 import { truncatePreview } from "./store-internal";
 import { resolveFineTuneAdapter } from "./operation-shared";
+import { runFineTuneAdapterInference } from "./inference-service";
 
-export function runFineTuneAdapterChat(input: {
+export async function runFineTuneAdapterChat(input: {
   adapterId: string;
   role?: string;
   systemPrompt?: string;
@@ -30,13 +31,18 @@ export function runFineTuneAdapterChat(input: {
   const paths = getOperationPaths("chat-adapter", id);
   mkdirSync(paths.outputDir, { recursive: true });
   const generatedAt = new Date().toISOString();
-  const response = [
-    `Adapter: ${adapter.adapterName}`,
-    `Role: ${input.role?.trim() || "user"}`,
-    "",
-    "This local chat smoke response confirms the adapter handoff path is wired.",
-    `Prompt focus: ${truncatePreview(prompt, 220)}`,
-  ].join("\n");
+  const inference = await runFineTuneAdapterInference({
+    adapterId: adapter.id,
+    prompt,
+    options: {
+      systemPrompt: input.systemPrompt,
+      maxNewTokens: input.maxNewTokens,
+      temperature: input.temperature,
+      topP: input.topP,
+    },
+  });
+  const response = inference.content.trim();
+  if (!response) throw new Error("Attached adapter returned an empty response.");
   const transcript = {
     generatedAt,
     adapter,
@@ -54,6 +60,12 @@ export function runFineTuneAdapterChat(input: {
       { role: input.role?.trim() || "user", content: prompt },
       { role: "assistant", content: response },
     ].filter(Boolean),
+    provider: {
+      targetId: adapter.attachedTargetId,
+      resolvedModel: inference.resolvedModel,
+      usage: inference.usage || null,
+      warning: inference.warning || null,
+    },
   };
   writeFileSync(
     paths.transcriptFile,
@@ -63,7 +75,7 @@ export function runFineTuneAdapterChat(input: {
   writeFileSync(
     paths.reportFile,
     [
-      `# Adapter Chat Smoke: ${adapter.adapterName}`,
+      `# Adapter Chat: ${adapter.adapterName}`,
       "",
       `Generated: ${generatedAt}`,
       "",
@@ -97,14 +109,15 @@ export function runFineTuneAdapterChat(input: {
     id,
     kind: "chat-adapter",
     status: "completed",
-    title: `Chat smoke · ${adapter.adapterName}`,
+    title: `Adapter chat · ${adapter.adapterName}`,
     adapterId: adapter.id,
     jobId: adapter.jobId,
     outputDir: paths.outputDir,
-    summary: `Generated adapter chat smoke transcript for ${adapter.adapterName}.`,
+    summary: `Generated a real adapter response with ${inference.resolvedModel}.`,
     metrics: {
       promptChars: prompt.length,
       responseChars: response.length,
+      totalTokens: inference.usage?.totalTokens || 0,
     },
     artifacts: [
       artifactFor(paths.reportFile, "Chat report", "text/markdown"),
@@ -118,7 +131,7 @@ export function runFineTuneAdapterChat(input: {
   appendExperimentEvent({
     kind: "finetune",
     status: "completed",
-    title: "Adapter chat smoke completed",
+    title: "Adapter chat inference completed",
     summary: operation.summary,
     relatedId: operation.id,
     ...buildFineTuneOperationEventReferences(operation),

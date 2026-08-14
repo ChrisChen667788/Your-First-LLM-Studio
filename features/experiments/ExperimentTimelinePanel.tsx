@@ -361,7 +361,7 @@ export function ExperimentTimelinePanel({
             return (
               <div
                 key={event.id}
-                className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+                className="min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">

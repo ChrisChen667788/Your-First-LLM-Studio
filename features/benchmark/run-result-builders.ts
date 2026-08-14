@@ -23,6 +23,7 @@ export function createSkippedBenchmarkSample(
     workloadLabel: task.workloadLabel,
     itemId: task.itemId,
     expectedAnswerPreview: task.expectedAnswerPreview,
+    requiredModalities: task.requiredModalities,
     firstTokenLatencyMs: null,
     latencyMs: 0,
     completionTokens: 0,

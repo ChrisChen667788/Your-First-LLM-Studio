@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, readdirSync } from "fs";
 import type {
   AgentBenchmarkMode,
   AgentBenchmarkProfileBatchScope,
@@ -8,6 +8,7 @@ import type {
   AgentThinkingMode
 } from "@/lib/agent/types";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
+import { readJsonFileDurably, replaceJsonFileDurably, updateJsonFileDurably } from "@/features/persistence/durable-json-file";
 
 const PROGRESS_DIR = getLocalAgentDataPath("benchmark-progress");
 
@@ -19,9 +20,12 @@ function getProgressPath(runId: string) {
   return getLocalAgentDataPath("benchmark-progress", `${runId}.json`);
 }
 
+function isProgress(value: unknown): value is AgentBenchmarkProgress {
+  return Boolean(value) && typeof value === "object" && typeof (value as AgentBenchmarkProgress).runId === "string";
+}
+
 function writeProgress(progress: AgentBenchmarkProgress) {
-  ensureProgressDir();
-  writeFileSync(getProgressPath(progress.runId), `${JSON.stringify(progress, null, 2)}\n`, "utf8");
+  replaceJsonFileDurably(getProgressPath(progress.runId), progress, isProgress);
 }
 
 export function createBenchmarkProgress(input: {
@@ -74,27 +78,18 @@ export function createBenchmarkProgress(input: {
 
 export function readBenchmarkProgress(runId: string) {
   const filePath = getProgressPath(runId);
-  if (!existsSync(filePath)) return null;
-  try {
-    return JSON.parse(readFileSync(filePath, "utf8")) as AgentBenchmarkProgress;
-  } catch {
-    return null;
-  }
+  return readJsonFileDurably(
+    filePath,
+    () => null as AgentBenchmarkProgress | null,
+    (value): value is AgentBenchmarkProgress | null => value === null || isProgress(value),
+  );
 }
 
 export function readLatestBenchmarkProgress(options?: { unfinishedOnly?: boolean }) {
   ensureProgressDir();
   const progresses = readdirSync(PROGRESS_DIR)
     .filter((entry) => entry.endsWith(".json"))
-    .map((file) => {
-      try {
-        return JSON.parse(
-          readFileSync(getProgressPath(file.replace(/\.json$/, "")), "utf8")
-        ) as AgentBenchmarkProgress;
-      } catch {
-        return null;
-      }
-    })
+    .map((file) => readBenchmarkProgress(file.replace(/\.json$/, "")))
     .filter((progress): progress is AgentBenchmarkProgress => Boolean(progress))
     .filter((progress) =>
       options?.unfinishedOnly
@@ -110,15 +105,40 @@ export function readLatestBenchmarkProgress(options?: { unfinishedOnly?: boolean
   return progresses[0] || null;
 }
 
+export function listBenchmarkProgress(options?: {
+  runIdPrefix?: string;
+  limit?: number;
+}) {
+  ensureProgressDir();
+  const progresses = readdirSync(PROGRESS_DIR)
+    .filter((entry) => entry.endsWith(".json"))
+    .map((file) => readBenchmarkProgress(file.replace(/\.json$/, "")))
+    .filter((progress): progress is AgentBenchmarkProgress => Boolean(progress))
+    .filter((progress) =>
+      options?.runIdPrefix
+        ? progress.runId.startsWith(options.runIdPrefix)
+        : true,
+    )
+    .sort((left, right) =>
+      (right.updatedAt || right.startedAt).localeCompare(
+        left.updatedAt || left.startedAt,
+      ),
+    );
+  return options?.limit ? progresses.slice(0, options.limit) : progresses;
+}
+
 export function updateBenchmarkProgress(
   runId: string,
   updater: (current: AgentBenchmarkProgress) => AgentBenchmarkProgress
 ) {
   const current = readBenchmarkProgress(runId);
   if (!current) return null;
-  const next = updater(current);
-  writeProgress(next);
-  return next;
+  return updateJsonFileDurably(
+    getProgressPath(runId),
+    () => current,
+    updater,
+    isProgress,
+  );
 }
 
 function estimateRemainingMs(progress: AgentBenchmarkProgress) {

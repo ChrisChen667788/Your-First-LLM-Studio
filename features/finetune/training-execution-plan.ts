@@ -21,8 +21,13 @@ export type TrainingExecutionPlanInput = {
   batchSize: number;
   gradientAccumulationSteps: number;
   warmupRatio: number;
+  targetModules: string[];
+  packingPolicy: string;
   saveEverySteps: number;
   evalEverySteps: number;
+  totalSteps: number;
+  bestCheckpointMetric: string;
+  loadBestCheckpointAtEnd: boolean;
   seed: number;
   distributed?: boolean;
 };
@@ -56,6 +61,15 @@ function compatibilityReasons(
     ...(!backend.supportedSchedulers.includes(input.scheduler)
       ? [`${input.scheduler} is not supported by ${backend.id}.`]
       : []),
+    ...(!backend.supportedPackingPolicies.includes(input.packingPolicy)
+      ? [`${input.packingPolicy} packing is not supported by ${backend.id}.`]
+      : []),
+    ...(!backend.supportedBestCheckpointMetrics.includes(input.bestCheckpointMetric)
+      ? [`${input.bestCheckpointMetric} cannot select a checkpoint on ${backend.id}.`]
+      : []),
+    ...(!input.targetModules.length
+      ? [`${backend.id} requires explicit target modules.`]
+      : []),
     ...(input.distributed && !backend.distributed
       ? [`${backend.id} does not support distributed execution.`]
       : []),
@@ -75,6 +89,7 @@ export function buildTrainingExecutionPlan(input: TrainingExecutionPlanInput) {
   positive(input.gradientAccumulationSteps, "gradientAccumulationSteps");
   positive(input.saveEverySteps, "saveEverySteps");
   positive(input.evalEverySteps, "evalEverySteps");
+  positive(input.totalSteps, "totalSteps");
   if (!Number.isFinite(input.warmupRatio) || input.warmupRatio < 0 || input.warmupRatio > 1) {
     throw new Error("warmupRatio must be between 0 and 1.");
   }
@@ -96,12 +111,19 @@ export function buildTrainingExecutionPlan(input: TrainingExecutionPlanInput) {
     batchSize: input.batchSize,
     gradientAccumulationSteps: input.gradientAccumulationSteps,
     warmupRatio: input.warmupRatio,
+    warmupSteps: Math.min(
+      input.totalSteps,
+      Math.max(0, Math.round(input.totalSteps * input.warmupRatio)),
+    ),
+    targetModules: [...new Set(input.targetModules.map((entry) => entry.trim()).filter(Boolean))],
+    packingPolicy: input.packingPolicy,
     saveEverySteps: input.saveEverySteps,
     evalEverySteps: input.evalEverySteps,
+    totalSteps: input.totalSteps,
     seed: input.seed,
     distributed: Boolean(input.distributed),
-    loadBestCheckpointAtEnd: true,
-    bestCheckpointMetric: "eval_loss",
+    loadBestCheckpointAtEnd: input.loadBestCheckpointAtEnd,
+    bestCheckpointMetric: input.bestCheckpointMetric,
   };
   const argv = backend.id === "mlx-lm"
     ? ["python", "-m", "mlx_lm.lora", "--config", "training-plan.json"]
@@ -147,8 +169,13 @@ export function readTrainingExecutionPlanCatalog() {
     batchSize: 1,
     gradientAccumulationSteps: 8,
     warmupRatio: 0.03,
+    targetModules: ["q_proj", "k_proj", "v_proj", "o_proj"],
+    packingPolicy: "disabled",
     saveEverySteps: 100,
     evalEverySteps: 100,
+    totalSteps: 1000,
+    bestCheckpointMetric: "eval_loss",
+    loadBestCheckpointAtEnd: true,
     seed: 42,
   };
   const llamaFactoryPreview = buildTrainingExecutionPlan({

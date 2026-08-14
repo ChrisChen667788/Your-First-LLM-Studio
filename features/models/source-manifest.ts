@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const MODEL_SOURCE_MANIFEST_SCHEMA_VERSION = "models.source-manifest.v1" as const;
 type Source = "hugging-face" | "modelscope";
@@ -9,8 +9,8 @@ type FileEntry = { path: string; bytes: number; sha256: string; url: string };
 type Receipt = { id: string; generatedAt: string; status: "pass" | "hold"; source: Source; modelId: string; revision: string; tokenConfigured: boolean; files: FileEntry[]; manifestDigest: string; checks: Record<string, boolean>; blockers: string[]; warning: string };
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const STORE_FILE = path.join(DATA_DIR, "model-source-manifests.json");
-function readReceipts(): Receipt[] { if (!existsSync(STORE_FILE)) return []; try { const value = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { receipts?: Receipt[] }; return Array.isArray(value.receipts) ? value.receipts : []; } catch { return []; } }
-function persist(receipt: Receipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(STORE_FILE, `${JSON.stringify({ schemaVersion: MODEL_SOURCE_MANIFEST_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 200) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): Receipt[] { return readDurableReceipts(STORE_FILE, MODEL_SOURCE_MANIFEST_SCHEMA_VERSION); }
+function persist(receipt: Receipt) { prependDurableReceipt(STORE_FILE, MODEL_SOURCE_MANIFEST_SCHEMA_VERSION, receipt, 200); }
 function safeFilePath(value: string) { return Boolean(value) && !path.isAbsolute(value) && !value.split(/[\\/]/u).includes(".."); }
 function stableDigest(input: unknown) { return createHash("sha256").update(JSON.stringify(input)).digest("hex"); }
 

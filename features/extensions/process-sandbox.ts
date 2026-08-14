@@ -3,7 +3,6 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -14,6 +13,7 @@ import type {
   ExtensionManifest,
   ExtensionPermission,
 } from "@/features/extensions/registry";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const EXTENSION_SANDBOX_SCHEMA_VERSION =
   "extensions.process-sandbox.v2" as const;
@@ -61,31 +61,11 @@ const RECEIPT_FILE = path.join(
 const SANDBOX_EXEC = "/usr/bin/sandbox-exec";
 
 function readReceipts(): SandboxReceipt[] {
-  if (!existsSync(RECEIPT_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(RECEIPT_FILE, "utf8")) as {
-      receipts?: SandboxReceipt[];
-    };
-    return Array.isArray(parsed.receipts) ? parsed.receipts : [];
-  } catch {
-    return [];
-  }
+  return readDurableReceipts(RECEIPT_FILE, EXTENSION_SANDBOX_SCHEMA_VERSION);
 }
 
 function save(receipt: SandboxReceipt) {
-  mkdirSync(path.dirname(RECEIPT_FILE), { recursive: true });
-  writeFileSync(
-    RECEIPT_FILE,
-    `${JSON.stringify(
-      {
-        schemaVersion: EXTENSION_SANDBOX_SCHEMA_VERSION,
-        receipts: [receipt, ...readReceipts()].slice(0, 50),
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
+  prependDurableReceipt(RECEIPT_FILE, EXTENSION_SANDBOX_SCHEMA_VERSION, receipt, 50);
 }
 
 function quoteSeatbelt(value: string) {

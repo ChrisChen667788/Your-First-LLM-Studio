@@ -21,7 +21,7 @@ import {
   readJobs,
   readOperations,
   readRecipes,
-  writeRecipes,
+  updateRecipes,
 } from "./repository";
 import {
   readDatasets,
@@ -122,79 +122,66 @@ export function saveFineTuneRecipe(input: {
       "Selected base target is not available for local fine-tune planning.",
     );
   }
-  const now = new Date().toISOString();
-  const recipes = readRecipes();
-  const existing = input.id
-    ? recipes.find((recipe) => recipe.id === input.id)
-    : recipes.find(
-        (recipe) =>
-          recipe.datasetId === dataset.id &&
-          recipe.baseTargetId === target.id &&
-          recipe.adapterName === adapterName,
-      );
   const scheduler = getLoraSchedulerPreset(input.scheduler);
   const packing = getLoraPackingPolicy(input.packingPolicy);
-  const recipe: AgentFineTuneRecipe = {
-    id: existing?.id || `ft-recipe-${crypto.randomUUID()}`,
-    label,
-    datasetId: dataset.id,
-    baseTargetId: target.id,
-    adapterName,
-    sequenceLength: Math.max(1024, Math.min(input.sequenceLength, 32768)),
-    batchSize: Math.max(1, Math.min(input.batchSize, 64)),
-    epochs: Math.max(1, Math.min(input.epochs, 12)),
-    learningRate: Math.max(0.000001, Math.min(input.learningRate, 0.01)),
-    fineTuneMethod: input.fineTuneMethod === "dora" ? "dora" : "lora",
-    optimizer:
-      input.optimizer === "adamw" ||
-      input.optimizer === "sgd" ||
-      input.optimizer === "adafactor"
-        ? input.optimizer
-        : "adam",
-    numLayers: Math.max(-1, Math.min(input.numLayers, 96)),
-    gradientAccumulationSteps: Math.max(
-      1,
-      Math.min(input.gradientAccumulationSteps, 64),
-    ),
-    loraRank: Math.max(2, Math.min(input.loraRank, 128)),
-    loraAlpha: Math.max(4, Math.min(input.loraAlpha, 256)),
-    gradientCheckpointing: Boolean(input.gradientCheckpointing),
-    validationSplitPct: Math.max(5, Math.min(input.validationSplitPct, 30)),
-    targetModules: normalizeLoraTargetModules(
-      input.targetModules,
-      target.modelDefault || target.id,
-    ),
-    scheduler: scheduler.id,
-    warmupRatio:
-      typeof input.warmupRatio === "number" && Number.isFinite(input.warmupRatio)
-        ? Math.max(0, Math.min(input.warmupRatio, 0.25))
-        : scheduler.warmupRatio,
-    packingPolicy: packing.id,
-    evalEverySteps:
-      typeof input.evalEverySteps === "number" &&
-      Number.isFinite(input.evalEverySteps)
-        ? Math.max(1, Math.min(input.evalEverySteps, 5000))
-        : 100,
-    saveEverySteps: Math.max(0, Math.min(input.saveEverySteps, 5000)),
-    bestCheckpointMetric: normalizeLoraBestCheckpointMetric(
-      input.bestCheckpointMetric,
-    ),
-    loadBestCheckpointAtEnd:
-      typeof input.loadBestCheckpointAtEnd === "boolean"
-        ? input.loadBestCheckpointAtEnd
-        : true,
-    seed: Math.max(1, Math.min(input.seed, 999999)),
-    benchmarkSuiteId: input.benchmarkSuiteId?.trim() || undefined,
-    notes: input.notes?.trim() || undefined,
-    createdAt: existing?.createdAt || now,
-    updatedAt: now,
-  };
-  const next = [
-    recipe,
-    ...recipes.filter((entry) => entry.id !== recipe.id),
-  ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  writeRecipes(next);
-  return recipe;
+  let saved: AgentFineTuneRecipe | null = null;
+  updateRecipes((recipes) => {
+    const now = new Date().toISOString();
+    const existing = input.id
+      ? recipes.find((recipe) => recipe.id === input.id)
+      : recipes.find(
+          (recipe) =>
+            recipe.datasetId === dataset.id &&
+            recipe.baseTargetId === target.id &&
+            recipe.adapterName === adapterName,
+        );
+    saved = {
+      id: existing?.id || `ft-recipe-${crypto.randomUUID()}`,
+      label,
+      datasetId: dataset.id,
+      baseTargetId: target.id,
+      adapterName,
+      sequenceLength: Math.max(1024, Math.min(input.sequenceLength, 32768)),
+      batchSize: Math.max(1, Math.min(input.batchSize, 64)),
+      epochs: Math.max(1, Math.min(input.epochs, 12)),
+      learningRate: Math.max(0.000001, Math.min(input.learningRate, 0.01)),
+      fineTuneMethod: input.fineTuneMethod === "dora" ? "dora" : "lora",
+      optimizer:
+        input.optimizer === "adamw" || input.optimizer === "sgd" || input.optimizer === "adafactor"
+          ? input.optimizer
+          : "adam",
+      numLayers: Math.max(-1, Math.min(input.numLayers, 96)),
+      gradientAccumulationSteps: Math.max(1, Math.min(input.gradientAccumulationSteps, 64)),
+      loraRank: Math.max(2, Math.min(input.loraRank, 128)),
+      loraAlpha: Math.max(4, Math.min(input.loraAlpha, 256)),
+      gradientCheckpointing: Boolean(input.gradientCheckpointing),
+      validationSplitPct: Math.max(5, Math.min(input.validationSplitPct, 30)),
+      targetModules: normalizeLoraTargetModules(input.targetModules, target.modelDefault || target.id),
+      scheduler: scheduler.id,
+      warmupRatio:
+        typeof input.warmupRatio === "number" && Number.isFinite(input.warmupRatio)
+          ? Math.max(0, Math.min(input.warmupRatio, 0.25))
+          : scheduler.warmupRatio,
+      packingPolicy: packing.id,
+      evalEverySteps:
+        typeof input.evalEverySteps === "number" && Number.isFinite(input.evalEverySteps)
+          ? Math.max(1, Math.min(input.evalEverySteps, 5000))
+          : 100,
+      saveEverySteps: Math.max(0, Math.min(input.saveEverySteps, 5000)),
+      bestCheckpointMetric: normalizeLoraBestCheckpointMetric(input.bestCheckpointMetric),
+      loadBestCheckpointAtEnd:
+        typeof input.loadBestCheckpointAtEnd === "boolean" ? input.loadBestCheckpointAtEnd : true,
+      seed: Math.max(1, Math.min(input.seed, 999999)),
+      benchmarkSuiteId: input.benchmarkSuiteId?.trim() || undefined,
+      notes: input.notes?.trim() || undefined,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+    };
+    return [saved, ...recipes.filter((entry) => entry.id !== saved!.id)].sort((a, b) =>
+      b.updatedAt.localeCompare(a.updatedAt),
+    );
+  });
+  return saved!;
 }
 
 function openExternalPath(targetPath: string) {

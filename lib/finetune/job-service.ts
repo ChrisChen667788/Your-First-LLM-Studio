@@ -21,10 +21,9 @@ import {
   mergeJobState,
   readJobs,
   readRecipes,
-  readStoredJobs,
+  updateStoredJobs,
   updateStoredJob,
   writeJobRuntimeState,
-  writeStoredJobs,
 } from "./repository";
 import {
   coerceChatMessages,
@@ -36,6 +35,10 @@ import {
   listFineTuneTargetOptions,
   resolveBaseModelRef,
 } from "./target-service";
+import {
+  assertMlxBackendExecutionContract,
+  type MlxLearningRateSchedule,
+} from "@/features/finetune/backend-execution-contract";
 function normalizeInstructionSample(line: string) {
   const parsed = JSON.parse(line) as Record<string, unknown>;
   const prompt = readStringField(parsed, [
@@ -169,28 +172,44 @@ export function deriveTrainingPlan(
   };
 }
 
-function buildMlxLoraConfig(recipe: AgentFineTuneRecipe) {
-  const toMlxLayerKey = (moduleName: string) => {
-    if (moduleName.includes(".")) return moduleName;
-    if (["q_proj", "k_proj", "v_proj", "o_proj"].includes(moduleName)) {
-      return `self_attn.${moduleName}`;
-    }
-    if (["gate_proj", "up_proj", "down_proj"].includes(moduleName)) {
-      return `mlp.${moduleName}`;
-    }
-    return moduleName;
-  };
-  const mlxKeys = Array.from(new Set(recipe.targetModules.map(toMlxLayerKey)));
+function scheduleYaml(schedule: MlxLearningRateSchedule) {
   return [
-    `# First LLM Studio policy: scheduler=${recipe.scheduler}, warmup_ratio=${recipe.warmupRatio}, packing=${recipe.packingPolicy}`,
-    `# Best checkpoint: metric=${recipe.bestCheckpointMetric}, load_at_end=${recipe.loadBestCheckpointAtEnd ? "true" : "false"}`,
-    `# UI target modules: ${recipe.targetModules.join(", ")}`,
+    "lr_schedule:",
+    `  name: ${schedule.name}`,
+    `  arguments: [${schedule.arguments.join(", ")}]`,
+    `  warmup: ${schedule.warmup}`,
+    `  warmup_init: ${schedule.warmup_init}`,
+  ];
+}
+
+export function buildMlxLoraConfig(bundle: FineTuneJobBundle) {
+  const { recipe, plan } = bundle;
+  return [
+    "# Generated from finetune.backend-execution.v1; CLI flags may only repeat these canonical values.",
+    `model: ${JSON.stringify(plan.modelRef)}`,
+    "train: true",
+    `fine_tune_type: ${recipe.fineTuneMethod}`,
+    `optimizer: ${recipe.optimizer}`,
+    `data: ${JSON.stringify(plan.datasetDir)}`,
+    `seed: ${recipe.seed}`,
+    `num_layers: ${recipe.numLayers}`,
+    `batch_size: ${recipe.batchSize}`,
+    `iters: ${plan.totalSteps}`,
+    `learning_rate: ${recipe.learningRate}`,
+    `steps_per_report: ${plan.stepsPerReport}`,
+    `steps_per_eval: ${plan.stepsPerEval}`,
+    `grad_accumulation_steps: ${recipe.gradientAccumulationSteps}`,
+    `adapter_path: ${JSON.stringify(plan.adapterPath)}`,
+    `save_every: ${plan.saveEvery}`,
+    `max_seq_length: ${recipe.sequenceLength}`,
+    `grad_checkpoint: ${recipe.gradientCheckpointing ? "true" : "false"}`,
+    ...scheduleYaml(plan.schedulerConfig),
     "lora_parameters:",
     `  rank: ${recipe.loraRank}`,
     "  dropout: 0.0",
-    `  scale: ${recipe.loraAlpha}`,
+    `  scale: ${recipe.loraAlpha / Math.max(1, recipe.loraRank)}`,
     "  keys:",
-    ...mlxKeys.map((moduleName) => `    - ${moduleName}`),
+    ...plan.targetModules.map((moduleName) => `    - ${moduleName}`),
   ].join("\n") + "\n";
 }
 
@@ -203,6 +222,11 @@ export function buildJobBundle(
 ): FineTuneJobBundle {
   const trainingPlan = deriveTrainingPlan(recipe, datasetStats);
   const modelRef = resolveBaseModelRef(target);
+  const executionContract = assertMlxBackendExecutionContract({
+    ...recipe,
+    totalSteps: trainingPlan.totalSteps,
+    validSamples: datasetStats.validSamples,
+  });
   return {
     kind: "first-llm-studio-finetune-job",
     generatedAt: new Date().toISOString(),
@@ -239,8 +263,11 @@ export function buildJobBundle(
       stepsPerReport: trainingPlan.stepsPerReport,
       stepsPerEval: trainingPlan.stepsPerEval,
       saveEvery: trainingPlan.saveEvery,
-      targetModules: recipe.targetModules,
+      backendExecutionSchemaVersion: executionContract.schemaVersion,
+      requestedTargetModules: recipe.targetModules,
+      targetModules: executionContract.applied.targetModules,
       scheduler: recipe.scheduler,
+      schedulerConfig: executionContract.applied.scheduler,
       warmupRatio: recipe.warmupRatio,
       packingPolicy: recipe.packingPolicy,
       bestCheckpointMetric: recipe.bestCheckpointMetric,
@@ -291,12 +318,8 @@ export function stageFineTuneJob(input: { recipeId: string; notes?: string }) {
     validationSplitPct: recipe.validationSplitPct,
     minEvalBatchSize: recipe.batchSize,
   });
-  writeFileSync(
-    paths.configFile,
-    buildMlxLoraConfig(recipe),
-    "utf8",
-  );
   const bundle = buildJobBundle(recipe, dataset, target, paths, datasetStats);
+  writeFileSync(paths.configFile, buildMlxLoraConfig(bundle), "utf8");
   writeFileSync(
     paths.bundleFile,
     `${JSON.stringify(bundle, null, 2)}\n`,
@@ -348,10 +371,9 @@ export function stageFineTuneJob(input: { recipeId: string; notes?: string }) {
     notes: input.notes?.trim() || undefined,
   };
 
-  const jobs = [job, ...readStoredJobs()].sort((a, b) =>
+  updateStoredJobs((jobs) => [job, ...jobs].sort((a, b) =>
     b.updatedAt.localeCompare(a.updatedAt),
-  );
-  writeStoredJobs(jobs);
+  ));
   appendExperimentEvent({
     kind: "finetune",
     status: "saved",
@@ -418,12 +440,8 @@ export function startFineTuneJob(input: { jobId: string }) {
     validationSplitPct: recipe.validationSplitPct,
     minEvalBatchSize: recipe.batchSize,
   });
-  writeFileSync(
-    paths.configFile,
-    buildMlxLoraConfig(recipe),
-    "utf8",
-  );
   const bundle = buildJobBundle(recipe, dataset, target, paths, datasetStats);
+  writeFileSync(paths.configFile, buildMlxLoraConfig(bundle), "utf8");
   writeFileSync(
     paths.bundleFile,
     `${JSON.stringify(bundle, null, 2)}\n`,

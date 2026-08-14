@@ -1,0 +1,338 @@
+{
+  "schemaVersion": "v1.6.5-benchmark-reproducibility-evidence.v1",
+  "generatedAt": "2026-08-10T12:54:09.693Z",
+  "localStatus": "pass",
+  "productionStatus": "hold",
+  "acceptance": {
+    "slices": 15,
+    "passed": 15,
+    "held": 0
+  },
+  "analysis": {
+    "schemaVersion": "benchmark.math500-reproducibility.v1",
+    "generatedAt": "2026-08-10T12:54:09.686Z",
+    "runId": "math500-full-20260810112454-2b58c961",
+    "targetId": "local-qwen3-0.6b",
+    "targetLabel": "Local Qwen3 0.6B",
+    "resolvedModel": "local-qwen3-0.6b",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "totals": {
+      "samples": 500,
+      "successful": 500,
+      "scored": 500,
+      "correct": 160,
+      "incorrect": 340,
+      "resumed": 497,
+      "inferred": 3
+    },
+    "accuracy": 32,
+    "confidence": {
+      "method": "wilson-95",
+      "low": 28.06,
+      "high": 36.21
+    },
+    "subjects": [
+      {
+        "key": "Algebra",
+        "total": 124,
+        "correct": 56,
+        "accuracy": 45.16,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 36.68,
+          "high": 53.93
+        }
+      },
+      {
+        "key": "Counting & Probability",
+        "total": 38,
+        "correct": 8,
+        "accuracy": 21.05,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 11.07,
+          "high": 36.35
+        }
+      },
+      {
+        "key": "Geometry",
+        "total": 41,
+        "correct": 12,
+        "accuracy": 29.27,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 17.61,
+          "high": 44.48
+        }
+      },
+      {
+        "key": "Intermediate Algebra",
+        "total": 97,
+        "correct": 19,
+        "accuracy": 19.59,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 12.91,
+          "high": 28.58
+        }
+      },
+      {
+        "key": "Number Theory",
+        "total": 62,
+        "correct": 17,
+        "accuracy": 27.42,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 17.88,
+          "high": 39.59
+        }
+      },
+      {
+        "key": "Prealgebra",
+        "total": 82,
+        "correct": 39,
+        "accuracy": 47.56,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 37.1,
+          "high": 58.24
+        }
+      },
+      {
+        "key": "Precalculus",
+        "total": 56,
+        "correct": 9,
+        "accuracy": 16.07,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 8.69,
+          "high": 27.81
+        }
+      }
+    ],
+    "levels": [
+      {
+        "key": "Level 1",
+        "total": 43,
+        "correct": 28,
+        "accuracy": 65.12,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 50.17,
+          "high": 77.58
+        }
+      },
+      {
+        "key": "Level 2",
+        "total": 90,
+        "correct": 41,
+        "accuracy": 45.56,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 35.66,
+          "high": 55.82
+        }
+      },
+      {
+        "key": "Level 3",
+        "total": 105,
+        "correct": 40,
+        "accuracy": 38.1,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 29.38,
+          "high": 47.65
+        }
+      },
+      {
+        "key": "Level 4",
+        "total": 128,
+        "correct": 34,
+        "accuracy": 26.56,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 19.68,
+          "high": 34.82
+        }
+      },
+      {
+        "key": "Level 5",
+        "total": 134,
+        "correct": 17,
+        "accuracy": 12.69,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 8.07,
+          "high": 19.38
+        }
+      }
+    ],
+    "latencyMs": {
+      "p50": 817,
+      "p95": 2242,
+      "p99": 2837
+    },
+    "tokens": {
+      "promptAndCompletion": 146754,
+      "completion": 79175,
+      "averageCompletion": 158.35
+    },
+    "failures": {
+      "runtime": 0,
+      "unscored": 0,
+      "evaluatorUnavailable": 0,
+      "evaluatorError": 0,
+      "manualReview": 0
+    },
+    "dataset": {
+      "revision": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
+      "sha256": "35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132",
+      "rowCount": 500
+    },
+    "evaluator": {
+      "id": "huggingface-math-verify",
+      "version": "0.9.0",
+      "configId": "math-500-v1",
+      "sourceRevision": "ba3d3aaff23b3f4cac7a14672b4f6e293d97c98b",
+      "fingerprint": "4c8922a7b1310fae11aacfc6a919ea6ce4623f1c1c8160c20e814d3b2b8858cf"
+    },
+    "runDigest": "2d25d7ff27f356eaf02e22ad6230915e82956cc1874fe47aa1f594dab47e7e51",
+    "disclosure": "This scorecard analyzes one complete local run. Confidence intervals quantify sampling uncertainty; they do not establish external leaderboard equivalence or independent-host reproducibility."
+  },
+  "replay": {
+    "id": "math500-replay-b9c6ba18-139d-45d8-809d-ff16fec00826",
+    "generatedAt": "2026-08-10T12:54:09.427Z",
+    "runId": "math500-full-20260810112454-2b58c961",
+    "executionMode": "isolated-python-worker-replay",
+    "evaluatorId": "huggingface-math-verify",
+    "evaluatorVersion": "0.9.0",
+    "evaluatorConfigId": "math-500-v1",
+    "requestedSamples": 500,
+    "replayedSamples": 500,
+    "agreementSamples": 500,
+    "disagreementSamples": 0,
+    "unavailableSamples": 0,
+    "agreementRate": 100,
+    "disagreementItemIds": [],
+    "decisionDigest": "d2b8f60f076d5477ca398d260dcb02ff12e5ed4475c5e441878861a817260cb2",
+    "durationMs": 2363,
+    "localStatus": "pass",
+    "independentHost": false,
+    "disclosure": "Predictions were replayed through a fresh isolated Python evaluator worker on the same host. This detects scorer drift but is not an independent-machine reproduction."
+  },
+  "multimodalPlan": {
+    "schemaVersion": "benchmark.multimodal-execution-plan.v1",
+    "generatedAt": "2026-08-10T12:54:09.687Z",
+    "localStatus": "ready",
+    "productionStatus": "hold",
+    "candidateTarget": {
+      "id": "minimax-m3",
+      "label": "MiniMax M3",
+      "modalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "capabilityStatus": "verified",
+      "officialDocsUrl": "https://platform.minimaxi.com/docs/api-reference/text-chat-openai"
+    },
+    "protocols": [
+      {
+        "id": "mmmu",
+        "label": "MMMU",
+        "requiredModalities": [
+          "text",
+          "image"
+        ],
+        "adapterStatus": "pass",
+        "executionStatus": "hold",
+        "judgeMode": "deterministic",
+        "requirements": [
+          "Pinned official validation split and image assets",
+          "Verified image-capable target and transport",
+          "Seeded batch policy for otherwise unparseable choice output"
+        ],
+        "blockers": [
+          "Official image assets are not installed in the local evidence store."
+        ]
+      },
+      {
+        "id": "mathvista",
+        "label": "MathVista",
+        "requiredModalities": [
+          "text",
+          "image"
+        ],
+        "adapterStatus": "pass",
+        "executionStatus": "hold",
+        "judgeMode": "external-required",
+        "requirements": [
+          "Pinned official testmini/test split and image assets",
+          "Verified image-capable target and transport",
+          "Configured answer-extraction judge with auditable model/version"
+        ],
+        "blockers": [
+          "Official image assets are not installed.",
+          "A calibrated extraction judge is not configured."
+        ]
+      },
+      {
+        "id": "mmbench",
+        "label": "MMBench",
+        "requiredModalities": [
+          "text",
+          "image"
+        ],
+        "adapterStatus": "pass",
+        "executionStatus": "hold",
+        "judgeMode": "submission-required",
+        "requirements": [
+          "Pinned circular-evaluation rows and image assets",
+          "All circular variants must pass per item",
+          "Official submission artifact and remote score receipt"
+        ],
+        "blockers": [
+          "Official image assets are not installed.",
+          "External submission and score receipt are unavailable."
+        ]
+      },
+      {
+        "id": "video-mme-v2",
+        "label": "Video-MME v2",
+        "requiredModalities": [
+          "text",
+          "video"
+        ],
+        "adapterStatus": "pass",
+        "executionStatus": "hold",
+        "judgeMode": "deterministic",
+        "requirements": [
+          "Licensed official videos and annotations",
+          "Verified native video target and bounded frame policy",
+          "A-H extraction with grouped nonlinear scoring"
+        ],
+        "blockers": [
+          "Licensed videos are absent from the local evidence store."
+        ]
+      }
+    ],
+    "conformance": {
+      "total": 9,
+      "passed": 9
+    },
+    "blockers": [
+      "Official image assets are not installed in the local evidence store.",
+      "Official image assets are not installed.",
+      "A calibrated extraction judge is not configured.",
+      "External submission and score receipt are unavailable.",
+      "Licensed videos are absent from the local evidence store."
+    ],
+    "planDigest": "a8274e07eeaff87cb7cd5170d00326e4e01f5d771bd83d1ce83dd8dc6ed35c8a"
+  },
+  "blockers": [
+    "The scorer replay runs on the same machine and does not replace independent-worker or external leaderboard reproduction.",
+    "Official multimodal assets, compatible model execution, required judges, licensed media, and external submissions remain separate gates."
+  ],
+  "evidenceDigest": "c34f12a49b1152d8d3972b8b3cd3e7b97c42cb7b3bb8b65bc3976279143e0048"
+}

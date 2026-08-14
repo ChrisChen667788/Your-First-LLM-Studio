@@ -5,12 +5,25 @@ import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react
 import { benchmarkDatasets, benchmarkMilestoneSuites } from "@/lib/agent/benchmark-datasets";
 import { agentTargets } from "@/lib/agent/catalog";
 import type {
+  AgentBenchmarkModality,
   AgentBenchmarkProgress,
   AgentBenchmarkResponse,
   AgentProviderProfile,
   AgentThinkingMode,
 } from "@/lib/agent/types";
-import type { BenchmarkReleaseEvidenceSummary } from "@/features/benchmark/contracts";
+import {
+  BENCHMARK_EXPORT_API_PATH,
+  BENCHMARK_PROGRESS_API_PATH,
+  BENCHMARK_PROMPT_SETS_API_PATH,
+  BENCHMARK_RUN_API_PATH,
+  type BenchmarkReleaseEvidenceSummary,
+} from "@/features/benchmark/contracts";
+import { BenchmarkStandardsPanel } from "@/features/benchmark/BenchmarkStandardsPanel";
+import { Math500OfficialRunPanel } from "@/features/benchmark/Math500OfficialRunPanel";
+import { Math500ReproducibilityPanel } from "@/features/benchmark/Math500ReproducibilityPanel";
+import { BenchmarkDecisionIntelligencePanel } from "@/features/benchmark/BenchmarkDecisionIntelligencePanel";
+import type { QualifiedBenchmarkDatasetSummary } from "@/features/benchmark/qualification-contracts";
+import { assessBenchmarkTargetModality } from "@/features/benchmark/model-capabilities";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import {
   StudioSegmentedChips,
@@ -124,12 +137,17 @@ export function BenchmarksStudioShell() {
   const [prompt, setPrompt] = useState(
     "Answer in one concise paragraph: what makes a local LLM setup production-ready?",
   );
+  const [promptModality, setPromptModality] =
+    useState<AgentBenchmarkModality>("text");
+  const [promptMediaUrl, setPromptMediaUrl] = useState("");
   const [promptSets, setPromptSets] = useState<BenchmarkPromptSet[]>([]);
   const [promptSetId, setPromptSetId] = useState("");
   const [datasetId, setDatasetId] = useState(benchmarkDatasets[0]?.id || "");
   const [datasetSampleLimit, setDatasetSampleLimit] = useState(
     benchmarkDatasets[0]?.sampleCount || 1,
   );
+  const [qualifiedDataset, setQualifiedDataset] =
+    useState<QualifiedBenchmarkDatasetSummary | null>(null);
   const [suiteId, setSuiteId] = useState(
     benchmarkMilestoneSuites.find((suite) => suite.reportTier === "milestone")?.id ||
       benchmarkMilestoneSuites[0]?.id ||
@@ -181,7 +199,7 @@ export function BenchmarksStudioShell() {
 
   const loadPromptSets = useCallback(async (signal?: AbortSignal) => {
     try {
-      const response = await fetch("/api/admin/benchmark/prompt-sets", {
+      const response = await fetch(BENCHMARK_PROMPT_SETS_API_PATH, {
         cache: "no-store",
         signal,
       });
@@ -227,7 +245,7 @@ export function BenchmarksStudioShell() {
     async function pollProgress() {
       try {
         const response = await fetch(
-          `/api/admin/benchmark/progress?runId=${encodeURIComponent(activeRunId)}`,
+          `${BENCHMARK_PROGRESS_API_PATH}?runId=${encodeURIComponent(activeRunId)}`,
           { cache: "no-store" },
         );
         const payload = (await response.json()) as AgentBenchmarkProgress & {
@@ -264,15 +282,27 @@ export function BenchmarksStudioShell() {
     () => (data?.releaseEvidence || []).slice(0, 4),
     [data?.releaseEvidence],
   );
-  const datasetCount = benchmarkDatasets.length;
+  const availableDatasets = useMemo(
+    () => (qualifiedDataset ? [...benchmarkDatasets, qualifiedDataset] : benchmarkDatasets),
+    [qualifiedDataset],
+  );
+  const datasetCount = availableDatasets.length;
   const suiteCount = benchmarkMilestoneSuites.length;
   const selectedTargets = useMemo(
     () => agentTargets.filter((target) => selectedTargetIds.includes(target.id)),
     [selectedTargetIds],
   );
+  const selectedTargetCapabilities = useMemo(
+    () =>
+      selectedTargets.map((target) => ({
+        target,
+        assessment: assessBenchmarkTargetModality(target, promptModality),
+      })),
+    [promptModality, selectedTargets],
+  );
   const selectedDataset = useMemo(
-    () => benchmarkDatasets.find((dataset) => dataset.id === datasetId) || null,
-    [datasetId],
+    () => availableDatasets.find((dataset) => dataset.id === datasetId) || null,
+    [availableDatasets, datasetId],
   );
   const progressPercent =
     runProgress && runProgress.totalSamples > 0
@@ -302,6 +332,14 @@ export function BenchmarksStudioShell() {
       setRunError(isEnglish ? "Prompt is required." : "需要填写 prompt。");
       return;
     }
+    if (runMode === "prompt" && promptModality !== "text" && !promptMediaUrl.trim()) {
+      setRunError(
+        isEnglish
+          ? `A ${promptModality} URL is required.`
+          : `需要填写 ${promptModality} URL。`,
+      );
+      return;
+    }
     if (runMode === "prompt-set" && !promptSetId) {
       setRunError(isEnglish ? "Select a prompt set." : "请选择 prompt set。");
       return;
@@ -318,7 +356,7 @@ export function BenchmarksStudioShell() {
     setActiveRunId(runId);
     setRunPending(true);
     try {
-      const response = await fetch("/api/admin/benchmark", {
+      const response = await fetch(BENCHMARK_RUN_API_PATH, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -326,6 +364,17 @@ export function BenchmarksStudioShell() {
           benchmarkMode:
             runMode === "dataset" ? "dataset" : runMode === "suite" ? "suite" : "prompt",
           prompt: runMode === "prompt" ? normalizedPrompt : undefined,
+          media:
+            runMode === "prompt" && promptModality !== "text"
+              ? [
+                  {
+                    type: promptModality,
+                    url: promptMediaUrl.trim(),
+                    detail: "auto",
+                    ...(promptModality === "video" ? { fps: 1 } : {}),
+                  },
+                ]
+              : undefined,
           promptSetId: runMode === "prompt-set" ? promptSetId : undefined,
           datasetId: runMode === "dataset" ? datasetId : undefined,
           datasetSampleLimit: runMode === "dataset" ? datasetSampleLimit : undefined,
@@ -482,6 +531,76 @@ export function BenchmarksStudioShell() {
                   rows={4}
                   className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-300/40"
                 />
+                <div className="mt-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                    {isEnglish ? "Native input" : "原生输入"}
+                  </p>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {(["text", "image", "video"] as AgentBenchmarkModality[]).map(
+                      (modality) => (
+                        <button
+                          key={modality}
+                          type="button"
+                          onClick={() => setPromptModality(modality)}
+                          className={`min-h-9 rounded-lg border px-2 py-2 text-xs font-semibold transition ${
+                            promptModality === modality
+                              ? "border-cyan-300/35 bg-cyan-300/15 text-cyan-100"
+                              : "border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.07]"
+                          }`}
+                        >
+                          {modality}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </div>
+                {promptModality !== "text" ? (
+                  <label className="mt-3 block text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                    {promptModality} URL
+                    <input
+                      type="url"
+                      value={promptMediaUrl}
+                      onChange={(event) => setPromptMediaUrl(event.target.value)}
+                      placeholder="https://..."
+                      className="mt-2 w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-sm normal-case text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-300/40"
+                    />
+                  </label>
+                ) : null}
+                {promptModality !== "text" && selectedTargetCapabilities.length ? (
+                  <div className="mt-3 space-y-1.5">
+                    {selectedTargetCapabilities.map(({ target, assessment }) => (
+                      <div
+                        key={target.id}
+                        className="flex items-center justify-between gap-2 text-[11px]"
+                      >
+                        <span className="truncate text-slate-400">{target.label}</span>
+                        <span
+                          className={
+                            assessment.supported ? "text-emerald-200" : "text-amber-200"
+                          }
+                        >
+                          {assessment.supported
+                            ? isEnglish
+                              ? "verified"
+                              : "已验证"
+                            : isEnglish
+                              ? "will skip"
+                              : "将跳过"}
+                          {assessment.officialDocsUrl ? (
+                            <a
+                              href={assessment.officialDocsUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="ml-1 underline decoration-white/30 underline-offset-2"
+                            >
+                              docs
+                            </a>
+                          ) : null}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -510,13 +629,13 @@ export function BenchmarksStudioShell() {
                     value={datasetId}
                     onChange={(event) => {
                       const nextId = event.target.value;
-                      const nextDataset = benchmarkDatasets.find((entry) => entry.id === nextId);
+                      const nextDataset = availableDatasets.find((entry) => entry.id === nextId);
                       setDatasetId(nextId);
                       setDatasetSampleLimit(nextDataset?.sampleCount || 1);
                     }}
                     className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm normal-case text-slate-100 outline-none focus:border-amber-300/40"
                   >
-                    {benchmarkDatasets.map((dataset) => (
+                    {availableDatasets.map((dataset) => (
                       <option key={dataset.id} value={dataset.id}>
                         {dataset.label}
                       </option>
@@ -728,6 +847,16 @@ export function BenchmarksStudioShell() {
             ) : null}
           </div>
 
+          <div className="mt-5">
+            <BenchmarkStandardsPanel
+              isEnglish={isEnglish}
+              onQualifiedDatasetChange={setQualifiedDataset}
+            />
+            <Math500OfficialRunPanel isEnglish={isEnglish} />
+            <Math500ReproducibilityPanel isEnglish={isEnglish} />
+            <BenchmarkDecisionIntelligencePanel isEnglish={isEnglish} />
+          </div>
+
           <div className="mt-5 grid gap-4 2xl:grid-cols-[minmax(0,1.25fr)_420px]">
             <div className="space-y-3">
               {latestRuns.length ? (
@@ -761,7 +890,7 @@ export function BenchmarksStudioShell() {
                           {run.thinkingMode || "standard"}
                         </span>
                         <a
-                          href={`/api/admin/benchmark/export?format=issue-summary&runId=${encodeURIComponent(run.runId || run.id)}`}
+                          href={`${BENCHMARK_EXPORT_API_PATH}?format=issue-summary&runId=${encodeURIComponent(run.runId || run.id)}`}
                           className="border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 font-semibold text-cyan-100 hover:bg-cyan-300/20"
                         >
                           {isEnglish ? "Issue summary" : "Issue 摘要"}

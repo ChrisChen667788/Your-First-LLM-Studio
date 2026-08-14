@@ -1,10 +1,11 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { verifyExtensionPackage } from "@/features/extensions/package-verification";
 import { buildExtensionSandboxPolicy } from "@/features/extensions/process-sandbox";
 import type { ExtensionManifest } from "@/features/extensions/registry";
+import { readJsonFileDurably, updateJsonFileDurably } from "@/features/persistence/durable-json-file";
 
 export const EXTENSION_INSTALL_TRANSACTION_SCHEMA_VERSION = "extensions.install-transaction.v1" as const;
 
@@ -17,8 +18,14 @@ const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Li
 const INSTALL_ROOT = path.join(DATA_DIR, "extensions-installed");
 const STORE_FILE = path.join(DATA_DIR, "extension-installations.json");
 
-function readStore(): Store { if (!existsSync(STORE_FILE)) return { schemaVersion: EXTENSION_INSTALL_TRANSACTION_SCHEMA_VERSION, installations: [], receipts: [] }; try { const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as Partial<Store>; return { schemaVersion: EXTENSION_INSTALL_TRANSACTION_SCHEMA_VERSION, installations: Array.isArray(parsed.installations) ? parsed.installations : [], receipts: Array.isArray(parsed.receipts) ? parsed.receipts : [] }; } catch { return { schemaVersion: EXTENSION_INSTALL_TRANSACTION_SCHEMA_VERSION, installations: [], receipts: [] }; } }
-function writeStore(store: Store) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(STORE_FILE, `${JSON.stringify(store, null, 2)}\n`, "utf8"); }
+const emptyStore = (): Store => ({ schemaVersion: EXTENSION_INSTALL_TRANSACTION_SCHEMA_VERSION, installations: [], receipts: [] });
+const isStore = (value: unknown): value is Store => {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<Store>;
+  return candidate.schemaVersion === EXTENSION_INSTALL_TRANSACTION_SCHEMA_VERSION && Array.isArray(candidate.installations) && Array.isArray(candidate.receipts);
+};
+function readStore(): Store { return readJsonFileDurably(STORE_FILE, emptyStore, isStore); }
+function updateStore(mutator: (store: Store) => Store) { return updateJsonFileDurably(STORE_FILE, emptyStore, mutator, isStore); }
 function safeSegment(value: string, label: string) { if (!/^[a-z0-9][a-z0-9.-]+$/i.test(value)) throw new Error(`${label} is not safe for an installation path.`); return value; }
 function safeRelativePath(value: string) { const normalized = value.replace(/\\/g, "/").replace(/^\/+/, ""); if (!normalized || normalized.split("/").some((part) => !part || part === "." || part === "..")) throw new Error(`Unsafe extension bundle path: ${value}`); return normalized; }
 function parseBundle(payload: Buffer): Bundle {
@@ -63,36 +70,54 @@ export function installVerifiedExtension(input: {
     }
     mkdirSync(path.dirname(finalDir), { recursive: true });
     if (!existsSync(finalDir)) renameSync(staging, finalDir);
-    const now = new Date().toISOString(); const store = readStore();
-    const active = store.installations.find((entry) => entry.extensionId === extensionId && entry.state === "active");
-    const installation: Installation = { extensionId, version, digest: verification.digest, installDir: finalDir, state: "active", installedAt: store.installations.find((entry) => entry.extensionId === extensionId && entry.version === version)?.installedAt || now, activatedAt: now };
-    const installations = [installation, ...store.installations.filter((entry) => !(entry.extensionId === extensionId && entry.version === version)).map((entry) => entry.extensionId === extensionId && entry.state === "active" ? { ...entry, state: "inactive" as const } : entry)];
-    const receipt: LifecycleReceipt = { id: `extension-lifecycle-${randomUUID()}`, generatedAt: now, action: "install", extensionId, fromVersion: active?.version, toVersion: version, status: "pass", summary: `Installed ${extensionId}@${version} with atomic activation.` };
-    writeStore({ schemaVersion: EXTENSION_INSTALL_TRANSACTION_SCHEMA_VERSION, installations, receipts: [receipt, ...store.receipts].slice(0, 200) });
-    return { installation, receipt, verification, policy };
+    const outcome: { installation?: Installation; receipt?: LifecycleReceipt } = {};
+    updateStore((store) => {
+      const now = new Date().toISOString();
+      const active = store.installations.find((entry) => entry.extensionId === extensionId && entry.state === "active");
+      const installation: Installation = { extensionId, version, digest: verification.digest, installDir: finalDir, state: "active", installedAt: store.installations.find((entry) => entry.extensionId === extensionId && entry.version === version)?.installedAt || now, activatedAt: now };
+      const installations = [installation, ...store.installations.filter((entry) => !(entry.extensionId === extensionId && entry.version === version)).map((entry) => entry.extensionId === extensionId && entry.state === "active" ? { ...entry, state: "inactive" as const } : entry)];
+      const receipt: LifecycleReceipt = { id: `extension-lifecycle-${randomUUID()}`, generatedAt: now, action: "install", extensionId, fromVersion: active?.version, toVersion: version, status: "pass", summary: `Installed ${extensionId}@${version} with atomic activation.` };
+      outcome.installation = installation;
+      outcome.receipt = receipt;
+      return { schemaVersion: EXTENSION_INSTALL_TRANSACTION_SCHEMA_VERSION, installations, receipts: [receipt, ...store.receipts].slice(0, 200) };
+    });
+    if (!outcome.installation || !outcome.receipt) throw new Error("Extension installation state update did not complete.");
+    return { installation: outcome.installation, receipt: outcome.receipt, verification, policy };
   } finally { if (existsSync(staging)) rmSync(staging, { recursive: true, force: true }); }
 }
 
 export function rollbackExtensionVersion(input: { extensionId: string; targetVersion: string }) {
-  const store = readStore(); const extensionId = safeSegment(input.extensionId, "extension id"); const targetVersion = safeSegment(input.targetVersion, "target version");
-  const target = store.installations.find((entry) => entry.extensionId === extensionId && entry.version === targetVersion);
-  if (!target || !existsSync(target.installDir)) throw new Error("Rollback target is not installed.");
-  const active = store.installations.find((entry) => entry.extensionId === extensionId && entry.state === "active");
-  if (active?.version === targetVersion) throw new Error("Rollback target is already active.");
-  const now = new Date().toISOString();
-  const installations = store.installations.map((entry) => entry.extensionId !== extensionId ? entry : entry.version === targetVersion ? { ...entry, state: "active" as const, activatedAt: now } : entry.state === "active" ? { ...entry, state: "rolled-back" as const } : entry);
-  const receipt: LifecycleReceipt = { id: `extension-lifecycle-${randomUUID()}`, generatedAt: now, action: "rollback", extensionId, fromVersion: active?.version, toVersion: targetVersion, status: "pass", summary: `Rolled ${extensionId} back from ${active?.version || "inactive"} to ${targetVersion}.` };
-  writeStore({ ...store, installations, receipts: [receipt, ...store.receipts].slice(0, 200) });
-  return receipt;
+  const extensionId = safeSegment(input.extensionId, "extension id"); const targetVersion = safeSegment(input.targetVersion, "target version");
+  const outcome: { value?: LifecycleReceipt } = {};
+  updateStore((store) => {
+    const target = store.installations.find((entry) => entry.extensionId === extensionId && entry.version === targetVersion);
+    if (!target || !existsSync(target.installDir)) throw new Error("Rollback target is not installed.");
+    const active = store.installations.find((entry) => entry.extensionId === extensionId && entry.state === "active");
+    if (active?.version === targetVersion) throw new Error("Rollback target is already active.");
+    const now = new Date().toISOString();
+    const installations = store.installations.map((entry) => entry.extensionId !== extensionId ? entry : entry.version === targetVersion ? { ...entry, state: "active" as const, activatedAt: now } : entry.state === "active" ? { ...entry, state: "rolled-back" as const } : entry);
+    const receipt: LifecycleReceipt = { id: `extension-lifecycle-${randomUUID()}`, generatedAt: now, action: "rollback", extensionId, fromVersion: active?.version, toVersion: targetVersion, status: "pass", summary: `Rolled ${extensionId} back from ${active?.version || "inactive"} to ${targetVersion}.` };
+    outcome.value = receipt;
+    return { ...store, installations, receipts: [receipt, ...store.receipts].slice(0, 200) };
+  });
+  if (!outcome.value) throw new Error("Extension rollback state update did not complete.");
+  return outcome.value;
 }
 
 export function setExtensionVersionEnabled(input: { extensionId: string; version: string; enabled: boolean }) {
-  const store = readStore(); const extensionId = safeSegment(input.extensionId, "extension id"); const version = safeSegment(input.version, "extension version"); const target = store.installations.find((entry) => entry.extensionId === extensionId && entry.version === version);
-  if (!target || !existsSync(target.installDir)) throw new Error("Extension version is not installed.");
-  const now = new Date().toISOString(); const action = input.enabled ? "enable" as const : "disable" as const;
-  const installations = store.installations.map((entry) => entry.extensionId !== extensionId ? entry : entry.version === version ? { ...entry, state: input.enabled ? "active" as const : "disabled" as const, activatedAt: input.enabled ? now : entry.activatedAt } : input.enabled && entry.state === "active" ? { ...entry, state: "inactive" as const } : entry);
-  const receipt: LifecycleReceipt = { id: `extension-lifecycle-${randomUUID()}`, generatedAt: now, action, extensionId, fromVersion: version, toVersion: version, status: "pass", summary: `${input.enabled ? "Enabled" : "Disabled"} ${extensionId}@${version}.` };
-  writeStore({ ...store, installations, receipts: [receipt, ...store.receipts].slice(0, 200) }); return receipt;
+  const extensionId = safeSegment(input.extensionId, "extension id"); const version = safeSegment(input.version, "extension version");
+  const outcome: { value?: LifecycleReceipt } = {};
+  updateStore((store) => {
+    const target = store.installations.find((entry) => entry.extensionId === extensionId && entry.version === version);
+    if (!target || !existsSync(target.installDir)) throw new Error("Extension version is not installed.");
+    const now = new Date().toISOString(); const action = input.enabled ? "enable" as const : "disable" as const;
+    const installations = store.installations.map((entry) => entry.extensionId !== extensionId ? entry : entry.version === version ? { ...entry, state: input.enabled ? "active" as const : "disabled" as const, activatedAt: input.enabled ? now : entry.activatedAt } : input.enabled && entry.state === "active" ? { ...entry, state: "inactive" as const } : entry);
+    const receipt: LifecycleReceipt = { id: `extension-lifecycle-${randomUUID()}`, generatedAt: now, action, extensionId, fromVersion: version, toVersion: version, status: "pass", summary: `${input.enabled ? "Enabled" : "Disabled"} ${extensionId}@${version}.` };
+    outcome.value = receipt;
+    return { ...store, installations, receipts: [receipt, ...store.receipts].slice(0, 200) };
+  });
+  if (!outcome.value) throw new Error("Extension enabled state update did not complete.");
+  return outcome.value;
 }
 
 export function readExtensionInstallationEvidence() {

@@ -1,8 +1,9 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
 const ROOT = process.cwd();
-const SOURCE_DIRS = ["app", "components", "lib", "pages", "scripts"];
+const SOURCE_DIRS = ["app", "components", "features", "lib", "pages", "scripts"];
 const SOURCE_EXTENSIONS = new Set([
   ".css",
   ".js",
@@ -22,6 +23,15 @@ const IGNORE_DIRS = new Set([
   ".codex-run",
 ]);
 const CONFLICT_MARKERS = ["<<<<<<< ", "=======", ">>>>>>> "];
+const SOURCE_READ_TIMEOUT_MS = Number.parseInt(
+  process.env.SOURCE_HYGIENE_READ_TIMEOUT_MS || "5000",
+  10,
+);
+
+if (!Number.isFinite(SOURCE_READ_TIMEOUT_MS) || SOURCE_READ_TIMEOUT_MS <= 0) {
+  console.error("[lint] SOURCE_HYGIENE_READ_TIMEOUT_MS must be a positive integer.");
+  process.exit(2);
+}
 
 function hasSourceExtension(path) {
   return [...SOURCE_EXTENSIONS].some((extension) => path.endsWith(extension));
@@ -52,7 +62,17 @@ const files = SOURCE_DIRS.flatMap((dir) => {
 
 const issues = [];
 for (const file of files) {
-  const content = readFileSync(file, "utf8");
+  let content;
+  try {
+    content = await readFile(file, {
+      encoding: "utf8",
+      signal: AbortSignal.timeout(SOURCE_READ_TIMEOUT_MS),
+    });
+  } catch (error) {
+    const reason = error?.code || error?.name || "read failed";
+    issues.push(`${relative(ROOT, file)} unreadable source (${reason})`);
+    continue;
+  }
   const lines = content.split(/\r?\n/);
   lines.forEach((line, index) => {
     if (/\s+$/.test(line)) {

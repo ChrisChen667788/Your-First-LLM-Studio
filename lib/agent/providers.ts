@@ -19,6 +19,7 @@ import type {
 } from "@/lib/agent/types";
 import { existsSync, readFileSync } from "fs";
 import path from "path";
+import { resolveProviderCapabilityRoute } from "@/lib/agent/provider-capabilities";
 
 let localEnvCache: Record<string, string> | null = null;
 const MAX_REMOTE_TOOL_STEPS = 6;
@@ -27,7 +28,7 @@ const LOCAL_GATEWAY_WARMUP_WAIT_MS = 300000;
 const LOCAL_4B_DOWNGRADE_LOADING_THRESHOLD_MS = 120000;
 const LOCAL_COMPARISON_4B_TARGET_IDS = new Set(["local-qwen3-4b-4bit", "local-qwen35-4b-4bit"]);
 const LOCAL_GATEWAY_LOADING_RESPONSE_RE = /still loading|loading\./i;
-const LOCAL_META_REASONING_RE = /^(好的|好，|首先|我需要|我先|让我|讓我|用户让我|用戶讓我|The user|First, I need|I need to|Let me|I'll need to)/i;
+const LOCAL_META_REASONING_RE = /^(好的|好，|首先|我需要|我先|让我|讓我|用户让我|用戶讓我|Okay,?\s+(?:the\s+)?user|Sure,?\s+(?:the\s+)?user|The user|First, I need|I need to|Let me|I'll need to)/i;
 const STRICT_JSON_PATTERNS = [
   /(只输出|只返回|必须返回|返回格式必须是|不要输出其他内容|不要解释).{0,24}json/i,
   /(only output|return only|must return|response format must be|do not output anything else|no explanation).{0,24}json/i,
@@ -229,9 +230,18 @@ export function isDeepSeekCompatibleTarget(target: ResolvedTarget) {
   return target.id === "deepseek-api" || /deepseek/i.test(target.resolvedModel);
 }
 
+export function isMiniMaxCompatibleTarget(target: ResolvedTarget) {
+  return (
+    target.id === "minimax-m3" ||
+    target.resolvedBaseUrl.toLowerCase().includes("minimaxi.com") ||
+    /minimax/i.test(target.resolvedModel)
+  );
+}
+
 export type OpenAICompatibleProviderFamily =
   | "openai"
   | "deepseek"
+  | "minimax"
   | "claude-compatible"
   | "moonshot"
   | "zhipu"
@@ -246,6 +256,9 @@ export function getOpenAICompatibleProviderFamily(target: ResolvedTarget): OpenA
   }
   if (target.id === "deepseek-api" || baseUrl.includes("deepseek.com") || model.includes("deepseek")) {
     return "deepseek";
+  }
+  if (target.id === "minimax-m3" || baseUrl.includes("minimaxi.com") || model.includes("minimax")) {
+    return "minimax";
   }
   if (target.id === "anthropic-claude" || model.includes("claude")) {
     return "claude-compatible";
@@ -325,11 +338,23 @@ export function buildProviderOutputContract(systemPrompt: string, options: {
     lines.push("- Always produce a final visible answer in `content`; do not stop after reasoning alone.");
   }
 
-  if ((providerFamily === "moonshot" || providerFamily === "zhipu" || providerFamily === "dashscope") && strictJsonRequested) {
+  if (
+    (providerFamily === "minimax" ||
+      providerFamily === "moonshot" ||
+      providerFamily === "zhipu" ||
+      providerFamily === "dashscope") &&
+    strictJsonRequested
+  ) {
     lines.push("- Keep keys stable and avoid optional prose fields that would break downstream regression parsing.");
   }
 
-  if ((providerFamily === "moonshot" || providerFamily === "zhipu" || providerFamily === "dashscope") && jsonToolCallRequested) {
+  if (
+    (providerFamily === "minimax" ||
+      providerFamily === "moonshot" ||
+      providerFamily === "zhipu" ||
+      providerFamily === "dashscope") &&
+    jsonToolCallRequested
+  ) {
     lines.push("- Return the tool object directly; avoid extra explanation, markdown, or roleplay around the tool payload.");
   }
 
@@ -365,8 +390,12 @@ export function buildOpenAICompatibleRequestShape(options: {
   }
 
   if (isDeepSeekCompatibleTarget(target) && thinkingMode === "thinking") {
-    model = readEnv(target.modelEnv, target.modelDefault);
     bodyExtras.thinking = { type: "enabled" };
+  }
+
+  if (isMiniMaxCompatibleTarget(target)) {
+    bodyExtras.thinking = { type: thinkingMode === "thinking" ? "adaptive" : "disabled" };
+    bodyExtras.reasoning_split = true;
   }
 
   if (
@@ -381,6 +410,12 @@ export function buildOpenAICompatibleRequestShape(options: {
     model,
     bodyExtras
   };
+}
+
+export function buildOpenAICompatibleTokenLimit(target: ResolvedTarget, maxTokens: number) {
+  return isMiniMaxCompatibleTarget(target)
+    ? { max_completion_tokens: maxTokens }
+    : { max_tokens: maxTokens };
 }
 
 export function resolveSuggestedMaxTokens(options: {
@@ -714,7 +749,7 @@ export async function readOpenAICompatibleStreamSource(response: Response) {
 
 function shouldRetryProviderCall(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
-  return /(429|500|502|503|504|timed out|timeout|connection|network|temporarily|empty)/i.test(message);
+  return /(400|404|429|500|502|503|504|model.{0,24}(not found|unavailable|unsupported|does not exist)|timed out|timeout|connection|network|temporarily|empty)/i.test(message);
 }
 
 function mergeWarnings(...values: Array<string | undefined>) {
@@ -780,7 +815,12 @@ async function repairLocalDirectAnswer(
     false,
     contextWindow,
     "speed",
-    thinkingMode
+    thinkingMode,
+    {
+      maxTokens: request.maxTokens,
+      temperature: request.temperature,
+      topP: request.topP,
+    },
   );
 }
 
@@ -895,7 +935,8 @@ async function callOpenAICompatible(
   enableTools: boolean,
   contextWindow?: number,
   providerProfile: AgentProviderProfile = "balanced",
-  thinkingMode: AgentThinkingMode = "standard"
+  thinkingMode: AgentThinkingMode = "standard",
+  generation?: { maxTokens?: number; temperature?: number; topP?: number },
 ): Promise<ProviderReply> {
   let warning: string | undefined;
   if (target.execution === "local") {
@@ -972,7 +1013,8 @@ async function callOpenAICompatible(
       enableTools,
       input,
       providerProfile,
-      thinkingMode
+      thinkingMode,
+      requestedMaxTokens: generation?.maxTokens,
     });
     const requestShape = buildOpenAICompatibleRequestShape({
       target,
@@ -983,8 +1025,14 @@ async function callOpenAICompatible(
     const body: Record<string, unknown> = {
       model: requestShape.model,
       messages: currentMessages,
-      max_tokens: defaultMaxTokens
+      ...buildOpenAICompatibleTokenLimit(target, defaultMaxTokens)
     };
+    if (typeof generation?.temperature === "number") {
+      body.temperature = Math.max(0, Math.min(generation.temperature, 2));
+    }
+    if (typeof generation?.topP === "number") {
+      body.top_p = Math.max(0.01, Math.min(generation.topP, 1));
+    }
     if (useRemoteStream) {
       body.stream = true;
       body.stream_options = { include_usage: true };
@@ -1065,6 +1113,13 @@ async function callOpenAICompatible(
           `Provider request failed (${response.status}): ${finalErrorText || errorText}`
         );
       }
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Provider request failed (${response.status}): ${errorText || response.statusText}`,
+      );
     }
 
     let dataToolRuns: AgentToolRun[] = [];
@@ -1176,7 +1231,8 @@ async function callAnthropic(
   input: string,
   enableTools: boolean,
   contextWindow?: number,
-  providerProfile: AgentProviderProfile = "balanced"
+  providerProfile: AgentProviderProfile = "balanced",
+  generation?: { maxTokens?: number; temperature?: number; topP?: number },
 ): Promise<ProviderReply> {
   const requestMessages: Array<Record<string, unknown>> = buildProviderMessages(messages, input, contextWindow).map((message) => ({
     role: message.role,
@@ -1204,9 +1260,16 @@ async function callAnthropic(
         target,
         enableTools,
         input,
-        providerProfile
+        providerProfile,
+        requestedMaxTokens: generation?.maxTokens,
       })
     };
+    if (typeof generation?.temperature === "number") {
+      body.temperature = Math.max(0, Math.min(generation.temperature, 1));
+    }
+    if (typeof generation?.topP === "number") {
+      body.top_p = Math.max(0.01, Math.min(generation.topP, 1));
+    }
 
     if (enableTools && target.supportsTools) {
       body.tools = buildAnthropicTools();
@@ -1299,7 +1362,16 @@ async function callAnthropic(
 
 export async function runAgentRequest(request: AgentChatRequest, systemPrompt: string) {
   const thinkingMode = normalizeThinkingMode(request.thinkingMode);
-  const target = resolveTargetWithMode(request.targetId, thinkingMode);
+  const configuredTarget = resolveTargetWithMode(request.targetId, thinkingMode);
+  const capabilityRoute = await resolveProviderCapabilityRoute({
+    target: configuredTarget,
+    thinkingMode,
+    candidateModels:
+      configuredTarget.id === "deepseek-api"
+        ? readEnv("DEEPSEEK_FALLBACK_MODELS", "deepseek-v4-flash").split(",")
+        : [],
+  });
+  const target = capabilityRoute.target;
   const effectiveSystemPrompt = applyLocalAnswerDiscipline(systemPrompt, target.execution, request.input);
   const thinkingFallbackToStandard = thinkingMode === "thinking" && !isThinkingModelConfigured(request.targetId);
   const providerProfile = resolveEffectiveProviderProfile(
@@ -1332,7 +1404,12 @@ export async function runAgentRequest(request: AgentChatRequest, systemPrompt: s
           request.input,
           enableTools,
           request.contextWindow,
-          candidateProfile
+          candidateProfile,
+          {
+            maxTokens: request.maxTokens,
+            temperature: request.temperature,
+            topP: request.topP,
+          },
         )
       : callOpenAICompatible(
           candidateTarget,
@@ -1342,7 +1419,12 @@ export async function runAgentRequest(request: AgentChatRequest, systemPrompt: s
           enableTools,
           request.contextWindow,
           candidateProfile,
-          thinkingMode
+          thinkingMode,
+          {
+            maxTokens: request.maxTokens,
+            temperature: request.temperature,
+            topP: request.topP,
+          },
         );
 
   const primaryRunner = () => runForTarget(target, providerProfile);
@@ -1351,7 +1433,7 @@ export async function runAgentRequest(request: AgentChatRequest, systemPrompt: s
   const fallbackRunner =
     target.execution === "remote"
       ? () =>
-          runForTarget(target, fallbackProfile)
+          runForTarget(capabilityRoute.fallbackTargets[0] || target, fallbackProfile)
       : undefined;
 
   let reply: ProviderReply;
@@ -1486,6 +1568,10 @@ export async function runAgentRequest(request: AgentChatRequest, systemPrompt: s
 
   let finalContent = normalizeStructuredAnswerOutput(reply.content, request.input);
   resolvedModel = reply.resolvedModel || resolvedModel;
+  const remoteProviderFallbackWarning =
+    target.execution === "remote" && resolvedModel !== target.resolvedModel
+      ? `Provider model fallback applied: ${target.resolvedModel} -> ${resolvedModel}.`
+      : undefined;
   if (target.execution === "local" && looksLikeLocalMetaReasoning(finalContent)) {
     const repairTarget =
       localFallbackUsed && localFallbackTargetId === localFallbackTarget?.id
@@ -1532,6 +1618,11 @@ export async function runAgentRequest(request: AgentChatRequest, systemPrompt: s
     toolRuns: reply.toolRuns,
     execution: target.execution,
     usage: reply.usage,
-    warning: reply.warning || warning
+    warning: mergeWarnings(
+      reply.warning,
+      warning,
+      capabilityRoute.warning,
+      remoteProviderFallbackWarning,
+    )
   };
 }

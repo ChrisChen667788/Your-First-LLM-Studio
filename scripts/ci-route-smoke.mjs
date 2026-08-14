@@ -11,11 +11,64 @@ const reportPath = path.join(root, "output", "ci-route-smoke.json");
 const checks = [
   { id: "home", path: "/", kind: "html" },
   { id: "agent", path: "/agent", kind: "html" },
+  { id: "compare", path: "/compare", kind: "html" },
+  { id: "fine-tune", path: "/fine-tune", kind: "html" },
+  { id: "models", path: "/models", kind: "html" },
+  { id: "model-runtime", path: "/models/runtime", kind: "html" },
   { id: "benchmarks", path: "/benchmarks", kind: "html" },
+  { id: "benchmark-standards", path: "/api/benchmarks/standards?refresh=manual", kind: "json", contract: "ok" },
+  { id: "benchmark-qualification", path: "/api/benchmarks/qualification", kind: "json", contract: "ok" },
+  { id: "benchmark-official-runs", path: "/api/benchmarks/official-runs", kind: "json", contract: "ok" },
+  { id: "benchmark-reproducibility", path: "/api/benchmarks/reproducibility", kind: "json", contract: "ok" },
+  { id: "benchmark-decision-intelligence", path: "/api/benchmarks/decision-intelligence", kind: "json", contract: "ok" },
+  { id: "retrieval", path: "/retrieval", kind: "html" },
+  { id: "experiments", path: "/experiments", kind: "html" },
+  { id: "workflows", path: "/workflows", kind: "html" },
   { id: "admin", path: "/admin", kind: "html" },
+  { id: "focus", path: "/focus", kind: "html" },
+  { id: "inbox", path: "/inbox", kind: "html" },
+  { id: "session-summary", path: "/session-summary", kind: "html" },
   { id: "release", path: "/release", kind: "html" },
-  { id: "release-train", path: "/api/experiments/release-train", kind: "json" },
+  { id: "release-train-api", path: "/api/experiments/release-train", kind: "json", contract: "release-train" },
+  { id: "ga-release-evidence", path: "/api/experiments/ga-release-evidence", kind: "json", contract: "ok" },
+  { id: "workflow-api", path: "/api/workflows", kind: "json", contract: "ok" },
+  { id: "finetune-capabilities-api", path: "/api/finetune/training-capabilities", kind: "json", contract: "object" },
+  { id: "runtime-profiles-api", path: "/api/models/runtime-profiles", kind: "json", contract: "ok" },
+  { id: "extension-foundation-api", path: "/api/extensions", kind: "json", contract: "object" },
+  { id: "workspace-resources-api", path: "/api/governance/workspaces/resources", kind: "json", contract: "ok" },
+  { id: "identity-workspace-mappings", path: "/api/governance/identity-mappings", kind: "json", contract: "ok" },
+  { id: "identity-event-evidence", path: "/api/governance/identity-events", kind: "json", contract: "ok" },
+  { id: "quality-ci-evidence", path: "/api/evaluation/quality-ci", kind: "json", contract: "ok" },
+  { id: "v151-release-candidate-evidence", path: "/api/evaluation/release-candidate", kind: "json", contract: "ok" },
+  { id: "v14-acceptance-evidence", path: "/api/experiments/v14-acceptance", kind: "json", contract: "ok" },
+  { id: "enterprise-idp-adapter", path: "/api/governance/enterprise-idp", kind: "json", contract: "ok" },
+  { id: "remote-worker-failover", path: "/api/workflows/remote-failover", kind: "json", contract: "ok" },
+  { id: "production-bridges", path: "/api/experiments/production-bridges", kind: "json", contract: "ok" },
+  { id: "artifact-trust-roots", path: "/api/artifacts/trust-roots", kind: "json", contract: "ok" },
+  { id: "artifact-install-transactions", path: "/api/artifacts/install-transactions", kind: "json", contract: "ok" },
+  { id: "artifact-staging-receipts", path: "/api/artifacts/staging-receipts", kind: "json", contract: "ok" },
+  { id: "postgres-usage-outbox", path: "/api/deployment/durable-outbox", kind: "json", contract: "ok" },
+  { id: "v15-acceptance-evidence", path: "/api/experiments/v15-acceptance", kind: "json", contract: "ok" },
+  { id: "v163-benchmark-qualification", path: "/api/experiments/v163-benchmark-qualification", kind: "json", contract: "ok" },
+  { id: "v164-official-evaluators", path: "/api/experiments/v164-official-evaluators", kind: "json", contract: "ok" },
+  { id: "v165-benchmark-reproducibility", path: "/api/experiments/v165-benchmark-reproducibility", kind: "json", contract: "ok" },
+  { id: "v166-benchmark-decision-intelligence", path: "/api/experiments/v166-benchmark-decision-intelligence", kind: "json", contract: "ok" },
+  { id: "v167-workflow-execution-closure", path: "/api/experiments/v167-workflow-execution-closure", kind: "json", contract: "ok" },
+  { id: "v168-finetune-execution-truth", path: "/api/experiments/v168-finetune-execution-truth", kind: "json", contract: "ok" },
+  { id: "v169-finetune-quality-export", path: "/api/experiments/v169-finetune-quality-export", kind: "json", contract: "ok" },
 ];
+
+function validateJsonContract(body, contract) {
+  try {
+    const parsed = JSON.parse(body);
+    if (!parsed || typeof parsed !== "object") return false;
+    if (contract === "release-train") return parsed.ok === true && Array.isArray(parsed.milestones);
+    if (contract === "ok") return parsed.ok === true;
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const results = [];
 for (const check of checks) {
@@ -27,14 +80,7 @@ for (const check of checks) {
     });
     const body = await response.text();
     const contentOk = check.kind === "json"
-      ? (() => {
-          try {
-            const parsed = JSON.parse(body);
-            return parsed?.ok === true && Array.isArray(parsed.milestones);
-          } catch {
-            return false;
-          }
-        })()
+      ? validateJsonContract(body, check.contract)
       : body.length > 500 && !/Unhandled Runtime Error|Internal Server Error/i.test(body);
     results.push({
       ...check,

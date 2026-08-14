@@ -1,6 +1,7 @@
 # Competitive Landscape and Product Direction
 
-Reviewed: 2026-07-12
+Competitor source review: 2026-07-12<br>
+First LLM Studio implementation status refreshed: 2026-07-26
 
 ## Method
 
@@ -36,11 +37,11 @@ Legend:
 
 ## Where It Is Weaker Today
 
-1. **Desktop distribution and first-run experience.** Installation, upgrades, permissions, background services, model download queues, resumable transfers, and external-disk migration are less polished than LM Studio or Jan.
+1. **Desktop distribution and first-run experience.** Local package, upgrade/rollback, permission-repair, resumable transfer, checksum, deduplication, and external-disk contracts now exist, but Developer ID notarization, independent clean-machine acceptance, and the day-to-day polish of LM Studio or Jan remain unproven.
 2. **Runtime and hardware breadth.** The current product is strongest on Apple Silicon/MLX and does not yet match Ollama or LocalAI across llama.cpp, vLLM, SGLang, NVIDIA, AMD, Linux, Windows, and distributed workers.
-3. **Community and extension ecosystem.** MCP is present in the architecture direction, but there is no mature signed extension registry, permission review, one-click community installation, or marketplace comparable to the broader ecosystems.
-4. **Team collaboration and identity.** Database ACL foundations exist, while multi-user workspaces, SSO/OIDC, SCIM, role administration, shared channels, and organization policy remain future work.
-5. **Visual workflow authoring.** Agent and RAG flows are code/contract driven; a versioned visual graph with replay, breakpoint inspection, and deploy-as-API is not yet a first-class surface.
+3. **Community and extension ecosystem.** A pinned MCP registry, signed bundle verification, quarantine, dependency planning, permission grants, secret scopes, rollback, and sandbox acceptance now form a local security foundation. A public trust root, marketplace governance, community package evidence, and Linux/Windows sandbox receipts are still missing.
+4. **Team collaboration and identity.** Organization/workspace ACL, signed request context, OIDC/SCIM mapping, Postgres RLS plans, revision conflicts, four-eyes review, and immutable local audit now exist. Real IdP/SCIM lifecycle, deployed-Postgres concurrency, admin operations, backup/restore, and external audit retention remain production gaps.
+5. **Visual workflow authoring.** `/workflows` now supports typed graph editing, versioning, guards, approvals, breakpoints, replay, state diff, worker resume, and deploy-as-API. It still lacks authenticated non-loopback acceptance, distributed worker recovery, and independently operated multi-user production evidence.
 6. **Fine-tune backend breadth.** The LoRA workflow is productized, but supported training families, accelerators, optimizers, preference methods, and distributed execution remain narrower than LLaMA-Factory.
 7. **Production evidence is intentionally incomplete.** Local rehearsals are not treated as cloud proof. Workload identity, real KMS/HSM signing, immutable object storage, multi-node HA, and post-sunset compatibility evidence remain gated.
 8. **Public distribution maturity.** Repository docs and screenshots are strong, but packaged binaries, signed releases, update channels, community examples, and public support processes need a more regular cadence.
@@ -68,10 +69,11 @@ Legend:
 
 # 竞品格局与产品方向
 
-评估日期：2026-07-12
+竞品资料评估日期：2026-07-12<br>
+本产品实现状态刷新：2026-07-26
 
 ## 结论
 
 First LLM Studio 不应把自己定位为 LM Studio 的界面复刻，也不应试图在一个版本里追平所有推理后端。它更有价值的定位是：**面向本地模型工程的证据驱动全生命周期工作台**。其差异化来自 Agent、RAG、Compare、Benchmark、Fine-tune、Adapter、Model Hub 和 Ops 之间的可复现数据链，而不是单独某个聊天或下载页面。
 
-短期应优先补齐桌面分发、模型下载/存储生命周期和 Local Server 体验；中期扩展运行时、MCP/插件与可视化 workflow；后期再推进团队治理、评测 CI、artifact marketplace 与企业 HA/FinOps。对应版本已追加到 [`docs/next-10-release-train.md`](./next-10-release-train.md) 和 Experiments release-train contract。
+本地层已经补入模型传输/外置盘、Local Server、MCP 安全扩展、可视化 Workflow 以及 workspace 治理基础。后续优先级转为真实桌面签名与干净机签收、跨平台 runtime、公开扩展信任体系、真实 OIDC/SCIM 与部署级并发证据、训练后端扩展，以及企业 HA/FinOps。对应门槛继续由 [`docs/next-10-release-train.md`](./next-10-release-train.md) 和 Experiments release-train contract 管理，未取得外部证据的能力不标记为生产完成。

@@ -38,7 +38,6 @@ type EmbeddedComparePromptBinding = {
 };
 
 type EmbeddedCompareWorkbenchBinding = {
-  workbenchMode: AgentWorkbenchMode;
   selectedTargetId: string;
   setSelectedTargetId: Setter<string>;
   setWorkbenchMode: Setter<AgentWorkbenchMode>;
@@ -115,7 +114,7 @@ export function useEmbeddedCompareWorkbenchAdapter({
   const handleCreateStudioRecipe = useCallback(
     () =>
       recipeState.saveCurrentStudioRecipe({
-        workbenchMode: workbench.workbenchMode,
+        workbenchMode: "compare",
         compareOutputShape: promptState.compareOutputShape,
         enableTools: prompt.enableTools,
         enableRetrieval: prompt.enableRetrieval,
@@ -139,7 +138,6 @@ export function useEmbeddedCompareWorkbenchAdapter({
       promptState.compareOutputShape,
       recipeState.saveCurrentStudioRecipe,
       targetState.compareTargetIds,
-      workbench.workbenchMode,
     ],
   );
 

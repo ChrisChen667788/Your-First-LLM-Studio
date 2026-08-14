@@ -23,6 +23,10 @@ import type {
   AgentProviderProfile,
   AgentThinkingMode,
 } from "@/lib/agent/types";
+import {
+  BENCHMARK_PROGRESS_API_PATH,
+  BENCHMARK_REPORT_API_PATH,
+} from "./contracts";
 import type { BenchmarkPlan } from "@/features/benchmark/run-plan";
 import type { ExperimentSourceContext } from "@/features/experiments/contracts";
 
@@ -75,7 +79,7 @@ export function initializeBenchmarkRunProgress(input: {
         kind: "api",
         role: "progress",
         label: "Benchmark progress",
-        uri: `/api/admin/benchmark/progress?runId=${encodeURIComponent(input.runId)}`,
+        uri: `${BENCHMARK_PROGRESS_API_PATH}?runId=${encodeURIComponent(input.runId)}`,
       },
     ],
     links: buildExperimentSourceLinks(input.experimentContext),
@@ -167,13 +171,13 @@ export function completeBenchmarkRunProgress(input: {
         kind: "api",
         role: "report",
         label: "Benchmark report",
-        uri: `/api/admin/benchmark/report?runId=${encodeURIComponent(input.runId)}`,
+        uri: `${BENCHMARK_REPORT_API_PATH}?runId=${encodeURIComponent(input.runId)}`,
       },
       {
         kind: "api",
         role: "progress",
         label: "Benchmark progress",
-        uri: `/api/admin/benchmark/progress?runId=${encodeURIComponent(input.runId)}`,
+        uri: `${BENCHMARK_PROGRESS_API_PATH}?runId=${encodeURIComponent(input.runId)}`,
       },
     ],
     links: [

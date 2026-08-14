@@ -1,4 +1,5 @@
-import { existsSync } from "fs";
+import { existsSync, realpathSync, statSync } from "fs";
+import path from "path";
 import {
   listServerAgentTargets,
   removeDiscoveredLocalTarget,
@@ -17,7 +18,7 @@ import {
   readJobs,
   readRecipes,
   readRuntimeAttachments,
-  writeRuntimeAttachments,
+  updateRuntimeAttachments,
 } from "./repository";
 import {
   listFineTuneTargetOptions,
@@ -101,7 +102,51 @@ export function buildAttachedAdapterTarget(
   };
 }
 
-export function attachFineTuneAdapterRuntime(input: { adapterId: string }) {
+function isPathWithin(parent: string, candidate: string) {
+  const relative = path.relative(parent, candidate);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function containsMlxAdapterWeights(directory: string) {
+  return ["adapters.safetensors", "adapter_model.safetensors"].some((name) =>
+    existsSync(path.join(directory, name)),
+  );
+}
+
+export function resolveFineTuneCheckpointDirectory(input: {
+  outputDir: string;
+  requestedPath?: string;
+  fallbackPath?: string;
+}) {
+  const candidate = path.resolve(
+    input.requestedPath?.trim() || input.fallbackPath || input.outputDir,
+  );
+  const outputRoot = realpathSync(input.outputDir);
+  if (!existsSync(candidate)) {
+    throw new Error(`Adapter checkpoint does not exist: ${candidate}`);
+  }
+  const resolvedCandidate = realpathSync(candidate);
+  if (!isPathWithin(outputRoot, resolvedCandidate)) {
+    throw new Error("Adapter checkpoint must stay inside the job output directory.");
+  }
+  const checkpointDirectory = statSync(resolvedCandidate).isFile()
+    ? path.dirname(resolvedCandidate)
+    : resolvedCandidate;
+  if (!statSync(checkpointDirectory).isDirectory()) {
+    throw new Error("Adapter checkpoint path must resolve to a directory.");
+  }
+  if (!containsMlxAdapterWeights(checkpointDirectory)) {
+    throw new Error(
+      `Adapter checkpoint has no MLX adapter weights: ${checkpointDirectory}`,
+    );
+  }
+  return checkpointDirectory;
+}
+
+export function resolveFineTuneCheckpointPath(input: {
+  adapterId: string;
+  checkpointPath?: string;
+}) {
   const { adapter, job, recipe, baseTargetOption, baseTarget } =
     getFineTuneRuntimeContext(input.adapterId);
   if (adapter.status !== "ready" || adapter.checkpointCount <= 0) {
@@ -115,20 +160,63 @@ export function attachFineTuneAdapterRuntime(input: { adapterId: string }) {
     throw new Error("Adapter is missing its base target context.");
   }
 
-  const current = readRuntimeAttachments();
-  const existing = current.find((entry) => entry.adapterId === adapter.id);
-  const now = new Date().toISOString();
-  const selectedAdapterPath =
+  const requested = input.checkpointPath?.trim();
+  const fallback =
     adapter.bestCheckpoint?.loadBestCheckpointAtEnd &&
     adapter.bestCheckpoint.path &&
     existsSync(adapter.bestCheckpoint.path)
       ? adapter.bestCheckpoint.path
       : adapter.outputDir;
+  const outputRoot = realpathSync(adapter.outputDir);
+  const resolvedCandidate = resolveFineTuneCheckpointDirectory({
+    outputDir: adapter.outputDir,
+    requestedPath: requested,
+    fallbackPath: fallback,
+  });
+  return {
+    adapter,
+    job,
+    recipe,
+    baseTargetOption,
+    baseTarget,
+    selectedAdapterPath: resolvedCandidate,
+    selectionSource: requested
+      ? ("requested" as const)
+      : resolvedCandidate === outputRoot
+        ? ("output" as const)
+        : ("best" as const),
+  };
+}
+
+export async function attachFineTuneAdapterRuntime(input: {
+  adapterId: string;
+  checkpointPath?: string;
+}) {
+  const {
+    adapter,
+    job,
+    baseTargetOption,
+    baseTarget,
+    selectedAdapterPath,
+    selectionSource,
+  } = resolveFineTuneCheckpointPath(input);
+
+  const current = readRuntimeAttachments();
+  const existing = current.find((entry) => entry.adapterId === adapter.id);
+  const now = new Date().toISOString();
   const alias =
     existing?.alias ||
     buildFineTuneAdapterAlias(adapter.adapterName, adapter.jobId);
   const label =
     existing?.label || `${baseTarget.label} · ${adapter.adapterName}`;
+  if (existing && existing.adapterPath !== selectedAdapterPath) {
+    const release = await detachLoadedRuntimeAlias(existing.alias);
+    if (!release.released && release.releasedAlias === existing.alias) {
+      throw new Error(
+        `Loaded runtime ${existing.alias} could not be released before checkpoint switch.`,
+      );
+    }
+  }
   const attachment: FineTuneRuntimeAttachment = {
     adapterId: adapter.id,
     jobId: adapter.jobId,
@@ -149,10 +237,10 @@ export function attachFineTuneAdapterRuntime(input: { adapterId: string }) {
     updatedAt: now,
   };
 
-  writeRuntimeAttachments(
+  updateRuntimeAttachments((entries) =>
     [
       attachment,
-      ...current.filter((entry) => entry.adapterId !== adapter.id),
+      ...entries.filter((entry) => entry.adapterId !== adapter.id),
     ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
   );
 
@@ -179,11 +267,16 @@ export function attachFineTuneAdapterRuntime(input: { adapterId: string }) {
       { relation: "derived-from", entityType: "job", id: adapter.jobId },
       { relation: "uses", entityType: "target", id: baseTarget.id, label: baseTarget.label },
     ],
+    metadata: {
+      checkpointSelectionSource: selectionSource,
+      checkpointPath: selectedAdapterPath,
+    },
   });
 
   return {
     attachment,
     target,
+    selectionSource,
   };
 }
 
@@ -238,8 +331,8 @@ export async function detachFineTuneAdapterRuntime(input: {
   }
 
   const releaseResult = await detachLoadedRuntimeAlias(existing.alias);
-  writeRuntimeAttachments(
-    current.filter((entry) => entry.adapterId !== input.adapterId),
+  updateRuntimeAttachments((entries) =>
+    entries.filter((entry) => entry.adapterId !== input.adapterId),
   );
   removeDiscoveredLocalTarget(existing.alias);
 

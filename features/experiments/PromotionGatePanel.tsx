@@ -106,9 +106,9 @@ export function PromotionGatePanel({ locale }: PromotionGatePanelProps) {
 
       <div className="mt-4 grid gap-3 xl:grid-cols-3">
         {(payload?.sources || []).map((source) => (
-          <article key={source.id} className="rounded-[26px] border border-white/10 bg-black/25 p-4">
+          <article key={source.id} className="min-w-0 rounded-[26px] border border-white/10 bg-black/25 p-4">
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-white">{source.label}</p>
                 <p className="mt-1 text-xs leading-5 text-slate-400">{source.summary}</p>
               </div>
@@ -118,7 +118,7 @@ export function PromotionGatePanel({ locale }: PromotionGatePanelProps) {
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {Object.entries(source.metrics).slice(0, 6).map(([key, value]) => (
-                <span key={key} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-slate-300">
+                <span key={key} className="max-w-full break-all rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-slate-300">
                   {key}: {String(value)}
                 </span>
               ))}

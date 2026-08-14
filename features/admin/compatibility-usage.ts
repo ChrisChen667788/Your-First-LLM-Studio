@@ -1,7 +1,10 @@
 import crypto from "crypto";
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "fs";
-import path from "path";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
+import {
+  migrateJsonFileDurably,
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 
 const USAGE_FILE = getLocalAgentDataPath("admin-compatibility-usage.json");
 const ARCHIVE_FILE = getLocalAgentDataPath(
@@ -71,8 +74,12 @@ export type AdminCompatibilityHistoricalArchiveSummary = {
 };
 
 type AdminCompatibilityHistoricalArchiveStore = {
-  schemaVersion?: number;
-  archives?: AdminCompatibilityHistoricalArchiveEntry[];
+  schemaVersion: number;
+  archives: AdminCompatibilityHistoricalArchiveEntry[];
+};
+
+type AdminCompatibilityUsageStore = {
+  routes: AdminCompatibilityUsageRoute[];
 };
 
 export function getTaggedRuntimeHitCount(route: AdminCompatibilityUsageRoute) {
@@ -94,49 +101,59 @@ export function getLegacyUnclassifiedHitCount(
   return Math.max(0, route.hitCount - getRouteSmokeHitCount(route));
 }
 
-function ensureUsageDir() {
-  mkdirSync(path.dirname(USAGE_FILE), { recursive: true });
+function emptyUsageStore(): AdminCompatibilityUsageStore {
+  return { routes: [] };
+}
+
+function isUsageStore(value: unknown): value is AdminCompatibilityUsageStore {
+  return Boolean(value) && typeof value === "object" && Array.isArray((value as AdminCompatibilityUsageStore).routes);
+}
+
+function emptyArchiveStore(): AdminCompatibilityHistoricalArchiveStore {
+  return {
+    schemaVersion: ADMIN_COMPATIBILITY_ARCHIVE_SCHEMA_VERSION,
+    archives: [],
+  };
+}
+
+function isArchiveStore(value: unknown): value is AdminCompatibilityHistoricalArchiveStore {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<AdminCompatibilityHistoricalArchiveStore>;
+  return candidate.schemaVersion === ADMIN_COMPATIBILITY_ARCHIVE_SCHEMA_VERSION && Array.isArray(candidate.archives);
+}
+
+function migrateLegacyArchiveStore(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<AdminCompatibilityHistoricalArchiveStore>;
+  if (candidate.schemaVersion !== undefined || !Array.isArray(candidate.archives)) {
+    return null;
+  }
+  return {
+    schemaVersion: ADMIN_COMPATIBILITY_ARCHIVE_SCHEMA_VERSION,
+    archives: candidate.archives,
+  };
 }
 
 function readUsageRoutes() {
-  if (!existsSync(USAGE_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(USAGE_FILE, "utf8")) as {
-      routes?: AdminCompatibilityUsageRoute[];
-    };
-    return Array.isArray(parsed.routes) ? parsed.routes : [];
-  } catch {
-    return [];
-  }
+  return readJsonFileDurably(USAGE_FILE, emptyUsageStore, isUsageStore).routes;
 }
 
 function readArchiveEntries() {
-  if (!existsSync(ARCHIVE_FILE)) return [];
-  try {
-    const parsed = JSON.parse(
-      readFileSync(ARCHIVE_FILE, "utf8"),
-    ) as AdminCompatibilityHistoricalArchiveStore;
-    return Array.isArray(parsed.archives) ? parsed.archives : [];
-  } catch {
-    return [];
-  }
+  migrateJsonFileDurably(
+    ARCHIVE_FILE,
+    emptyArchiveStore,
+    migrateLegacyArchiveStore,
+    isArchiveStore,
+  );
+  return readJsonFileDurably(ARCHIVE_FILE, emptyArchiveStore, isArchiveStore).archives;
 }
 
-function writeArchiveEntries(
-  archives: AdminCompatibilityHistoricalArchiveEntry[],
-) {
-  ensureUsageDir();
-  writeFileSync(
+function prependArchive(entry: AdminCompatibilityHistoricalArchiveEntry) {
+  updateJsonFileDurably(
     ARCHIVE_FILE,
-    `${JSON.stringify(
-      {
-        schemaVersion: ADMIN_COMPATIBILITY_ARCHIVE_SCHEMA_VERSION,
-        archives,
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
+    emptyArchiveStore,
+    (store) => ({ ...store, archives: [entry, ...store.archives] }),
+    isArchiveStore,
   );
 }
 
@@ -176,54 +193,48 @@ export function recordAdminCompatibilityUsage(
     const now = new Date().toISOString();
     const normalized = normalizeLegacyRequest(request);
     const key = `${normalized.method} ${normalized.legacyPath} -> ${canonicalPath}`;
-    const routes = readUsageRoutes();
-    const index = routes.findIndex((route) => route.key === key);
-    if (index >= 0) {
-      const existing = routes[index];
-      const currentRuntimeHitCount = getTaggedRuntimeHitCount(existing);
-      const currentSmokeHitCount = existing.smokeHitCount ?? 0;
-      const currentLegacyUnclassifiedHitCount =
-        getLegacyUnclassifiedHitCount(existing);
-      routes[index] = {
-        ...existing,
-        evidenceVersion: ADMIN_COMPATIBILITY_USAGE_SOURCE_TAG_VERSION,
-        hitCount: existing.hitCount + 1,
-        runtimeHitCount:
-          normalized.evidenceSource === "runtime"
-            ? currentRuntimeHitCount + 1
-            : currentRuntimeHitCount,
-        smokeHitCount:
-          normalized.evidenceSource === "route-smoke"
-            ? currentSmokeHitCount + 1
-            : currentSmokeHitCount,
-        legacyUnclassifiedHitCount: currentLegacyUnclassifiedHitCount,
-        lastSeenAt: now,
-        lastUserAgent: normalized.userAgent || existing.lastUserAgent,
-        lastEvidenceSource: normalized.evidenceSource,
-      };
-    } else {
-      routes.push({
-        key,
-        legacyPath: normalized.legacyPath,
-        canonicalPath,
-        method: normalized.method,
-        hitCount: 1,
-        evidenceVersion: ADMIN_COMPATIBILITY_USAGE_SOURCE_TAG_VERSION,
-        runtimeHitCount: normalized.evidenceSource === "runtime" ? 1 : 0,
-        smokeHitCount: normalized.evidenceSource === "route-smoke" ? 1 : 0,
-        legacyUnclassifiedHitCount: 0,
-        firstSeenAt: now,
-        lastSeenAt: now,
-        lastUserAgent: normalized.userAgent,
-        lastEvidenceSource: normalized.evidenceSource,
-      });
-    }
-
-    ensureUsageDir();
-    writeFileSync(
+    updateJsonFileDurably(
       USAGE_FILE,
-      `${JSON.stringify({ routes }, null, 2)}\n`,
-      "utf8",
+      emptyUsageStore,
+      (store) => {
+        const routes = [...store.routes];
+        const index = routes.findIndex((route) => route.key === key);
+        if (index >= 0) {
+          const existing = routes[index];
+          const currentRuntimeHitCount = getTaggedRuntimeHitCount(existing);
+          const currentSmokeHitCount = existing.smokeHitCount ?? 0;
+          const currentLegacyUnclassifiedHitCount = getLegacyUnclassifiedHitCount(existing);
+          routes[index] = {
+            ...existing,
+            evidenceVersion: ADMIN_COMPATIBILITY_USAGE_SOURCE_TAG_VERSION,
+            hitCount: existing.hitCount + 1,
+            runtimeHitCount: normalized.evidenceSource === "runtime" ? currentRuntimeHitCount + 1 : currentRuntimeHitCount,
+            smokeHitCount: normalized.evidenceSource === "route-smoke" ? currentSmokeHitCount + 1 : currentSmokeHitCount,
+            legacyUnclassifiedHitCount: currentLegacyUnclassifiedHitCount,
+            lastSeenAt: now,
+            lastUserAgent: normalized.userAgent || existing.lastUserAgent,
+            lastEvidenceSource: normalized.evidenceSource,
+          };
+        } else {
+          routes.push({
+            key,
+            legacyPath: normalized.legacyPath,
+            canonicalPath,
+            method: normalized.method,
+            hitCount: 1,
+            evidenceVersion: ADMIN_COMPATIBILITY_USAGE_SOURCE_TAG_VERSION,
+            runtimeHitCount: normalized.evidenceSource === "runtime" ? 1 : 0,
+            smokeHitCount: normalized.evidenceSource === "route-smoke" ? 1 : 0,
+            legacyUnclassifiedHitCount: 0,
+            firstSeenAt: now,
+            lastSeenAt: now,
+            lastUserAgent: normalized.userAgent,
+            lastEvidenceSource: normalized.evidenceSource,
+          });
+        }
+        return { routes };
+      },
+      isUsageStore,
     );
   } catch {
     // Compatibility headers should never fail because usage evidence failed.
@@ -326,30 +337,31 @@ export function archiveHistoricalAdminCompatibilityUsage(input?: {
       : null;
 
   if (archive) {
-    writeArchiveEntries([archive, ...readArchiveEntries()]);
+    prependArchive(archive);
   }
 
   if (archive && shouldClear) {
-    const nextRoutes = routes
-      .map((route) => {
-        const runtimeHitCount = getTaggedRuntimeHitCount(route);
-        const smokeHitCount = getRouteSmokeHitCount(route);
-        const hitCount = runtimeHitCount + smokeHitCount;
-        return {
-          ...route,
-          evidenceVersion: ADMIN_COMPATIBILITY_USAGE_SOURCE_TAG_VERSION,
-          hitCount,
-          runtimeHitCount,
-          smokeHitCount,
-          legacyUnclassifiedHitCount: 0,
-        } satisfies AdminCompatibilityUsageRoute;
-      })
-      .filter((route) => route.hitCount > 0);
-    ensureUsageDir();
-    writeFileSync(
+    updateJsonFileDurably(
       USAGE_FILE,
-      `${JSON.stringify({ routes: nextRoutes }, null, 2)}\n`,
-      "utf8",
+      emptyUsageStore,
+      (store) => ({
+        routes: store.routes
+          .map((route) => {
+            const runtimeHitCount = getTaggedRuntimeHitCount(route);
+            const smokeHitCount = getRouteSmokeHitCount(route);
+            const hitCount = runtimeHitCount + smokeHitCount;
+            return {
+              ...route,
+              evidenceVersion: ADMIN_COMPATIBILITY_USAGE_SOURCE_TAG_VERSION,
+              hitCount,
+              runtimeHitCount,
+              smokeHitCount,
+              legacyUnclassifiedHitCount: 0,
+            } satisfies AdminCompatibilityUsageRoute;
+          })
+          .filter((route) => route.hitCount > 0),
+      }),
+      isUsageStore,
     );
   }
 
@@ -366,13 +378,12 @@ export function archiveHistoricalAdminCompatibilityUsage(input?: {
 
 export function clearAdminCompatibilityUsageSummary() {
   const before = readAdminCompatibilityUsageSummary();
-  try {
-    if (existsSync(USAGE_FILE)) {
-      unlinkSync(USAGE_FILE);
-    }
-  } catch {
-    writeFileSync(USAGE_FILE, `${JSON.stringify({ routes: [] }, null, 2)}\n`, "utf8");
-  }
+  updateJsonFileDurably(
+    USAGE_FILE,
+    emptyUsageStore,
+    () => emptyUsageStore(),
+    isUsageStore,
+  );
   return {
     ok: true,
     clearedAt: new Date().toISOString(),

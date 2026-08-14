@@ -1,15 +1,15 @@
 import { createHash, randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import type { ServerRequestEntry } from "@/features/models/server-request-ledger";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const SERVER_LOG_RETENTION_SCHEMA_VERSION = "models.server-log-retention.v1" as const;
 type ExportEntry = Omit<ServerRequestEntry, "callerKeyId"> & { callerAlias?: string };
 type Receipt = { id: string; generatedAt: string; status: "pass" | "failed"; retentionDays: number; sourceCount: number; exportedCount: number; expiredCount: number; exportDigest: string; checks: Record<string, boolean> };
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability"); const STORE_FILE = path.join(DATA_DIR, "server-log-retention.json");
-function readReceipts(): Receipt[] { if (!existsSync(STORE_FILE)) return []; try { const value = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { receipts?: Receipt[] }; return Array.isArray(value.receipts) ? value.receipts : []; } catch { return []; } }
-function persist(receipt: Receipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(STORE_FILE, `${JSON.stringify({ schemaVersion: SERVER_LOG_RETENTION_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 100) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): Receipt[] { return readDurableReceipts(STORE_FILE, SERVER_LOG_RETENTION_SCHEMA_VERSION); }
+function persist(receipt: Receipt) { prependDurableReceipt(STORE_FILE, SERVER_LOG_RETENTION_SCHEMA_VERSION, receipt, 100); }
 export function buildRetainedServerLogExport(input: { entries: ServerRequestEntry[]; retentionDays: number; now?: Date }) {
   const now = input.now || new Date(); const cutoff = now.getTime() - input.retentionDays * 86_400_000;
   const retained: ExportEntry[] = input.entries.filter((entry) => Date.parse(entry.createdAt) >= cutoff).map(({ callerKeyId, ...entry }) => ({ ...entry, ...(callerKeyId ? { callerAlias: createHash("sha256").update(callerKeyId).digest("hex").slice(0, 12) } : {}) }));

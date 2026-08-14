@@ -14,8 +14,12 @@ import {
   saveFineTuneOperation,
 } from "./repository";
 import { normalizeUserPathInput } from "./store-internal";
+import {
+  mapFineTuneInferenceWithConcurrency,
+  runFineTuneTeacherInference,
+} from "./inference-service";
 
-export function runFineTuneDistillation(input: {
+export async function runFineTuneDistillation(input: {
   teacherTargetId: string;
   outputPath?: string;
   sampleCount?: number;
@@ -38,12 +42,12 @@ export function runFineTuneDistillation(input: {
     ? path.resolve(normalizeUserPathInput(input.outputPath))
     : paths.datasetFile;
   mkdirSync(path.dirname(outputPath), { recursive: true });
-  const sampleCount = Math.max(8, Math.min(input.sampleCount || 64, 2000));
+  const sampleCount = Math.max(1, Math.min(input.sampleCount || 16, 256));
   const seedPrompt =
     input.seedPrompt?.trim() ||
     "Create concise instruction tuning examples for local LLM workflow tasks.";
   const generatedAt = new Date().toISOString();
-  const rows = Array.from({ length: sampleCount }, (_, index) => {
+  const requests = Array.from({ length: sampleCount }, (_, index) => {
     const topic = [
       "compare two model outputs",
       "summarize benchmark evidence",
@@ -51,21 +55,62 @@ export function runFineTuneDistillation(input: {
       "draft a grounded release note",
       "prepare a fine-tune dataset quality checklist",
     ][index % 5];
-    const instruction = `${seedPrompt} Example ${index + 1}: ${topic}.`;
-    const output = input.includeReasoningTrace
-      ? `Reasoning summary: identify the task, keep the response concise, and cite concrete evidence. Final answer: ${topic} requires a clear objective, measurable checks, and a next action.`
-      : `${topic} requires a clear objective, measurable checks, and a next action.`;
     return {
-      instruction,
-      input: "",
-      output,
-      metadata: {
-        teacherTarget: target.label,
-        generatedAt,
-        synthetic: true,
-      },
+      instruction: `${seedPrompt} Example ${index + 1}: ${topic}.`,
+      topic,
     };
   });
+  const generatedRows = await mapFineTuneInferenceWithConcurrency(
+    requests,
+    2,
+    async (request, index) => {
+      try {
+        const prompt = input.includeReasoningTrace
+          ? `${request.instruction}\nReturn a concise reasoning summary followed by the final answer. Do not reveal hidden chain-of-thought.`
+          : `${request.instruction}\nReturn only the final answer.`;
+        const response = await runFineTuneTeacherInference({
+          teacherTargetId: target.id,
+          prompt,
+          options: {
+            maxNewTokens: input.maxNewTokens,
+            temperature: input.temperature,
+            topP: input.topP,
+          },
+        });
+        if (!response.content.trim()) throw new Error("Teacher returned an empty response.");
+        return {
+          index,
+          row: {
+            instruction: request.instruction,
+            input: "",
+            output: response.content.trim(),
+            metadata: {
+              teacherTarget: target.label,
+              teacherTargetId: target.id,
+              resolvedModel: response.resolvedModel,
+              generatedAt,
+              synthetic: true,
+              usage: response.usage || null,
+            },
+          },
+          error: null as string | null,
+        };
+      } catch (error) {
+        return {
+          index,
+          row: null,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
+  );
+  const rows = generatedRows.flatMap((entry) => (entry.row ? [entry.row] : []));
+  const failures = generatedRows.filter((entry) => entry.error);
+  if (!rows.length) {
+    throw new Error(
+      `Teacher inference produced no usable rows. ${failures[0]?.error || "Check provider configuration."}`,
+    );
+  }
   writeFileSync(
     outputPath,
     `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`,
@@ -76,28 +121,28 @@ export function runFineTuneDistillation(input: {
     "instruction-jsonl",
   );
   const dataset = saveFineTuneDataset({
-    label: `Distilled starter · ${target.label}`,
+    label: `Distilled teacher data · ${target.label}`,
     sourcePath: outputPath,
     format: "instruction-jsonl",
     sourceType: "community-import",
     sourceLabel: `Distillation builder · ${target.label}`,
     qualityWarnings: [
-      "Synthetic starter data. Review and replace with domain data before serious training.",
+      "Teacher-generated synthetic data. Review factuality, licensing, diversity, and domain fit before training.",
     ],
     quality: {
       score: 76,
       licenseRisk: "unknown",
-      downloadedRows: sampleCount,
-      convertedRows: sampleCount,
-      sampledRows: sampleCount,
+      downloadedRows: rows.length,
+      convertedRows: rows.length,
+      sampledRows: rows.length,
       duplicateRows: 0,
       skippedRows: 0,
       piiRiskRows: 0,
       schemaConversion: "generated instruction-jsonl starter rows",
       recommendedSteps: {
-        min: Math.max(100, sampleCount),
-        max: Math.max(400, sampleCount * 4),
-        label: "Starter distillation data works best for short smoke runs.",
+        min: Math.max(100, rows.length),
+        max: Math.max(400, rows.length * 4),
+        label: "Teacher data should be manually reviewed before a promotion run.",
       },
     },
   });
@@ -109,11 +154,13 @@ export function runFineTuneDistillation(input: {
       `Generated: ${generatedAt}`,
       "",
       `- Output: ${outputPath}`,
-      `- Rows: ${sampleCount}`,
+      `- Requested rows: ${sampleCount}`,
+      `- Generated rows: ${rows.length}`,
+      `- Skipped failures: ${failures.length}`,
       `- Validation: ${validation.ok ? "ok" : "failed"}`,
       `- Teacher target: ${target.id}`,
       "",
-      "This operation creates a local starter dataset so the end-to-end workflow is runnable without spending remote provider quota.",
+      "Every retained row was generated by the configured teacher Provider port. Failed provider calls were skipped and recorded in the manifest.",
       "",
     ].join("\n"),
     "utf8",
@@ -129,6 +176,7 @@ export function runFineTuneDistillation(input: {
         dataset,
         validation,
         outputPath,
+        failures,
       },
       null,
       2,
@@ -139,13 +187,15 @@ export function runFineTuneDistillation(input: {
     id,
     kind: "distillation",
     status: "completed",
-    title: `Distillation starter · ${target.label}`,
+    title: `Teacher distillation · ${target.label}`,
     datasetId: dataset.id,
     targetId: target.id,
     outputDir: paths.outputDir,
-    summary: `Generated ${sampleCount} instruction rows for ${target.label}.`,
+    summary: `Generated ${rows.length}/${sampleCount} real teacher instruction rows for ${target.label}.`,
     metrics: {
-      sampleCount,
+      sampleCount: rows.length,
+      requestedSampleCount: sampleCount,
+      failedSampleCount: failures.length,
       validationOk: validation.ok,
       temperature: Math.max(0, Math.min(input.temperature ?? 0.7, 2)),
       topP: Math.max(0.01, Math.min(input.topP ?? 0.9, 1)),
@@ -165,7 +215,7 @@ export function runFineTuneDistillation(input: {
   appendExperimentEvent({
     kind: "finetune",
     status: "completed",
-    title: "Distillation starter dataset generated",
+    title: "Teacher distillation dataset generated",
     summary: operation.summary,
     relatedId: operation.id,
     ...buildFineTuneOperationEventReferences(operation),

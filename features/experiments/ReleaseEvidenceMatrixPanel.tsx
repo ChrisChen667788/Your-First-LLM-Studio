@@ -156,7 +156,7 @@ export function ReleaseEvidenceMatrixPanel({ locale }: ReleaseEvidenceMatrixPane
 
       <div className="mt-4 grid gap-3 xl:grid-cols-2 2xl:grid-cols-5">
         {rounds.map((round: ReleaseEvidenceMatrixRound) => (
-          <article key={round.version} className="rounded-[26px] border border-white/10 bg-black/25 p-4">
+          <article key={round.version} className="min-w-0 rounded-[26px] border border-white/10 bg-black/25 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-white">{round.version}</p>

@@ -48,10 +48,21 @@ It is not another chat shell. It is built for people who need to compare behavio
 | `v1.2.0` Local Server Acceptance | Adds a real Ollama 15-slice acceptance loop for process health, model residency, OpenAI-compatible chat/SSE, concurrency, accounting, access policy, log retention, idle eviction, and unload/reload recovery. Separate-device LAN and sustained daemon evidence still gate production promotion. |
 | `v1.2.1` Runtime Fabric | Implements one normalized runtime contract across MLX, Ollama, llama.cpp, LocalAI, vLLM, and SGLang. Real MLX/Ollama/llama.cpp chat and SSE pass on Apple Silicon; unsupported hardware and missing endpoints fail before execution with actionable codes. External LocalAI, Linux/NVIDIA, and heterogeneous-node receipts still gate production promotion. |
 | `v1.3.0` MCP + Secure Extensions | Adds a pinned MCP server registry, real stdio capability discovery, Ed25519-signed install/update/rollback, permission and secret scopes, quarantine, dependency/path defenses, and OS-enforced macOS Seatbelt isolation. Local acceptance is 11/11 PASS; independent publisher, Linux/Windows sandbox, and remote OAuth receipts still gate production promotion. |
+| `v1.3.1` Workflow Studio + Trust Hardening | Adds typed visual workflows, immutable publication, safe-worker resume/replay, strict deployment-key invocation, standard OpenAI-compatible sync/SSE responses, atomic recoverable Workflow stores, conventional contract tests, zero-vulnerability dependency gates, and portable LoRA evidence with quality promotion kept on `HOLD`. |
+| `v1.4.0` Team Governance | Adds organizations, workspaces, roles, groups, request identity, optimistic conflict handling, database-level ACL/RLS rehearsals, identity mapping, policy simulation, and immutable audit evidence. Real OIDC/SCIM and deployed PostgreSQL remain production gates. |
+| `v1.4.1` Quality and Training Lab | Binds frozen multi-seed evaluation, confidence intervals, deterministic scoring, Quality CI, and training capability contracts to a real attached adapter and 36 paired samples. Independent-worker repetition and calibrated subjective judging remain external gates. |
+| `v1.5.0` Trusted Artifact Lifecycle | Packages the real adapter with pinned base revision, checksums, provenance, local registry read-back, quality-claim binding, install policy, and rollback lifecycle. Organization-controlled remote registry receipts remain a production gate. |
+| `v1.5.1` Enterprise HA and FinOps | Completes the local durable usage outbox, token reconciliation, retry-safe settlement, audit/signing rehearsal, old-primary fencing, standby promotion, and measured local RPO/RTO. Managed billing, cross-region failover, cloud KMS/Object Lock, and organization sign-off remain `HOLD`. |
+| `v1.6.3` Benchmark Qualification Checkpoint | Pins and checksum-verifies the complete HuggingFaceH4/MATH-500 test snapshot, exposes all 500 qualified items in Benchmark Studio, and preserves reproducible dataset provenance. |
+| `v1.6.4` Official Evaluator Checkpoint | Adds pinned Math-Verify 0.9.0 equivalence scoring, resumable per-sample checkpoints, a real 500/500 local Qwen3 0.6B run at 32.00% accuracy, and protocol adapters for MMMU, MathVista, MMBench, and Video-MME v2. Full multimodal execution and external leaderboard reproduction remain `HOLD`. |
+| `v1.6.5` Benchmark Reproducibility Checkpoint | Adds subject/difficulty scorecards, Wilson 95% confidence, latency/token/failure accounting, immutable run and evaluator fingerprints, a 500/500 isolated scorer replay with 100% decision agreement, and executable multimodal readiness plans. The replay is same-host evidence; independent workers and official multimodal runs remain `HOLD`. |
+| `v1.6.6` Benchmark Decision Intelligence | Converts the real 500-item run into complete error taxonomy, confidence-aware cohort risks, latency/token outliers, a bounded review queue, conservative power planning, and a paired candidate gate with McNemar and non-inferiority policy. Local audit acceptance is separate from candidate promotion, which remains `EVIDENCE NEEDED` until a second distinct full run exists. |
 
-Current release: [`VERSION`](./VERSION).
+Current source version: [`v1.5.1`](./VERSION), with source status `COMPLETE` and local acceptance `PASS`. The machine-readable [`release-state.json`](./release-state.json) deliberately separates the active source milestone from the latest public GitHub release (`v0.4.0`) and the latest desktop candidate (`v1.1.0-rc.2`).
 
-Latest release candidate notes: [`v1.1.0-rc.2`](./docs/releases/v1.1.0-rc.2_2026-07-16.md). The production workflow is executable and fail-closed; this repository does not represent missing Apple or organization receipts as completed distribution evidence.
+Internal post-release evidence has advanced through the [`v1.6.6 benchmark decision-intelligence checkpoint`](./docs/release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md): all 500 stored results are classified (160 correct and 340 mathematical mismatches, with 100% answer extraction), confidence-aware risk highlights Intermediate Algebra, Precalculus, and Level 5, and the conservative 500-sample detectable effect is 8.27 percentage points. Only one distinct complete run exists, so candidate promotion remains `EVIDENCE NEEDED`. This does not change the active source version or claim hosted leaderboard parity, independent-host reproduction, multimodal execution, distribution, or production promotion.
+
+Latest desktop candidate notes: [`v1.1.0-rc.2`](./docs/releases/v1.1.0-rc.2_2026-07-16.md). Distribution remains `HOLD` and production remains `BLOCKED`; this repository does not represent missing Apple, organization, non-loopback, distributed-worker, or collaborative receipts as completed evidence.
 
 ## Competitive Position
 
@@ -292,7 +303,7 @@ Issues and PRs are welcome.
 - Current version: [`VERSION`](./VERSION)
 - Release notes: [`docs/releases`](./docs/releases)
 - Release process: [`docs/release-process.md`](./docs/release-process.md)
-- Latest release note: [v1.1.0-rc.2](./docs/releases/v1.1.0-rc.2_2026-07-16.md)
+- Active source: [v1.5.1](./release-state.json); latest public GitHub release: `v0.4.0`; latest desktop candidate: [v1.1.0-rc.2](./docs/releases/v1.1.0-rc.2_2026-07-16.md)
 
 ---
 
@@ -333,10 +344,21 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v1.2.0` Local Server 验收 | 加入真实 Ollama 15-slice 验收，覆盖进程健康、模型驻留、OpenAI-compatible chat/SSE、并发、计量、访问策略、日志保留、idle eviction 和 unload/reload recovery；跨设备 LAN 与持续 daemon 证据继续作为生产门禁。 |
 | `v1.2.1` Runtime Fabric | 用同一标准化合同实现 MLX、Ollama、llama.cpp、LocalAI、vLLM 与 SGLang 适配器；Apple Silicon 上真实 MLX/Ollama/llama.cpp chat 与 SSE 全部通过，硬件或端点不满足时会在执行前给出可操作错误码；外部 LocalAI、Linux/NVIDIA 与异构节点 receipt 继续作为生产门禁。 |
 | `v1.3.0` MCP + 安全扩展 | 加入固定版本 MCP server registry、真实 stdio capability discovery、Ed25519 签名安装/升级/回滚、权限与密钥 scope、quarantine、依赖/路径防御及 macOS Seatbelt 强制隔离；本地验收 11/11 PASS，独立 publisher、Linux/Windows sandbox 与远程 OAuth receipt 继续作为生产门禁。 |
+| `v1.3.1` Workflow Studio + 信任加固 | 加入类型化可视工作流、不可变发布、安全 worker 恢复/回放、严格 deployment key、标准 OpenAI-compatible 同步/SSE、可原子恢复的 Workflow 存储、常规合同测试、零漏洞依赖门禁，以及保持质量晋级 `HOLD` 的可移植 LoRA 证据。 |
+| `v1.4.0` 团队治理 | 加入组织、工作区、角色、用户组、请求身份、乐观并发冲突、数据库级 ACL/RLS 演练、身份映射、策略模拟与不可变审计证据；真实 OIDC/SCIM 与部署后的 PostgreSQL 仍是生产门禁。 |
+| `v1.4.1` 质量与训练实验室 | 将冻结多种子评测、置信区间、确定性评分、Quality CI 和训练能力合同绑定到真实已挂载 adapter 与 36 组配对样本；独立 worker 重跑和主观 judge 校准仍是外部门禁。 |
+| `v1.5.0` 可信 Artifact 生命周期 | 使用固定 base revision、checksum、provenance、本地 registry 回读、质量声明绑定、安装策略和回滚生命周期封装真实 adapter；组织控制的远端 registry receipt 仍是生产门禁。 |
+| `v1.5.1` 企业 HA 与 FinOps | 完成本地 durable usage outbox、token 对账、可安全重试的结算、审计/签名演练、旧主 fencing、standby promotion 与本地 RPO/RTO 测量；托管 billing、跨区 failover、云 KMS/Object Lock 和组织签收继续保持 `HOLD`。 |
+| `v1.6.3` Benchmark 资格化检查点 | 固定并校验完整 HuggingFaceH4/MATH-500 test 快照，在 Benchmark Studio 暴露全部 500 个资格化样本，并保留可复现数据 provenance。 |
+| `v1.6.4` 官方判分器检查点 | 接入固定版本 Math-Verify 0.9.0 等价判分、逐题可恢复 checkpoint，完成真实 Qwen3 0.6B 500/500 本地运行（32.00%），并提供 MMMU、MathVista、MMBench、Video-MME v2 协议 adapter；多模态全量执行与外部榜单复现继续保持 `HOLD`。 |
+| `v1.6.5` Benchmark 复现检查点 | 增加学科/难度 scorecard、Wilson 95% 区间、延迟/token/失败分类、不可变 run 与 evaluator 指纹，并通过新隔离 scorer worker 对 500/500 输出重判且 decision 100% 一致；该结果仍是同机证据，独立 worker 与官方多模态全量运行继续 `HOLD`。 |
+| `v1.6.6` Benchmark 决策智能 | 将真实 500 题 run 转成完整错误分类、置信区间 cohort 风险、延迟/token 异常点、有限复核队列、保守统计功效规划，以及带 McNemar 与非劣效策略的配对候选门槛。本地审计验收与候选晋级分开；在出现第二个不同 run id 的完整运行前，候选晋级保持 `EVIDENCE NEEDED`。 |
 
-当前发布版本见 [`VERSION`](./VERSION)。
+当前源码版本：[`v1.5.1`](./VERSION)，源码状态为 `COMPLETE`、本地验收为 `PASS`。机器可读的 [`release-state.json`](./release-state.json) 明确区分当前源码里程碑、最近公开 GitHub Release（`v0.4.0`）与最近桌面候选包（`v1.1.0-rc.2`）。
 
-最新发布候选说明：[`v1.1.0-rc.2`](./docs/releases/v1.1.0-rc.2_2026-07-16.md)。生产分发链已可执行并保持 fail-closed；仓库不会把缺失的 Apple 或组织 receipt 表述为已完成证据。
+内部后续证据已推进到 [`v1.6.6 Benchmark 决策智能检查点`](./docs/release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md)：500 条结果全部完成分类（160 正确、340 条数学不等价，答案提取覆盖 100%），置信区间规则标出 Intermediate Algebra、Precalculus 与 Level 5 风险，500 样本下的保守可检测变化约为 8.27 个百分点。当前只有一个不同 run id 的完整运行，因此候选晋级继续为 `EVIDENCE NEEDED`。该检查点不改变当前源码版本，也不宣称托管榜单等价、独立主机复现、多模态全量执行、分发或生产晋级。
+
+最新桌面候选说明：[`v1.1.0-rc.2`](./docs/releases/v1.1.0-rc.2_2026-07-16.md)。分发状态继续为 `HOLD`、生产状态继续为 `BLOCKED`；仓库不会把缺失的 Apple、组织、非回环、分布式 worker 或多人协作 receipt 表述为已完成证据。
 
 ## 竞品定位对比
 
@@ -577,4 +599,4 @@ ModelScope 打包脚本会导出已提交的 Git tree，因此每次同步都可
 - 当前版本：[`VERSION`](./VERSION)
 - Release notes：[`docs/releases`](./docs/releases)
 - 发布流程：[`docs/release-process.md`](./docs/release-process.md)
-- 最新版本说明：[v1.1.0-rc.2](./docs/releases/v1.1.0-rc.2_2026-07-16.md)
+- 当前源码：[v1.5.1](./release-state.json)；最近公开 GitHub Release：`v0.4.0`；最近桌面候选包：[v1.1.0-rc.2](./docs/releases/v1.1.0-rc.2_2026-07-16.md)

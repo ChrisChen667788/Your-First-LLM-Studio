@@ -3,7 +3,39 @@
   "generatedAt": "2026-07-01T09:00:50.479770Z",
   "jobId": "ft-job-real-lora-20260701-165151",
   "status": "completed",
-  "baseModel": "/Users/chenhaorui/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B-MLX-6bit/snapshots/3818e758c8ed9ec596a5e0c4c426fb81f7c0be18",
+  "evidenceSchemaVersion": "finetune.public-release-evidence.v1",
+  "qualityEvidence": {
+    "scope": "workflow-and-loss-curve-only",
+    "promotionStatus": "hold",
+    "taskQualityValidated": false,
+    "externalBlindEval": false,
+    "multiSeedValidated": false,
+    "baselineComparable": false,
+    "blockers": [
+      "No frozen task-level baseline versus adapter evaluation is included.",
+      "No external blind judge or multi-seed variance evidence is included."
+    ]
+  },
+  "publicArtifacts": {
+    "runtimeArtifactsPublished": false,
+    "includedFiles": [
+      "README.md",
+      "training-report.md",
+      "run-manifest.json",
+      "metrics.csv",
+      "ft-job-real-lora-20260701-165151-chart-evidence.json",
+      "ft-job-real-lora-20260701-165151-chart-evidence.svg",
+      "ft-job-real-lora-20260701-165151-chart-evidence.png"
+    ],
+    "excludedRuntimeArtifacts": [
+      "job-bundle.json",
+      "worker.log",
+      "adapter weights",
+      "checkpoint directories",
+      "full evidence archive"
+    ]
+  },
+  "baseModel": "hf://Qwen/Qwen3-0.6B-MLX-6bit@3818e758c8ed9ec596a5e0c4c426fb81f7c0be18",
   "dataset": {
     "id": "ft-dataset-first-llm-studio-starter-384",
     "label": "First LLM Studio starter 384",
@@ -67,21 +99,21 @@
   "checkpointEvents": [
     {
       "step": 100,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000100",
+      "path": "runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000100",
       "metric": "eval_loss",
       "value": null,
       "at": "2026-07-01T08:53:52.551250Z"
     },
     {
       "step": 200,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000200",
+      "path": "runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000200",
       "metric": "eval_loss",
       "value": null,
       "at": "2026-07-01T08:54:07.886797Z"
     },
     {
       "step": 300,
-      "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000300",
+      "path": "runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000300",
       "metric": "eval_loss",
       "value": null,
       "at": "2026-07-01T08:54:23.375668Z"
@@ -91,26 +123,26 @@
     "step": 327,
     "metric": "eval_loss",
     "value": 0.06,
-    "path": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts",
+    "path": "runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts",
     "source": "validation",
     "loadBestCheckpointAtEnd": true,
     "selectedAt": "2026-07-01T08:54:28.806135Z"
   },
   "artifacts": {
-    "jobBundle": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/job-bundle.json",
-    "mlxConfig": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/mlx-lora-config.yaml",
-    "metricsJsonl": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/metrics.jsonl",
-    "workerLog": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/worker.log",
-    "adapterDir": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts",
-    "reportsDir": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/reports",
-    "chartEvidenceJson": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/reports/ft-job-real-lora-20260701-165151-chart-evidence.json",
-    "chartEvidenceSvg": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/reports/ft-job-real-lora-20260701-165151-chart-evidence.svg",
-    "trainingReport": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/reports/training-report.md",
-    "runManifest": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/reports/run-manifest.json",
-    "metricsCsv": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/reports/metrics.csv",
-    "fullArchive": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/reports/ft-job-real-lora-20260701-165151-full-release-evidence.tar.gz",
-    "docsEvidenceDir": "/Users/chenhaorui/Documents/New project/docs/release-evidence/finetune-real-lora-2026-07-01",
-    "chartEvidencePng": "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/reports/ft-job-real-lora-20260701-165151-chart-evidence.png"
+    "jobBundle": "runtime-artifacts/ft-job-real-lora-20260701-165151/job-bundle.json",
+    "mlxConfig": "runtime-artifacts/ft-job-real-lora-20260701-165151/mlx-lora-config.yaml",
+    "metricsJsonl": "runtime-artifacts/ft-job-real-lora-20260701-165151/metrics.jsonl",
+    "workerLog": "runtime-artifacts/ft-job-real-lora-20260701-165151/worker.log",
+    "adapterDir": "runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts",
+    "reportsDir": "runtime-artifacts/ft-job-real-lora-20260701-165151/reports",
+    "chartEvidenceJson": "runtime-artifacts/ft-job-real-lora-20260701-165151/reports/ft-job-real-lora-20260701-165151-chart-evidence.json",
+    "chartEvidenceSvg": "runtime-artifacts/ft-job-real-lora-20260701-165151/reports/ft-job-real-lora-20260701-165151-chart-evidence.svg",
+    "trainingReport": "runtime-artifacts/ft-job-real-lora-20260701-165151/reports/training-report.md",
+    "runManifest": "runtime-artifacts/ft-job-real-lora-20260701-165151/reports/run-manifest.json",
+    "metricsCsv": "runtime-artifacts/ft-job-real-lora-20260701-165151/reports/metrics.csv",
+    "fullArchive": "runtime-artifacts/ft-job-real-lora-20260701-165151/reports/ft-job-real-lora-20260701-165151-full-release-evidence.tar.gz",
+    "docsEvidenceDir": ".",
+    "chartEvidencePng": "runtime-artifacts/ft-job-real-lora-20260701-165151/reports/ft-job-real-lora-20260701-165151-chart-evidence.png"
   },
   "notes": [
     "This is a real local MLX LoRA run, not a synthetic UI fixture.",

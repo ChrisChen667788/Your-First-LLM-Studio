@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "governance.postgres-rls-rehearsal.v1",
+  "generatedAt": "2026-07-23T02:45:56.776Z",
+  "ok": true,
+  "checks": {
+    "sameWorkspaceVisible": true,
+    "crossWorkspaceDenied": true,
+    "forceRlsEnabled": true,
+    "requestContextVisible": true,
+    "requestContextTransactionLocal": true,
+    "auditRecorded": true,
+    "immutableAudit": true
+  },
+  "engine": "postgres:16-alpine"
+}

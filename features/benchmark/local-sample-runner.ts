@@ -22,6 +22,7 @@ const LOCAL_BENCHMARK_STREAM_TIMEOUT_MS = 300000;
 
 type LocalBenchmarkSampleRunnerOptions = {
   ensureGateway?: boolean;
+  workloadId?: string;
   thinkingMode?: AgentThinkingMode;
   runId?: string;
 };
@@ -33,7 +34,11 @@ function buildLocalBenchmarkExtraBody(
   if (target.execution !== "local") {
     return undefined;
   }
-  if (target.id !== "local-qwen35-4b-4bit") {
+  if (
+    target.id !== "local-qwen35-4b-4bit" &&
+    target.id !== "local-qwen3-4b-4bit" &&
+    target.id !== "local-qwen3-0.6b"
+  ) {
     return undefined;
   }
   return {
@@ -49,6 +54,7 @@ function buildLocalBenchmarkRequest(input: {
   maxTokens: number;
   contextWindow: number;
   thinkingMode: AgentThinkingMode;
+  workloadId?: string;
 }) {
   const localExtraBody = buildLocalBenchmarkExtraBody(input.target, input.thinkingMode);
 
@@ -60,7 +66,13 @@ function buildLocalBenchmarkRequest(input: {
       body: JSON.stringify({
         model: input.target.resolvedModel,
         messages: [
-          { role: "system", content: "Reply directly and keep the answer concise." },
+          {
+            role: "system",
+            content:
+              input.workloadId === "math-500-qualified"
+                ? "Solve the problem directly in at most six concise sentences. Always finish with exactly one LaTeX final-answer line using \\boxed{...}."
+                : "Reply directly and keep the answer concise.",
+          },
           { role: "user", content: input.prompt },
         ],
         max_tokens: input.maxTokens,
@@ -78,6 +90,7 @@ async function requestLocalBenchmarkStream(input: {
   contextWindow: number;
   thinkingMode: AgentThinkingMode;
   runId?: string;
+  workloadId?: string;
 }) {
   const request = buildLocalBenchmarkRequest(input);
   const runSignal = input.runId ? getBenchmarkRunSignal(input.runId) : undefined;
@@ -125,7 +138,7 @@ export async function runLocalBenchmarkSample(
   let totalTokens = 0;
   let outputBuffer = "";
   const thinkingMode = options?.thinkingMode || "standard";
-  const effectiveMaxTokens = resolveSuggestedMaxTokens({
+  const suggestedMaxTokens = resolveSuggestedMaxTokens({
     target,
     enableTools: false,
     input: prompt,
@@ -133,6 +146,10 @@ export async function runLocalBenchmarkSample(
     thinkingMode,
     requestedMaxTokens: maxTokens,
   });
+  const effectiveMaxTokens =
+    options?.workloadId === "math-500-qualified"
+      ? Math.max(suggestedMaxTokens, Math.min(maxTokens, 1024))
+      : suggestedMaxTokens;
 
   try {
     const ensureResult =
@@ -159,6 +176,7 @@ export async function runLocalBenchmarkSample(
       contextWindow,
       thinkingMode,
       runId: options?.runId,
+      workloadId: options?.workloadId,
     });
 
     if (!response.ok) {

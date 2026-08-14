@@ -8,8 +8,8 @@ Machine-readable snapshot: [`post-v1-promotion-gate-2026-07-16.json`](./post-v1-
 
 - Ten roadmap milestones from `v1.1.0` through `v1.5.1` now use one typed runtime promotion contract.
 - All ten satisfy the currently implemented local foundation, hardening, product-acceptance, and lifecycle checks.
-- `v1.3.1` is complete. Six milestones are local-ready. Three remain externally blocked.
-- Average release completion is 93%, while production-ready coverage remains 1/10.
+- The 2026-07-16 snapshot recorded `v1.3.1` as complete, but the current dynamic gate supersedes that claim: it is local-ready and externally blocked.
+- Production-ready coverage is currently 0/10 because authenticated non-loopback Workflow evidence is still missing.
 - Local fixtures, loopback services, preview adapters, and rehearsal receipts do not count as Apple, organization identity, public registry, or cloud production proof.
 
 ## Version Status
@@ -21,7 +21,7 @@ Machine-readable snapshot: [`post-v1-promotion-gate-2026-07-16.json`](./post-v1-
 | `v1.2.0` | Local-ready | Server registry, lifecycle, switching, access, logs, accounting and idle-unload policy. | Sustained traffic, authenticated LAN and long-running idle eviction. |
 | `v1.2.1` | Local-ready | Shared runtime descriptor and operation contract plus live Ollama evidence. | Backend-owned llama.cpp, LocalAI, vLLM and SGLang conformance. |
 | `v1.3.0` | Local-ready | Signed install, dependencies, grants, secret scopes, rollback and quarantine. | Real community package and OS-enforced sandbox acceptance. |
-| `v1.3.1` | Complete | Versioned graph, worker, breakpoint, replay, state diff, Retrieval graph and deploy access. | Retain fresh regression evidence. |
+| `v1.3.1` | Externally blocked | Versioned graph, worker, breakpoint, replay, state diff, Retrieval graph, strict deployment-key access and standard sync/SSE completion contracts. | Authenticated non-loopback invocation, distributed worker recovery and multi-user conflict/audit evidence. |
 | `v1.4.0` | Externally blocked | Postgres RLS, policy simulation, shared asset audit and four-eyes access review. | Trusted OIDC/SCIM identity and external secret scopes. |
 | `v1.4.1` | Local-ready | MLX-LM worker plan, LLaMA-Factory preview plan, sweeps, calibrated judge and baseline promotion. | Production LLaMA-Factory plus Transformers/PEFT executors. |
 | `v1.5.0` | Local-ready | Signed local package, provenance, round trip, install lifecycle, quality and billing linkage. | GitHub, ModelScope and Hugging Face staging publish/install receipts. |
@@ -37,7 +37,7 @@ Machine-readable snapshot: [`post-v1-promotion-gate-2026-07-16.json`](./post-v1-
 ## 中文结论
 
 - 十个版本现已统一使用可回归的晋级契约，不再沿用失真的 `planned/0%` 展示。
-- 十个版本都完成当前本地实现检查，但只有 `v1.3.1` 达到完整 production-ready。
+- 十个版本都完成当前本地实现检查，但当前没有任何版本达到完整 production-ready；`v1.3.1` 是 local-ready，仍受真实非回环认证、分布式恢复和多用户证据阻塞。
 - `v1.1.0`、`v1.4.0`、`v1.5.1` 的 Apple、企业身份和真实云门槛继续保留。
 - LLaMA-Factory 和远端 artifact registry 当前只生成安全计划，不会被 UI 或 API 误当成可执行生产能力。
 

@@ -5,7 +5,7 @@ Generated: 2026-07-01T08:57:56.725307Z
 ## Result
 
 - Status: completed
-- Base model: `/Users/chenhaorui/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B-MLX-6bit/snapshots/3818e758c8ed9ec596a5e0c4c426fb81f7c0be18`
+- Base model: `hf://Qwen/Qwen3-0.6B-MLX-6bit@3818e758c8ed9ec596a5e0c4c426fb81f7c0be18`
 - Dataset: First LLM Studio starter 384 · 384 samples · train/valid/test 327/38/19
 - Adapter: `release-real-lora-qwen06-384`
 - Trainable params: 1.442M / 596.050M, captured in `worker.log`
@@ -34,28 +34,25 @@ Generated: 2026-07-01T08:57:56.725307Z
 
 | Step | Path |
 | ---: | --- |
-| 100 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000100` |
-| 200 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000200` |
-| 300 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000300` |
+| 100 | `runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000100` |
+| 200 | `runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000200` |
+| 300 | `runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts/checkpoint-0000300` |
 
 
-Selected best checkpoint: step 327 · eval_loss=0.06 · `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/artifacts`
+Selected best checkpoint: step 327 · eval_loss=0.06 · `runtime-artifacts/ft-job-real-lora-20260701-165151/artifacts`
 
-## Evidence Files
+## Public Evidence Files
 
-- `job-bundle.json`
-- `mlx-lora-config.yaml`
-- `metrics.jsonl`
-- `worker.log`
-- `reports/metrics.csv`
-- `reports/run-manifest.json`
-- `reports/ft-job-real-lora-20260701-165151-chart-evidence.json`
-- `reports/ft-job-real-lora-20260701-165151-chart-evidence.svg`
-- `artifacts/adapters.safetensors`
-- `artifacts/checkpoint-0000100`, `checkpoint-0000200`, `checkpoint-0000300`
+- `run-manifest.json`, `metrics.csv`, and `training-report.md`
+- `ft-job-real-lora-20260701-165151-chart-evidence.json`
+- `ft-job-real-lora-20260701-165151-chart-evidence.svg`
+- `ft-job-real-lora-20260701-165151-chart-evidence.png`
+
+The public bundle does not include the job bundle, worker log, adapter weights, checkpoint directories, or full runtime archive. Their paths are portable `runtime-artifacts/...` references only. This run proves the real MLX training workflow and loss/checkpoint instrumentation; task-level quality promotion remains `HOLD` until a frozen baseline, external blind evaluation, and multi-seed comparison are archived.
 
 ## Reproduce
 
 ```bash
-.venv/bin/python scripts/finetune_worker.py --job-bundle "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-real-lora-20260701-165151/job-bundle.json"
+FIRST_LLM_JOB_BUNDLE=/path/to/ft-job-real-lora-20260701-165151/job-bundle.json \
+  .venv/bin/python scripts/finetune_worker.py --job-bundle "$FIRST_LLM_JOB_BUNDLE"
 ```

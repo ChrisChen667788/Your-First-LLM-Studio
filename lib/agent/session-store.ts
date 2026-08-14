@@ -1,5 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, appendFileSync } from "fs";
 import crypto from "crypto";
+import {
+  migrateJsonFileDurably,
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 import { getLocalAgentDataDir, getLocalAgentDataPath } from "@/lib/agent/data-dir";
 import { appendExperimentEvent } from "@/features/experiments/timeline-service";
 import type {
@@ -13,8 +18,49 @@ const WORKBENCH_SCHEMA_VERSION = "0.3.0";
 const SESSION_SNAPSHOT_FILE = getLocalAgentDataPath("agent-sessions.json");
 const SESSION_HISTORY_FILE = getLocalAgentDataPath("agent-sessions-history.jsonl");
 
+function emptySnapshot(): AgentWorkbenchSessionSnapshot {
+  return normalizeSnapshot({
+    updatedAt: new Date(0).toISOString(),
+    activeSessionId: null,
+    preferences: null,
+    sessions: [],
+  });
+}
+
+function isSessionSnapshot(value: unknown): value is AgentWorkbenchSessionSnapshot {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<AgentWorkbenchSessionSnapshot>;
+  return (
+    candidate.schemaVersion === WORKBENCH_SCHEMA_VERSION &&
+    typeof candidate.updatedAt === "string" &&
+    Array.isArray(candidate.sessions)
+  );
+}
+
 function ensureSessionDir() {
   mkdirSync(getLocalAgentDataDir(), { recursive: true });
+}
+
+function migrateLegacySessionSnapshot() {
+  migrateJsonFileDurably(
+    SESSION_SNAPSHOT_FILE,
+    emptySnapshot,
+    (value) => {
+      if (!value || typeof value !== "object") return null;
+      const candidate = value as Partial<AgentWorkbenchSessionSnapshot> & {
+        sessions?: unknown;
+        preferences?: unknown;
+      };
+      if (
+        typeof candidate.updatedAt !== "string" ||
+        !Array.isArray(candidate.sessions)
+      ) {
+        return null;
+      }
+      return normalizeSnapshot(candidate);
+    },
+    isSessionSnapshot,
+  );
 }
 
 function normalizeSnapshot(value: Partial<AgentWorkbenchSessionSnapshot> & {
@@ -71,16 +117,10 @@ export function getSessionSnapshotFilePath() {
 }
 
 export function readSessionSnapshot() {
-  try {
-    return normalizeSnapshot(JSON.parse(readFileSync(SESSION_SNAPSHOT_FILE, "utf8")) as Partial<AgentWorkbenchSessionSnapshot>);
-  } catch {
-    return normalizeSnapshot({
-      updatedAt: new Date(0).toISOString(),
-      activeSessionId: null,
-      preferences: null,
-      sessions: []
-    });
-  }
+  migrateLegacySessionSnapshot();
+  return normalizeSnapshot(
+    readJsonFileDurably(SESSION_SNAPSHOT_FILE, emptySnapshot, isSessionSnapshot),
+  );
 }
 
 export function readSessionVersions(limit = 20) {
@@ -105,11 +145,6 @@ function appendSessionVersion(entry: AgentWorkbenchSessionVersion) {
   appendFileSync(SESSION_HISTORY_FILE, `${JSON.stringify(entry)}\n`, "utf8");
 }
 
-function writeSessionSnapshot(snapshot: AgentWorkbenchSessionSnapshot) {
-  ensureSessionDir();
-  writeFileSync(SESSION_SNAPSHOT_FILE, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
-}
-
 export function getSessionServerState(limit = 20) {
   return {
     path: SESSION_SNAPSHOT_FILE,
@@ -125,7 +160,7 @@ export function syncSessionSnapshot(input: {
   baseUpdatedAt?: string | null;
   force?: boolean;
 }) {
-  const current = readSessionSnapshot();
+  migrateLegacySessionSnapshot();
   const normalized = {
     sessions: Array.isArray(input.sessions) ? input.sessions : [],
     preferences:
@@ -144,28 +179,56 @@ export function syncSessionSnapshot(input: {
     typeof input.baseUpdatedAt === "string" && input.baseUpdatedAt.trim()
       ? input.baseUpdatedAt
       : null;
-  const serverHasAdvanced =
-    baseUpdatedAt &&
-    current.updatedAt !== new Date(0).toISOString() &&
-    current.updatedAt !== baseUpdatedAt;
-  const localDiffersFromServer = stableSignature(normalized) !== stableSignature(current);
+  const outcome: {
+    serverHasAdvanced: boolean;
+    conflict?: AgentWorkbenchSessionConflict;
+    conflictSnapshot?: AgentWorkbenchSessionSnapshot;
+  } = { serverHasAdvanced: false };
 
-  if (!input.force && serverHasAdvanced && localDiffersFromServer) {
-    const conflict: AgentWorkbenchSessionConflict = {
-      code: "snapshot-outdated",
-      baseUpdatedAt,
-      serverUpdatedAt: current.updatedAt,
-      localSessionCount: normalized.sessions.length,
-      serverSessionCount: current.sessions.length,
-      summary:
-        "The server snapshot changed after this browser tab loaded. Reload the server copy or force overwrite with the current local state."
-    };
+  const snapshot = updateJsonFileDurably(
+    SESSION_SNAPSHOT_FILE,
+    emptySnapshot,
+    (stored) => {
+      const current = normalizeSnapshot(stored);
+      outcome.serverHasAdvanced = Boolean(
+        baseUpdatedAt &&
+        current.updatedAt !== new Date(0).toISOString() &&
+        current.updatedAt !== baseUpdatedAt,
+      );
+      const localDiffersFromServer =
+        stableSignature(normalized) !== stableSignature(current);
+      if (!input.force && outcome.serverHasAdvanced && localDiffersFromServer) {
+        outcome.conflict = {
+          code: "snapshot-outdated",
+          baseUpdatedAt,
+          serverUpdatedAt: current.updatedAt,
+          localSessionCount: normalized.sessions.length,
+          serverSessionCount: current.sessions.length,
+          summary:
+            "The server snapshot changed after this browser tab loaded. Reload the server copy or force overwrite with the current local state.",
+        };
+        outcome.conflictSnapshot = current;
+        return current;
+      }
+      return {
+        schemaVersion: WORKBENCH_SCHEMA_VERSION,
+        updatedAt: new Date().toISOString(),
+        activeSessionId: normalized.activeSessionId ?? null,
+        preferences: normalized.preferences,
+        sessions: normalized.sessions,
+      };
+    },
+    isSessionSnapshot,
+  );
+
+  if (outcome.conflict && outcome.conflictSnapshot) {
+    const { conflict, conflictSnapshot } = outcome;
     appendExperimentEvent({
       kind: "session",
       status: "conflict",
       title: "Session sync conflict",
       summary: `${conflict.localSessionCount} local vs ${conflict.serverSessionCount} server sessions`,
-      relatedId: current.activeSessionId || undefined,
+      relatedId: conflictSnapshot.activeSessionId || undefined,
       metadata: {
         baseUpdatedAt: conflict.baseUpdatedAt || null,
         serverUpdatedAt: conflict.serverUpdatedAt
@@ -174,20 +237,11 @@ export function syncSessionSnapshot(input: {
     return {
       ok: false as const,
       conflict,
-      snapshot: current,
+      snapshot: conflictSnapshot,
       versions: readSessionVersions()
     };
   }
-
-  const now = new Date().toISOString();
-  const snapshot: AgentWorkbenchSessionSnapshot = {
-    schemaVersion: WORKBENCH_SCHEMA_VERSION,
-    updatedAt: now,
-    activeSessionId: normalized.activeSessionId ?? null,
-    preferences: normalized.preferences,
-    sessions: normalized.sessions
-  };
-  writeSessionSnapshot(snapshot);
+  const now = snapshot.updatedAt;
 
   const version: AgentWorkbenchSessionVersion = {
     id: `session-version-${crypto.randomUUID()}`,
@@ -196,7 +250,7 @@ export function syncSessionSnapshot(input: {
     summary: summarizeSnapshot(snapshot),
     activeSessionId: snapshot.activeSessionId ?? null,
     sessionCount: snapshot.sessions.length,
-    conflictDetected: Boolean(serverHasAdvanced && input.force)
+    conflictDetected: Boolean(outcome.serverHasAdvanced && input.force)
   };
   appendSessionVersion(version);
   appendExperimentEvent({

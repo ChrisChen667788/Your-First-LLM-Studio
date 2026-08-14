@@ -7,8 +7,8 @@ import type {
   AgentProviderProfile,
   AgentTarget,
   AgentThinkingMode,
-  AgentWorkbenchMode,
 } from "@/lib/agent/types";
+import type { CompareModeActivator } from "./contracts";
 import { useCompareRecipeOrchestration } from "./recipe-orchestration";
 import { useCompareActions } from "./useCompareActions";
 import { useCompareLifecycle } from "./useCompareLifecycle";
@@ -36,7 +36,7 @@ type ComparePromptBinding = {
 type CompareWorkbenchBinding = {
   selectedTargetId: string;
   setSelectedTargetId: Setter<string>;
-  setWorkbenchMode: Setter<AgentWorkbenchMode>;
+  setWorkbenchMode: CompareModeActivator;
 };
 
 type CompareWorkbenchOrchestrationModelInput = {

@@ -197,9 +197,32 @@ export type AgentBenchmarkDatasetEvaluationRule =
       requiredArgs: string[];
     }
   | {
+      kind: "math-equivalence";
+      gold: string;
+      evaluatorId: "huggingface-math-verify";
+      evaluatorVersion: "0.9.0";
+      configId: "math-500-v1";
+    }
+  | {
       kind: "manual-review";
       note: string;
     };
+
+export type AgentBenchmarkModality =
+  | "text"
+  | "image"
+  | "video"
+  | "audio"
+  | "document";
+
+export type AgentBenchmarkMediaAsset = {
+  type: Exclude<AgentBenchmarkModality, "text">;
+  url: string;
+  mimeType?: string;
+  detail?: "auto" | "low" | "high";
+  fps?: number;
+  maxLongSidePixel?: number;
+};
 
 export type AgentBenchmarkDatasetItem = {
   id: string;
@@ -208,6 +231,8 @@ export type AgentBenchmarkDatasetItem = {
   expectedAnswerPreview?: string;
   sourceSplit?: string;
   sourceSubset?: string;
+  requiredModalities?: AgentBenchmarkModality[];
+  media?: AgentBenchmarkMediaAsset[];
 };
 
 export type AgentBenchmarkDataset = {
@@ -327,6 +352,9 @@ export type AgentChatRequest = {
   plannerEnabled?: boolean;
   memorySummary?: string;
   disableLocalFallback?: boolean;
+  maxTokens?: number;
+  temperature?: number;
+  topP?: number;
 };
 
 export type AgentUsage = {
@@ -614,7 +642,18 @@ export type AgentBenchmarkSample = {
   outputText?: string;
   score?: number | null;
   passed?: boolean | null;
+  evaluation?: {
+    evaluatorId: string;
+    evaluatorVersion: string;
+    configId: string;
+    status: "scored" | "unavailable" | "error" | "manual-review";
+    rationale: string;
+    extractedGold?: string[];
+    extractedPrediction?: string[];
+  };
+  resumedFromCheckpoint?: boolean;
   expectedAnswerPreview?: string;
+  requiredModalities?: AgentBenchmarkModality[];
   ok: boolean;
   warning?: string;
 };
@@ -646,6 +685,7 @@ export type AgentBenchmarkResult = {
 
 export type AgentBenchmarkResponse = {
   ok: boolean;
+  warning?: string;
   runId?: string;
   generatedAt: string;
   benchmarkMode?: AgentBenchmarkMode;

@@ -1,6 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync } from "fs";
 import { homedir } from "os";
 import path from "path";
+import {
+  readJsonFileDurably,
+  replaceJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
 import type {
   AgentFineTuneDataset,
@@ -11,6 +16,7 @@ import type {
   AgentFineTuneRecipe,
   AgentFineTuneTargetOption,
 } from "@/lib/agent/types";
+import type { MlxLearningRateSchedule } from "@/features/finetune/backend-execution-contract";
 
 export const FINETUNE_DIR = getLocalAgentDataPath("finetune");
 export const DATASETS_FILE = path.join(FINETUNE_DIR, "datasets.json");
@@ -126,8 +132,11 @@ export type FineTuneJobBundle = {
     stepsPerReport: number;
     stepsPerEval: number;
     saveEvery: number;
+    backendExecutionSchemaVersion: "finetune.backend-execution.v1";
+    requestedTargetModules: string[];
     targetModules: string[];
     scheduler: AgentFineTuneRecipe["scheduler"];
+    schedulerConfig: MlxLearningRateSchedule;
     warmupRatio: number;
     packingPolicy: AgentFineTuneRecipe["packingPolicy"];
     bestCheckpointMetric: AgentFineTuneRecipe["bestCheckpointMetric"];
@@ -155,17 +164,21 @@ export function ensureFineTuneDir() {
 }
 
 export function readJsonFile<T>(filePath: string, fallback: T): T {
-  if (!existsSync(filePath)) return fallback;
-  try {
-    return JSON.parse(readFileSync(filePath, "utf8")) as T;
-  } catch {
-    return fallback;
-  }
+  return readJsonFileDurably(filePath, () => fallback);
 }
 
 export function writeJsonFile(filePath: string, value: unknown) {
   ensureFineTuneDir();
-  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  replaceJsonFileDurably(filePath, value);
+}
+
+export function updateJsonFile<T>(
+  filePath: string,
+  fallback: T,
+  mutate: (current: T) => T,
+) {
+  ensureFineTuneDir();
+  return updateJsonFileDurably(filePath, () => fallback, mutate);
 }
 
 export function normalizeRuntimeAliasSegment(value: string) {

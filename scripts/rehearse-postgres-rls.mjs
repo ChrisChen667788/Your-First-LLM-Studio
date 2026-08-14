@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migration = path.join(root, "features/governance/migrations/002_postgres_workspace_rls.sql");
 const contextMigration = path.join(root, "features/governance/migrations/003_postgres_request_context.sql");
+const auditMigration = path.join(root, "features/governance/migrations/004_postgres_workspace_audit.sql");
 const container = `first-llm-rls-${Date.now()}`;
 const docker = process.env.DOCKER_CLI_PATH || "/opt/homebrew/bin/docker";
 const run = (args, timeout = 120_000) => execFileSync(docker, args, { encoding: "utf8", timeout, stdio: ["ignore", "pipe", "pipe"] }).trim();
@@ -34,8 +35,10 @@ try {
   }
   run(["cp", migration, `${container}:/tmp/rls.sql`]);
   run(["cp", contextMigration, `${container}:/tmp/context.sql`]);
+  run(["cp", auditMigration, `${container}:/tmp/audit.sql`]);
   run(["exec", container, "psql", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-f", "/tmp/rls.sql"]);
   run(["exec", container, "psql", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-f", "/tmp/context.sql"]);
+  run(["exec", container, "psql", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-f", "/tmp/audit.sql"]);
   const seed = `
     INSERT INTO first_llm.organizations VALUES ('org-a','A'),('org-b','B');
     INSERT INTO first_llm.workspaces VALUES ('workspace-a','org-a','A'),('workspace-b','org-b','B');
@@ -47,12 +50,21 @@ try {
   const visible = run(["exec", container, "psql", "-At", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-c", `SET ROLE first_llm_app; SET first_llm.subject_id='alice'; SET first_llm.workspace_id='workspace-a'; SELECT string_agg(id, ',') FROM first_llm.workspace_resources;`]);
   const crossVisible = run(["exec", container, "psql", "-At", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-c", `SET ROLE first_llm_app; SET first_llm.subject_id='alice'; SET first_llm.workspace_id='workspace-b'; SELECT count(*) FROM first_llm.workspace_resources;`]);
   const contextVisible = run(["exec", container, "psql", "-At", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-c", `SET ROLE first_llm_app; BEGIN; SELECT first_llm.set_request_context('alice','workspace-a'); SELECT string_agg(id, ',') FROM first_llm.workspace_resources; COMMIT; SELECT COALESCE(NULLIF(current_setting('first_llm.subject_id', true), ''), 'CLEARED');`]);
+  const auditRecorded = run(["exec", container, "psql", "-At", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-c", `SET ROLE first_llm_app; BEGIN; SELECT first_llm.set_request_context('alice','workspace-a'); SELECT first_llm.record_workspace_audit('audit-a','request-a','workspace-a','resource.list','resource-a','workflow','allowed','RLS rehearsal'); COMMIT; RESET ROLE; SELECT count(*) FROM first_llm.workspace_audit_events WHERE id='audit-a';`]);
+  let immutableAudit = false;
+  try {
+    run(["exec", container, "psql", "-At", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-c", "UPDATE first_llm.workspace_audit_events SET reason='tampered' WHERE id='audit-a';"]);
+  } catch {
+    immutableAudit = true;
+  }
   const checks = {
     sameWorkspaceVisible: visible.split("\n").at(-1) === "resource-a",
     crossWorkspaceDenied: crossVisible.split("\n").at(-1) === "0",
     forceRlsEnabled: true,
     requestContextVisible: contextVisible.split("\n").includes("resource-a"),
     requestContextTransactionLocal: contextVisible.split("\n").at(-1) === "CLEARED",
+    auditRecorded: auditRecorded.split("\n").at(-1) === "1",
+    immutableAudit,
   };
   receipt = { schemaVersion: "governance.postgres-rls-rehearsal.v1", generatedAt: new Date().toISOString(), ok: Object.values(checks).every(Boolean), checks, engine: "postgres:16-alpine" };
 } catch (error) {

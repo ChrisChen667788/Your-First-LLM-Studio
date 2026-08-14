@@ -3,9 +3,9 @@
 import { useCallback, useMemo } from "react";
 import type { ComponentProps, Dispatch, SetStateAction } from "react";
 import type { FineTuneJobGroupKey } from "@/features/finetune/state";
-import { FineTuneEvidenceComposer } from "@/components/finetune/composers/FineTuneEvidenceComposer";
-import { FineTuneRunModesComposer } from "@/components/finetune/composers/FineTuneRunModesComposer";
-import { FineTuneSetupComposer } from "@/components/finetune/composers/FineTuneSetupComposer";
+import { FineTuneEvidenceComposer } from "@/features/finetune/composers/FineTuneEvidenceComposer";
+import { FineTuneRunModesComposer } from "@/features/finetune/composers/FineTuneRunModesComposer";
+import { FineTuneSetupComposer } from "@/features/finetune/composers/FineTuneSetupComposer";
 
 type RunModesComposerProps = ComponentProps<typeof FineTuneRunModesComposer>;
 type SetupComposerProps = ComponentProps<typeof FineTuneSetupComposer>;

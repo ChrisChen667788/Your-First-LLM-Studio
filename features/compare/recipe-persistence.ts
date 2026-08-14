@@ -7,8 +7,8 @@ import type {
   AgentProviderProfile,
   AgentStudioRecipe,
   AgentThinkingMode,
-  AgentWorkbenchMode,
 } from "@/lib/agent/types";
+import { COMPARE_RECIPES_API_PATH } from "./contracts";
 
 type RecipeApiPayload = {
   ok?: boolean;
@@ -18,7 +18,7 @@ type RecipeApiPayload = {
 };
 
 export type CompareRecipeSaveInput = {
-  workbenchMode: AgentWorkbenchMode;
+  workbenchMode: "compare";
   compareOutputShape: AgentCompareOutputShape;
   enableTools: boolean;
   enableRetrieval: boolean;
@@ -83,7 +83,7 @@ export function useCompareRecipePersistence({ locale }: { locale: string }) {
     setRecipesPending(true);
     setRecipesError("");
     try {
-      const response = await fetch("/api/agent/recipes", { cache: "no-store" });
+      const response = await fetch(COMPARE_RECIPES_API_PATH, { cache: "no-store" });
       const payload = (await response.json()) as RecipeApiPayload;
       if (!response.ok || !Array.isArray(payload.recipes)) {
         throw new Error(payload.error || "Failed to load studio recipes.");
@@ -112,7 +112,7 @@ export function useCompareRecipePersistence({ locale }: { locale: string }) {
       setRecipesPending(true);
       setRecipesError("");
       try {
-        const response = await fetch("/api/agent/recipes", {
+        const response = await fetch(COMPARE_RECIPES_API_PATH, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -146,7 +146,7 @@ export function useCompareRecipePersistence({ locale }: { locale: string }) {
       setRecipesError("");
       try {
         const response = await fetch(
-          `/api/agent/recipes?id=${encodeURIComponent(recipeId)}`,
+          `${COMPARE_RECIPES_API_PATH}?id=${encodeURIComponent(recipeId)}`,
           { method: "DELETE" },
         );
         const payload = (await response.json()) as RecipeApiPayload;
@@ -193,7 +193,7 @@ export function useCompareRecipePersistence({ locale }: { locale: string }) {
       try {
         const text = await file.text();
         const parsed = JSON.parse(text) as unknown;
-        const response = await fetch("/api/agent/recipes", {
+        const response = await fetch(COMPARE_RECIPES_API_PATH, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(parsed),

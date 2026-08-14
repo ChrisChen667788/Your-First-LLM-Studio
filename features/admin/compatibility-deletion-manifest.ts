@@ -2,6 +2,8 @@ import { existsSync } from "fs";
 import path from "path";
 import { readAdminCompatibilitySunsetEvidence } from "./compatibility-sunset";
 
+const WORKSPACE_ROOT = process.env.FIRST_LLM_WORKSPACE_ROOT || process.cwd();
+
 export type AdminCompatibilityDeletionManifestRoute = {
   legacyPath: string;
   canonicalPath: string;
@@ -40,11 +42,11 @@ export type AdminCompatibilityDeletionManifest = {
 };
 
 function routeFileFor(apiPath: string) {
-  return path.join(process.cwd(), "app", ...apiPath.split("/").filter(Boolean), "route.ts");
+  return path.join(WORKSPACE_ROOT, "app", ...apiPath.split("/").filter(Boolean), "route.ts");
 }
 
 function relativeToWorkspace(filePath: string) {
-  return path.relative(process.cwd(), filePath) || filePath;
+  return path.relative(WORKSPACE_ROOT, filePath) || filePath;
 }
 
 export function readAdminCompatibilityDeletionManifest(): AdminCompatibilityDeletionManifest {

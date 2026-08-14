@@ -1,15 +1,17 @@
 import { createHash, randomUUID } from "crypto";
 import {
   existsSync,
-  mkdirSync,
   readFileSync,
   realpathSync,
   statSync,
-  writeFileSync,
 } from "fs";
 import os from "os";
 import path from "path";
 import type { ExtensionPermission } from "@/features/extensions/registry";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 
 export const MCP_SERVER_REGISTRY_SCHEMA_VERSION =
   "extensions.mcp-server-registry.v1" as const;
@@ -89,24 +91,19 @@ function emptyStore(): RegistryStore {
 }
 
 function readStore(): RegistryStore {
-  if (!existsSync(STORE_FILE)) return emptyStore();
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as Partial<
-      RegistryStore
-    >;
-    return {
-      schemaVersion: MCP_SERVER_REGISTRY_SCHEMA_VERSION,
-      servers: Array.isArray(parsed.servers) ? parsed.servers : [],
-      receipts: Array.isArray(parsed.receipts) ? parsed.receipts : [],
-    };
-  } catch {
-    return emptyStore();
-  }
+  return readJsonFileDurably(STORE_FILE, emptyStore, isRegistryStore);
 }
 
-function writeStore(store: RegistryStore) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(STORE_FILE, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+function isRegistryStore(value: unknown): value is RegistryStore {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<RegistryStore>;
+  return candidate.schemaVersion === MCP_SERVER_REGISTRY_SCHEMA_VERSION
+    && Array.isArray(candidate.servers)
+    && Array.isArray(candidate.receipts);
+}
+
+function updateStore(mutator: (store: RegistryStore) => RegistryStore) {
+  return updateJsonFileDurably(STORE_FILE, emptyStore, mutator, isRegistryStore);
 }
 
 function sha256File(filePath: string) {
@@ -116,8 +113,9 @@ function sha256File(filePath: string) {
 }
 
 function resolveFilesystemPackage() {
+  const workspaceRoot = process.env.FIRST_LLM_WORKSPACE_ROOT?.trim() || process.cwd();
   const packageRoot = path.resolve(
-    process.cwd(),
+    workspaceRoot,
     "node_modules",
     "@modelcontextprotocol",
     "server-filesystem",
@@ -146,7 +144,7 @@ function resolveFilesystemPackage() {
     throw new Error("Installed filesystem MCP package metadata is invalid.");
   }
   const lock = JSON.parse(
-    readFileSync(path.join(process.cwd(), "package-lock.json"), "utf8"),
+    readFileSync(path.join(workspaceRoot, "package-lock.json"), "utf8"),
   ) as {
     packages?: Record<string, { version?: string; integrity?: string }>;
   };
@@ -199,101 +197,104 @@ function receipt(
 export function registerPinnedFilesystemMcpServer(root: string) {
   const packageInfo = resolveFilesystemPackage();
   const allowedRoot = validateRoot(root);
-  const store = readStore();
-  const existing = store.servers.find(
-    (entry) => entry.id === FILESYSTEM_SERVER_ID,
-  );
   const now = new Date().toISOString();
-  const registration: McpServerRegistration = {
-    id: FILESYSTEM_SERVER_ID,
-    name: "Official filesystem MCP server",
-    state: "enabled",
-    source: {
-      registry: "npm",
-      packageName: packageInfo.packageName,
-      packageVersion: packageInfo.packageVersion,
-      packageIntegrity: packageInfo.packageIntegrity,
-      entrypoint: packageInfo.entrypoint,
-      entrypointDigest: packageInfo.entrypointDigest,
-    },
-    transport: {
-      kind: "stdio",
-      command: process.execPath,
-      args: [packageInfo.entrypoint, allowedRoot],
-      roots: [allowedRoot],
-      environmentKeys: ["PATH", "NODE_ENV"],
-    },
-    permissions: ["workspace:read"],
-    sandboxRequired: true,
-    registeredAt: existing?.registeredAt || now,
-    updatedAt: now,
-    lastProbe: existing?.lastProbe || null,
-  };
-  const nextReceipt = receipt(
-    "register",
-    registration.id,
-    `Registered ${registration.source.packageName}@${registration.source.packageVersion} from a pinned npm integrity record.`,
-  );
-  writeStore({
-    schemaVersion: MCP_SERVER_REGISTRY_SCHEMA_VERSION,
-    servers: [
-      registration,
-      ...store.servers.filter((entry) => entry.id !== registration.id),
-    ],
-    receipts: [nextReceipt, ...store.receipts].slice(0, 200),
+  const outcome: { value?: { registration: McpServerRegistration; receipt: RegistryReceipt } } = {};
+  updateStore((store) => {
+    const existing = store.servers.find((entry) => entry.id === FILESYSTEM_SERVER_ID);
+    const registration: McpServerRegistration = {
+      id: FILESYSTEM_SERVER_ID,
+      name: "Official filesystem MCP server",
+      state: "enabled",
+      source: {
+        registry: "npm",
+        packageName: packageInfo.packageName,
+        packageVersion: packageInfo.packageVersion,
+        packageIntegrity: packageInfo.packageIntegrity,
+        entrypoint: packageInfo.entrypoint,
+        entrypointDigest: packageInfo.entrypointDigest,
+      },
+      transport: {
+        kind: "stdio",
+        command: process.execPath,
+        args: [packageInfo.entrypoint, allowedRoot],
+        roots: [allowedRoot],
+        environmentKeys: ["PATH", "NODE_ENV"],
+      },
+      permissions: ["workspace:read"],
+      sandboxRequired: true,
+      registeredAt: existing?.registeredAt || now,
+      updatedAt: now,
+      lastProbe: existing?.lastProbe || null,
+    };
+    const nextReceipt = receipt(
+      "register",
+      registration.id,
+      `Registered ${registration.source.packageName}@${registration.source.packageVersion} from a pinned npm integrity record.`,
+    );
+    outcome.value = { registration, receipt: nextReceipt };
+    return {
+      schemaVersion: MCP_SERVER_REGISTRY_SCHEMA_VERSION,
+      servers: [registration, ...store.servers.filter((entry) => entry.id !== registration.id)],
+      receipts: [nextReceipt, ...store.receipts].slice(0, 200),
+    };
   });
-  return { registration, receipt: nextReceipt, packageRoot: packageInfo.packageRoot };
+  if (!outcome.value) throw new Error("MCP server registration update did not complete.");
+  return { ...outcome.value, packageRoot: packageInfo.packageRoot };
 }
 
 export function setMcpServerEnabled(serverId: string, enabled: boolean) {
-  const store = readStore();
-  const current = store.servers.find((entry) => entry.id === serverId);
-  if (!current) throw new Error("MCP server registration was not found.");
-  const next: McpServerRegistration = {
-    ...current,
-    state: enabled ? "enabled" : "disabled",
-    updatedAt: new Date().toISOString(),
-  };
-  const nextReceipt = receipt(
-    enabled ? "enable" : "disable",
-    serverId,
-    `${enabled ? "Enabled" : "Disabled"} ${serverId}.`,
-  );
-  writeStore({
-    ...store,
-    servers: store.servers.map((entry) =>
-      entry.id === serverId ? next : entry,
-    ),
-    receipts: [nextReceipt, ...store.receipts].slice(0, 200),
+  const outcome: { value?: RegistryReceipt } = {};
+  updateStore((store) => {
+    const current = store.servers.find((entry) => entry.id === serverId);
+    if (!current) throw new Error("MCP server registration was not found.");
+    const next: McpServerRegistration = {
+      ...current,
+      state: enabled ? "enabled" : "disabled",
+      updatedAt: new Date().toISOString(),
+    };
+    const nextReceipt = receipt(
+      enabled ? "enable" : "disable",
+      serverId,
+      `${enabled ? "Enabled" : "Disabled"} ${serverId}.`,
+    );
+    outcome.value = nextReceipt;
+    return {
+      ...store,
+      servers: store.servers.map((entry) => entry.id === serverId ? next : entry),
+      receipts: [nextReceipt, ...store.receipts].slice(0, 200),
+    };
   });
-  return nextReceipt;
+  if (!outcome.value) throw new Error("MCP server state update did not complete.");
+  return outcome.value;
 }
 
 export function recordMcpServerProbe(
   serverId: string,
   probe: NonNullable<McpServerRegistration["lastProbe"]>,
 ) {
-  const store = readStore();
-  const current = store.servers.find((entry) => entry.id === serverId);
-  if (!current) throw new Error("MCP server registration was not found.");
-  const nextReceipt = receipt(
-    "probe",
-    serverId,
-    probe.status === "pass"
-      ? `Discovered ${probe.toolCount} MCP tools through stdio.`
-      : probe.error || "MCP server probe failed.",
-    probe.status,
-  );
-  writeStore({
-    ...store,
-    servers: store.servers.map((entry) =>
-      entry.id === serverId
+  const outcome: { value?: RegistryReceipt } = {};
+  updateStore((store) => {
+    const current = store.servers.find((entry) => entry.id === serverId);
+    if (!current) throw new Error("MCP server registration was not found.");
+    const nextReceipt = receipt(
+      "probe",
+      serverId,
+      probe.status === "pass"
+        ? `Discovered ${probe.toolCount} MCP tools through stdio.`
+        : probe.error || "MCP server probe failed.",
+      probe.status,
+    );
+    outcome.value = nextReceipt;
+    return {
+      ...store,
+      servers: store.servers.map((entry) => entry.id === serverId
         ? { ...entry, lastProbe: probe, updatedAt: probe.probedAt }
-        : entry,
-    ),
-    receipts: [nextReceipt, ...store.receipts].slice(0, 200),
+        : entry),
+      receipts: [nextReceipt, ...store.receipts].slice(0, 200),
+    };
   });
-  return nextReceipt;
+  if (!outcome.value) throw new Error("MCP server probe update did not complete.");
+  return outcome.value;
 }
 
 export function readMcpServerRegistry() {

@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "v1.6.4-official-evaluator-evidence.v1",
+  "generatedAt": "2026-08-10T12:00:42.332Z",
+  "localStatus": "pass",
+  "productionStatus": "hold",
+  "evaluator": {
+    "localStatus": "pass",
+    "conformanceStatus": "pass",
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "mathRuntime": {
+      "available": true,
+      "python": "/Users/chenhaorui/Library/Application Support/local-agent-lab/evaluators/math-verify-0.9.0/bin/python",
+      "evaluatorId": "huggingface-math-verify",
+      "evaluatorVersion": "0.9.0",
+      "configId": "math-500-v1",
+      "sourceRevision": "ba3d3aaff23b3f4cac7a14672b4f6e293d97c98b",
+      "checkedAt": 1786363241589
+    },
+    "protocols": [
+      {
+        "id": "mmmu",
+        "label": "MMMU",
+        "adapterStatus": "pass",
+        "executionStatus": "hold",
+        "detail": "Official choice/open parsing and normalization are pinned. The upstream random-guess fallback is deliberately replaced with fail-closed unscorable output; full image assets and model execution remain required."
+      },
+      {
+        "id": "mathvista",
+        "label": "MathVista",
+        "adapterStatus": "pass",
+        "executionStatus": "hold",
+        "detail": "Official normalizer is pinned; general free-form extraction still requires the configured judge pipeline."
+      },
+      {
+        "id": "mmbench",
+        "label": "MMBench",
+        "adapterStatus": "pass",
+        "executionStatus": "hold",
+        "detail": "Circular all-pass scoring is pinned; ChatGPT fallback and official test submission remain external gates."
+      },
+      {
+        "id": "video-mme-v2",
+        "label": "Video-MME v2",
+        "adapterStatus": "pass",
+        "executionStatus": "hold",
+        "detail": "A-H extraction and grouped nonlinear scoring are pinned; licensed videos and a compatible video runtime are not installed."
+      }
+    ],
+    "revisions": {
+      "mathVerify": "ba3d3aaff23b3f4cac7a14672b4f6e293d97c98b",
+      "multimodal": {
+        "mmmu": "268471d0d488258990025331c7528359c324aa25",
+        "mathvista": "c5acd37d75a8c8f9756cb66c78fe2e54fa2c31fb",
+        "mmbench": "8eaac9ae42e22eaf42863b218455acd51268ba1c",
+        "video-mme-v2": "b2834bd4091d6234ccaf0fa1f149a7ef4eac5875"
+      }
+    }
+  },
+  "fullMath500Run": {
+    "runId": "math500-full-20260810112454-2b58c961",
+    "generatedAt": "2026-08-10T11:38:04.282Z",
+    "targetId": "local-qwen3-0.6b",
+    "targetLabel": "Local Qwen3 0.6B",
+    "resolvedModel": "local-qwen3-0.6b",
+    "totalSamples": 500,
+    "successfulSamples": 500,
+    "scoredSamples": 500,
+    "correctSamples": 160,
+    "failedSamples": 0,
+    "resumedSamples": 497,
+    "accuracy": 32,
+    "evaluatorId": "huggingface-math-verify",
+    "evaluatorVersion": "0.9.0",
+    "evaluatorConfigId": "math-500-v1",
+    "complete": true,
+    "evidenceStatus": "pass",
+    "disclosure": "All 500 qualified MATH-500 items completed and were scored by the pinned Math-Verify evaluator. This is local model evidence, not a hosted leaderboard submission."
+  },
+  "latestProgress": {
+    "runId": "math500-full-20260810112454-2b58c961",
+    "status": "completed",
+    "benchmarkMode": "dataset",
+    "runNote": "v1.6.4 full qualified MATH-500 run with pinned Math-Verify scoring",
+    "profileBatchScope": "full-suite",
+    "totalGroups": 1,
+    "completedGroups": 1,
+    "totalSamples": 500,
+    "completedSamples": 500,
+    "okSamples": 500,
+    "failedSamples": 0,
+    "startedAt": "2026-08-10T11:37:37.072Z",
+    "updatedAt": "2026-08-10T11:38:04.419Z",
+    "elapsedMs": 27347,
+    "estimatedRemainingMs": 0,
+    "activeGroups": [],
+    "pendingGroups": [],
+    "recentGroups": [
+      {
+        "key": "local-qwen3-0.6b:balanced:standard",
+        "targetLabel": "Local Qwen3 0.6B",
+        "providerProfile": "balanced",
+        "thinkingMode": "standard",
+        "execution": "local",
+        "sampleCount": 500,
+        "startedAt": "2026-08-10T11:37:39.123Z",
+        "completedAt": "2026-08-10T11:38:04.172Z"
+      }
+    ],
+    "lastCompletedTargetLabel": "Local Qwen3 0.6B",
+    "lastCompletedProfile": "balanced",
+    "lastCompletedThinkingMode": "standard",
+    "lastCompletedWorkloadLabel": "HuggingFaceH4/MATH-500 (qualified snapshot)"
+  },
+  "blockers": [
+    "Full multimodal datasets and licensed media have not been executed on a compatible model.",
+    "MathVista judge extraction, MMBench external submission, and independent reproduction remain external evidence gates.",
+    "Production promotion remains HOLD even when local evaluator conformance and MATH-500 execution pass."
+  ],
+  "evidenceDigest": "49717431419619d83678fc1eca043bb1bb154119ce1c78e2ab5e59f1884fc6cd"
+}

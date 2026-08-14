@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { readDurableJsonStore, updateDurableJsonStore } from "@/features/persistence/durable-json-store";
 import {
   createProtectedToolResumeGraph,
   type WorkflowGraph,
@@ -49,6 +49,7 @@ const DATA_DIR =
   process.env.LOCAL_AGENT_DATA_DIR ||
   path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const STORE_FILE = path.join(DATA_DIR, "workflow-executions.json");
+const STORE_SCHEMA_VERSION = "workflows.execution-store.v1" as const;
 
 function nodeById(graph: WorkflowGraph, nodeId: string) {
   const node = graph.nodes.find((candidate) => candidate.id === nodeId);
@@ -152,58 +153,61 @@ export function reduceWorkflowExecution(
   return base;
 }
 
-function readStore(): WorkflowExecutionStore {
-  if (!existsSync(STORE_FILE)) return { schemaVersion: "workflows.execution-store.v1", executions: [] };
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as Partial<WorkflowExecutionStore>;
-    return { schemaVersion: "workflows.execution-store.v1", executions: Array.isArray(parsed.executions) ? parsed.executions : [] };
-  } catch {
-    return { schemaVersion: "workflows.execution-store.v1", executions: [] };
-  }
+function isExecutionStore(value: unknown): value is WorkflowExecutionStore {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<WorkflowExecutionStore>;
+  return candidate.schemaVersion === STORE_SCHEMA_VERSION && Array.isArray(candidate.executions);
 }
 
-function writeStore(store: WorkflowExecutionStore) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(STORE_FILE, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+const storeOptions = {
+  filePath: STORE_FILE,
+  initial: (): WorkflowExecutionStore => ({ schemaVersion: STORE_SCHEMA_VERSION, executions: [] }),
+  validate: isExecutionStore,
+};
+
+function readStore() {
+  return readDurableJsonStore(storeOptions);
 }
 
 export function readWorkflowExecutions() {
   const store = readStore();
   return {
-    schemaVersion: "workflows.execution-store.v1" as const,
+    schemaVersion: STORE_SCHEMA_VERSION,
     executions: store.executions.slice(0, 100),
     path: STORE_FILE,
   };
 }
 
 export function createPersistedWorkflowExecution(input: string, graph = createProtectedToolResumeGraph()) {
-  const store = readStore();
   const execution = createWorkflowExecution(input, graph);
-  writeStore({ ...store, executions: [execution, ...store.executions].slice(0, 100) });
+  updateDurableJsonStore(storeOptions, (store) => ({ ...store, executions: [execution, ...store.executions].slice(0, 100) }));
   return execution;
 }
 
 export function dispatchPersistedWorkflowEvent(executionId: string, event: Omit<WorkflowExecutionEvent, "id" | "at"> & { id?: string; at?: string }) {
-  const store = readStore();
-  const current = store.executions.find((execution) => execution.id === executionId);
-  if (!current) throw new Error("Workflow execution was not found.");
-  const graph = resolveWorkflowGraph(current.graphId, current.graphVersion);
-  if (!graph) throw new Error("Workflow execution graph is no longer available.");
-  let next = reduceWorkflowExecution(current, {
-    ...event,
-    id: event.id || randomUUID(),
-    at: event.at || new Date().toISOString(),
-  }, graph);
-  const moved = next.currentNodeId !== current.currentNodeId || event.type === "start";
-  if (
-    moved &&
-    next.status !== "completed" &&
-    next.status !== "failed" &&
-    next.status !== "rejected" &&
-    workflowNodeHasBreakpoint(next.graphId, next.graphVersion, next.currentNodeId)
-  ) {
-    next = { ...next, status: "paused-breakpoint", updatedAt: new Date().toISOString() };
-  }
-  writeStore({ ...store, executions: store.executions.map((execution) => execution.id === executionId ? next : execution) });
-  return next;
+  const store = updateDurableJsonStore(storeOptions, (currentStore) => {
+    const current = currentStore.executions.find((execution) => execution.id === executionId);
+    if (!current) throw new Error("Workflow execution was not found.");
+    const graph = resolveWorkflowGraph(current.graphId, current.graphVersion);
+    if (!graph) throw new Error("Workflow execution graph is no longer available.");
+    let next = reduceWorkflowExecution(current, {
+      ...event,
+      id: event.id || randomUUID(),
+      at: event.at || new Date().toISOString(),
+    }, graph);
+    const moved = next.currentNodeId !== current.currentNodeId || event.type === "start";
+    if (
+      moved &&
+      next.status !== "completed" &&
+      next.status !== "failed" &&
+      next.status !== "rejected" &&
+      workflowNodeHasBreakpoint(next.graphId, next.graphVersion, next.currentNodeId)
+    ) {
+      next = { ...next, status: "paused-breakpoint", updatedAt: new Date().toISOString() };
+    }
+    return { ...currentStore, executions: currentStore.executions.map((execution) => execution.id === executionId ? next : execution) };
+  });
+  const persisted = store.executions.find((execution) => execution.id === executionId);
+  if (!persisted) throw new Error("Workflow execution event was not persisted.");
+  return persisted;
 }

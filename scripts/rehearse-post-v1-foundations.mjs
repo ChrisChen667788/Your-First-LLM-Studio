@@ -1,4 +1,4 @@
-import { createHash, generateKeyPairSync, sign } from "crypto";
+import { createHash } from "crypto";
 import { mkdirSync, rmSync, writeFileSync } from "fs";
 import http from "http";
 import os from "os";
@@ -82,38 +82,8 @@ async function main() {
       throw new Error("Range transfer rehearsal did not complete with the expected digest.");
     }
 
-    const pair = generateKeyPairSync("ed25519");
-    const extensionPayload = Buffer.from("signed extension package fixture", "utf8");
-    const extensionDigest = createHash("sha256").update(extensionPayload).digest("hex");
-    const extensionSignature = sign(null, Buffer.from(extensionDigest, "hex"), pair.privateKey).toString("base64");
-    const extensionManifest = {
-      schemaVersion: "first-llm-extension.v1",
-      id: "local-rehearsal.signed-tool",
-      name: "Signed rehearsal tool",
-      version: "1.0.0",
-      publisher: "local-rehearsal-ci",
-      kind: "tool",
-      entrypoint: "index.mjs",
-      permissions: ["workspace:read"],
-      compatibleStudio: ">=1.0.0",
-      digest: extensionDigest,
-      signature: extensionSignature,
-    };
-    const publicKeyPem = pair.publicKey.export({ type: "spki", format: "pem" }).toString();
-    const extensionAccepted = await postJson("/api/extensions", {
-      manifest: extensionManifest,
-      payloadBase64: extensionPayload.toString("base64"),
-      publicKeyPem,
-    });
-    const extensionRejected = await postJson(
-      "/api/extensions",
-      {
-        manifest: extensionManifest,
-        payloadBase64: Buffer.from("tampered payload", "utf8").toString("base64"),
-        publicKeyPem,
-      },
-      [422],
-    );
+    const extensionAcceptance = await postJson("/api/extensions/acceptance", undefined);
+    const extensionReceipt = extensionAcceptance.receipt;
 
     let execution = (await postJson("/api/workflows", { action: "create", input: "Run a protected action safely." })).execution;
     const eventSeed = Date.now();
@@ -149,10 +119,10 @@ async function main() {
       transfer: { jobId: job.id, bytes: job.bytesDownloaded, sha256: job.verifiedSha256, pauseResume: true, artifactPath: job.completedFile },
       ollama: { available: ollama.available, version: ollama.version, error: ollama.error },
       extensions: {
-        accepted: extensionAccepted.accepted,
-        signatureVerified: extensionAccepted.signatureVerified,
-        tamperedRejected: extensionRejected.accepted === false,
-        quarantine: Boolean(extensionRejected.quarantine),
+        accepted: extensionReceipt.checks.signedInstallAccepted,
+        signatureVerified: extensionReceipt.checks.signedUpdateAccepted,
+        tamperedRejected: extensionReceipt.checks.tamperedPackageRejected,
+        quarantine: extensionReceipt.security.maliciousPackageQuarantined,
       },
       workflow: { executionId: execution.id, status: execution.status, events: execution.events.length, duplicateSideEffectSuppressed },
       governance: governance.rehearsal,

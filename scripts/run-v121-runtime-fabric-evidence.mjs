@@ -22,6 +22,18 @@ const ollamaModel = value("--ollama-model", "qwen3:0.6b");
 const mlxModel = value("--mlx-model", "local-qwen3-0.6b");
 const llamaAlias = value("--llama-alias", "qwen3-0.6b-llamacpp");
 const publishPath = value("--publish");
+const acceptanceAttemptsLimit = Math.max(
+  1,
+  Math.min(
+    3,
+    Number(
+      value(
+        "--acceptance-attempts",
+        process.env.RUNTIME_FABRIC_ACCEPTANCE_ATTEMPTS || "2",
+      ),
+    ) || 2,
+  ),
+);
 const outputDir = path.join(root, "output", "release-evidence");
 const logPath = path.join(outputDir, "v1.2.1-llama-server.log");
 let llamaProcess = null;
@@ -123,6 +135,15 @@ function stopLlama() {
   if (llamaProcess && !llamaProcess.killed) llamaProcess.kill("SIGTERM");
 }
 
+function hasRetryableBackendFailure(acceptance) {
+  return Boolean(
+    acceptance?.receipt?.backends?.some(
+      (backend) =>
+        backend.status !== "pass" && backend.error?.retryable === true,
+    ),
+  );
+}
+
 process.on("SIGINT", () => {
   stopLlama();
   process.exit(130);
@@ -138,16 +159,39 @@ try {
   console.log(
     `[v1.2.1] running Runtime Fabric acceptance with MLX=${mlxModel}, Ollama=${ollamaModel}, llama.cpp=${llamaAlias}`,
   );
-  const acceptance = await fetchJson("/api/runtime/fabric-acceptance", {
-    method: "POST",
-    body: JSON.stringify({
-      models: {
-        mlx: mlxModel,
-        ollama: ollamaModel,
-        "llama.cpp": llamaAlias,
-      },
-    }),
-  });
+  let acceptance;
+  const acceptanceAttempts = [];
+  for (let attempt = 1; attempt <= acceptanceAttemptsLimit; attempt += 1) {
+    const startedAt = Date.now();
+    acceptance = await fetchJson("/api/runtime/fabric-acceptance", {
+      method: "POST",
+      body: JSON.stringify({
+        models: {
+          mlx: mlxModel,
+          ollama: ollamaModel,
+          "llama.cpp": llamaAlias,
+        },
+      }),
+    });
+    acceptanceAttempts.push({
+      attempt,
+      status: acceptance.receipt?.status || "missing",
+      durationMs: Date.now() - startedAt,
+      retryableBackendFailure: hasRetryableBackendFailure(acceptance),
+      blockers: acceptance.receipt?.blockers || [],
+    });
+    if (
+      acceptance.receipt?.status === "pass" ||
+      !hasRetryableBackendFailure(acceptance) ||
+      attempt === acceptanceAttemptsLimit
+    ) {
+      break;
+    }
+    console.warn(
+      `[v1.2.1] retryable backend failure on acceptance attempt ${attempt}; retrying once after health recovery.`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
   const promotion = await fetchJson("/api/runtime/fabric-promotion");
   const evidence = {
     schemaVersion: "runtime.v1.2.1-real-fabric-evidence.v1",
@@ -161,6 +205,7 @@ try {
       llamaBaseUrl,
       llamaAlias,
       localOnly: true,
+      acceptanceAttempts,
     },
   };
   const outputPath = path.join(
@@ -184,6 +229,7 @@ try {
         promotionDigest: promotion.evidenceDigest,
         productionStatus: promotion.productionStatus,
         productionBlockers: promotion.productionBlockers,
+        acceptanceAttempts,
         outputPath,
         publishPath: publishPath || null,
       },

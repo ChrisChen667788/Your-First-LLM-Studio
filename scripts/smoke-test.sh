@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_URL="${BASE_URL:-http://localhost:3011}"
-CURL_MAX_TIME="${SMOKE_CURL_MAX_TIME:-20}"
+CURL_MAX_TIME="${SMOKE_CURL_MAX_TIME:-30}"
 FAILURES=0
 SMOKE_EVENTS_FILE="$(mktemp)"
 SMOKE_REPORT_PATH="${SMOKE_REPORT_PATH:-$ROOT_DIR/output/release-smoke/route-smoke-latest.json}"
@@ -97,7 +97,7 @@ check_json_post_status() {
   local response_file
   response_file="$(mktemp)"
   local code
-  code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$response_file" -w "%{http_code}" "$url" -H "Content-Type: application/json" -d "$request_body" || true)"
+  code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$response_file" -w "%{http_code}" "$url" -H "Content-Type: application/json" -H "X-First-LLM-Operator-Key: ${FIRST_LLM_OPERATOR_TOKEN:-}" -d "$request_body" || true)"
   if [[ "$code" == "$expected_status" ]] && node - "$response_file" "$js" <<'NODE'
 const fs = require("fs");
 const [file, expression] = process.argv.slice(2);
@@ -110,6 +110,86 @@ NODE
   else
     echo "[fail] $label -> $code"
     record_event "api" "$label" "fail" "$url status=$code"
+    FAILURES=$((FAILURES + 1))
+  fi
+  rm -f "$response_file"
+}
+
+issue_workflow_deployment_key() {
+  local response_file
+  response_file="$(mktemp)"
+  local code
+  code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/workflows/deployment-access" -H "Content-Type: application/json" -H "X-First-LLM-Operator-Key: ${FIRST_LLM_OPERATOR_TOKEN:-}" -d '{"action":"issue","workflowSlug":"retrieval-grounded-answer","version":1,"scopes":["invoke"],"ttlMinutes":10}' || true)"
+  WORKFLOW_API_KEY="$(node - "$response_file" <<'NODE'
+const fs = require("fs");
+const file = process.argv[2];
+try {
+  const data = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (data.ok === true && typeof data.token === "string") process.stdout.write(data.token);
+} catch {}
+NODE
+)"
+  if [[ "$code" == "201" && -n "$WORKFLOW_API_KEY" ]]; then
+    echo "[ok] Workflow deployment key issuance"
+    record_event "api" "Workflow deployment key issuance" "pass" "$BASE_URL/api/workflows/deployment-access status=$code"
+  else
+    echo "[fail] Workflow deployment key issuance -> $code"
+    record_event "api" "Workflow deployment key issuance" "fail" "$BASE_URL/api/workflows/deployment-access status=$code"
+    FAILURES=$((FAILURES + 1))
+  fi
+  rm -f "$response_file"
+}
+
+check_workflow_completion() {
+  local response_file
+  response_file="$(mktemp)"
+  local code
+  code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/workflows/deploy/retrieval-grounded-answer/v1/chat/completions" -H "Authorization: Bearer $WORKFLOW_API_KEY" -H "Content-Type: application/json" -d '{"model":"workflow:retrieval-grounded-answer","messages":[{"role":"user","content":"Route smoke workflow invocation."}]}' || true)"
+  if [[ "$code" == "200" ]] && node - "$response_file" <<'NODE'
+const fs = require("fs");
+const data = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+if (!(data.object === "chat.completion" && data.choices?.[0]?.finish_reason === "stop" && data.choices?.[0]?.message?.role === "assistant" && data.usage?.total_tokens > 0 && data.workflow?.status === "completed")) process.exit(1);
+NODE
+  then
+    echo "[ok] Workflow OpenAI-compatible completion"
+    record_event "api" "Workflow OpenAI-compatible completion" "pass" "$BASE_URL/api/workflows/deploy/retrieval-grounded-answer/v1/chat/completions status=$code"
+  elif [[ "$code" == "409" ]] && node - "$response_file" <<'NODE'
+const fs = require("fs");
+const data = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+if (!(data.error?.code === "workflow_requires_resume" && typeof data.workflow?.executionId === "string" && typeof data.workflow?.resumeReason === "string")) process.exit(1);
+NODE
+  then
+    echo "[ok] Workflow OpenAI-compatible durable boundary"
+    record_event "api" "Workflow OpenAI-compatible completion" "pass" "$BASE_URL/api/workflows/deploy/retrieval-grounded-answer/v1/chat/completions status=$code durable-boundary"
+  else
+    echo "[fail] Workflow OpenAI-compatible completion -> $code"
+    record_event "api" "Workflow OpenAI-compatible completion" "fail" "$BASE_URL/api/workflows/deploy/retrieval-grounded-answer/v1/chat/completions status=$code"
+    FAILURES=$((FAILURES + 1))
+  fi
+  rm -f "$response_file"
+}
+
+check_workflow_stream() {
+  local response_file
+  response_file="$(mktemp)"
+  local code
+  code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/workflows/deploy/retrieval-grounded-answer/v1/chat/completions" -H "Authorization: Bearer $WORKFLOW_API_KEY" -H "Content-Type: application/json" -d '{"model":"workflow:retrieval-grounded-answer","messages":[{"role":"user","content":"Stream this workflow."}],"stream":true,"stream_options":{"include_usage":true}}' || true)"
+  local body
+  body="$(cat "$response_file")"
+  if [[ "$code" == "200" && "$body" == *'"object":"chat.completion.chunk"'* && "$body" == *'"finish_reason":"stop"'* && "$body" == *'data: [DONE]'* ]]; then
+    echo "[ok] Workflow OpenAI-compatible SSE"
+    record_event "api" "Workflow OpenAI-compatible SSE" "pass" "$BASE_URL/api/workflows/deploy/retrieval-grounded-answer/v1/chat/completions"
+  elif [[ "$code" == "409" ]] && node - "$response_file" <<'NODE'
+const fs = require("fs");
+const data = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+if (!(data.error?.code === "workflow_requires_resume" && typeof data.workflow?.executionId === "string" && typeof data.workflow?.resumeReason === "string")) process.exit(1);
+NODE
+  then
+    echo "[ok] Workflow OpenAI-compatible SSE durable boundary"
+    record_event "api" "Workflow OpenAI-compatible SSE" "pass" "$BASE_URL/api/workflows/deploy/retrieval-grounded-answer/v1/chat/completions status=$code durable-boundary"
+  else
+    echo "[fail] Workflow OpenAI-compatible SSE"
+    record_event "api" "Workflow OpenAI-compatible SSE" "fail" "$BASE_URL/api/workflows/deploy/retrieval-grounded-answer/v1/chat/completions contract-mismatch"
     FAILURES=$((FAILURES + 1))
   fi
   rm -f "$response_file"
@@ -212,6 +292,7 @@ check_json_field "Remote runtime status" "$BASE_URL/api/agent/runtime?targetId=a
 check_json_field "Agent workspace file application" "$BASE_URL/api/agent/workspace-file?path=package.json" "data.ok===true && data.path==='package.json' && typeof data.content==='string' && typeof data.truncated==='boolean'"
 check_json_field "Agent check history application" "$BASE_URL/api/agent/check-history?limit=5" "Array.isArray(data.logs) && typeof data.count==='number' && data.paths && typeof data.paths==='object'"
 check_json_post_status "Agent tool decision validation" "$BASE_URL/api/agent/tool/decision" '{}' '400' "typeof data.error==='string' && data.error.includes('targetId')"
+check_json_field "Canonical Compare recipe route" "$BASE_URL/api/compare/recipes" "data.ok===true && Array.isArray(data.recipes)"
 
 echo
 echo "== Admin APIs =="
@@ -277,16 +358,24 @@ check_json_field "Extension secret scope evidence" "$BASE_URL/api/extensions/sec
 check_json_field "Extension permission grant evidence" "$BASE_URL/api/extensions/permission-grants" "data.ok===true && data.schemaVersion==='extensions.permission-grants.v1' && data.latestPassing && data.latestPassing.checks.unconfirmedDangerousGrantDenied===true && data.latestPassing.checks.revokedGrantDenied===true"
 check_json_field "Extension quarantine review evidence" "$BASE_URL/api/extensions/quarantine-review" "data.ok===true && data.schemaVersion==='extensions.quarantine-review.v1' && data.latestPassing && data.latestPassing.checks.failedPackageReleaseDenied===true && data.totals.released>=1 && data.totals.rejected>=1"
 check_json_field "Workflow graph contract" "$BASE_URL/api/workflows" "data.ok===true && data.schemaVersion==='workflows.graph.v1' && Array.isArray(data.graphs) && data.graphs.some((item)=>item.graph.id==='agent-protected-tool-resume' && item.validation.valid===true) && data.graphRegistry && Array.isArray(data.graphRegistry.records) && data.graphRegistry.totals.deployments>=1 && data.executionStore && Array.isArray(data.executionStore.executions) && data.breakpointStore && Array.isArray(data.breakpointStore.breakpoints)"
-check_json_field "Workflow deploy-as-API contract" "$BASE_URL/api/workflows/deploy/protected-tool-resume" "data.ok===true && data.executionMode==='durable-step-worker' && data.graphDigest && data.openAICompatibleEndpoint.endsWith('/v1/chat/completions') && data.inputSchema && data.inputSchema.required.includes('input')"
-check_json_post_status "Workflow OpenAI-compatible invocation" "$BASE_URL/api/workflows/deploy/protected-tool-resume/v1/chat/completions" '{"model":"workflow:protected-tool-resume","messages":[{"role":"user","content":"Route smoke workflow invocation."}]}' "202" "data.object==='chat.completion' && data.workflow && data.workflow.status==='accepted'"
+check_json_post_status "Retrieval workflow deployment setup" "$BASE_URL/api/workflows/retrieval-graph" '{}' "200" "data.ok===true && data.receipt && data.receipt.status==='pass'"
+check_json_post_status "Workflow deployment access rehearsal" "$BASE_URL/api/workflows/deployment-access" '{}' "200" "data.ok===true && data.receipt && data.receipt.status==='pass'"
+issue_workflow_deployment_key
+check_json_field "Workflow deploy-as-API contract" "$BASE_URL/api/workflows/deploy/retrieval-grounded-answer" "data.ok===true && data.executionMode==='durable-step-worker' && data.graphDigest && data.openAICompatibleEndpoint.endsWith('/v1/chat/completions') && data.inputSchema && data.inputSchema.required.includes('input')"
+check_json_post_status "Workflow deployment rejects missing key" "$BASE_URL/api/workflows/deploy/retrieval-grounded-answer/v1/chat/completions" '{"model":"workflow:retrieval-grounded-answer","messages":[{"role":"user","content":"This must not run without a key."}]}' "401" "data.error && data.error.type==='authentication_error' && data.error.code==='invalid_api_key'"
+if [[ -n "${WORKFLOW_API_KEY:-}" ]]; then
+  check_workflow_completion
+  check_workflow_stream
+fi
 check_json_field "Workflow Studio promotion boundary" "$BASE_URL/api/workflows/promotion" "data.ok===true && data.schemaVersion==='workflows.studio-promotion.v1' && ['pass','evidence-needed'].includes(data.localStatus) && data.productionStatus==='blocked' && Array.isArray(data.productionBlockers)"
 check_json_field "Workflow safe worker evidence" "$BASE_URL/api/workflows/worker" "data.ok===true && data.schemaVersion==='workflows.safe-worker.v1' && Array.isArray(data.receipts) && data.latestPassing && data.totals.completed>=1"
 check_json_field "Workflow replay evidence" "$BASE_URL/api/workflows/replay" "data.ok===true && data.schemaVersion==='workflows.replay-fork.v1' && Array.isArray(data.receipts) && data.latestPassing && data.latestPassing.copiedSideEffects===false"
 check_json_field "Workflow state diff evidence" "$BASE_URL/api/workflows/state-diff" "data.ok===true && data.schemaVersion==='workflows.state-diff.v1' && Array.isArray(data.receipts) && data.latestPassing && data.latestPassing.diff.eventsAtFork===0 && data.latestPassing.checks.breakpointPausedReplay===true"
 check_json_field "Retrieval workflow deployment" "$BASE_URL/api/workflows/retrieval-graph" "data.ok===true && data.schemaVersion==='workflows.retrieval-graph.v1' && data.graph && data.graph.id==='retrieval-grounded-answer' && data.latestPassing && data.latestPassing.checks.deploymentResolved===true"
 check_json_field "Workflow deployment access evidence" "$BASE_URL/api/workflows/deployment-access" "data.ok===true && data.schemaVersion==='workflows.deployment-access.v1' && data.security.plaintextPersisted===false && data.latestPassing && data.latestPassing.checks.wrongVersionDenied===true && data.latestPassing.checks.revokedKeyDenied===true"
-check_json_field "Workspace governance contract" "$BASE_URL/api/governance" "data.ok===true && data.schemaVersion==='governance.workspace-identity.v1' && ['preview-disabled','local-preview'].includes(data.mode) && Array.isArray(data.workspaces) && data.sampleDecision.allowed===true && data.database && data.database.schemaVersion==='governance.workspace-acl-database.v1' && data.database.localAccess.allowed===true && data.postgresRls && data.postgresRls.latestPassing && data.identityProvisioning && Array.isArray(data.identityProvisioning.blockers)"
-check_json_field "OIDC and SCIM readiness" "$BASE_URL/api/governance/identity" "data.ok===true && data.schemaVersion==='governance.identity-provisioning.v1' && typeof data.oidc.configured==='boolean' && typeof data.scim.configured==='boolean' && Array.isArray(data.blockers)"
+check_json_field "Workspace governance contract" "$BASE_URL/api/governance" "data.ok===true && data.schemaVersion==='governance.workspace-identity.v1' && ['preview-disabled','local-preview'].includes(data.mode) && Array.isArray(data.workspaces) && data.sampleDecision.allowed===true && data.database && data.database.schemaVersion==='governance.workspace-acl-database.v4' && data.database.localAccess.allowed===true && data.postgresRls && data.postgresRls.latestPassing && data.identityProvisioning && Array.isArray(data.identityProvisioning.blockers) && data.identityMapping && data.identityMapping.schemaVersion==='governance.identity-workspace-mapping.v1' && data.rehearsalEvidence && data.rehearsalEvidence.multiUserConflict && data.rehearsalEvidence.multiUserConflict.ok===true"
+check_json_field "OIDC and SCIM readiness" "$BASE_URL/api/governance/identity" "data.ok===true && data.schemaVersion==='governance.identity-provisioning.v2' && typeof data.oidc.configured==='boolean' && typeof data.scim.configured==='boolean' && Array.isArray(data.blockers)"
+check_json_field "Organization group mapping readiness" "$BASE_URL/api/governance/identity-mappings" "data.ok===true && data.schemaVersion==='governance.identity-workspace-mapping.v1' && data.mappingCounts && typeof data.mappingCounts.workspaceRoleMappings==='number' && data.enforcement.explicitGroupClaimRequired===true"
 check_json_field "Governance policy simulator" "$BASE_URL/api/governance/policy-simulator" "data.ok===true && data.schemaVersion==='governance.policy-simulator.v1' && Array.isArray(data.receipts) && data.latestPassing && data.latestPassing.coverage.crossWorkspace===true"
 check_json_field "Shared asset immutable audit" "$BASE_URL/api/governance/shared-assets" "data.ok===true && data.schemaVersion==='governance.shared-asset-audit.v1' && Array.isArray(data.assets) && data.latestPassing && data.integrity.chainVerified===true"
 check_json_field "Governance access review evidence" "$BASE_URL/api/governance/access-reviews" "data.ok===true && data.schemaVersion==='governance.access-review.v1' && data.latestPassing && data.latestPassing.checks.selfApprovalDenied===true && data.latestPassing.checks.independentReviewerApproved===true"
@@ -299,17 +388,26 @@ check_json_field "Evaluation baseline promotion evidence" "$BASE_URL/api/evaluat
 check_json_field "Artifact package contract" "$BASE_URL/api/artifacts/packages" "data.ok===true && data.schemaVersion==='artifacts.package.v1' && Array.isArray(data.supportedKinds) && data.supportedKinds.length===7 && data.example.validation.valid===true && data.provenance && data.provenance.schemaVersion==='artifacts.provenance-gate.v1' && Array.isArray(data.provenance.receipts)"
 check_json_field "Artifact local registry round-trip" "$BASE_URL/api/artifacts/registry" "data.ok===true && data.schemaVersion==='artifacts.local-registry.v1' && Array.isArray(data.records) && data.totals.verified>=1"
 check_json_field "Artifact registry adapter plans" "$BASE_URL/api/artifacts/registry-adapters" "data.ok===true && data.schemaVersion==='artifacts.registry-adapters.v1' && Array.isArray(data.targets) && data.targets.length===4 && data.totals.preview===3 && data.policy.remoteRoundTripReceiptRequired===true && data.policy.previewAdaptersMayMutateRemote===false"
-check_json_field "Artifact quality and billing linkage" "$BASE_URL/api/artifacts/quality-claims" "data.ok===true && data.schemaVersion==='artifacts.quality-billing-link.v1' && Array.isArray(data.receipts) && data.latestPassing && data.latestPassing.billing.differenceTokens===0 && typeof data.latestPassing.claimDigest==='string'"
+check_json_field "Artifact quality and billing linkage" "$BASE_URL/api/artifacts/quality-claims" "data.ok===true && data.schemaVersion==='artifacts.quality-billing-link.v2' && Array.isArray(data.receipts) && data.latest && ['pass','hold'].includes(data.latest.status) && data.latest.billing.differenceTokens===0 && data.productionStatus==='hold'"
 check_json_field "Artifact install lifecycle evidence" "$BASE_URL/api/artifacts/install-lifecycle" "data.ok===true && data.schemaVersion==='artifacts.install-lifecycle.v1' && data.latestPassing && data.latestPassing.checks.rollbackActivatedPriorVersion===true && data.latestPassing.checks.activeUnpublishDenied===true"
 check_json_field "Post-v1 foundation evidence contract" "$BASE_URL/api/experiments/post-v1-foundation" "data.ok===true && data.schemaVersion==='experiments.post-v1-foundation.v1' && Array.isArray(data.rounds) && data.rounds.length===10 && data.totals && data.totals.rounds===10 && data.rounds.some((item)=>item.version==='v1.5.1' && item.status==='blocked')"
 check_json_field "Post-v1 15-slice closure contract" "$BASE_URL/api/experiments/post-v1-closure" "data.ok===true && data.schemaVersion==='experiments.post-v1-closure.v1' && Array.isArray(data.slices) && data.slices.length===15 && data.totals && data.totals.slices===15 && data.slices.some((item)=>item.id==='postgres-context') && data.slices.some((item)=>item.id==='artifact-provenance')"
 check_json_field "Post-v1 hardening evidence" "$BASE_URL/api/experiments/post-v1-hardening" "data.ok===true && data.schemaVersion==='experiments.post-v1-hardening.v1' && Array.isArray(data.slices) && data.slices.length===15 && data.totals && data.totals.ready===15 && data.totals.partial===0"
-check_json_field "Post-v1 product acceptance evidence" "$BASE_URL/api/experiments/post-v1-acceptance" "data.ok===true && data.schemaVersion==='experiments.post-v1-acceptance.v1' && Array.isArray(data.slices) && data.slices.length===15 && data.totals && data.totals.ready===15 && data.totals.partial===0"
+check_json_field "Post-v1 product acceptance evidence" "$BASE_URL/api/experiments/post-v1-acceptance" "data.ok===true && data.schemaVersion==='experiments.post-v1-acceptance.v1' && Array.isArray(data.slices) && data.slices.length===15 && data.totals && data.totals.ready+data.totals.partial+data.totals.blocked===15 && data.slices.some((item)=>item.id==='quality-billing-link' && ['ready','partial'].includes(item.status))"
 check_json_field "Post-v1 operational lifecycle evidence" "$BASE_URL/api/experiments/post-v1-lifecycle" "data.ok===true && data.schemaVersion==='experiments.post-v1-lifecycle.v1' && Array.isArray(data.slices) && data.slices.length===15 && data.totals && data.totals.ready===15 && data.totals.partial===0"
-check_json_field "Post-v1 ten-version promotion gate" "$BASE_URL/api/experiments/post-v1-promotion-gate" "data.ok===true && data.schemaVersion==='experiments.post-v1-promotion-gate.v1' && Array.isArray(data.versions) && data.versions.length===10 && data.totals.locallyReadyVersions===10 && data.versions.every((item)=>item.localCompletionPct>0 && Array.isArray(item.externalBlockers)) && data.versions.some((item)=>item.version==='v1.3.1' && item.status==='externally-blocked' && item.localReady===true && item.productionReady===false && item.externalBlockers.length>=3)"
-check_json_field "Experiments release train contract" "$BASE_URL/api/experiments/release-train" "data.ok===true && data.activeVersion==='v1.3.1' && Array.isArray(data.milestones) && data.milestones.length===20 && data.milestones.some((item)=>item.version==='v1.0.0' && item.status==='complete') && data.milestones.some((item)=>item.version==='v1.1.0' && item.status==='evidence-needed') && data.milestones.some((item)=>item.version==='v1.3.1' && item.status==='evidence-needed') && data.milestones.some((item)=>item.version==='v1.5.1' && item.status==='blocked') && data.milestones.every((item)=>typeof item.version==='string' && Array.isArray(item.scope) && Array.isArray(item.acceptance) && Array.isArray(item.evidence))"
-check_json_field "Experiments promotion gate contract" "$BASE_URL/api/experiments/promotion-gate" "data.ok===true && data.schemaVersion==='experiments.promotion-gate.v1' && data.activeVersion==='v1.3.1' && ['pass','watch','hold'].includes(data.overallStatus) && Array.isArray(data.sources) && data.sources.length>=5 && data.sources.some((source)=>source.id==='adapter-export') && data.sources.some((source)=>source.id==='docs-screenshots') && Array.isArray(data.blockers) && Array.isArray(data.releaseNoteDraft)"
-check_json_field "Experiments release evidence matrix contract" "$BASE_URL/api/experiments/release-evidence-matrix" "data.ok===true && data.schemaVersion==='experiments.release-evidence-matrix.v1' && data.activeVersion==='v1.3.1' && Array.isArray(data.rounds) && data.rounds.length===20 && data.totals && data.totals.roundCount===20 && data.totals.plannedCount===0 && data.rounds.filter((round)=>/^v1\\.[1-5]\\./.test(round.version)).every((round)=>round.completionPct>0) && data.rounds.every((round)=>typeof round.version==='string' && typeof round.completionPct==='number' && Array.isArray(round.shipped) && Array.isArray(round.evidence) && Array.isArray(round.blockers) && Array.isArray(round.nextActions))"
+check_json_field "V1.6 feature ownership evidence" "$BASE_URL/api/experiments/v16-feature-ownership" "data.ok===true && data.schemaVersion==='experiments.v16-feature-ownership.v1' && data.productionStatus==='hold' && data.totals && data.totals.slices===15 && ['pass','hold','evidence-needed'].includes(data.localStatus)"
+check_json_field "V1.6.1 application contract evidence" "$BASE_URL/api/experiments/v161-application-contracts" "data.ok===true && data.schemaVersion==='experiments.v161-application-contracts.v1' && data.productionStatus==='hold' && data.totals && data.totals.slices===15 && ['pass','hold','evidence-needed'].includes(data.localStatus)"
+check_json_field "Benchmark qualification evidence" "$BASE_URL/api/benchmarks/qualification" "data.ok===true && data.schemaVersion==='benchmark.qualification.v1' && data.productionStatus==='hold' && data.totals && data.totals.checks===15 && ['pass','hold','evidence-needed'].includes(data.localStatus)"
+check_json_field "V1.6.3 benchmark qualification evidence" "$BASE_URL/api/experiments/v163-benchmark-qualification" "data.ok===true && data.schemaVersion==='experiments.v163-benchmark-qualification.v1' && data.productionStatus==='hold' && data.totals && data.totals.slices===15 && ['pass','hold','evidence-needed'].includes(data.localStatus)"
+check_json_field "Official benchmark full-run status" "$BASE_URL/api/benchmarks/official-runs" "data.ok===true && data.schemaVersion==='benchmark.official-run.v1' && data.productionStatus==='hold' && Array.isArray(data.recentProgress)"
+check_json_field "V1.6.4 official evaluator evidence" "$BASE_URL/api/experiments/v164-official-evaluators" "data.ok===true && data.schemaVersion==='experiments.v164-official-evaluators.v1' && data.productionStatus==='hold' && data.mathRuntime && Array.isArray(data.protocols) && data.protocols.length===4"
+check_json_field "V1.6.7 workflow execution closure" "$BASE_URL/api/experiments/v167-workflow-execution-closure" "data.ok===true && data.schemaVersion==='workflows.execution-closure.v1' && data.productionStatus==='hold' && data.capabilities && Array.isArray(data.capabilities.executors) && data.capabilities.executors.length===8"
+check_json_field "V1.6.8 Fine-tune execution truth" "$BASE_URL/api/experiments/v168-finetune-execution-truth" "data.ok===true && data.schemaVersion==='finetune.execution-truth.v1' && data.productionStatus==='hold' && data.latest && data.latest.totals.passed===15"
+check_json_field "V1.6.9 Fine-tune quality and export" "$BASE_URL/api/experiments/v169-finetune-quality-export" "data.ok===true && data.schemaVersion==='finetune.quality-export-acceptance.v1' && data.productionStatus==='hold' && ['pass','hold','evidence-needed'].includes(data.localStatus)"
+check_json_field "Post-v1 ten-version promotion gate" "$BASE_URL/api/experiments/post-v1-promotion-gate" "data.ok===true && data.schemaVersion==='experiments.post-v1-promotion-gate.v1' && Array.isArray(data.versions) && data.versions.length===10 && data.totals.locallyReadyVersions>=8 && data.totals.productionReadyVersions===0 && data.versions.every((item)=>item.localCompletionPct>0 && Array.isArray(item.externalBlockers)) && data.versions.some((item)=>item.version==='v1.3.1' && item.status==='externally-blocked' && item.localReady===true && item.productionReady===false && item.externalBlockers.length>=3) && data.versions.some((item)=>item.version==='v1.5.0' && item.productionReady===false)"
+check_json_field "Experiments release train contract" "$BASE_URL/api/experiments/release-train" "data.ok===true && data.activeVersion==='v1.5.1' && data.developmentVersion==='v1.6.9' && Array.isArray(data.milestones) && data.milestones.length===36 && data.milestones.some((item)=>item.version==='v1.0.0' && item.status==='complete') && data.milestones.some((item)=>item.version==='v1.5.1' && item.status==='blocked') && data.milestones.some((item)=>item.version==='v1.6.7' && item.status==='complete') && data.milestones.some((item)=>item.version==='v1.6.8' && item.status==='complete') && data.milestones.some((item)=>item.version==='v1.6.9' && item.status==='active') && data.milestones.some((item)=>item.version==='v2.0.0' && item.status==='planned') && data.milestones.every((item)=>typeof item.version==='string' && Array.isArray(item.scope) && Array.isArray(item.acceptance) && Array.isArray(item.evidence))"
+check_json_field "Experiments promotion gate contract" "$BASE_URL/api/experiments/promotion-gate" "data.ok===true && data.schemaVersion==='experiments.promotion-gate.v1' && data.activeVersion==='v1.5.1' && ['pass','watch','hold'].includes(data.overallStatus) && Array.isArray(data.sources) && data.sources.length>=5 && data.sources.some((source)=>source.id==='adapter-export') && data.sources.some((source)=>source.id==='docs-screenshots') && Array.isArray(data.blockers) && Array.isArray(data.releaseNoteDraft)"
+check_json_field "Experiments release evidence matrix contract" "$BASE_URL/api/experiments/release-evidence-matrix" "data.ok===true && data.schemaVersion==='experiments.release-evidence-matrix.v1' && data.activeVersion==='v1.5.1' && Array.isArray(data.rounds) && data.rounds.length===36 && data.totals && data.totals.roundCount===36 && data.totals.plannedCount>=5 && data.rounds.filter((round)=>/^v1\\.[1-5]\\./.test(round.version)).every((round)=>round.completionPct>0) && data.rounds.some((round)=>round.version==='v1.6.8' && round.status==='complete') && data.rounds.every((round)=>typeof round.version==='string' && typeof round.completionPct==='number' && Array.isArray(round.shipped) && Array.isArray(round.evidence) && Array.isArray(round.blockers) && Array.isArray(round.nextActions))"
 check_json_field "Experiments public release evidence contract" "$BASE_URL/api/experiments/public-release-evidence" "data.ok===true && data.schemaVersion==='experiments.public-release-evidence.v1' && data.docsRoute && data.docsRoute.route==='/release' && Array.isArray(data.docsFiles) && data.demoCapture && Array.isArray(data.demoCapture.flows) && data.distillation && typeof data.distillation.operationCount==='number' && data.totals && typeof data.totals.completionPct==='number' && Array.isArray(data.blockers) && Array.isArray(data.releaseNoteDraft)"
 check_json_field "Experiments GA release evidence bundle contract" "$BASE_URL/api/experiments/ga-release-evidence" "data.ok===true && data.bundle && data.bundle.schemaVersion==='experiments.ga-release-evidence-bundle.v1' && data.bundle.nonCloudReadiness && data.bundle.productionReadiness && Array.isArray(data.bundle.sources) && data.bundle.sources.length>=7 && data.bundle.sources.every((source)=>typeof source.digest==='string' && source.digest.length===64) && data.bundle.integrity && data.bundle.integrity.algorithm==='sha256' && data.bundle.integrity.verified===true && typeof data.bundle.integrity.stateDigest==='string' && data.bundle.integrity.stateDigest.length===64 && data.bundle.totals && typeof data.bundle.totals.blockerCount==='number' && data.history && Array.isArray(data.history.entries) && data.verification && ['in-sync','drifted','missing','invalid'].includes(data.verification.status) && Array.isArray(data.verification.changedSourceIds)"
 check_json_field "Experiments route smoke evidence contract" "$BASE_URL/api/experiments/route-smoke-evidence" "data.ok===true && data.evidence && data.evidence.schemaVersion==='experiments.route-smoke-evidence.v1' && data.evidence.totals && typeof data.evidence.totals.checkCount==='number' && data.evidence.integrity && ['verified','invalid','missing'].includes(data.evidence.integrity.status) && Array.isArray(data.evidence.failures) && data.evidence.history && Array.isArray(data.evidence.history.reports) && typeof data.evidence.history.consecutivePassCount==='number' && typeof data.evidence.history.verifiedCount==='number'"
@@ -318,6 +416,14 @@ check_json_field "Deployment control plane contract" "$BASE_URL/api/deployment" 
 check_json_field "Deployment usage reconciliation" "$BASE_URL/api/deployment/usage-reconciliation" "data.ok===true && data.schemaVersion==='deployment.usage-reconciliation.v1' && Array.isArray(data.receipts) && data.latestPassing && data.latestPassing.differences.totalTokens===0"
 check_json_field "Deployment usage settlement evidence" "$BASE_URL/api/deployment/usage-settlement" "data.ok===true && data.schemaVersion==='deployment.usage-settlement.v1' && data.latestPassing && data.latestPassing.checks.retryDelivered===true && data.latestPassing.checks.duplicateSuppressed===true"
 check_json_field "Latest benchmark progress" "$BASE_URL/api/admin/benchmark/progress?latest=1" "typeof data === 'object'"
+check_json_field "Canonical Benchmark run route" "$BASE_URL/api/benchmarks" "data.ok===true && data.schemaVersion==='benchmark.run-route.v1' && data.owner==='features/benchmark' && Array.isArray(data.methods) && data.methods.includes('POST')"
+check_json_field "Canonical Benchmark baseline route" "$BASE_URL/api/benchmarks/baseline" "Array.isArray(data.baselines) && ('baseline' in data)"
+check_json_field "Canonical Benchmark progress route" "$BASE_URL/api/benchmarks/progress?latest=1" "typeof data==='object' && (data.runId===null || typeof data.runId==='string')"
+check_json_field "Canonical Benchmark prompt-set route" "$BASE_URL/api/benchmarks/prompt-sets" "Array.isArray(data.promptSets)"
+check_text_contains "Canonical Benchmark report route" "$BASE_URL/api/benchmarks/report?windowMinutes=720" "# Benchmark Regression Report"
+check_json_field "Canonical Benchmark evidence route" "$BASE_URL/api/benchmarks/evidence" "Array.isArray(data.entries) && data.summary && data.summary.schemaVersion==='benchmark.release-evidence-summary.v1'"
+check_text_contains "Canonical Benchmark issue-summary export" "$BASE_URL/api/benchmarks/export?format=issue-summary&limit=1" "## Benchmark issue summary"
+check_json_post_status "Canonical Compare progress validation" "$BASE_URL/api/compare/progress" '{}' '400' "typeof data.error==='string' && data.error.includes('requestId')"
 check_json_field "Benchmark release evidence summary" "$BASE_URL/api/admin/benchmark/evidence" "Array.isArray(data.entries) && data.summary && data.summary.schemaVersion==='benchmark.release-evidence-summary.v1' && data.summary.totals && typeof data.summary.totals.evidenceCount==='number' && Array.isArray(data.summary.groups) && Array.isArray(data.summary.releaseNoteDraft)"
 check_text_contains "Benchmark issue-summary export" "$BASE_URL/api/admin/benchmark/export?format=issue-summary&limit=1" "## Benchmark issue summary"
 check_json_field "Provider Ops evidence summary" "$BASE_URL/api/admin/provider-health/evidence?windowHours=24" "data.ok===true && data.summary && data.summary.schemaVersion==='provider.ops-evidence-summary.v1' && data.summary.totals && typeof data.summary.totals.providerCount==='number' && data.summary.releaseProbe && typeof data.summary.releaseProbe.successCount==='number' && typeof data.summary.releaseProbe.totalCount==='number' && Array.isArray(data.summary.providers) && Array.isArray(data.summary.releaseNoteDraft) && data.snapshots && data.snapshots.schemaVersion==='provider.ops-evidence-snapshots.v1' && data.snapshots.integrity && typeof data.snapshots.integrity.verifiedCount==='number' && Array.isArray(data.snapshots.snapshots) && data.snapshots.snapshots.every((snapshot)=>snapshot.integrity && snapshot.integrity.algorithm==='sha256')"

@@ -4,6 +4,7 @@ export type RemoteBenchmarkProviderKind =
   | "openai-compatible"
   | "claude-compatible"
   | "deepseek-compatible"
+  | "minimax-compatible"
   | "moonshot-compatible"
   | "zhipu-compatible"
   | "dashscope-compatible";
@@ -43,6 +44,9 @@ export function getRemoteBenchmarkProviderKind(target: ResolvedTarget): RemoteBe
   }
   if (target.id === "deepseek-api" || /deepseek/i.test(target.resolvedModel)) {
     return "deepseek-compatible";
+  }
+  if (target.id === "minimax-m3" || baseUrl.includes("minimaxi.com") || model.includes("minimax")) {
+    return "minimax-compatible";
   }
   if (target.id === "kimi-api" || baseUrl.includes("moonshot.cn") || model.includes("kimi")) {
     return "moonshot-compatible";
@@ -107,6 +111,11 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
   if (providerKind === "moonshot-compatible") {
     if (thinkingMode === "thinking") firstTokenTimeoutMs += 10000;
     if (providerProfile === "tool-first") firstTokenTimeoutMs += 4000;
+  }
+
+  if (providerKind === "minimax-compatible") {
+    if (thinkingMode === "thinking") firstTokenTimeoutMs += 12000;
+    if (providerProfile === "tool-first") firstTokenTimeoutMs += 5000;
   }
 
   if (providerKind === "zhipu-compatible" || providerKind === "dashscope-compatible") {
@@ -176,6 +185,9 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
     if (providerKind === "moonshot-compatible") {
       retryBudgetMs = thinkingMode === "thinking" ? 52000 : 34000;
     }
+    if (providerKind === "minimax-compatible") {
+      retryBudgetMs = thinkingMode === "thinking" ? 56000 : 36000;
+    }
     if (providerKind === "zhipu-compatible" || providerKind === "dashscope-compatible") {
       retryBudgetMs = thinkingMode === "thinking" ? 50000 : 34000;
     }
@@ -221,6 +233,9 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
     if (providerKind === "moonshot-compatible") {
       streamIdleTimeoutMs = thinkingMode === "thinking" ? 24000 : 12000;
     }
+    if (providerKind === "minimax-compatible") {
+      streamIdleTimeoutMs = thinkingMode === "thinking" ? 26000 : 12000;
+    }
     if (providerKind === "zhipu-compatible" || providerKind === "dashscope-compatible") {
       streamIdleTimeoutMs = thinkingMode === "thinking" ? 22000 : 12000;
     }
@@ -243,6 +258,7 @@ export function resolveRemoteBenchmarkPolicy(input: RemoteBenchmarkPolicyInput):
     if (providerKind === "claude-compatible") streamIdleTimeoutMs += 5000;
     if (providerKind === "deepseek-compatible") streamIdleTimeoutMs += thinkingMode === "thinking" ? 12000 : 3000;
     if (providerKind === "moonshot-compatible") streamIdleTimeoutMs += thinkingMode === "thinking" ? 10000 : 4000;
+    if (providerKind === "minimax-compatible") streamIdleTimeoutMs += thinkingMode === "thinking" ? 12000 : 4000;
     if (providerKind === "zhipu-compatible" || providerKind === "dashscope-compatible") {
       streamIdleTimeoutMs += thinkingMode === "thinking" ? 8000 : 3000;
     }

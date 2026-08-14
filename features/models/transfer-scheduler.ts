@@ -1,14 +1,14 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const MODEL_TRANSFER_SCHEDULER_SCHEMA_VERSION = "models.transfer-scheduler.v1" as const;
 type Job = { id: string; host: string; priority: number; state: "queued" | "retry-wait" | "cancelled"; attempts: number; nextAttemptAt?: string };
 type Receipt = { id: string; generatedAt: string; status: "pass" | "failed"; selected: string[]; deferred: string[]; checks: Record<string, boolean>; limits: { global: number; perHost: number } };
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability"); const STORE_FILE = path.join(DATA_DIR, "model-transfer-scheduler.json");
-function readReceipts(): Receipt[] { if (!existsSync(STORE_FILE)) return []; try { const value = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { receipts?: Receipt[] }; return Array.isArray(value.receipts) ? value.receipts : []; } catch { return []; } }
-function persist(receipt: Receipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(STORE_FILE, `${JSON.stringify({ schemaVersion: MODEL_TRANSFER_SCHEDULER_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 200) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): Receipt[] { return readDurableReceipts(STORE_FILE, MODEL_TRANSFER_SCHEDULER_SCHEMA_VERSION); }
+function persist(receipt: Receipt) { prependDurableReceipt(STORE_FILE, MODEL_TRANSFER_SCHEDULER_SCHEMA_VERSION, receipt, 200); }
 
 export function planModelTransfers(input: { jobs: Job[]; globalLimit: number; perHostLimit: number; now?: Date }) {
   const now = input.now || new Date(); const hostCounts = new Map<string, number>(); const selected: Job[] = [];

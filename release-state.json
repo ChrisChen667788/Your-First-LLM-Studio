@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "first-llm-studio.release-truth.v1",
+  "sourceVersion": "1.5.1",
+  "activeMilestone": "v1.5.1",
+  "sourceStatus": "complete",
+  "localAcceptanceStatus": "pass",
+  "latestPublicGitHubRelease": "v0.4.0",
+  "latestDesktopCandidate": "v1.1.0-rc.2",
+  "distributionStatus": "hold",
+  "productionStatus": "blocked",
+  "blockers": [
+    "Apple Developer ID notarization and staple evidence is missing.",
+    "An independently trusted clean-machine organization receipt is missing.",
+    "Authenticated non-loopback workflow invocation evidence is missing.",
+    "Distributed workflow worker recovery evidence is missing.",
+    "Real OIDC/SCIM lifecycle and trusted identity-proxy rotation evidence is missing.",
+    "Deployed-Postgres concurrent-user conflict, backup/restore, and externally retained audit evidence is missing.",
+    "Configured pgvector, embedding, cross-encoder reranker, and ACL acceptance evidence is missing.",
+    "No exported OpenTelemetry/Langfuse production trace receipt is available.",
+    "The real adapter release candidate still requires an independent worker rerun and organization sign-off.",
+    "An organization-controlled remote artifact registry read-back receipt is missing.",
+    "Managed billing delivery and cross-region failover receipts are missing.",
+    "AWS workload identity, KMS signing, and S3 Object Lock archive evidence is missing."
+  ]
+}

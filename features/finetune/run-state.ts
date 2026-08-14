@@ -13,7 +13,10 @@ export type FineTuneEvalMetric =
   | "rouge-l"
   | "bleu"
   | "exact-match"
-  | "latency";
+  | "token-overlap-f1"
+  | "latency"
+  | "math-equivalence"
+  | "json-validity";
 
 export type FineTuneEvaluateFormState = {
   datasetId: string;
@@ -72,7 +75,7 @@ export const DEFAULT_EVALUATE_FORM: FineTuneEvaluateFormState = {
   maxNewTokens: 512,
   temperature: 0.2,
   topP: 0.8,
-  metrics: ["loss", "rouge-l", "exact-match"],
+  metrics: ["rouge-l", "exact-match", "token-overlap-f1", "latency"],
   savePredictions: true,
 };
 

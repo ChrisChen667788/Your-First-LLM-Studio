@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { readDurableJsonStore, updateDurableJsonStore } from "@/features/persistence/durable-json-store";
 
 export const WORKFLOW_BREAKPOINT_SCHEMA_VERSION = "workflows.breakpoints.v1" as const;
 
@@ -14,19 +14,20 @@ const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(
 );
 const STORE_FILE = path.join(DATA_DIR, "workflow-breakpoints.json");
 
-function readStore(): BreakpointStore {
-  if (!existsSync(STORE_FILE)) return { schemaVersion: WORKFLOW_BREAKPOINT_SCHEMA_VERSION, breakpoints: [] };
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as Partial<BreakpointStore>;
-    return { schemaVersion: WORKFLOW_BREAKPOINT_SCHEMA_VERSION, breakpoints: Array.isArray(parsed.breakpoints) ? parsed.breakpoints : [] };
-  } catch {
-    return { schemaVersion: WORKFLOW_BREAKPOINT_SCHEMA_VERSION, breakpoints: [] };
-  }
+function isBreakpointStore(value: unknown): value is BreakpointStore {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<BreakpointStore>;
+  return candidate.schemaVersion === WORKFLOW_BREAKPOINT_SCHEMA_VERSION && Array.isArray(candidate.breakpoints);
 }
 
-function writeStore(store: BreakpointStore) {
-  mkdirSync(path.dirname(STORE_FILE), { recursive: true });
-  writeFileSync(STORE_FILE, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+const storeOptions = {
+  filePath: STORE_FILE,
+  initial: (): BreakpointStore => ({ schemaVersion: WORKFLOW_BREAKPOINT_SCHEMA_VERSION, breakpoints: [] }),
+  validate: isBreakpointStore,
+};
+
+function readStore() {
+  return readDurableJsonStore(storeOptions);
 }
 
 export function readWorkflowBreakpoints() {
@@ -39,7 +40,6 @@ export function workflowNodeHasBreakpoint(graphId: string, graphVersion: number,
 
 export function setWorkflowBreakpoint(input: { graphId: string; graphVersion: number; nodeId: string; enabled: boolean }) {
   if (!input.graphId.trim() || !input.nodeId.trim()) throw new Error("graphId and nodeId are required.");
-  const store = readStore();
   const next = {
     graphId: input.graphId,
     graphVersion: input.graphVersion,
@@ -47,11 +47,11 @@ export function setWorkflowBreakpoint(input: { graphId: string; graphVersion: nu
     enabled: input.enabled,
     updatedAt: new Date().toISOString(),
   };
-  writeStore({
+  updateDurableJsonStore(storeOptions, (store) => ({
     ...store,
     breakpoints: [next, ...store.breakpoints.filter((entry) =>
       !(entry.graphId === input.graphId && entry.graphVersion === input.graphVersion && entry.nodeId === input.nodeId),
     )].slice(0, 500),
-  });
+  }));
   return next;
 }

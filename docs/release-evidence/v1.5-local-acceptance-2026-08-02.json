@@ -1,0 +1,575 @@
+{
+  "schemaVersion": "experiments.v15-acceptance-runner-evidence.v1",
+  "generatedAt": "2026-08-02T10:48:40.389Z",
+  "baseUrl": "http://127.0.0.1:3011",
+  "receipt": {
+    "id": "v15-acceptance-a298d9d5-650f-436e-98d5-25e1d89bf05d",
+    "generatedAt": "2026-08-02T10:48:40.366Z",
+    "status": "pass",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "slices": [
+      {
+        "id": "manifest-digest",
+        "version": "v1.5.0",
+        "label": "Manifest digest",
+        "status": "pass",
+        "summary": "Canonical manifest digest matches the signed coordinate."
+      },
+      {
+        "id": "package-paths",
+        "version": "v1.5.0",
+        "label": "Package path safety",
+        "status": "pass",
+        "summary": "Package paths are unique, relative, and traversal-safe."
+      },
+      {
+        "id": "file-payloads",
+        "version": "v1.5.0",
+        "label": "File payload integrity",
+        "status": "pass",
+        "summary": "Every declared file matches byte length and SHA-256."
+      },
+      {
+        "id": "publisher-trust",
+        "version": "v1.5.0",
+        "label": "Publisher trust root",
+        "status": "pass",
+        "summary": "1 active publisher key(s) are registered."
+      },
+      {
+        "id": "signature-rotation",
+        "version": "v1.5.0",
+        "label": "Signature rotation and revocation",
+        "status": "pass",
+        "summary": "Active signature verifies and the retired key is denied."
+      },
+      {
+        "id": "dependency-pins",
+        "version": "v1.5.0",
+        "label": "Dependency digest pins",
+        "status": "pass",
+        "summary": "Every dependency coordinate carries a SHA-256 pin."
+      },
+      {
+        "id": "dependency-resolution",
+        "version": "v1.5.0",
+        "label": "Dependency resolution",
+        "status": "pass",
+        "summary": "Pinned dependencies resolve to the catalog digest."
+      },
+      {
+        "id": "dependency-cycle-denial",
+        "version": "v1.5.0",
+        "label": "Dependency cycle denial",
+        "status": "pass",
+        "summary": "The dependency graph is acyclic."
+      },
+      {
+        "id": "studio-compatibility",
+        "version": "v1.5.0",
+        "label": "Studio compatibility",
+        "status": "pass",
+        "summary": "The current Studio version satisfies the artifact range."
+      },
+      {
+        "id": "license-sbom-security",
+        "version": "v1.5.0",
+        "label": "License, SBOM, and scans",
+        "status": "pass",
+        "summary": "License policy, SPDX evidence, secret scan, and malware scan pass."
+      },
+      {
+        "id": "isolated-install",
+        "version": "v1.5.0",
+        "label": "Isolated install transaction",
+        "status": "pass",
+        "summary": "Staged digests were verified before atomic installation."
+      },
+      {
+        "id": "immutable-registry-query",
+        "version": "v1.5.0",
+        "label": "Immutable registry and query",
+        "status": "pass",
+        "summary": "Immutable local coordinates are searchable after round-trip verification."
+      },
+      {
+        "id": "staging-round-trip",
+        "version": "v1.5.0",
+        "label": "Signed staging round-trip",
+        "status": "pass",
+        "summary": "Signed provider read-back evidence matches local digests."
+      },
+      {
+        "id": "quality-claim-fail-closed",
+        "version": "v1.5.0",
+        "label": "Real quality claim boundary",
+        "status": "pass",
+        "summary": "Quality claims remain blocked while real paired adapter evidence is HOLD."
+      },
+      {
+        "id": "postgres-usage-outbox",
+        "version": "v1.5.1",
+        "label": "PostgreSQL usage outbox",
+        "status": "pass",
+        "summary": "Durable event a9a1fab0-3742-4c40-9887-593e87a9ee08 delivered after 2 attempt(s)."
+      }
+    ],
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "artifact": {
+      "id": "first-llm-studio.v15-acceptance",
+      "version": "1.0.0",
+      "manifestDigest": "49c3e6ad3443da7ded7ca5754408025aaeeb49b437261e68d438816cdc851ab2",
+      "registryRecordId": "artifact-registry-f8855425-419e-4e0a-853e-684661901f67",
+      "installReceiptId": "artifact-install-ca5dc459-015e-4881-a27e-a0bdada2f07e",
+      "stagingReceiptId": "artifact-staging-59732182-9ebd-4673-a337-44ae0e667038",
+      "qualityClaimReceiptId": "quality-billing-4ffa07bf-a3ab-4473-a3d1-26f3fb4850f3",
+      "outboxReceiptId": "postgres-usage-outbox-d80a0c21-9060-4f00-866c-f0bca77afc6e"
+    },
+    "productionBlockers": [
+      "GitHub, ModelScope, and Hugging Face still require independent provider-side staging receipts.",
+      "Real adapter weights, paired multi-seed Benchmark results, and approved judge calibration are still missing.",
+      "Managed PostgreSQL failover and billing receiver acknowledgements require production workload identity.",
+      "Cross-region duplicate-delivery and billing reconciliation need organization-signed receipts.",
+      "Cloud KMS/HSM, immutable archive, multi-region failover, and organization sign-off remain external gates."
+    ],
+    "evidenceDigest": "8d02711f7dc60a19ec4224e08d2b436a08c8ea55938205f8c575b8bda160d7ba"
+  },
+  "evidence": {
+    "ok": true,
+    "schemaVersion": "experiments.v15-acceptance-batch.v1",
+    "generatedAt": "2026-08-02T10:48:40.380Z",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "latest": {
+      "id": "v15-acceptance-a298d9d5-650f-436e-98d5-25e1d89bf05d",
+      "generatedAt": "2026-08-02T10:48:40.366Z",
+      "status": "pass",
+      "localStatus": "pass",
+      "productionStatus": "hold",
+      "slices": [
+        {
+          "id": "manifest-digest",
+          "version": "v1.5.0",
+          "label": "Manifest digest",
+          "status": "pass",
+          "summary": "Canonical manifest digest matches the signed coordinate."
+        },
+        {
+          "id": "package-paths",
+          "version": "v1.5.0",
+          "label": "Package path safety",
+          "status": "pass",
+          "summary": "Package paths are unique, relative, and traversal-safe."
+        },
+        {
+          "id": "file-payloads",
+          "version": "v1.5.0",
+          "label": "File payload integrity",
+          "status": "pass",
+          "summary": "Every declared file matches byte length and SHA-256."
+        },
+        {
+          "id": "publisher-trust",
+          "version": "v1.5.0",
+          "label": "Publisher trust root",
+          "status": "pass",
+          "summary": "1 active publisher key(s) are registered."
+        },
+        {
+          "id": "signature-rotation",
+          "version": "v1.5.0",
+          "label": "Signature rotation and revocation",
+          "status": "pass",
+          "summary": "Active signature verifies and the retired key is denied."
+        },
+        {
+          "id": "dependency-pins",
+          "version": "v1.5.0",
+          "label": "Dependency digest pins",
+          "status": "pass",
+          "summary": "Every dependency coordinate carries a SHA-256 pin."
+        },
+        {
+          "id": "dependency-resolution",
+          "version": "v1.5.0",
+          "label": "Dependency resolution",
+          "status": "pass",
+          "summary": "Pinned dependencies resolve to the catalog digest."
+        },
+        {
+          "id": "dependency-cycle-denial",
+          "version": "v1.5.0",
+          "label": "Dependency cycle denial",
+          "status": "pass",
+          "summary": "The dependency graph is acyclic."
+        },
+        {
+          "id": "studio-compatibility",
+          "version": "v1.5.0",
+          "label": "Studio compatibility",
+          "status": "pass",
+          "summary": "The current Studio version satisfies the artifact range."
+        },
+        {
+          "id": "license-sbom-security",
+          "version": "v1.5.0",
+          "label": "License, SBOM, and scans",
+          "status": "pass",
+          "summary": "License policy, SPDX evidence, secret scan, and malware scan pass."
+        },
+        {
+          "id": "isolated-install",
+          "version": "v1.5.0",
+          "label": "Isolated install transaction",
+          "status": "pass",
+          "summary": "Staged digests were verified before atomic installation."
+        },
+        {
+          "id": "immutable-registry-query",
+          "version": "v1.5.0",
+          "label": "Immutable registry and query",
+          "status": "pass",
+          "summary": "Immutable local coordinates are searchable after round-trip verification."
+        },
+        {
+          "id": "staging-round-trip",
+          "version": "v1.5.0",
+          "label": "Signed staging round-trip",
+          "status": "pass",
+          "summary": "Signed provider read-back evidence matches local digests."
+        },
+        {
+          "id": "quality-claim-fail-closed",
+          "version": "v1.5.0",
+          "label": "Real quality claim boundary",
+          "status": "pass",
+          "summary": "Quality claims remain blocked while real paired adapter evidence is HOLD."
+        },
+        {
+          "id": "postgres-usage-outbox",
+          "version": "v1.5.1",
+          "label": "PostgreSQL usage outbox",
+          "status": "pass",
+          "summary": "Durable event a9a1fab0-3742-4c40-9887-593e87a9ee08 delivered after 2 attempt(s)."
+        }
+      ],
+      "totals": {
+        "slices": 15,
+        "passed": 15,
+        "held": 0
+      },
+      "artifact": {
+        "id": "first-llm-studio.v15-acceptance",
+        "version": "1.0.0",
+        "manifestDigest": "49c3e6ad3443da7ded7ca5754408025aaeeb49b437261e68d438816cdc851ab2",
+        "registryRecordId": "artifact-registry-f8855425-419e-4e0a-853e-684661901f67",
+        "installReceiptId": "artifact-install-ca5dc459-015e-4881-a27e-a0bdada2f07e",
+        "stagingReceiptId": "artifact-staging-59732182-9ebd-4673-a337-44ae0e667038",
+        "qualityClaimReceiptId": "quality-billing-4ffa07bf-a3ab-4473-a3d1-26f3fb4850f3",
+        "outboxReceiptId": "postgres-usage-outbox-d80a0c21-9060-4f00-866c-f0bca77afc6e"
+      },
+      "productionBlockers": [
+        "GitHub, ModelScope, and Hugging Face still require independent provider-side staging receipts.",
+        "Real adapter weights, paired multi-seed Benchmark results, and approved judge calibration are still missing.",
+        "Managed PostgreSQL failover and billing receiver acknowledgements require production workload identity.",
+        "Cross-region duplicate-delivery and billing reconciliation need organization-signed receipts.",
+        "Cloud KMS/HSM, immutable archive, multi-region failover, and organization sign-off remain external gates."
+      ],
+      "evidenceDigest": "8d02711f7dc60a19ec4224e08d2b436a08c8ea55938205f8c575b8bda160d7ba"
+    },
+    "latestPassing": {
+      "id": "v15-acceptance-a298d9d5-650f-436e-98d5-25e1d89bf05d",
+      "generatedAt": "2026-08-02T10:48:40.366Z",
+      "status": "pass",
+      "localStatus": "pass",
+      "productionStatus": "hold",
+      "slices": [
+        {
+          "id": "manifest-digest",
+          "version": "v1.5.0",
+          "label": "Manifest digest",
+          "status": "pass",
+          "summary": "Canonical manifest digest matches the signed coordinate."
+        },
+        {
+          "id": "package-paths",
+          "version": "v1.5.0",
+          "label": "Package path safety",
+          "status": "pass",
+          "summary": "Package paths are unique, relative, and traversal-safe."
+        },
+        {
+          "id": "file-payloads",
+          "version": "v1.5.0",
+          "label": "File payload integrity",
+          "status": "pass",
+          "summary": "Every declared file matches byte length and SHA-256."
+        },
+        {
+          "id": "publisher-trust",
+          "version": "v1.5.0",
+          "label": "Publisher trust root",
+          "status": "pass",
+          "summary": "1 active publisher key(s) are registered."
+        },
+        {
+          "id": "signature-rotation",
+          "version": "v1.5.0",
+          "label": "Signature rotation and revocation",
+          "status": "pass",
+          "summary": "Active signature verifies and the retired key is denied."
+        },
+        {
+          "id": "dependency-pins",
+          "version": "v1.5.0",
+          "label": "Dependency digest pins",
+          "status": "pass",
+          "summary": "Every dependency coordinate carries a SHA-256 pin."
+        },
+        {
+          "id": "dependency-resolution",
+          "version": "v1.5.0",
+          "label": "Dependency resolution",
+          "status": "pass",
+          "summary": "Pinned dependencies resolve to the catalog digest."
+        },
+        {
+          "id": "dependency-cycle-denial",
+          "version": "v1.5.0",
+          "label": "Dependency cycle denial",
+          "status": "pass",
+          "summary": "The dependency graph is acyclic."
+        },
+        {
+          "id": "studio-compatibility",
+          "version": "v1.5.0",
+          "label": "Studio compatibility",
+          "status": "pass",
+          "summary": "The current Studio version satisfies the artifact range."
+        },
+        {
+          "id": "license-sbom-security",
+          "version": "v1.5.0",
+          "label": "License, SBOM, and scans",
+          "status": "pass",
+          "summary": "License policy, SPDX evidence, secret scan, and malware scan pass."
+        },
+        {
+          "id": "isolated-install",
+          "version": "v1.5.0",
+          "label": "Isolated install transaction",
+          "status": "pass",
+          "summary": "Staged digests were verified before atomic installation."
+        },
+        {
+          "id": "immutable-registry-query",
+          "version": "v1.5.0",
+          "label": "Immutable registry and query",
+          "status": "pass",
+          "summary": "Immutable local coordinates are searchable after round-trip verification."
+        },
+        {
+          "id": "staging-round-trip",
+          "version": "v1.5.0",
+          "label": "Signed staging round-trip",
+          "status": "pass",
+          "summary": "Signed provider read-back evidence matches local digests."
+        },
+        {
+          "id": "quality-claim-fail-closed",
+          "version": "v1.5.0",
+          "label": "Real quality claim boundary",
+          "status": "pass",
+          "summary": "Quality claims remain blocked while real paired adapter evidence is HOLD."
+        },
+        {
+          "id": "postgres-usage-outbox",
+          "version": "v1.5.1",
+          "label": "PostgreSQL usage outbox",
+          "status": "pass",
+          "summary": "Durable event a9a1fab0-3742-4c40-9887-593e87a9ee08 delivered after 2 attempt(s)."
+        }
+      ],
+      "totals": {
+        "slices": 15,
+        "passed": 15,
+        "held": 0
+      },
+      "artifact": {
+        "id": "first-llm-studio.v15-acceptance",
+        "version": "1.0.0",
+        "manifestDigest": "49c3e6ad3443da7ded7ca5754408025aaeeb49b437261e68d438816cdc851ab2",
+        "registryRecordId": "artifact-registry-f8855425-419e-4e0a-853e-684661901f67",
+        "installReceiptId": "artifact-install-ca5dc459-015e-4881-a27e-a0bdada2f07e",
+        "stagingReceiptId": "artifact-staging-59732182-9ebd-4673-a337-44ae0e667038",
+        "qualityClaimReceiptId": "quality-billing-4ffa07bf-a3ab-4473-a3d1-26f3fb4850f3",
+        "outboxReceiptId": "postgres-usage-outbox-d80a0c21-9060-4f00-866c-f0bca77afc6e"
+      },
+      "productionBlockers": [
+        "GitHub, ModelScope, and Hugging Face still require independent provider-side staging receipts.",
+        "Real adapter weights, paired multi-seed Benchmark results, and approved judge calibration are still missing.",
+        "Managed PostgreSQL failover and billing receiver acknowledgements require production workload identity.",
+        "Cross-region duplicate-delivery and billing reconciliation need organization-signed receipts.",
+        "Cloud KMS/HSM, immutable archive, multi-region failover, and organization sign-off remain external gates."
+      ],
+      "evidenceDigest": "8d02711f7dc60a19ec4224e08d2b436a08c8ea55938205f8c575b8bda160d7ba"
+    },
+    "receipts": [
+      {
+        "id": "v15-acceptance-a298d9d5-650f-436e-98d5-25e1d89bf05d",
+        "generatedAt": "2026-08-02T10:48:40.366Z",
+        "status": "pass",
+        "localStatus": "pass",
+        "productionStatus": "hold",
+        "slices": [
+          {
+            "id": "manifest-digest",
+            "version": "v1.5.0",
+            "label": "Manifest digest",
+            "status": "pass",
+            "summary": "Canonical manifest digest matches the signed coordinate."
+          },
+          {
+            "id": "package-paths",
+            "version": "v1.5.0",
+            "label": "Package path safety",
+            "status": "pass",
+            "summary": "Package paths are unique, relative, and traversal-safe."
+          },
+          {
+            "id": "file-payloads",
+            "version": "v1.5.0",
+            "label": "File payload integrity",
+            "status": "pass",
+            "summary": "Every declared file matches byte length and SHA-256."
+          },
+          {
+            "id": "publisher-trust",
+            "version": "v1.5.0",
+            "label": "Publisher trust root",
+            "status": "pass",
+            "summary": "1 active publisher key(s) are registered."
+          },
+          {
+            "id": "signature-rotation",
+            "version": "v1.5.0",
+            "label": "Signature rotation and revocation",
+            "status": "pass",
+            "summary": "Active signature verifies and the retired key is denied."
+          },
+          {
+            "id": "dependency-pins",
+            "version": "v1.5.0",
+            "label": "Dependency digest pins",
+            "status": "pass",
+            "summary": "Every dependency coordinate carries a SHA-256 pin."
+          },
+          {
+            "id": "dependency-resolution",
+            "version": "v1.5.0",
+            "label": "Dependency resolution",
+            "status": "pass",
+            "summary": "Pinned dependencies resolve to the catalog digest."
+          },
+          {
+            "id": "dependency-cycle-denial",
+            "version": "v1.5.0",
+            "label": "Dependency cycle denial",
+            "status": "pass",
+            "summary": "The dependency graph is acyclic."
+          },
+          {
+            "id": "studio-compatibility",
+            "version": "v1.5.0",
+            "label": "Studio compatibility",
+            "status": "pass",
+            "summary": "The current Studio version satisfies the artifact range."
+          },
+          {
+            "id": "license-sbom-security",
+            "version": "v1.5.0",
+            "label": "License, SBOM, and scans",
+            "status": "pass",
+            "summary": "License policy, SPDX evidence, secret scan, and malware scan pass."
+          },
+          {
+            "id": "isolated-install",
+            "version": "v1.5.0",
+            "label": "Isolated install transaction",
+            "status": "pass",
+            "summary": "Staged digests were verified before atomic installation."
+          },
+          {
+            "id": "immutable-registry-query",
+            "version": "v1.5.0",
+            "label": "Immutable registry and query",
+            "status": "pass",
+            "summary": "Immutable local coordinates are searchable after round-trip verification."
+          },
+          {
+            "id": "staging-round-trip",
+            "version": "v1.5.0",
+            "label": "Signed staging round-trip",
+            "status": "pass",
+            "summary": "Signed provider read-back evidence matches local digests."
+          },
+          {
+            "id": "quality-claim-fail-closed",
+            "version": "v1.5.0",
+            "label": "Real quality claim boundary",
+            "status": "pass",
+            "summary": "Quality claims remain blocked while real paired adapter evidence is HOLD."
+          },
+          {
+            "id": "postgres-usage-outbox",
+            "version": "v1.5.1",
+            "label": "PostgreSQL usage outbox",
+            "status": "pass",
+            "summary": "Durable event a9a1fab0-3742-4c40-9887-593e87a9ee08 delivered after 2 attempt(s)."
+          }
+        ],
+        "totals": {
+          "slices": 15,
+          "passed": 15,
+          "held": 0
+        },
+        "artifact": {
+          "id": "first-llm-studio.v15-acceptance",
+          "version": "1.0.0",
+          "manifestDigest": "49c3e6ad3443da7ded7ca5754408025aaeeb49b437261e68d438816cdc851ab2",
+          "registryRecordId": "artifact-registry-f8855425-419e-4e0a-853e-684661901f67",
+          "installReceiptId": "artifact-install-ca5dc459-015e-4881-a27e-a0bdada2f07e",
+          "stagingReceiptId": "artifact-staging-59732182-9ebd-4673-a337-44ae0e667038",
+          "qualityClaimReceiptId": "quality-billing-4ffa07bf-a3ab-4473-a3d1-26f3fb4850f3",
+          "outboxReceiptId": "postgres-usage-outbox-d80a0c21-9060-4f00-866c-f0bca77afc6e"
+        },
+        "productionBlockers": [
+          "GitHub, ModelScope, and Hugging Face still require independent provider-side staging receipts.",
+          "Real adapter weights, paired multi-seed Benchmark results, and approved judge calibration are still missing.",
+          "Managed PostgreSQL failover and billing receiver acknowledgements require production workload identity.",
+          "Cross-region duplicate-delivery and billing reconciliation need organization-signed receipts.",
+          "Cloud KMS/HSM, immutable archive, multi-region failover, and organization sign-off remain external gates."
+        ],
+        "evidenceDigest": "8d02711f7dc60a19ec4224e08d2b436a08c8ea55938205f8c575b8bda160d7ba"
+      }
+    ],
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "productionBlockers": [
+      "GitHub, ModelScope, and Hugging Face still require independent provider-side staging receipts.",
+      "Real adapter weights, paired multi-seed Benchmark results, and approved judge calibration are still missing.",
+      "Managed PostgreSQL failover and billing receiver acknowledgements require production workload identity.",
+      "Cross-region duplicate-delivery and billing reconciliation need organization-signed receipts.",
+      "Cloud KMS/HSM, immutable archive, multi-region failover, and organization sign-off remain external gates."
+    ],
+    "path": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/v1.5-local-acceptance-batch.json"
+  }
+}

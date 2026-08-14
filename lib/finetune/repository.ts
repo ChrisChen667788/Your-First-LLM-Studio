@@ -23,6 +23,7 @@ import {
   RECIPES_FILE,
   RUNTIME_ATTACHMENTS_FILE,
   readJsonFile,
+  updateJsonFile,
   writeJsonFile,
   type FineTuneJobRuntimeState,
   type FineTuneRuntimeAttachment,
@@ -42,6 +43,12 @@ export function writeDatasets(datasets: AgentFineTuneDataset[]) {
   writeJsonFile(DATASETS_FILE, datasets);
 }
 
+export function updateDatasets(
+  mutate: (datasets: AgentFineTuneDataset[]) => AgentFineTuneDataset[],
+) {
+  return updateJsonFile(DATASETS_FILE, [] as AgentFineTuneDataset[], mutate);
+}
+
 export function readRecipes() {
   return readJsonFile<AgentFineTuneRecipe[]>(RECIPES_FILE, [])
     .map(normalizeRecipeRecord)
@@ -50,6 +57,12 @@ export function readRecipes() {
 
 export function writeRecipes(recipes: AgentFineTuneRecipe[]) {
   writeJsonFile(RECIPES_FILE, recipes);
+}
+
+export function updateRecipes(
+  mutate: (recipes: AgentFineTuneRecipe[]) => AgentFineTuneRecipe[],
+) {
+  return updateJsonFile(RECIPES_FILE, [] as AgentFineTuneRecipe[], mutate);
 }
 
 export function normalizeRecipeRecord(
@@ -122,6 +135,12 @@ export function writeStoredJobs(jobs: AgentFineTuneJob[]) {
   writeJsonFile(JOBS_FILE, jobs);
 }
 
+export function updateStoredJobs(
+  mutate: (jobs: AgentFineTuneJob[]) => AgentFineTuneJob[],
+) {
+  return updateJsonFile(JOBS_FILE, [] as AgentFineTuneJob[], mutate);
+}
+
 export function readOperations() {
   return readJsonFile<AgentFineTuneOperation[]>(OPERATIONS_FILE, [])
     .filter(
@@ -136,6 +155,16 @@ export function readOperations() {
 
 export function writeOperations(operations: AgentFineTuneOperation[]) {
   writeJsonFile(OPERATIONS_FILE, operations);
+}
+
+export function updateOperations(
+  mutate: (operations: AgentFineTuneOperation[]) => AgentFineTuneOperation[],
+) {
+  return updateJsonFile(
+    OPERATIONS_FILE,
+    [] as AgentFineTuneOperation[],
+    mutate,
+  );
 }
 
 export function getOperationPaths(
@@ -166,10 +195,10 @@ export function saveFineTuneOperation(
     createdAt: operation.createdAt || now,
     updatedAt: operation.updatedAt || now,
   };
-  const operations = readOperations().filter(
-    (entry) => entry.id !== nextOperation.id,
-  );
-  writeOperations([nextOperation, ...operations]);
+  updateOperations((operations) => [
+    nextOperation,
+    ...operations.filter((entry) => entry.id !== nextOperation.id),
+  ]);
   return nextOperation;
 }
 
@@ -229,12 +258,11 @@ export function writeJobRuntimeState(
   patch: FineTuneJobRuntimeState,
 ) {
   const { stateFile } = getJobPaths(jobId);
-  const current = readJobRuntimeState(jobId) || {};
-  writeJsonFile(stateFile, {
+  updateJsonFile<FineTuneJobRuntimeState>(stateFile, {}, (current) => ({
     ...current,
     ...patch,
     updatedAt: patch.updatedAt || new Date().toISOString(),
-  });
+  }));
 }
 
 export function normalizeFineTuneMetricPoint(
@@ -420,18 +448,30 @@ export function writeRuntimeAttachments(entries: FineTuneRuntimeAttachment[]) {
   writeJsonFile(RUNTIME_ATTACHMENTS_FILE, entries);
 }
 
+export function updateRuntimeAttachments(
+  mutate: (
+    entries: FineTuneRuntimeAttachment[],
+  ) => FineTuneRuntimeAttachment[],
+) {
+  return updateJsonFile(
+    RUNTIME_ATTACHMENTS_FILE,
+    [] as FineTuneRuntimeAttachment[],
+    mutate,
+  );
+}
+
 export function updateStoredJob(
   jobId: string,
   updater: (job: AgentFineTuneJob) => AgentFineTuneJob,
 ) {
-  const jobs = readStoredJobs();
-  const target = jobs.find((job) => job.id === jobId);
-  if (!target) {
-    throw new Error("Fine-tune job not found.");
-  }
-  const next = jobs
-    .map((job) => (job.id === jobId ? updater(job) : job))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  writeStoredJobs(next);
-  return next.find((job) => job.id === jobId)!;
+  let saved: AgentFineTuneJob | null = null;
+  updateStoredJobs((jobs) => {
+    const target = jobs.find((job) => job.id === jobId);
+    if (!target) throw new Error("Fine-tune job not found.");
+    saved = updater(target);
+    return jobs
+      .map((job) => (job.id === jobId ? saved! : job))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  });
+  return saved!;
 }

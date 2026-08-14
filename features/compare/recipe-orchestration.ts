@@ -14,8 +14,8 @@ import type {
   AgentStudioRecipe,
   AgentTarget,
   AgentThinkingMode,
-  AgentWorkbenchMode,
 } from "@/lib/agent/types";
+import type { CompareModeActivator } from "./contracts";
 import { clampContextWindowForTarget } from "@/lib/agent/metrics";
 import {
   runCompareRequest,
@@ -54,7 +54,7 @@ type CompareRecipeOrchestrationOptions = {
   setEnableRetrieval: CompareRecipeStateSetter<boolean>;
   setProviderProfile: CompareRecipeStateSetter<AgentProviderProfile>;
   setThinkingMode: CompareRecipeStateSetter<AgentThinkingMode>;
-  setWorkbenchMode: CompareRecipeStateSetter<AgentWorkbenchMode>;
+  setWorkbenchMode: CompareModeActivator;
   setComparePending: CompareRecipeStateSetter<boolean>;
   setCompareError: CompareRecipeStateSetter<string>;
   setCompareResult: CompareRecipeStateSetter<AgentCompareResponse | null>;

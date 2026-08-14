@@ -1,6 +1,6 @@
 "use client";
 
-import { FineTuneStudioPanel } from "@/components/finetune/FineTuneStudioPanel";
+import { FineTuneStudioPanel } from "@/features/finetune/FineTuneStudioPanel";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import {
   StudioIdentityBand,

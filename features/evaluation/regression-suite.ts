@@ -1,16 +1,16 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { analyzePairedEvaluation } from "@/features/evaluation/statistics-gate";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const EVALUATION_REGRESSION_SUITE_SCHEMA_VERSION = "evaluation.regression-suite.v1" as const;
 export type RegressionMetricInput = { id: string; label?: string; direction?: "higher-is-better" | "lower-is-better"; baseline: number[]; candidate: number[]; minimumImprovement?: number; minimumSamples?: number };
 type Receipt = { id: string; generatedAt: string; status: "pass" | "hold"; metrics: Array<{ id: string; label: string; direction: "higher-is-better" | "lower-is-better"; status: string; samples: number; improvement: number; confidence95: { lower: number; upper: number }; blockers: string[] }>; blockers: string[] };
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const STORE_FILE = path.join(DATA_DIR, "evaluation-regression-suites.json");
-function readReceipts(): Receipt[] { if (!existsSync(STORE_FILE)) return []; try { const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { receipts?: Receipt[] }; return Array.isArray(parsed.receipts) ? parsed.receipts : []; } catch { return []; } }
-function persist(receipt: Receipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(STORE_FILE, `${JSON.stringify({ schemaVersion: EVALUATION_REGRESSION_SUITE_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 100) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): Receipt[] { return readDurableReceipts(STORE_FILE, EVALUATION_REGRESSION_SUITE_SCHEMA_VERSION); }
+function persist(receipt: Receipt) { prependDurableReceipt(STORE_FILE, EVALUATION_REGRESSION_SUITE_SCHEMA_VERSION, receipt, 100); }
 
 export function runEvaluationRegressionSuite(input: { metrics: RegressionMetricInput[] }) {
   if (!input.metrics.length) throw new Error("At least one regression metric is required.");

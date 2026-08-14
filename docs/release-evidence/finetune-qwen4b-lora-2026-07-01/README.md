@@ -5,7 +5,7 @@ Generated: 2026-07-01T10:09:40.872477Z
 ## Result
 
 - Status: completed
-- Base model: `/Users/chenhaorui/.cache/huggingface/hub/models--mlx-community--Qwen3-4B-Instruct-2507-4bit/snapshots/50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b`
+- Base model: `hf://mlx-community/Qwen3-4B-Instruct-2507-4bit@50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b`
 - Dataset: First LLM Studio starter 960 · 960 samples · train/valid/test 816/96/48
 - Adapter: `release-qwen4b-lora-starter960`
 - Trainable params: 3.670M / 4022.468M, captured in `worker.log`
@@ -38,34 +38,30 @@ The 0.6B run proved the workflow closure but dropped near its minimum by the fir
 
 | Step | Eval loss | Checkpoint |
 | ---: | ---: | --- |
-| 100 | 0.25 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000100` |
-| 200 | 0.132 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000200` |
-| 300 | 0.079 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000300` |
-| 400 | 0.08 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000400` |
-| 500 | 0.071 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000500` |
-| 600 | 0.072 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000600` |
-| 700 | 0.077 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000700` |
-| 800 | 0.066 | `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000800` |
+| 100 | 0.25 | `runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000100` |
+| 200 | 0.132 | `runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000200` |
+| 300 | 0.079 | `runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000300` |
+| 400 | 0.08 | `runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000400` |
+| 500 | 0.071 | `runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000500` |
+| 600 | 0.072 | `runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000600` |
+| 700 | 0.077 | `runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000700` |
+| 800 | 0.066 | `runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000800` |
 
 
-Selected best checkpoint: step 800 · eval_loss=0.066 · `/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000800`
+Selected best checkpoint: step 800 · eval_loss=0.066 · `runtime-artifacts/ft-job-qwen4b-lora-20260701-175225/artifacts/checkpoint-0000800`
 
-## Evidence Files
+## Public Evidence Files
 
-- `job-bundle.json`
-- `mlx-lora-config.yaml`
-- `metrics.jsonl`
-- `worker.log`
-- `reports/metrics.csv`
-- `reports/run-manifest.json`
-- `reports/ft-job-qwen4b-lora-20260701-175225-chart-evidence.json`
-- `reports/ft-job-qwen4b-lora-20260701-175225-chart-evidence.svg`
-- `reports/ft-job-qwen4b-lora-20260701-175225-chart-evidence.png`
-- `artifacts/adapters.safetensors`
-- `artifacts/checkpoint-0000100` through `checkpoint-0000800`
+- `run-manifest.json`, `metrics.csv`, and `training-report.md`
+- `ft-job-qwen4b-lora-20260701-175225-chart-evidence.json`
+- `ft-job-qwen4b-lora-20260701-175225-chart-evidence.svg`
+- `ft-job-qwen4b-lora-20260701-175225-chart-evidence.png`
+
+The public bundle does not include the job bundle, worker log, adapter weights, checkpoint directories, or full runtime archive. Their paths are portable `runtime-artifacts/...` references only. This run proves the real MLX training workflow and loss/checkpoint instrumentation; task-level quality promotion remains `HOLD` until a frozen baseline, external blind evaluation, and multi-seed comparison are archived.
 
 ## Reproduce
 
 ```bash
-.venv/bin/python scripts/finetune_worker.py --job-bundle "/Users/chenhaorui/Documents/New project/data/agent-observability/finetune/jobs/ft-job-qwen4b-lora-20260701-175225/job-bundle.json"
+FIRST_LLM_JOB_BUNDLE=/path/to/ft-job-qwen4b-lora-20260701-175225/job-bundle.json \
+  .venv/bin/python scripts/finetune_worker.py --job-bundle "$FIRST_LLM_JOB_BUNDLE"
 ```

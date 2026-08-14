@@ -23,7 +23,7 @@ import {
   normalizeUserPathInput,
   truncatePreview,
 } from "./store-internal";
-import { readStoredDatasets, writeDatasets } from "./repository";
+import { readStoredDatasets, updateDatasets } from "./repository";
 
 function buildCommunityPresetFallbackRows(filePath: string) {
   const basename = path.basename(filePath).toLowerCase();
@@ -1120,12 +1120,12 @@ function reconcileBundledSmokeDatasets(datasets: AgentFineTuneDataset[]) {
   }
 
   desired.updatedAt = now;
-  const next = [
+  return updateDatasets((current) => [
     desired,
-    ...normalized.filter((dataset) => !isBundledSmokeDatasetCandidate(dataset)),
-  ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  writeDatasets(next);
-  return next;
+    ...current
+      .map(normalizeDatasetRecord)
+      .filter((dataset) => !isBundledSmokeDatasetCandidate(dataset)),
+  ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
 }
 
 export function readDatasets() {
@@ -1164,61 +1164,59 @@ export function saveFineTuneDataset(input: {
   if (!validation.ok) {
     throw new Error(validation.errors[0] || "Dataset validation failed.");
   }
-  const now = new Date().toISOString();
-  const datasets = readDatasets();
-  const existing = input.id
-    ? datasets.find((dataset) => dataset.id === input.id)
-    : datasets.find(
-        (dataset) =>
-          dataset.sourcePath === sourcePath && dataset.format === input.format,
-      ) || datasets.find((dataset) => dataset.label === label);
-  const dataset: AgentFineTuneDataset = {
-    id: existing?.id || `ft-dataset-${crypto.randomUUID()}`,
-    label,
-    format: input.format,
-    sourcePath,
-    sourceType: input.sourceType || existing?.sourceType || "local-path",
-    sourceUrl: input.sourceUrl?.trim() || existing?.sourceUrl,
-    sourceLabel: input.sourceLabel?.trim() || existing?.sourceLabel,
-    license: input.license?.trim() || existing?.license,
-    qualityWarnings: input.qualityWarnings || existing?.qualityWarnings,
-    quality: input.quality || existing?.quality,
-    sampleCount: validation.sampleCount,
-    upstreamQuery: input.upstreamQuery?.trim() || existing?.upstreamQuery,
-    refreshCadenceHours:
-      typeof input.refreshCadenceHours === "number" &&
-      Number.isFinite(input.refreshCadenceHours)
-        ? Math.max(6, Math.min(24 * 30, Math.round(input.refreshCadenceHours)))
-        : existing?.refreshCadenceHours,
-    lastUpstreamCheckedAt: existing?.lastUpstreamCheckedAt,
-    nextUpstreamCheckAt: existing?.nextUpstreamCheckAt,
-    latestUpstreamCandidates: existing?.latestUpstreamCandidates,
-    createdAt: existing?.createdAt || now,
-    updatedAt: now,
-    validation,
-  };
-  const next = [
-    dataset,
-    ...datasets.filter((entry) => entry.id !== dataset.id),
-  ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  writeDatasets(next);
-  return dataset;
+  let saved: AgentFineTuneDataset | null = null;
+  updateDatasets((datasets) => {
+    const now = new Date().toISOString();
+    const existing = input.id
+      ? datasets.find((dataset) => dataset.id === input.id)
+      : datasets.find(
+          (dataset) => dataset.sourcePath === sourcePath && dataset.format === input.format,
+        ) || datasets.find((dataset) => dataset.label === label);
+    saved = {
+      id: existing?.id || `ft-dataset-${crypto.randomUUID()}`,
+      label,
+      format: input.format,
+      sourcePath,
+      sourceType: input.sourceType || existing?.sourceType || "local-path",
+      sourceUrl: input.sourceUrl?.trim() || existing?.sourceUrl,
+      sourceLabel: input.sourceLabel?.trim() || existing?.sourceLabel,
+      license: input.license?.trim() || existing?.license,
+      qualityWarnings: input.qualityWarnings || existing?.qualityWarnings,
+      quality: input.quality || existing?.quality,
+      sampleCount: validation.sampleCount,
+      upstreamQuery: input.upstreamQuery?.trim() || existing?.upstreamQuery,
+      refreshCadenceHours:
+        typeof input.refreshCadenceHours === "number" && Number.isFinite(input.refreshCadenceHours)
+          ? Math.max(6, Math.min(24 * 30, Math.round(input.refreshCadenceHours)))
+          : existing?.refreshCadenceHours,
+      lastUpstreamCheckedAt: existing?.lastUpstreamCheckedAt,
+      nextUpstreamCheckAt: existing?.nextUpstreamCheckAt,
+      latestUpstreamCandidates: existing?.latestUpstreamCandidates,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+      validation,
+    };
+    return [saved, ...datasets.filter((entry) => entry.id !== saved!.id)].sort((a, b) =>
+      b.updatedAt.localeCompare(a.updatedAt),
+    );
+  });
+  return saved!;
 }
 
 function updateDatasetEntry(
   datasetId: string,
   updater: (dataset: AgentFineTuneDataset) => AgentFineTuneDataset,
 ) {
-  const datasets = readDatasets();
-  const dataset = datasets.find((entry) => entry.id === datasetId);
-  if (!dataset) {
-    throw new Error("Dataset not found.");
-  }
-  const next = datasets
-    .map((entry) => (entry.id === datasetId ? updater(entry) : entry))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  writeDatasets(next);
-  return next.find((entry) => entry.id === datasetId)!;
+  let saved: AgentFineTuneDataset | null = null;
+  updateDatasets((datasets) => {
+    const dataset = datasets.find((entry) => entry.id === datasetId);
+    if (!dataset) throw new Error("Dataset not found.");
+    saved = updater(dataset);
+    return datasets
+      .map((entry) => (entry.id === datasetId ? saved! : entry))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  });
+  return saved!;
 }
 
 export function saveFineTuneDatasetWatch(input: {

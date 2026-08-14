@@ -1,8 +1,11 @@
 import { createHash } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { readIdleUnloadConfig } from "@/features/models/runtime-profile-registry";
+import {
+  readJsonFileDurably,
+  updateJsonFileDurably,
+} from "@/features/persistence/durable-json-file";
 
 export const SERVER_INSTANCE_REGISTRY_SCHEMA_VERSION =
   "models.server-instance-registry.v1" as const;
@@ -92,25 +95,29 @@ function normalizeInstance(instance: Partial<ServerInstanceRecord>): ServerInsta
   };
 }
 
-function readRegistry() {
-  if (!existsSync(REGISTRY_FILE)) return defaultRegistry();
-  try {
-    const parsed = JSON.parse(readFileSync(REGISTRY_FILE, "utf8")) as Partial<ServerInstanceRegistry>;
-    const instances = Array.isArray(parsed.instances)
-      ? parsed.instances.map(normalizeInstance).filter((instance): instance is ServerInstanceRecord => Boolean(instance))
-      : defaultRegistry().instances;
-    return {
-      schemaVersion: SERVER_INSTANCE_REGISTRY_SCHEMA_VERSION,
-      instances,
-    } satisfies ServerInstanceRegistry;
-  } catch {
-    return defaultRegistry();
-  }
+function isRegistry(value: unknown): value is ServerInstanceRegistry {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<ServerInstanceRegistry>;
+  return (
+    candidate.schemaVersion === SERVER_INSTANCE_REGISTRY_SCHEMA_VERSION &&
+    Array.isArray(candidate.instances)
+  );
 }
 
-function writeRegistry(registry: ServerInstanceRegistry) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(REGISTRY_FILE, `${JSON.stringify(registry, null, 2)}\n`, "utf8");
+function normalizeRegistry(registry: ServerInstanceRegistry) {
+  const instances = registry.instances
+    .map(normalizeInstance)
+    .filter((instance): instance is ServerInstanceRecord => Boolean(instance));
+  return {
+    schemaVersion: SERVER_INSTANCE_REGISTRY_SCHEMA_VERSION,
+    instances,
+  } satisfies ServerInstanceRegistry;
+}
+
+function readRegistry() {
+  return normalizeRegistry(
+    readJsonFileDurably(REGISTRY_FILE, defaultRegistry, isRegistry),
+  );
 }
 
 export function readServerInstanceRegistry() {
@@ -139,68 +146,84 @@ export function readServerInstanceRegistry() {
 export function upsertServerInstance(input: Partial<ServerInstanceRecord>) {
   const baseUrl = input.baseUrl?.trim();
   if (!baseUrl) throw new Error("baseUrl is required.");
-  const registry = readRegistry();
   const id =
     input.id?.trim() ||
     `server-${createHash("sha256").update(baseUrl).digest("hex").slice(0, 12)}`;
-  const existing = registry.instances.find((instance) => instance.id === id);
-  const now = new Date().toISOString();
-  const networkExposure = input.networkExposure || existing?.networkExposure || "loopback";
-  const authMode = input.authMode || existing?.authMode || "none";
-  const trustedHosts = (input.trustedHosts || existing?.trustedHosts || ["127.0.0.1", "localhost"])
-    .map((host) => host.trim().toLowerCase()).filter(Boolean);
-  if (networkExposure === "lan" && authMode === "none") {
-    throw new Error("LAN server instances require api-key authentication.");
-  }
-  if (trustedHosts.some((host) => host === "*" || host === "0.0.0.0")) {
-    throw new Error("Wildcard trusted hosts are not allowed.");
-  }
-  const next: ServerInstanceRecord = {
-    id,
-    label: input.label?.trim() || existing?.label || "Local server",
-    backend: input.backend || existing?.backend || "mlx",
-    baseUrl,
-    state: input.state || existing?.state || "configured",
-    pinnedModelIds: input.pinnedModelIds || existing?.pinnedModelIds || [],
-    activeModelId: input.activeModelId || existing?.activeModelId,
-    idleTtlMinutes: Math.max(1, Math.min(240, input.idleTtlMinutes || existing?.idleTtlMinutes || 20)),
-    autoEvict: input.autoEvict ?? existing?.autoEvict ?? false,
-    networkExposure,
-    authMode,
-    trustedHosts: [...new Set(trustedHosts)],
-    requestLogRetentionDays: Math.max(1, Math.min(90, input.requestLogRetentionDays || existing?.requestLogRetentionDays || 7)),
-    maxConcurrentRequests: Math.max(1, Math.min(64, input.maxConcurrentRequests || existing?.maxConcurrentRequests || 4)),
-    createdAt: existing?.createdAt || now,
-    updatedAt: now,
-  };
-  writeRegistry({
-    schemaVersion: SERVER_INSTANCE_REGISTRY_SCHEMA_VERSION,
-    instances: [next, ...registry.instances.filter((instance) => instance.id !== id)],
-  });
-  return next;
+  let saved: ServerInstanceRecord | null = null;
+  updateJsonFileDurably(
+    REGISTRY_FILE,
+    defaultRegistry,
+    (current) => {
+      const registry = normalizeRegistry(current);
+      const existing = registry.instances.find((instance) => instance.id === id);
+      const now = new Date().toISOString();
+      const networkExposure = input.networkExposure || existing?.networkExposure || "loopback";
+      const authMode = input.authMode || existing?.authMode || "none";
+      const trustedHosts = (input.trustedHosts || existing?.trustedHosts || ["127.0.0.1", "localhost"])
+        .map((host) => host.trim().toLowerCase()).filter(Boolean);
+      if (networkExposure === "lan" && authMode === "none") {
+        throw new Error("LAN server instances require api-key authentication.");
+      }
+      if (trustedHosts.some((host) => host === "*" || host === "0.0.0.0")) {
+        throw new Error("Wildcard trusted hosts are not allowed.");
+      }
+      saved = {
+        id,
+        label: input.label?.trim() || existing?.label || "Local server",
+        backend: input.backend || existing?.backend || "mlx",
+        baseUrl,
+        state: input.state || existing?.state || "configured",
+        pinnedModelIds: input.pinnedModelIds || existing?.pinnedModelIds || [],
+        activeModelId: input.activeModelId || existing?.activeModelId,
+        idleTtlMinutes: Math.max(1, Math.min(240, input.idleTtlMinutes || existing?.idleTtlMinutes || 20)),
+        autoEvict: input.autoEvict ?? existing?.autoEvict ?? false,
+        networkExposure,
+        authMode,
+        trustedHosts: [...new Set(trustedHosts)],
+        requestLogRetentionDays: Math.max(1, Math.min(90, input.requestLogRetentionDays || existing?.requestLogRetentionDays || 7)),
+        maxConcurrentRequests: Math.max(1, Math.min(64, input.maxConcurrentRequests || existing?.maxConcurrentRequests || 4)),
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+      };
+      return {
+        schemaVersion: SERVER_INSTANCE_REGISTRY_SCHEMA_VERSION,
+        instances: [saved, ...registry.instances.filter((instance) => instance.id !== id)],
+      };
+    },
+    isRegistry,
+  );
+  return saved!;
 }
 
 export function updateServerInstanceRuntime(
   id: string,
   patch: { state?: ServerInstanceRecord["state"]; activeModelId?: string | null },
 ) {
-  const registry = readRegistry();
-  const current = registry.instances.find((instance) => instance.id === id);
-  if (!current) throw new Error("Server instance was not found.");
-  const next: ServerInstanceRecord = {
-    ...current,
-    state: patch.state || current.state,
-    activeModelId:
-      patch.activeModelId === null
-        ? undefined
-        : patch.activeModelId === undefined
-          ? current.activeModelId
-          : patch.activeModelId,
-    updatedAt: new Date().toISOString(),
-  };
-  writeRegistry({
-    ...registry,
-    instances: registry.instances.map((instance) => instance.id === id ? next : instance),
-  });
-  return next;
+  let saved: ServerInstanceRecord | null = null;
+  updateJsonFileDurably(
+    REGISTRY_FILE,
+    defaultRegistry,
+    (currentRegistry) => {
+      const registry = normalizeRegistry(currentRegistry);
+      const current = registry.instances.find((instance) => instance.id === id);
+      if (!current) throw new Error("Server instance was not found.");
+      saved = {
+        ...current,
+        state: patch.state || current.state,
+        activeModelId:
+          patch.activeModelId === null
+            ? undefined
+            : patch.activeModelId === undefined
+              ? current.activeModelId
+              : patch.activeModelId,
+        updatedAt: new Date().toISOString(),
+      };
+      return {
+        ...registry,
+        instances: registry.instances.map((instance) => instance.id === id ? saved! : instance),
+      };
+    },
+    isRegistry,
+  );
+  return saved!;
 }

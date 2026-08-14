@@ -46,6 +46,7 @@ import type {
   AgentMessage
 } from "@/lib/agent/types";
 import type { ExperimentSourceContext } from "@/features/experiments/contracts";
+import { COMPARE_PROGRESS_API_PATH } from "./contracts";
 
 export const runtime = "nodejs";
 const COMPARE_LOCAL_PREWARM_WAIT_MS = 120000;
@@ -435,7 +436,7 @@ export async function POST(request: Request) {
           kind: "api",
           role: "progress",
           label: "Compare progress",
-          uri: `/api/agent/compare/progress?requestId=${encodeURIComponent(requestId)}`,
+          uri: `${COMPARE_PROGRESS_API_PATH}?requestId=${encodeURIComponent(requestId)}`,
         },
       ],
       links: buildExperimentSourceLinks(experimentContext),
@@ -673,7 +674,7 @@ export async function POST(request: Request) {
           kind: "api",
           role: "progress",
           label: "Compare progress",
-          uri: `/api/agent/compare/progress?requestId=${encodeURIComponent(requestId)}`,
+          uri: `${COMPARE_PROGRESS_API_PATH}?requestId=${encodeURIComponent(requestId)}`,
         },
       ],
       links: [

@@ -92,7 +92,7 @@ Relevant examples:
 - [`components/layout/StudioPageShell.tsx`](../components/layout/StudioPageShell.tsx)
 - [`components/admin/AdminDashboard.tsx`](../components/admin/AdminDashboard.tsx)
 - [`features/models/ModelDiscoveryPanel.tsx`](../features/models/ModelDiscoveryPanel.tsx)
-- [`components/finetune/FineTuneStudioPanel.tsx`](../components/finetune/FineTuneStudioPanel.tsx)
+- [`features/finetune/FineTuneStudioPanel.tsx`](../features/finetune/FineTuneStudioPanel.tsx)
 - [`components/admin/AdminTimelinePanel.tsx`](../components/admin/AdminTimelinePanel.tsx)
 
 ### Agent surfaces

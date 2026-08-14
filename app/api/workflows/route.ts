@@ -9,6 +9,7 @@ import {
 import { readWorkflowBreakpoints, setWorkflowBreakpoint } from "@/features/workflows/breakpoint-store";
 import { cloneWorkflowVersion, publishWorkflowVersion, readWorkflowGraphRegistry, resolveWorkflowGraph, retireWorkflowVersion, saveWorkflowDraft } from "@/features/workflows/graph-registry";
 import type { WorkflowGraph } from "@/features/workflows/graph-contract";
+import { assertTrustedOperatorRequest, operatorAuthorizationStatus } from "@/features/security/operator-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    assertTrustedOperatorRequest(request);
     const body = (await request.json().catch(() => ({}))) as {
       action?: string;
       input?: string;
@@ -70,6 +72,6 @@ export async function POST(request: Request) {
       : createPersistedWorkflowExecution(body.input || "", selectedGraph || undefined);
     return NextResponse.json({ ok: true, execution, executionStore: readWorkflowExecutions() });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Workflow execution failed." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Workflow execution failed." }, { status: operatorAuthorizationStatus(error) });
   }
 }

@@ -15,6 +15,9 @@ import {
   readGaReleaseEvidenceBundleVerification,
 } from "@/features/experiments/ga-release-evidence-bundle";
 import { readReleaseSecurityEvidence } from "@/features/experiments/release-security-evidence";
+import { readWorkflowExecutionClosureEvidence } from "@/features/workflows/execution-closure-acceptance";
+import { readFineTuneExecutionTruthEvidence } from "@/features/finetune/execution-truth-acceptance";
+import { readFineTuneQualityExportEvidence } from "@/features/finetune/quality-export-acceptance";
 import { readAdminCompatibilityDeletionSignoffs } from "@/features/admin/compatibility-deletion-signoff";
 import { readAdminCompatibilityDeletionManifest } from "@/features/admin/compatibility-deletion-manifest";
 import {
@@ -96,6 +99,9 @@ function buildRoundDrafts(): RoundDraft[] {
   const bestCheckpointCount = readyAdapters.filter((adapter) => adapter.bestCheckpoint).length;
   const lifecycle = fineTune.lifecycle;
   const postV1Promotion = readPostV1PromotionGate();
+  const workflowExecution = readWorkflowExecutionClosureEvidence();
+  const fineTuneExecution = readFineTuneExecutionTruthEvidence();
+  const fineTuneQualityExport = readFineTuneQualityExportEvidence();
   const lifecycleBlockers = [
     ...(lifecycle?.totals.rollbackProofs
       ? []
@@ -185,7 +191,7 @@ function buildRoundDrafts(): RoundDraft[] {
       evidence: [
         "/api/experiments/promotion-gate",
         "/api/admin/provider-health/evidence",
-        "/api/admin/benchmark/evidence",
+        "/api/benchmarks/evidence",
         "docs/release-evidence/v0.5.0-v0.5.1-refresh-2026-07-07.md",
         String(adapterExport?.metrics.latestExportDir || "adapter-export-evidence-missing"),
       ],
@@ -613,7 +619,168 @@ function buildRoundDrafts(): RoundDraft[] {
       },
     };
   });
-  return [...currentDrafts, ...postV1Drafts];
+  const workflowExecutionDraft: RoundDraft = {
+    version: "v1.6.7",
+    status:
+      workflowExecution.localStatus === "pass"
+        ? "complete"
+        : "evidence-needed",
+    completionPct: workflowExecution.latest
+      ? clampPct(
+          (workflowExecution.latest.totals.passed /
+            workflowExecution.latest.totals.slices) *
+            100,
+        )
+      : 0,
+    summary:
+      "Typed Workflow executors for retrieval, Provider context, read-only tools, guards, evaluators, and protected side-effect boundaries.",
+    shipped: workflowExecution.latestPassing
+      ? [
+          "Typed node-output envelope and executor registry",
+          "Local and ACL-aware enterprise retrieval ports",
+          "Read-only workspace tool allowlist",
+          "Restricted guard DSL and citation evaluator",
+          "Durable 15-slice execution-closure receipt",
+        ]
+      : [],
+    evidence: [
+      "/api/experiments/v167-workflow-execution-closure",
+      workflowExecution.receiptPath,
+    ],
+    blockers:
+      workflowExecution.localStatus === "pass"
+        ? []
+        : ["The v1.6.7 local execution-closure acceptance has not passed."],
+    nextActions:
+      workflowExecution.localStatus === "pass"
+        ? [
+            "Enter v1.6.8 and make Fine-tune backend behavior match its durable recipe contract.",
+          ]
+        : ["Run the v1.6.7 15-slice local execution-closure acceptance."],
+    metrics: {
+      localStatus: workflowExecution.localStatus,
+      productionStatus: workflowExecution.productionStatus,
+      passedSlices: workflowExecution.latest?.totals.passed || 0,
+      executorCount: workflowExecution.capabilities.executors.length,
+      evidenceDigest: workflowExecution.latest?.evidenceDigest || null,
+    },
+  };
+  const fineTuneExecutionDraft: RoundDraft = {
+    version: "v1.6.8",
+    status:
+      fineTuneExecution.localStatus === "pass"
+        ? "complete"
+        : "evidence-needed",
+    completionPct: fineTuneExecution.latest
+      ? clampPct(
+          (fineTuneExecution.latest.totals.passed /
+            fineTuneExecution.latest.totals.slices) *
+            100,
+        )
+      : 0,
+    summary:
+      "Backend-truthful MLX schedules and target modules, fail-closed unsupported controls, checkpoint-specific runtime selection, and explicit metric plugins.",
+    shipped: fineTuneExecution.latestPassing
+      ? [
+          "MLX backend execution contract and generated lr_schedule",
+          "Explicit target-module mapping and LoRA scale",
+          "Fail-closed packing and best-checkpoint capability checks",
+          "Checkpoint-contained attach and evaluation flow",
+          "Versioned task metric registry with unavailable semantics",
+          "Durable 15-slice execution-truth receipt",
+        ]
+      : [],
+    evidence: [
+      "/api/experiments/v168-finetune-execution-truth",
+      fineTuneExecution.receiptPath,
+      "docs/release-evidence/v1.6.8-finetune-execution-truth-2026-08-14.md",
+    ],
+    blockers:
+      fineTuneExecution.localStatus === "pass"
+        ? []
+        : ["The v1.6.8 local execution-truth acceptance has not passed."],
+    nextActions:
+      fineTuneExecution.localStatus === "pass"
+        ? [
+            "Enter v1.6.9 and bind paired base-versus-adapter quality evidence to real exported bytes.",
+          ]
+        : ["Run the v1.6.8 15-slice local execution-truth acceptance."],
+    metrics: {
+      localStatus: fineTuneExecution.localStatus,
+      productionStatus: fineTuneExecution.productionStatus,
+      passedSlices: fineTuneExecution.latest?.totals.passed || 0,
+      backendSchema: fineTuneExecution.latest?.schemas.backend || null,
+      metricSchema: fineTuneExecution.latest?.schemas.metrics || null,
+      evidenceDigest: fineTuneExecution.latest?.evidenceDigest || null,
+    },
+  };
+  const fineTuneQualityExportBlockers =
+    fineTuneQualityExport.localStatus === "pass"
+      ? fineTuneQualityExport.latest?.productionBlockers || []
+      : ["The v1.6.9 local quality/export acceptance has not passed."];
+  const fineTuneQualityExportDraft: RoundDraft = {
+    version: "v1.6.9",
+    status:
+      fineTuneQualityExport.localStatus === "pass"
+        ? "evidence-needed"
+        : "in-progress",
+    completionPct: fineTuneQualityExport.latest
+      ? clampPct(
+          (fineTuneQualityExport.latest.totals.passed /
+            fineTuneQualityExport.latest.totals.slices) *
+            100,
+        )
+      : 0,
+    summary:
+      "Frozen multi-seed paired quality evidence bound to the exact promoted checkpoint bytes, with checksummed archive, install read-back, and rollback receipts.",
+    shipped: fineTuneQualityExport.latestPassing
+      ? [
+          "Versioned paired-quality confidence contract",
+          "Real promoted-checkpoint byte copy",
+          "SHA-256 payload and archive inventories",
+          "Install, read-back, and rollback rehearsal",
+          "Fail-closed unsupported merge and quantization formats",
+          "Durable 15-slice quality/export receipt",
+        ]
+      : [],
+    evidence: [
+      "/api/experiments/v169-finetune-quality-export",
+      fineTuneQualityExport.receiptPath,
+      fineTuneQualityExport.latest?.package?.archivePath || "runtime adapter package pending",
+      "docs/release-evidence/v1.6.9-finetune-quality-export-2026-08-15.md",
+    ],
+    blockers: fineTuneQualityExportBlockers,
+    nextActions:
+      fineTuneQualityExport.localStatus === "pass"
+        ? [
+            "Run the frozen paired workload with the representative 4B adapter on an independent worker.",
+            "Connect verified MLX merge, GGUF quantization, and remote Hub publication/read-back executors.",
+          ]
+        : ["Run the v1.6.9 15-slice local quality/export acceptance."],
+    metrics: {
+      localStatus: fineTuneQualityExport.localStatus,
+      productionStatus: fineTuneQualityExport.productionStatus,
+      passedSlices: fineTuneQualityExport.latest?.totals.passed || 0,
+      pairedObservations:
+        fineTuneQualityExport.latest?.quality?.observations || 0,
+      pairedSeeds: fineTuneQualityExport.latest?.quality?.seeds || 0,
+      qualityDecision:
+        fineTuneQualityExport.latest?.quality?.decision || null,
+      packageBytes:
+        fineTuneQualityExport.latest?.package?.archiveBytes || 0,
+      packageSha256:
+        fineTuneQualityExport.latest?.package?.archiveSha256 || null,
+      evidenceDigest:
+        fineTuneQualityExport.latest?.evidenceDigest || null,
+    },
+  };
+  return [
+    ...currentDrafts,
+    ...postV1Drafts,
+    workflowExecutionDraft,
+    fineTuneExecutionDraft,
+    fineTuneQualityExportDraft,
+  ];
 }
 
 export function readReleaseEvidenceMatrix(): ReleaseEvidenceMatrixResponse {

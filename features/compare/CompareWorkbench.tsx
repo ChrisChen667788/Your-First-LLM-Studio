@@ -328,7 +328,7 @@ export function CompareWorkbench({
           "Carry over bullet-list or strict JSON instructions when you convert this compare run into a prompt benchmark.",
         benchmarkPromptPreview: "Benchmark prompt preview",
         benchmarkPromptPreviewHint:
-          "This read-only prompt is the exact payload that compare handoff will send to /api/admin/benchmark.",
+          "This read-only prompt is the exact payload that compare handoff will send to /api/benchmarks.",
         benchmarkPromptDiffOnly: "Show diff only",
         benchmarkPromptCopy: "Copy preview",
         benchmarkSuccess: "Benchmark handoff ready",
@@ -444,7 +444,7 @@ export function CompareWorkbench({
           "把 bullet-list 或 strict JSON 的输出约束一并带到 prompt benchmark 里。",
         benchmarkPromptPreview: "benchmark prompt 预览",
         benchmarkPromptPreviewHint:
-          "这里展示的只读 prompt，就是 compare handoff 真正会送到 /api/admin/benchmark 的内容。",
+          "这里展示的只读 prompt，就是 compare handoff 真正会送到 /api/benchmarks 的内容。",
         benchmarkPromptDiffOnly: "只看差异",
         benchmarkPromptCopy: "复制预览",
         benchmarkSuccess: "benchmark 已接收",

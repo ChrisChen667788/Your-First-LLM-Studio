@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 import { decideWorkspaceAccess, type WorkspaceAction, type WorkspaceMembership, type WorkspaceResource, type WorkspaceRole } from "@/features/governance/workspace-identity";
 
 export const GOVERNANCE_POLICY_SIMULATOR_SCHEMA_VERSION = "governance.policy-simulator.v1" as const;
@@ -9,8 +9,8 @@ type Scenario = { id: string; membership?: WorkspaceMembership; workspaceId: str
 type Receipt = { id: string; generatedAt: string; status: "pass" | "failed"; decisions: Array<Scenario & { allowed: boolean; matchedExpectation: boolean; reason: string }>; coverage: { roles: WorkspaceRole[]; actions: WorkspaceAction[]; crossWorkspace: boolean } };
 const DATA_DIR = process.env.LOCAL_AGENT_DATA_DIR || path.join(os.homedir(), "Library", "Application Support", "local-agent-lab", "observability");
 const STORE_FILE = path.join(DATA_DIR, "governance-policy-simulations.json");
-function readReceipts(): Receipt[] { if (!existsSync(STORE_FILE)) return []; try { const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { receipts?: Receipt[] }; return Array.isArray(parsed.receipts) ? parsed.receipts : []; } catch { return []; } }
-function persist(receipt: Receipt) { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(STORE_FILE, `${JSON.stringify({ schemaVersion: GOVERNANCE_POLICY_SIMULATOR_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 100) }, null, 2)}\n`, "utf8"); }
+function readReceipts(): Receipt[] { return readDurableReceipts(STORE_FILE, GOVERNANCE_POLICY_SIMULATOR_SCHEMA_VERSION); }
+function persist(receipt: Receipt) { prependDurableReceipt(STORE_FILE, GOVERNANCE_POLICY_SIMULATOR_SCHEMA_VERSION, receipt, 100); }
 
 function defaults(): Scenario[] {
   const membership = (role: WorkspaceRole): WorkspaceMembership => ({ subjectId: `${role}-user`, workspaceId: "workspace-a", role });

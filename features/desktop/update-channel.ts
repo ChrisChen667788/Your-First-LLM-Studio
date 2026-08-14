@@ -1,7 +1,8 @@
 import { createHash, generateKeyPairSync, randomUUID, sign, verify } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { updateJsonFileDurably } from "@/features/persistence/durable-json-file";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 
 export const DESKTOP_UPDATE_CHANNEL_SCHEMA_VERSION = "desktop.update-channel.v1" as const;
 
@@ -31,23 +32,31 @@ function stable(value: unknown): string {
 }
 
 function readReceipts(): UpdateReceipt[] {
-  if (!existsSync(STORE_FILE)) return [];
-  try { const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as { receipts?: UpdateReceipt[] }; return Array.isArray(parsed.receipts) ? parsed.receipts : []; }
-  catch { return []; }
+  return readDurableReceipts(STORE_FILE, DESKTOP_UPDATE_CHANNEL_SCHEMA_VERSION);
+}
+
+type UpdateKeyPair = { publicKeyPem: string; privateKeyPem: string };
+
+function createKeyPair(): UpdateKeyPair {
+  const pair = generateKeyPairSync("ed25519");
+  return {
+    publicKeyPem: pair.publicKey.export({ type: "spki", format: "pem" }).toString(),
+    privateKeyPem: pair.privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
+  };
+}
+
+function isKeyPair(value: unknown): value is UpdateKeyPair {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<UpdateKeyPair>;
+  return typeof candidate.publicKeyPem === "string" && typeof candidate.privateKeyPem === "string";
 }
 
 function keyPair() {
-  if (existsSync(KEY_FILE)) return JSON.parse(readFileSync(KEY_FILE, "utf8")) as { publicKeyPem: string; privateKeyPem: string };
-  const pair = generateKeyPairSync("ed25519");
-  const record = { publicKeyPem: pair.publicKey.export({ type: "spki", format: "pem" }).toString(), privateKeyPem: pair.privateKey.export({ type: "pkcs8", format: "pem" }).toString() };
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(KEY_FILE, `${JSON.stringify(record, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
-  return record;
+  return updateJsonFileDurably(KEY_FILE, createKeyPair, (current) => current, isKeyPair);
 }
 
 function persist(receipt: UpdateReceipt) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(STORE_FILE, `${JSON.stringify({ schemaVersion: DESKTOP_UPDATE_CHANNEL_SCHEMA_VERSION, receipts: [receipt, ...readReceipts()].slice(0, 50) }, null, 2)}\n`, "utf8");
+  prependDurableReceipt(STORE_FILE, DESKTOP_UPDATE_CHANNEL_SCHEMA_VERSION, receipt, 50);
 }
 
 export function rehearseDesktopUpdateChannel(input: { channel?: "stable" | "preview"; fromVersion?: string; toVersion?: string } = {}) {

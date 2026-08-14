@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "first-llm-studio.architecture-budgets.v1",
+  "policy": "Legacy debt may shrink but must not grow; targets are required before the owning milestone can be promoted.",
+  "files": [
+    { "path": "components/agent/AgentWorkbench.tsx", "ceilingLines": 1110, "targetLines": 1200, "owner": "features/agent" },
+    { "path": "components/admin/AdminDashboard.tsx", "ceilingLines": 1195, "targetLines": 1200, "owner": "features/admin" },
+    { "path": "features/finetune/FineTuneStudioPanel.tsx", "ceilingLines": 1194, "targetLines": 1200, "owner": "features/finetune" },
+    { "path": "app/api/agent/chat/stream/route.ts", "ceilingLines": 7, "targetLines": 250, "owner": "features/agent" },
+    { "path": "app/api/agent/runtime/actions/route.ts", "ceilingLines": 7, "targetLines": 250, "owner": "features/agent" },
+    { "path": "app/api/agent/chat/route.ts", "ceilingLines": 7, "targetLines": 250, "owner": "features/agent" }
+  ]
+}

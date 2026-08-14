@@ -1,0 +1,622 @@
+{
+  "schemaVersion": "v1.6.6-benchmark-decision-intelligence-evidence.v1",
+  "generatedAt": "2026-08-13T07:17:25.043Z",
+  "localStatus": "pass",
+  "candidatePromotionStatus": "evidence-needed",
+  "productionStatus": "hold",
+  "acceptance": {
+    "slices": 15,
+    "passed": 15,
+    "held": 0
+  },
+  "baseline": {
+    "runId": "math500-full-20260810112454-2b58c961",
+    "targetId": "local-qwen3-0.6b",
+    "targetLabel": "Local Qwen3 0.6B",
+    "resolvedModel": "local-qwen3-0.6b",
+    "accuracy": 32,
+    "confidence": {
+      "method": "wilson-95",
+      "low": 28.06,
+      "high": 36.21
+    },
+    "samples": 500,
+    "runDigest": "2d25d7ff27f356eaf02e22ad6230915e82956cc1874fe47aa1f594dab47e7e51"
+  },
+  "audit": {
+    "accountedSamples": 500,
+    "extractionCoveragePct": 100,
+    "errorTaxonomy": [
+      {
+        "key": "correct",
+        "count": 160,
+        "pct": 32
+      },
+      {
+        "key": "semantic-mismatch",
+        "count": 340,
+        "pct": 68
+      },
+      {
+        "key": "answer-not-extracted",
+        "count": 0,
+        "pct": 0
+      },
+      {
+        "key": "runtime-failure",
+        "count": 0,
+        "pct": 0
+      },
+      {
+        "key": "evaluator-unavailable",
+        "count": 0,
+        "pct": 0
+      },
+      {
+        "key": "evaluator-error",
+        "count": 0,
+        "pct": 0
+      },
+      {
+        "key": "manual-review",
+        "count": 0,
+        "pct": 0
+      }
+    ],
+    "cohortRisks": [
+      {
+        "key": "Algebra",
+        "total": 124,
+        "correct": 56,
+        "accuracy": 45.16,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 36.68,
+          "high": 53.93
+        },
+        "kind": "subject",
+        "risk": "stable",
+        "deltaFromOverallPct": 13.16
+      },
+      {
+        "key": "Counting & Probability",
+        "total": 38,
+        "correct": 8,
+        "accuracy": 21.05,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 11.07,
+          "high": 36.35
+        },
+        "kind": "subject",
+        "risk": "watch",
+        "deltaFromOverallPct": -10.95
+      },
+      {
+        "key": "Geometry",
+        "total": 41,
+        "correct": 12,
+        "accuracy": 29.27,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 17.61,
+          "high": 44.48
+        },
+        "kind": "subject",
+        "risk": "watch",
+        "deltaFromOverallPct": -2.73
+      },
+      {
+        "key": "Intermediate Algebra",
+        "total": 97,
+        "correct": 19,
+        "accuracy": 19.59,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 12.91,
+          "high": 28.58
+        },
+        "kind": "subject",
+        "risk": "critical",
+        "deltaFromOverallPct": -12.41
+      },
+      {
+        "key": "Number Theory",
+        "total": 62,
+        "correct": 17,
+        "accuracy": 27.42,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 17.88,
+          "high": 39.59
+        },
+        "kind": "subject",
+        "risk": "watch",
+        "deltaFromOverallPct": -4.58
+      },
+      {
+        "key": "Prealgebra",
+        "total": 82,
+        "correct": 39,
+        "accuracy": 47.56,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 37.1,
+          "high": 58.24
+        },
+        "kind": "subject",
+        "risk": "stable",
+        "deltaFromOverallPct": 15.56
+      },
+      {
+        "key": "Precalculus",
+        "total": 56,
+        "correct": 9,
+        "accuracy": 16.07,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 8.69,
+          "high": 27.81
+        },
+        "kind": "subject",
+        "risk": "critical",
+        "deltaFromOverallPct": -15.93
+      },
+      {
+        "key": "Level 1",
+        "total": 43,
+        "correct": 28,
+        "accuracy": 65.12,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 50.17,
+          "high": 77.58
+        },
+        "kind": "difficulty",
+        "risk": "stable",
+        "deltaFromOverallPct": 33.12
+      },
+      {
+        "key": "Level 2",
+        "total": 90,
+        "correct": 41,
+        "accuracy": 45.56,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 35.66,
+          "high": 55.82
+        },
+        "kind": "difficulty",
+        "risk": "stable",
+        "deltaFromOverallPct": 13.56
+      },
+      {
+        "key": "Level 3",
+        "total": 105,
+        "correct": 40,
+        "accuracy": 38.1,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 29.38,
+          "high": 47.65
+        },
+        "kind": "difficulty",
+        "risk": "stable",
+        "deltaFromOverallPct": 6.1
+      },
+      {
+        "key": "Level 4",
+        "total": 128,
+        "correct": 34,
+        "accuracy": 26.56,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 19.68,
+          "high": 34.82
+        },
+        "kind": "difficulty",
+        "risk": "watch",
+        "deltaFromOverallPct": -5.44
+      },
+      {
+        "key": "Level 5",
+        "total": 134,
+        "correct": 17,
+        "accuracy": 12.69,
+        "confidence": {
+          "method": "wilson-95",
+          "low": 8.07,
+          "high": 19.38
+        },
+        "kind": "difficulty",
+        "risk": "critical",
+        "deltaFromOverallPct": -19.31
+      }
+    ],
+    "latencyOutliers": {
+      "thresholdMs": 2242,
+      "count": 25
+    },
+    "tokenOutliers": {
+      "thresholdTokens": 411,
+      "count": 24
+    },
+    "reviewQueue": [
+      {
+        "itemId": "test/intermediate_algebra/1930.json",
+        "subject": "Intermediate Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2592,
+        "completionTokens": 512,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "Ne(1, 0) & Eq(0 + 0 + 0 + 0 + 1, 1) | 0 + 0 - 0 + 0 + 1 = 1 \\neq 0",
+        "expectedPreview": "1/4 | \\frac{1}{4}",
+        "priorityScore": 82.96
+      },
+      {
+        "itemId": "test/algebra/892.json",
+        "subject": "Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2586,
+        "completionTokens": 512,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "a | a",
+        "expectedPreview": "2 | 2",
+        "priorityScore": 82.93
+      },
+      {
+        "itemId": "test/intermediate_algebra/1388.json",
+        "subject": "Intermediate Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2579,
+        "completionTokens": 512,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "4 | 4",
+        "expectedPreview": "{-2, 1} | 1,-2",
+        "priorityScore": 82.89
+      },
+      {
+        "itemId": "test/number_theory/820.json",
+        "subject": "Number Theory",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2362,
+        "completionTokens": 471,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "210 | 210",
+        "expectedPreview": "8 | 8",
+        "priorityScore": 81.81
+      },
+      {
+        "itemId": "test/number_theory/769.json",
+        "subject": "Number Theory",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2340,
+        "completionTokens": 398,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "5 | 5",
+        "expectedPreview": "9 | 9",
+        "priorityScore": 81.7
+      },
+      {
+        "itemId": "test/intermediate_algebra/1354.json",
+        "subject": "Intermediate Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2323,
+        "completionTokens": 319,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "1 | 1",
+        "expectedPreview": "1997/2 | \\frac{1997}{2}",
+        "priorityScore": 81.61
+      },
+      {
+        "itemId": "test/intermediate_algebra/2196.json",
+        "subject": "Intermediate Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2242,
+        "completionTokens": 333,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "1/7 | \\frac{1}{7}",
+        "expectedPreview": "1/4 | \\frac{1}{4}",
+        "priorityScore": 81.21
+      },
+      {
+        "itemId": "test/intermediate_algebra/1166.json",
+        "subject": "Intermediate Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2237,
+        "completionTokens": 233,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "16 | 16",
+        "expectedPreview": "100 | 100",
+        "priorityScore": 81.19
+      },
+      {
+        "itemId": "test/algebra/686.json",
+        "subject": "Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2233,
+        "completionTokens": 421,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "5 | 5",
+        "expectedPreview": "4 | 4",
+        "priorityScore": 81.16
+      },
+      {
+        "itemId": "test/precalculus/986.json",
+        "subject": "Precalculus",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2203,
+        "completionTokens": 414,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "256 | 256",
+        "expectedPreview": "144 | 144",
+        "priorityScore": 81.02
+      },
+      {
+        "itemId": "test/intermediate_algebra/1350.json",
+        "subject": "Intermediate Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2106,
+        "completionTokens": 418,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "36 | 36",
+        "expectedPreview": "14 | 14",
+        "priorityScore": 80.53
+      },
+      {
+        "itemId": "test/number_theory/1002.json",
+        "subject": "Number Theory",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2095,
+        "completionTokens": 371,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "{1956, 54 + 77*25} | 77 \\cdot 25 + 54,1956",
+        "expectedPreview": "1440 | 1440",
+        "priorityScore": 80.47
+      },
+      {
+        "itemId": "test/precalculus/703.json",
+        "subject": "Precalculus",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 2059,
+        "completionTokens": 411,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "(3*pi)/2 | \\frac{3\\pi}{2}",
+        "expectedPreview": "8*pi | 8 \\pi",
+        "priorityScore": 80.3
+      },
+      {
+        "itemId": "test/number_theory/838.json",
+        "subject": "Number Theory",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 1972,
+        "completionTokens": 322,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "15 | 15",
+        "expectedPreview": "6 | 6",
+        "priorityScore": 79.86
+      },
+      {
+        "itemId": "test/prealgebra/1930.json",
+        "subject": "Prealgebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 1937,
+        "completionTokens": 351,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "0 | 0",
+        "expectedPreview": "7 | 7",
+        "priorityScore": 79.69
+      },
+      {
+        "itemId": "test/precalculus/323.json",
+        "subject": "Precalculus",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 1890,
+        "completionTokens": 366,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "Eq(y, 5*x - 1) | y = 5x - 1",
+        "expectedPreview": "Eq(y, 2*x + 3) | y = 2x + 3",
+        "priorityScore": 79.45
+      },
+      {
+        "itemId": "test/counting_and_probability/1003.json",
+        "subject": "Counting & Probability",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 1865,
+        "completionTokens": 325,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "47 | 47",
+        "expectedPreview": "29 | 29",
+        "priorityScore": 79.33
+      },
+      {
+        "itemId": "test/intermediate_algebra/1454.json",
+        "subject": "Intermediate Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 1863,
+        "completionTokens": 367,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "100 | 100",
+        "expectedPreview": "70*sqrt(2) | 70 \\sqrt{2}",
+        "priorityScore": 79.31
+      },
+      {
+        "itemId": "test/precalculus/881.json",
+        "subject": "Precalculus",
+        "level": 4,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 3043,
+        "completionTokens": 512,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "2 | 2",
+        "expectedPreview": "Matrix([[-18], [-49], [96]]) | \\begin{pmatrix} -18 \\\\ -49 \\\\ 96 \\end{pmatrix}",
+        "priorityScore": 79.22
+      },
+      {
+        "itemId": "test/precalculus/190.json",
+        "subject": "Precalculus",
+        "level": 4,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 3028,
+        "completionTokens": 492,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "2*cos(20) | 2 \\cos 20^\\circ",
+        "expectedPreview": "9/256 | \\frac{9}{256}",
+        "priorityScore": 79.14
+      },
+      {
+        "itemId": "test/intermediate_algebra/2022.json",
+        "subject": "Intermediate Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 1778,
+        "completionTokens": 347,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "144 | 144",
+        "expectedPreview": "64 | 64",
+        "priorityScore": 78.89
+      },
+      {
+        "itemId": "test/intermediate_algebra/117.json",
+        "subject": "Intermediate Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 1770,
+        "completionTokens": 295,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "1 | 1",
+        "expectedPreview": "15 | 15",
+        "priorityScore": 78.85
+      },
+      {
+        "itemId": "test/algebra/2176.json",
+        "subject": "Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 1746,
+        "completionTokens": 232,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "10 | 10",
+        "expectedPreview": "3 | 3",
+        "priorityScore": 78.73
+      },
+      {
+        "itemId": "test/intermediate_algebra/2015.json",
+        "subject": "Intermediate Algebra",
+        "level": 5,
+        "errorClass": "semantic-mismatch",
+        "passed": false,
+        "latencyMs": 1715,
+        "completionTokens": 253,
+        "resumedFromCheckpoint": true,
+        "predictionPreview": "2 | 2",
+        "expectedPreview": "{-2, 1 - sqrt(5), 1 + sqrt(5)} | \\{1\\pm\\sqrt{5},-2\\}",
+        "priorityScore": 78.58
+      }
+    ]
+  },
+  "power": {
+    "method": "two-independent-proportions-95-80",
+    "detectableEffectAtAvailableSamplesPct": 8.27,
+    "targets": [
+      {
+        "effectPct": 3,
+        "requiredSamplesPerRun": 3796,
+        "availableSamples": 500,
+        "sufficientlyPowered": false
+      },
+      {
+        "effectPct": 5,
+        "requiredSamplesPerRun": 1367,
+        "availableSamples": 500,
+        "sufficientlyPowered": false
+      },
+      {
+        "effectPct": 10,
+        "requiredSamplesPerRun": 342,
+        "availableSamples": 500,
+        "sufficientlyPowered": true
+      }
+    ],
+    "disclosure": "This is a conservative two-independent-proportions planning approximation at two-sided 95% confidence and 80% power. The paired item-level gate reports its observed paired interval separately."
+  },
+  "comparison": {
+    "status": "evidence-needed",
+    "baselineRunId": "math500-full-20260810112454-2b58c961",
+    "candidateRunId": null,
+    "sharedSamples": 0,
+    "baselineAccuracy": 32,
+    "candidateAccuracy": null,
+    "deltaPct": null,
+    "deltaConfidence95": null,
+    "discordant": {
+      "candidateWins": 0,
+      "baselineWins": 0
+    },
+    "mcnemarExactPValue": null,
+    "latencyP95RegressionPct": null,
+    "nonInferiorityMarginPct": 2,
+    "evaluatorCompatible": false,
+    "promotionDecision": "evidence-needed",
+    "blockers": [
+      "A second complete 500-item run with a distinct run id is required for paired candidate comparison."
+    ]
+  },
+  "eligibleRuns": [
+    {
+      "runId": "math500-full-20260810112454-2b58c961",
+      "generatedAt": "2026-08-10T11:38:04.282Z",
+      "targetId": "local-qwen3-0.6b",
+      "resolvedModel": "local-qwen3-0.6b",
+      "samples": 500,
+      "scored": 500
+    }
+  ],
+  "decisionDigest": "48856a75bf0631c3c49c24c5664733fa113a43434eeca8020f82bbbe0ee61046",
+  "blockers": [
+    "A second complete 500-item run with a distinct run id is required for paired candidate comparison.",
+    "Independent-host repetition, official multimodal runs, external leaderboard receipts, and organization promotion remain separate gates."
+  ],
+  "evidenceDigest": "11104f9952cb9e9b7eae06ac436865e590e4acca0f1abe5453cddaffae6e2b41"
+}

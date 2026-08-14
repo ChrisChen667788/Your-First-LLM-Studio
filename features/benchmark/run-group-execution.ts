@@ -9,6 +9,7 @@ import {
   runBenchmarkResultGroup,
   type BenchmarkResultGroupMode,
 } from "@/features/benchmark/run-result-group";
+import { assessBenchmarkTargetModalities } from "@/features/benchmark/model-capabilities";
 import type { BenchmarkRunLifecycleRuntime } from "@/features/benchmark/run-lifecycle";
 import type { BenchmarkPlan, PlannedSampleTask } from "@/features/benchmark/run-plan";
 import type {
@@ -32,6 +33,18 @@ type BenchmarkGroupExecutionInput = {
   comparisonLocalContextWindow: number | null;
 };
 
+function hasRunnableBenchmarkTask(
+  target: AgentTarget,
+  tasks: PlannedSampleTask[],
+) {
+  return tasks.some((task) =>
+    assessBenchmarkTargetModalities(
+      target,
+      task.requiredModalities || ["text"],
+    ).every((assessment) => assessment.supported),
+  );
+}
+
 export async function runLocalBenchmarkResultGroups({
   lifecycle,
   runId,
@@ -52,6 +65,27 @@ export async function runLocalBenchmarkResultGroups({
 
   for (const target of localTargets) {
     lifecycle.assertActive();
+    if (!hasRunnableBenchmarkTask(target, plannedTasks)) {
+      results.push(
+        await runBenchmarkResultGroup({
+          runId,
+          target,
+          mode: {
+            providerProfile: requestedProviderProfile,
+            thinkingMode: "standard",
+          },
+          resolvedPlan,
+          contextWindow,
+          profileModes,
+          profileBatchScope,
+          plannedTasks,
+          remoteComparisonTasks,
+          comparisonLocalContextWindow,
+          heartbeat: lifecycle.heartbeat,
+        }),
+      );
+      continue;
+    }
     let benchmarkBaseUrl = "";
     try {
       ({ benchmarkBaseUrl } = await prepareLocalBenchmarkRuntime({

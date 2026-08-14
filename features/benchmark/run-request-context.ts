@@ -63,7 +63,7 @@ export function createBenchmarkRunRequestContext({
 }): BenchmarkRunRequestContext | BenchmarkRunRequestContextError {
   const runs = Math.max(1, Math.min(Math.trunc(body.runs || 3), 10));
   const contextWindow = normalizeContextWindow(body.contextWindow, 32768);
-  const maxTokens = Math.max(32, Math.min(Math.trunc(body.maxTokens || 192), 512));
+  const maxTokens = Math.max(32, Math.min(Math.trunc(body.maxTokens || 192), 1024));
   const runNote =
     typeof body.runNote === "string" && body.runNote.trim()
       ? body.runNote.trim()

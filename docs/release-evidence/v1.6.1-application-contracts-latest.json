@@ -1,0 +1,520 @@
+{
+  "schemaVersion": "experiments.v161-application-contracts-runner-evidence.v1",
+  "generatedAt": "2026-08-06T07:33:09.972Z",
+  "baseUrl": "http://127.0.0.1:3011",
+  "receipt": {
+    "id": "v161-application-contracts-012cda2d-a4eb-467f-bd52-7ab1faa4c7a3",
+    "generatedAt": "2026-08-06T07:33:09.926Z",
+    "status": "pass",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "slices": [
+      {
+        "id": "benchmark-baseline-route",
+        "version": "v1.6.1",
+        "label": "Benchmark baseline route",
+        "status": "pass",
+        "summary": "Baseline lifecycle is exposed through the product Benchmark namespace."
+      },
+      {
+        "id": "benchmark-progress-read",
+        "version": "v1.6.1",
+        "label": "Benchmark progress read",
+        "status": "pass",
+        "summary": "Progress polling resolves through the canonical feature application."
+      },
+      {
+        "id": "benchmark-progress-write",
+        "version": "v1.6.1",
+        "label": "Benchmark progress control",
+        "status": "pass",
+        "summary": "Stop and abandon controls share the canonical progress route."
+      },
+      {
+        "id": "benchmark-prompt-sets-route",
+        "version": "v1.6.1",
+        "label": "Benchmark prompt-set route",
+        "status": "pass",
+        "summary": "Prompt-set CRUD is product-facing and feature-owned."
+      },
+      {
+        "id": "benchmark-report-route",
+        "version": "v1.6.1",
+        "label": "Benchmark report route",
+        "status": "pass",
+        "summary": "Report previews and exports use the canonical Benchmark namespace."
+      },
+      {
+        "id": "benchmark-evidence-route",
+        "version": "v1.6.1",
+        "label": "Benchmark evidence route",
+        "status": "pass",
+        "summary": "Pinned release evidence is exposed outside the Admin namespace."
+      },
+      {
+        "id": "benchmark-export-route",
+        "version": "v1.6.1",
+        "label": "Benchmark export route",
+        "status": "pass",
+        "summary": "History and issue-summary exports use the canonical product route."
+      },
+      {
+        "id": "benchmark-studio-prompt-sets",
+        "version": "v1.6.1",
+        "label": "Studio prompt-set client",
+        "status": "pass",
+        "summary": "Benchmark Studio no longer loads prompt sets through Admin."
+      },
+      {
+        "id": "benchmark-studio-progress",
+        "version": "v1.6.1",
+        "label": "Studio progress client",
+        "status": "pass",
+        "summary": "Benchmark Studio polls the canonical progress route."
+      },
+      {
+        "id": "benchmark-studio-export",
+        "version": "v1.6.1",
+        "label": "Studio export client",
+        "status": "pass",
+        "summary": "Benchmark Studio emits canonical export links."
+      },
+      {
+        "id": "benchmark-run-evidence-uris",
+        "version": "v1.6.1",
+        "label": "Runner evidence URIs",
+        "status": "pass",
+        "summary": "Run timeline evidence points at product-owned progress and report routes."
+      },
+      {
+        "id": "compare-recipes-route",
+        "version": "v1.6.1",
+        "label": "Compare recipes route",
+        "status": "pass",
+        "summary": "Recipe persistence has a Compare-owned product route."
+      },
+      {
+        "id": "compare-recipes-client",
+        "version": "v1.6.1",
+        "label": "Compare recipes client",
+        "status": "pass",
+        "summary": "Compare persistence no longer depends on the Agent namespace."
+      },
+      {
+        "id": "legacy-wrappers",
+        "version": "v1.6.1",
+        "label": "Legacy wrapper thickness",
+        "status": "pass",
+        "summary": "Seven historical Admin/Agent routes contain only runtime metadata and feature re-exports."
+      },
+      {
+        "id": "ownership-contracts",
+        "version": "v1.6.1",
+        "label": "Contracts and ownership matrix",
+        "status": "pass",
+        "summary": "Code constants and the ownership matrix describe the same application boundary."
+      }
+    ],
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "productionBlockers": [
+      "Canonical application routes are local architecture evidence, not managed production evidence.",
+      "External IdP/SCIM, remote worker failover, cloud KMS/archive, and organization acceptance remain HOLD."
+    ],
+    "evidenceDigest": "c0757ac25089f3659501d2e5272cc7608601d550bc65eae2ef67ba7a853f20b8"
+  },
+  "evidence": {
+    "ok": true,
+    "schemaVersion": "experiments.v161-application-contracts.v1",
+    "generatedAt": "2026-08-06T07:33:09.963Z",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "latest": {
+      "id": "v161-application-contracts-012cda2d-a4eb-467f-bd52-7ab1faa4c7a3",
+      "generatedAt": "2026-08-06T07:33:09.926Z",
+      "status": "pass",
+      "localStatus": "pass",
+      "productionStatus": "hold",
+      "slices": [
+        {
+          "id": "benchmark-baseline-route",
+          "version": "v1.6.1",
+          "label": "Benchmark baseline route",
+          "status": "pass",
+          "summary": "Baseline lifecycle is exposed through the product Benchmark namespace."
+        },
+        {
+          "id": "benchmark-progress-read",
+          "version": "v1.6.1",
+          "label": "Benchmark progress read",
+          "status": "pass",
+          "summary": "Progress polling resolves through the canonical feature application."
+        },
+        {
+          "id": "benchmark-progress-write",
+          "version": "v1.6.1",
+          "label": "Benchmark progress control",
+          "status": "pass",
+          "summary": "Stop and abandon controls share the canonical progress route."
+        },
+        {
+          "id": "benchmark-prompt-sets-route",
+          "version": "v1.6.1",
+          "label": "Benchmark prompt-set route",
+          "status": "pass",
+          "summary": "Prompt-set CRUD is product-facing and feature-owned."
+        },
+        {
+          "id": "benchmark-report-route",
+          "version": "v1.6.1",
+          "label": "Benchmark report route",
+          "status": "pass",
+          "summary": "Report previews and exports use the canonical Benchmark namespace."
+        },
+        {
+          "id": "benchmark-evidence-route",
+          "version": "v1.6.1",
+          "label": "Benchmark evidence route",
+          "status": "pass",
+          "summary": "Pinned release evidence is exposed outside the Admin namespace."
+        },
+        {
+          "id": "benchmark-export-route",
+          "version": "v1.6.1",
+          "label": "Benchmark export route",
+          "status": "pass",
+          "summary": "History and issue-summary exports use the canonical product route."
+        },
+        {
+          "id": "benchmark-studio-prompt-sets",
+          "version": "v1.6.1",
+          "label": "Studio prompt-set client",
+          "status": "pass",
+          "summary": "Benchmark Studio no longer loads prompt sets through Admin."
+        },
+        {
+          "id": "benchmark-studio-progress",
+          "version": "v1.6.1",
+          "label": "Studio progress client",
+          "status": "pass",
+          "summary": "Benchmark Studio polls the canonical progress route."
+        },
+        {
+          "id": "benchmark-studio-export",
+          "version": "v1.6.1",
+          "label": "Studio export client",
+          "status": "pass",
+          "summary": "Benchmark Studio emits canonical export links."
+        },
+        {
+          "id": "benchmark-run-evidence-uris",
+          "version": "v1.6.1",
+          "label": "Runner evidence URIs",
+          "status": "pass",
+          "summary": "Run timeline evidence points at product-owned progress and report routes."
+        },
+        {
+          "id": "compare-recipes-route",
+          "version": "v1.6.1",
+          "label": "Compare recipes route",
+          "status": "pass",
+          "summary": "Recipe persistence has a Compare-owned product route."
+        },
+        {
+          "id": "compare-recipes-client",
+          "version": "v1.6.1",
+          "label": "Compare recipes client",
+          "status": "pass",
+          "summary": "Compare persistence no longer depends on the Agent namespace."
+        },
+        {
+          "id": "legacy-wrappers",
+          "version": "v1.6.1",
+          "label": "Legacy wrapper thickness",
+          "status": "pass",
+          "summary": "Seven historical Admin/Agent routes contain only runtime metadata and feature re-exports."
+        },
+        {
+          "id": "ownership-contracts",
+          "version": "v1.6.1",
+          "label": "Contracts and ownership matrix",
+          "status": "pass",
+          "summary": "Code constants and the ownership matrix describe the same application boundary."
+        }
+      ],
+      "totals": {
+        "slices": 15,
+        "passed": 15,
+        "held": 0
+      },
+      "productionBlockers": [
+        "Canonical application routes are local architecture evidence, not managed production evidence.",
+        "External IdP/SCIM, remote worker failover, cloud KMS/archive, and organization acceptance remain HOLD."
+      ],
+      "evidenceDigest": "c0757ac25089f3659501d2e5272cc7608601d550bc65eae2ef67ba7a853f20b8"
+    },
+    "latestPassing": {
+      "id": "v161-application-contracts-012cda2d-a4eb-467f-bd52-7ab1faa4c7a3",
+      "generatedAt": "2026-08-06T07:33:09.926Z",
+      "status": "pass",
+      "localStatus": "pass",
+      "productionStatus": "hold",
+      "slices": [
+        {
+          "id": "benchmark-baseline-route",
+          "version": "v1.6.1",
+          "label": "Benchmark baseline route",
+          "status": "pass",
+          "summary": "Baseline lifecycle is exposed through the product Benchmark namespace."
+        },
+        {
+          "id": "benchmark-progress-read",
+          "version": "v1.6.1",
+          "label": "Benchmark progress read",
+          "status": "pass",
+          "summary": "Progress polling resolves through the canonical feature application."
+        },
+        {
+          "id": "benchmark-progress-write",
+          "version": "v1.6.1",
+          "label": "Benchmark progress control",
+          "status": "pass",
+          "summary": "Stop and abandon controls share the canonical progress route."
+        },
+        {
+          "id": "benchmark-prompt-sets-route",
+          "version": "v1.6.1",
+          "label": "Benchmark prompt-set route",
+          "status": "pass",
+          "summary": "Prompt-set CRUD is product-facing and feature-owned."
+        },
+        {
+          "id": "benchmark-report-route",
+          "version": "v1.6.1",
+          "label": "Benchmark report route",
+          "status": "pass",
+          "summary": "Report previews and exports use the canonical Benchmark namespace."
+        },
+        {
+          "id": "benchmark-evidence-route",
+          "version": "v1.6.1",
+          "label": "Benchmark evidence route",
+          "status": "pass",
+          "summary": "Pinned release evidence is exposed outside the Admin namespace."
+        },
+        {
+          "id": "benchmark-export-route",
+          "version": "v1.6.1",
+          "label": "Benchmark export route",
+          "status": "pass",
+          "summary": "History and issue-summary exports use the canonical product route."
+        },
+        {
+          "id": "benchmark-studio-prompt-sets",
+          "version": "v1.6.1",
+          "label": "Studio prompt-set client",
+          "status": "pass",
+          "summary": "Benchmark Studio no longer loads prompt sets through Admin."
+        },
+        {
+          "id": "benchmark-studio-progress",
+          "version": "v1.6.1",
+          "label": "Studio progress client",
+          "status": "pass",
+          "summary": "Benchmark Studio polls the canonical progress route."
+        },
+        {
+          "id": "benchmark-studio-export",
+          "version": "v1.6.1",
+          "label": "Studio export client",
+          "status": "pass",
+          "summary": "Benchmark Studio emits canonical export links."
+        },
+        {
+          "id": "benchmark-run-evidence-uris",
+          "version": "v1.6.1",
+          "label": "Runner evidence URIs",
+          "status": "pass",
+          "summary": "Run timeline evidence points at product-owned progress and report routes."
+        },
+        {
+          "id": "compare-recipes-route",
+          "version": "v1.6.1",
+          "label": "Compare recipes route",
+          "status": "pass",
+          "summary": "Recipe persistence has a Compare-owned product route."
+        },
+        {
+          "id": "compare-recipes-client",
+          "version": "v1.6.1",
+          "label": "Compare recipes client",
+          "status": "pass",
+          "summary": "Compare persistence no longer depends on the Agent namespace."
+        },
+        {
+          "id": "legacy-wrappers",
+          "version": "v1.6.1",
+          "label": "Legacy wrapper thickness",
+          "status": "pass",
+          "summary": "Seven historical Admin/Agent routes contain only runtime metadata and feature re-exports."
+        },
+        {
+          "id": "ownership-contracts",
+          "version": "v1.6.1",
+          "label": "Contracts and ownership matrix",
+          "status": "pass",
+          "summary": "Code constants and the ownership matrix describe the same application boundary."
+        }
+      ],
+      "totals": {
+        "slices": 15,
+        "passed": 15,
+        "held": 0
+      },
+      "productionBlockers": [
+        "Canonical application routes are local architecture evidence, not managed production evidence.",
+        "External IdP/SCIM, remote worker failover, cloud KMS/archive, and organization acceptance remain HOLD."
+      ],
+      "evidenceDigest": "c0757ac25089f3659501d2e5272cc7608601d550bc65eae2ef67ba7a853f20b8"
+    },
+    "receipts": [
+      {
+        "id": "v161-application-contracts-012cda2d-a4eb-467f-bd52-7ab1faa4c7a3",
+        "generatedAt": "2026-08-06T07:33:09.926Z",
+        "status": "pass",
+        "localStatus": "pass",
+        "productionStatus": "hold",
+        "slices": [
+          {
+            "id": "benchmark-baseline-route",
+            "version": "v1.6.1",
+            "label": "Benchmark baseline route",
+            "status": "pass",
+            "summary": "Baseline lifecycle is exposed through the product Benchmark namespace."
+          },
+          {
+            "id": "benchmark-progress-read",
+            "version": "v1.6.1",
+            "label": "Benchmark progress read",
+            "status": "pass",
+            "summary": "Progress polling resolves through the canonical feature application."
+          },
+          {
+            "id": "benchmark-progress-write",
+            "version": "v1.6.1",
+            "label": "Benchmark progress control",
+            "status": "pass",
+            "summary": "Stop and abandon controls share the canonical progress route."
+          },
+          {
+            "id": "benchmark-prompt-sets-route",
+            "version": "v1.6.1",
+            "label": "Benchmark prompt-set route",
+            "status": "pass",
+            "summary": "Prompt-set CRUD is product-facing and feature-owned."
+          },
+          {
+            "id": "benchmark-report-route",
+            "version": "v1.6.1",
+            "label": "Benchmark report route",
+            "status": "pass",
+            "summary": "Report previews and exports use the canonical Benchmark namespace."
+          },
+          {
+            "id": "benchmark-evidence-route",
+            "version": "v1.6.1",
+            "label": "Benchmark evidence route",
+            "status": "pass",
+            "summary": "Pinned release evidence is exposed outside the Admin namespace."
+          },
+          {
+            "id": "benchmark-export-route",
+            "version": "v1.6.1",
+            "label": "Benchmark export route",
+            "status": "pass",
+            "summary": "History and issue-summary exports use the canonical product route."
+          },
+          {
+            "id": "benchmark-studio-prompt-sets",
+            "version": "v1.6.1",
+            "label": "Studio prompt-set client",
+            "status": "pass",
+            "summary": "Benchmark Studio no longer loads prompt sets through Admin."
+          },
+          {
+            "id": "benchmark-studio-progress",
+            "version": "v1.6.1",
+            "label": "Studio progress client",
+            "status": "pass",
+            "summary": "Benchmark Studio polls the canonical progress route."
+          },
+          {
+            "id": "benchmark-studio-export",
+            "version": "v1.6.1",
+            "label": "Studio export client",
+            "status": "pass",
+            "summary": "Benchmark Studio emits canonical export links."
+          },
+          {
+            "id": "benchmark-run-evidence-uris",
+            "version": "v1.6.1",
+            "label": "Runner evidence URIs",
+            "status": "pass",
+            "summary": "Run timeline evidence points at product-owned progress and report routes."
+          },
+          {
+            "id": "compare-recipes-route",
+            "version": "v1.6.1",
+            "label": "Compare recipes route",
+            "status": "pass",
+            "summary": "Recipe persistence has a Compare-owned product route."
+          },
+          {
+            "id": "compare-recipes-client",
+            "version": "v1.6.1",
+            "label": "Compare recipes client",
+            "status": "pass",
+            "summary": "Compare persistence no longer depends on the Agent namespace."
+          },
+          {
+            "id": "legacy-wrappers",
+            "version": "v1.6.1",
+            "label": "Legacy wrapper thickness",
+            "status": "pass",
+            "summary": "Seven historical Admin/Agent routes contain only runtime metadata and feature re-exports."
+          },
+          {
+            "id": "ownership-contracts",
+            "version": "v1.6.1",
+            "label": "Contracts and ownership matrix",
+            "status": "pass",
+            "summary": "Code constants and the ownership matrix describe the same application boundary."
+          }
+        ],
+        "totals": {
+          "slices": 15,
+          "passed": 15,
+          "held": 0
+        },
+        "productionBlockers": [
+          "Canonical application routes are local architecture evidence, not managed production evidence.",
+          "External IdP/SCIM, remote worker failover, cloud KMS/archive, and organization acceptance remain HOLD."
+        ],
+        "evidenceDigest": "c0757ac25089f3659501d2e5272cc7608601d550bc65eae2ef67ba7a853f20b8"
+      }
+    ],
+    "totals": {
+      "slices": 15,
+      "passed": 15,
+      "held": 0
+    },
+    "productionBlockers": [
+      "Canonical application routes are local architecture evidence, not managed production evidence.",
+      "External IdP/SCIM, remote worker failover, cloud KMS/archive, and organization acceptance remain HOLD."
+    ],
+    "path": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/v1.6.1-application-contracts.json"
+  }
+}

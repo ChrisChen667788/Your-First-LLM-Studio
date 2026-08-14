@@ -20,8 +20,11 @@ import type {
 } from "@/lib/agent/types";
 
 export const COMPARE_CONTRACT_VERSION = "compare.contract.v1" as const;
+export const COMPARE_PROGRESS_API_PATH = "/api/compare/progress" as const;
+export const COMPARE_RECIPES_API_PATH = "/api/compare/recipes" as const;
 
 export type CompareContractVersion = typeof COMPARE_CONTRACT_VERSION;
+export type CompareModeActivator = (mode: "compare") => void;
 
 export type CompareSurface = AgentCompareSourceSurface;
 

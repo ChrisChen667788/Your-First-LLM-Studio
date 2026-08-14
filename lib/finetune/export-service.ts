@@ -11,6 +11,7 @@ import {
 } from "./repository";
 import { normalizeUserPathInput } from "./store-internal";
 import { resolveFineTuneAdapter } from "./operation-shared";
+import { buildFineTuneAdapterPackage } from "./export-package-service";
 
 export function runFineTuneAdapterExport(input: {
   adapterId: string;
@@ -38,6 +39,11 @@ export function runFineTuneAdapterExport(input: {
   const generatedAt = new Date().toISOString();
   const exportFormat = input.exportFormat?.trim() || "adapter-bundle";
   const quantization = input.quantization?.trim() || "none";
+  if (exportFormat !== "adapter-bundle" || quantization !== "none") {
+    throw new Error(
+      `Real ${exportFormat}/${quantization} export is unavailable. Use adapter-bundle/none, or configure a verified merge and quantization executor.`,
+    );
+  }
   const requestedPublishTarget = input.publishTarget?.trim() || "local";
   const publishTarget = ["huggingface", "modelscope", "local"].includes(
     requestedPublishTarget,
@@ -149,6 +155,35 @@ export function runFineTuneAdapterExport(input: {
     ].join("\n"),
     "utf8",
   );
+  const packageReceipt = buildFineTuneAdapterPackage({
+    adapterName: adapter.adapterName,
+    baseTargetId: adapter.baseTargetId,
+    outputDir: adapter.outputDir,
+    bestCheckpointPath: adapter.bestCheckpoint?.path,
+    trainingConfigPath: adapter.configFile,
+    destinationDir: exportDir,
+    extraFiles: [
+      {
+        source: modelCardFile,
+        relativePath: "MODEL_CARD.md",
+        role: "card",
+      },
+      {
+        source: publishChecklistFile,
+        relativePath: "PUBLISH_CHECKLIST.md",
+        role: "evidence",
+      },
+      ...(input.includeDatasetCard
+        ? [
+            {
+              source: datasetCardFile,
+              relativePath: "DATASET_CARD.md",
+              role: "card" as const,
+            },
+          ]
+        : []),
+    ],
+  });
   writeFileSync(
     exportManifestFile,
     JSON.stringify(
@@ -166,6 +201,7 @@ export function runFineTuneAdapterExport(input: {
         publishChecklist,
         samplePrompts,
         knownLimitations,
+        package: packageReceipt,
       },
       null,
       2,
@@ -184,6 +220,11 @@ export function runFineTuneAdapterExport(input: {
       `- Quantization: ${quantization}`,
       `- Publish target: ${publishTarget}`,
       `- Source adapter: ${adapter.outputDir}`,
+      `- Selected checkpoint: ${packageReceipt.source.selectedCheckpointFile}`,
+      `- Package archive: ${packageReceipt.archivePath}`,
+      `- Package SHA-256: ${packageReceipt.archiveSha256}`,
+      `- Install read-back: verified`,
+      `- Install rollback: verified`,
       `- Publish checklist: ${publishChecklistFile}`,
       "",
     ].join("\n"),
@@ -200,6 +241,7 @@ export function runFineTuneAdapterExport(input: {
         exportDir,
         publishTarget,
         publishChecklist,
+        package: packageReceipt,
       },
       null,
       2,
@@ -215,6 +257,21 @@ export function runFineTuneAdapterExport(input: {
     ),
     artifactFor(modelCardFile, "Model card", "text/markdown"),
     artifactFor(publishChecklistFile, "Publish checklist", "text/markdown"),
+    artifactFor(
+      packageReceipt.archivePath,
+      "Installable adapter package",
+      "application/gzip",
+    ),
+    artifactFor(
+      packageReceipt.manifestPath,
+      "Adapter package manifest",
+      "application/json",
+    ),
+    artifactFor(
+      packageReceipt.receiptPath,
+      "Adapter package read-back receipt",
+      "application/json",
+    ),
     input.includeDatasetCard
       ? artifactFor(datasetCardFile, "Dataset card", "text/markdown")
       : null,
@@ -230,7 +287,7 @@ export function runFineTuneAdapterExport(input: {
     adapterId: adapter.id,
     jobId: adapter.jobId,
     outputDir: paths.outputDir,
-    summary: `Prepared ${exportFormat} export in ${exportDir}.`,
+    summary: `Exported and verified ${exportFormat} bytes in ${exportDir}.`,
     metrics: {
       maxShardSizeGb: Math.max(1, Math.min(input.maxShardSizeGb || 5, 100)),
     },
@@ -247,12 +304,20 @@ export function runFineTuneAdapterExport(input: {
       secretScanStatus: publishChecklist.secretScanStatus,
       samplePromptCount: publishChecklist.samplePromptCount,
       knownLimitationsRecorded: publishChecklist.knownLimitationsRecorded,
+      selectedCheckpointFile: packageReceipt.source.selectedCheckpointFile,
+      checkpointSelection: packageReceipt.source.selection,
+      packageArchive: packageReceipt.archivePath,
+      packageArchiveBytes: packageReceipt.archiveBytes,
+      packageArchiveSha256: packageReceipt.archiveSha256,
+      packagePayloadDigest: packageReceipt.payloadDigest,
+      packageReadBackVerified: packageReceipt.readBack.verified,
+      packageRollbackVerified: packageReceipt.readBack.rollbackVerified,
     },
   });
   appendExperimentEvent({
     kind: "finetune",
     status: "completed",
-    title: "Adapter export prepared",
+    title: "Adapter export verified",
     summary: operation.summary,
     relatedId: operation.id,
     ...buildFineTuneOperationEventReferences(operation),
@@ -266,6 +331,11 @@ export function runFineTuneAdapterExport(input: {
       secretScanStatus: publishChecklist.secretScanStatus,
       samplePromptCount: publishChecklist.samplePromptCount,
       knownLimitationsRecorded: publishChecklist.knownLimitationsRecorded,
+      selectedCheckpointFile: packageReceipt.source.selectedCheckpointFile,
+      packageArchive: packageReceipt.archivePath,
+      packageArchiveSha256: packageReceipt.archiveSha256,
+      packageReadBackVerified: packageReceipt.readBack.verified,
+      packageRollbackVerified: packageReceipt.readBack.rollbackVerified,
     },
   });
   return operation;

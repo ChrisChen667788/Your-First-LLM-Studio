@@ -21,6 +21,12 @@ export async function GET(request: Request) {
           method,
           quantizationBits: Number(params.get("bits") || 4),
           scheduler: params.get("scheduler") || "cosine",
+          packingPolicy: params.get("packing") || "disabled",
+          bestCheckpointMetric: params.get("metric") || "eval_loss",
+          targetModules: (params.get("targetModules") || "q_proj,v_proj")
+            .split(",")
+            .map((entry) => entry.trim())
+            .filter(Boolean),
           distributed: params.get("distributed") === "true",
         })
       : null;

@@ -1,7 +1,10 @@
 import { createHash, randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import {
+  prependDurableListEntry,
+  readDurableList,
+} from "@/features/persistence/durable-list-store";
 import { readRuntimeAdapterConformance } from "@/features/runtime/adapter-conformance";
 import { runRuntimeOperationContractSuite } from "@/features/runtime/operation-port";
 import {
@@ -96,30 +99,20 @@ const STORE_FILE = path.join(DATA_DIR, "runtime-fabric-acceptance.json");
 const LIVE_BACKENDS = ["mlx", "ollama", "llama.cpp"] as const;
 
 function readReceipts(): RuntimeFabricAcceptanceReceipt[] {
-  if (!existsSync(STORE_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as {
-      receipts?: RuntimeFabricAcceptanceReceipt[];
-    };
-    return Array.isArray(parsed.receipts) ? parsed.receipts : [];
-  } catch {
-    return [];
-  }
+  return readDurableList(
+    STORE_FILE,
+    RUNTIME_FABRIC_ACCEPTANCE_SCHEMA_VERSION,
+    "receipts",
+  );
 }
 
 function persist(receipt: RuntimeFabricAcceptanceReceipt) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(
+  prependDurableListEntry(
     STORE_FILE,
-    `${JSON.stringify(
-      {
-        schemaVersion: RUNTIME_FABRIC_ACCEPTANCE_SCHEMA_VERSION,
-        receipts: [receipt, ...readReceipts()].slice(0, 50),
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
+    RUNTIME_FABRIC_ACCEPTANCE_SCHEMA_VERSION,
+    "receipts",
+    receipt,
+    50,
   );
 }
 

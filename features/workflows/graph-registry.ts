@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { readDurableJsonStore, updateDurableJsonStore } from "@/features/persistence/durable-json-store";
 import { createProtectedToolResumeGraph, createRetrievalGroundedAnswerGraph, validateWorkflowGraph, type WorkflowGraph } from "@/features/workflows/graph-contract";
 
 export const WORKFLOW_GRAPH_REGISTRY_SCHEMA_VERSION = "workflows.graph-registry.v1" as const;
@@ -36,15 +36,25 @@ function seedRecord(): GraphRecord {
   return { graph, graphDigest: digestWorkflowGraph(graph), state: "published", revision: 1, createdAt: now, updatedAt: now, publishedAt: now, deploymentSlug: "protected-tool-resume" };
 }
 
-function readRegistry(): GraphRegistry {
-  if (!existsSync(REGISTRY_FILE)) return { schemaVersion: WORKFLOW_GRAPH_REGISTRY_SCHEMA_VERSION, records: [seedRecord()] };
-  try { const parsed = JSON.parse(readFileSync(REGISTRY_FILE, "utf8")) as Partial<GraphRegistry>; return { schemaVersion: WORKFLOW_GRAPH_REGISTRY_SCHEMA_VERSION, records: Array.isArray(parsed.records) ? parsed.records.map(normalizeRecord) : [seedRecord()] }; }
-  catch { return { schemaVersion: WORKFLOW_GRAPH_REGISTRY_SCHEMA_VERSION, records: [seedRecord()] }; }
+function isGraphRegistry(value: unknown): value is GraphRegistry {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<GraphRegistry>;
+  return candidate.schemaVersion === WORKFLOW_GRAPH_REGISTRY_SCHEMA_VERSION && Array.isArray(candidate.records);
 }
 
-function writeRegistry(registry: GraphRegistry) {
-  mkdirSync(path.dirname(REGISTRY_FILE), { recursive: true });
-  writeFileSync(REGISTRY_FILE, `${JSON.stringify(registry, null, 2)}\n`, "utf8");
+const storeOptions = {
+  filePath: REGISTRY_FILE,
+  initial: (): GraphRegistry => ({ schemaVersion: WORKFLOW_GRAPH_REGISTRY_SCHEMA_VERSION, records: [seedRecord()] }),
+  validate: isGraphRegistry,
+};
+
+function readRegistry(): GraphRegistry {
+  const registry = readDurableJsonStore(storeOptions);
+  return { ...registry, records: registry.records.map(normalizeRecord) };
+}
+
+function updateRegistry(mutate: (registry: GraphRegistry) => GraphRegistry) {
+  return updateDurableJsonStore(storeOptions, (registry) => mutate({ ...registry, records: registry.records.map(normalizeRecord) }));
 }
 
 function safeSlug(value: string) {
@@ -70,52 +80,72 @@ export function resolveDeployedWorkflow(slug: string) {
 export function saveWorkflowDraft(graph: WorkflowGraph, options: { expectedRevision?: number } = {}) {
   const validation = validateWorkflowGraph(graph);
   if (!validation.valid) throw new Error(`Workflow graph is invalid: ${validation.errors.join(" ")}`);
-  const registry = readRegistry();
-  const existing = registry.records.find((record) => record.graph.id === graph.id && record.graph.version === graph.version);
-  if (existing?.state === "published") throw new Error("Published workflow versions are immutable; create a new version.");
-  if (existing && options.expectedRevision !== undefined && existing.revision !== options.expectedRevision) {
-    throw new Error(`Workflow draft revision conflict: expected ${options.expectedRevision}, current ${existing.revision}. Reload before saving.`);
-  }
-  const now = new Date().toISOString();
-  const record: GraphRecord = { graph, graphDigest: digestWorkflowGraph(graph), state: "draft", revision: (existing?.revision || 0) + 1, createdAt: existing?.createdAt || now, updatedAt: now };
-  writeRegistry({ ...registry, records: [record, ...registry.records.filter((candidate) => !(candidate.graph.id === graph.id && candidate.graph.version === graph.version))].slice(0, 200) });
-  return record;
+  const registry = updateRegistry((currentRegistry) => {
+    const existing = currentRegistry.records.find((record) => record.graph.id === graph.id && record.graph.version === graph.version);
+    if (existing?.state === "published") throw new Error("Published workflow versions are immutable; create a new version.");
+    if (existing && options.expectedRevision !== undefined && existing.revision !== options.expectedRevision) {
+      throw new Error(`Workflow draft revision conflict: expected ${options.expectedRevision}, current ${existing.revision}. Reload before saving.`);
+    }
+    const now = new Date().toISOString();
+    const saved: GraphRecord = { graph, graphDigest: digestWorkflowGraph(graph), state: "draft", revision: (existing?.revision || 0) + 1, createdAt: existing?.createdAt || now, updatedAt: now };
+    return { ...currentRegistry, records: [saved, ...currentRegistry.records.filter((candidate) => !(candidate.graph.id === graph.id && candidate.graph.version === graph.version))].slice(0, 200) };
+  });
+  const saved = registry.records.find((record) => record.graph.id === graph.id && record.graph.version === graph.version);
+  if (!saved) throw new Error("Workflow draft was not persisted.");
+  return saved;
 }
 
 export function publishWorkflowVersion(input: { graphId: string; graphVersion: number; deploymentSlug: string; expectedRevision?: number }) {
-  const registry = readRegistry();
-  const target = registry.records.find((record) => record.graph.id === input.graphId && record.graph.version === input.graphVersion);
-  if (!target) throw new Error("Workflow draft was not found.");
-  if (input.expectedRevision !== undefined && target.revision !== input.expectedRevision) {
-    throw new Error(`Workflow draft revision conflict: expected ${input.expectedRevision}, current ${target.revision}. Reload before publishing.`);
-  }
-  const validation = validateWorkflowGraph(target.graph);
-  if (!validation.valid) throw new Error(`Workflow graph is invalid: ${validation.errors.join(" ")}`);
-  const slug = safeSlug(input.deploymentSlug);
-  if (registry.records.some((record) => record.deploymentSlug === slug && record !== target)) throw new Error("deploymentSlug is already in use.");
-  const now = new Date().toISOString();
-  const published: GraphRecord = { ...target, state: "published", revision: target.revision + 1, updatedAt: now, publishedAt: now, deploymentSlug: slug };
-  writeRegistry({ ...registry, records: registry.records.map((record) => record === target ? published : record) });
+  const registry = updateRegistry((currentRegistry) => {
+    const target = currentRegistry.records.find((record) => record.graph.id === input.graphId && record.graph.version === input.graphVersion);
+    if (!target) throw new Error("Workflow draft was not found.");
+    if (input.expectedRevision !== undefined && target.revision !== input.expectedRevision) {
+      throw new Error(`Workflow draft revision conflict: expected ${input.expectedRevision}, current ${target.revision}. Reload before publishing.`);
+    }
+    const validation = validateWorkflowGraph(target.graph);
+    if (!validation.valid) throw new Error(`Workflow graph is invalid: ${validation.errors.join(" ")}`);
+    const slug = safeSlug(input.deploymentSlug);
+    if (currentRegistry.records.some((record) => record.deploymentSlug === slug && record !== target)) throw new Error("deploymentSlug is already in use.");
+    const now = new Date().toISOString();
+    const published: GraphRecord = { ...target, state: "published", revision: target.revision + 1, updatedAt: now, publishedAt: now, deploymentSlug: slug };
+    return { ...currentRegistry, records: currentRegistry.records.map((record) => record === target ? published : record) };
+  });
+  const published = registry.records.find((record) => record.graph.id === input.graphId && record.graph.version === input.graphVersion && record.state === "published");
+  if (!published) throw new Error("Workflow version was not published.");
   return published;
 }
 
 export function cloneWorkflowVersion(input: { graphId: string; graphVersion: number; nextVersion?: number }) {
-  const registry = readRegistry();
-  const source = registry.records.find((record) => record.graph.id === input.graphId && record.graph.version === input.graphVersion);
-  if (!source) throw new Error("Workflow source version was not found.");
-  const existingVersions = registry.records.filter((record) => record.graph.id === input.graphId).map((record) => record.graph.version);
-  const nextVersion = input.nextVersion || Math.max(source.graph.version, ...existingVersions) + 1;
-  if (!Number.isInteger(nextVersion) || nextVersion <= source.graph.version) throw new Error("Next workflow version must be greater than the source version.");
-  if (existingVersions.includes(nextVersion)) throw new Error(`Workflow version ${nextVersion} already exists.`);
-  return saveWorkflowDraft({ ...source.graph, version: nextVersion, label: `${source.graph.label.replace(/ v\d+$/, "")} v${nextVersion}` });
+  let clonedVersion = 0;
+  const registry = updateRegistry((currentRegistry) => {
+    const source = currentRegistry.records.find((record) => record.graph.id === input.graphId && record.graph.version === input.graphVersion);
+    if (!source) throw new Error("Workflow source version was not found.");
+    const existingVersions = currentRegistry.records.filter((record) => record.graph.id === input.graphId).map((record) => record.graph.version);
+    const nextVersion = input.nextVersion || Math.max(source.graph.version, ...existingVersions) + 1;
+    if (!Number.isInteger(nextVersion) || nextVersion <= source.graph.version) throw new Error("Next workflow version must be greater than the source version.");
+    if (existingVersions.includes(nextVersion)) throw new Error(`Workflow version ${nextVersion} already exists.`);
+    const graph = { ...source.graph, version: nextVersion, label: `${source.graph.label.replace(/ v\d+$/, "")} v${nextVersion}` };
+    const validation = validateWorkflowGraph(graph);
+    if (!validation.valid) throw new Error(`Workflow graph is invalid: ${validation.errors.join(" ")}`);
+    const now = new Date().toISOString();
+    const cloned: GraphRecord = { graph, graphDigest: digestWorkflowGraph(graph), state: "draft", revision: 1, createdAt: now, updatedAt: now };
+    clonedVersion = nextVersion;
+    return { ...currentRegistry, records: [cloned, ...currentRegistry.records].slice(0, 200) };
+  });
+  const cloned = registry.records.find((record) => record.graph.id === input.graphId && record.graph.version === clonedVersion);
+  if (!cloned) throw new Error("Workflow version was not cloned.");
+  return cloned;
 }
 
 export function retireWorkflowVersion(input: { graphId: string; graphVersion: number; expectedRevision?: number }) {
-  const registry = readRegistry();
-  const target = registry.records.find((record) => record.graph.id === input.graphId && record.graph.version === input.graphVersion);
-  if (!target) throw new Error("Workflow version was not found.");
-  if (input.expectedRevision !== undefined && target.revision !== input.expectedRevision) throw new Error("Workflow version changed before it could be retired.");
-  const retired: GraphRecord = { ...target, state: "retired", deploymentSlug: undefined, revision: target.revision + 1, updatedAt: new Date().toISOString() };
-  writeRegistry({ ...registry, records: registry.records.map((record) => record === target ? retired : record) });
+  const registry = updateRegistry((currentRegistry) => {
+    const target = currentRegistry.records.find((record) => record.graph.id === input.graphId && record.graph.version === input.graphVersion);
+    if (!target) throw new Error("Workflow version was not found.");
+    if (input.expectedRevision !== undefined && target.revision !== input.expectedRevision) throw new Error("Workflow version changed before it could be retired.");
+    const retired: GraphRecord = { ...target, state: "retired", deploymentSlug: undefined, revision: target.revision + 1, updatedAt: new Date().toISOString() };
+    return { ...currentRegistry, records: currentRegistry.records.map((record) => record === target ? retired : record) };
+  });
+  const retired = registry.records.find((record) => record.graph.id === input.graphId && record.graph.version === input.graphVersion && record.state === "retired");
+  if (!retired) throw new Error("Workflow version was not retired.");
   return retired;
 }

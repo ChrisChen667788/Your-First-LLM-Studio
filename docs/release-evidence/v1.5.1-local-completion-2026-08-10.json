@@ -1,0 +1,500 @@
+{
+  "schemaVersion": "evaluation.release-candidate-runner-evidence.v1",
+  "generatedAt": "2026-08-09T19:07:13.816Z",
+  "baseUrl": "http://127.0.0.1:3011",
+  "receipt": {
+    "id": "v151-release-candidate-8e1b9def-7b4a-4eec-8ace-c0c26e15b159",
+    "generatedAt": "2026-08-09T19:07:13.787Z",
+    "status": "pass",
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "artifact": {
+      "id": "first-llm-studio.adapter.local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+      "version": "1.5.1-d9475c96a3a6",
+      "registryRecordId": "artifact-registry-e091a2b6-e656-4b73-9db2-10e9b26328bb",
+      "checkpointSha256": "d9475c96a3a6766bb719a58bb6a5bb3468826441b401bb63e18ac75395954c7a",
+      "packageSha256": "4121c1f16672b865bdfe015c734ddd56461222a14d95328a2f56274ebe33ee3b"
+    },
+    "workload": {
+      "baseTargetId": "local-qwen3-0.6b",
+      "adapterTargetId": "local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+      "benchmarkRunIds": [
+        "f907c8fe-d692-4401-9e4b-69a20f10944c",
+        "6936fad8-9d2f-459f-92ca-d099780a1662",
+        "dfd0a2e7-ddc3-4612-a7e0-14b62b22b21e"
+      ],
+      "pairedSamples": 36,
+      "pairedBatches": 3
+    },
+    "evidence": {
+      "regressionReceiptId": "regression-suite-fddef942-afa6-4736-8585-c6adb27e9e1c",
+      "bindingReceiptId": "quality-artifact-binding-17cf878b-a7e2-4231-aa2e-79ef0bbf787a",
+      "qualityClaimReceiptId": "quality-billing-feb92ea4-fe39-4aab-968d-7e8b4ceb51b7",
+      "usageReconciliationReceiptId": "usage-reconciliation-ce181a2f-a2ac-4dc8-a334-06908142585c",
+      "usageSettlementReceiptId": "usage-settlement-receipt-e5809e27-2b73-41c0-ab67-77ecf250ea32",
+      "controlPlaneFailoverId": "failover-50674a6d-3360-49ba-82d6-1e2ed0559a31",
+      "controlPlaneSigningReceiptId": "kms-309ce1a1-7e41-41b2-8f80-32be871000a5"
+    },
+    "checks": {
+      "checkpointExists": true,
+      "checkpointChecksumVerified": true,
+      "baseRevisionPinned": true,
+      "registryRoundTripVerified": true,
+      "pairedBatchCoverage": true,
+      "pairedSampleCoverage": true,
+      "objectiveEvaluatorDeclared": true,
+      "regressionPassed": true,
+      "artifactBindingPassed": true,
+      "qualityBillingClaimPassed": true,
+      "tokenAccountingReconciled": true,
+      "currentUsageReconciliationPassed": true,
+      "usageSettlementRetrySafe": true,
+      "localAuditArchived": true,
+      "localSigningReceiptVerified": true,
+      "oldPrimaryFenced": true,
+      "standbyPromoted": true,
+      "rpoRtoMeasured": true
+    },
+    "blockers": [],
+    "productionBlockers": [
+      "Repeat the frozen paired workload on an independent release worker.",
+      "Publish the adapter to an organization-controlled remote registry and verify read-back digests.",
+      "Obtain organization release sign-off for the deterministic evaluation protocol.",
+      "Managed billing delivery, cross-region failover, cloud KMS/HSM, and immutable archive remain external gates."
+    ],
+    "evidenceDigest": "efffa15ce8252cf6243882d0d764bfdbe9e7b7968acb5500a9a315a743bb4fb5"
+  },
+  "evidence": {
+    "ok": true,
+    "schemaVersion": "evaluation.release-candidate-acceptance.v1",
+    "generatedAt": "2026-08-09T19:07:13.807Z",
+    "latest": {
+      "id": "v151-release-candidate-8e1b9def-7b4a-4eec-8ace-c0c26e15b159",
+      "generatedAt": "2026-08-09T19:07:13.787Z",
+      "status": "pass",
+      "localStatus": "pass",
+      "productionStatus": "hold",
+      "artifact": {
+        "id": "first-llm-studio.adapter.local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+        "version": "1.5.1-d9475c96a3a6",
+        "registryRecordId": "artifact-registry-e091a2b6-e656-4b73-9db2-10e9b26328bb",
+        "checkpointSha256": "d9475c96a3a6766bb719a58bb6a5bb3468826441b401bb63e18ac75395954c7a",
+        "packageSha256": "4121c1f16672b865bdfe015c734ddd56461222a14d95328a2f56274ebe33ee3b"
+      },
+      "workload": {
+        "baseTargetId": "local-qwen3-0.6b",
+        "adapterTargetId": "local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+        "benchmarkRunIds": [
+          "f907c8fe-d692-4401-9e4b-69a20f10944c",
+          "6936fad8-9d2f-459f-92ca-d099780a1662",
+          "dfd0a2e7-ddc3-4612-a7e0-14b62b22b21e"
+        ],
+        "pairedSamples": 36,
+        "pairedBatches": 3
+      },
+      "evidence": {
+        "regressionReceiptId": "regression-suite-fddef942-afa6-4736-8585-c6adb27e9e1c",
+        "bindingReceiptId": "quality-artifact-binding-17cf878b-a7e2-4231-aa2e-79ef0bbf787a",
+        "qualityClaimReceiptId": "quality-billing-feb92ea4-fe39-4aab-968d-7e8b4ceb51b7",
+        "usageReconciliationReceiptId": "usage-reconciliation-ce181a2f-a2ac-4dc8-a334-06908142585c",
+        "usageSettlementReceiptId": "usage-settlement-receipt-e5809e27-2b73-41c0-ab67-77ecf250ea32",
+        "controlPlaneFailoverId": "failover-50674a6d-3360-49ba-82d6-1e2ed0559a31",
+        "controlPlaneSigningReceiptId": "kms-309ce1a1-7e41-41b2-8f80-32be871000a5"
+      },
+      "checks": {
+        "checkpointExists": true,
+        "checkpointChecksumVerified": true,
+        "baseRevisionPinned": true,
+        "registryRoundTripVerified": true,
+        "pairedBatchCoverage": true,
+        "pairedSampleCoverage": true,
+        "objectiveEvaluatorDeclared": true,
+        "regressionPassed": true,
+        "artifactBindingPassed": true,
+        "qualityBillingClaimPassed": true,
+        "tokenAccountingReconciled": true,
+        "currentUsageReconciliationPassed": true,
+        "usageSettlementRetrySafe": true,
+        "localAuditArchived": true,
+        "localSigningReceiptVerified": true,
+        "oldPrimaryFenced": true,
+        "standbyPromoted": true,
+        "rpoRtoMeasured": true
+      },
+      "blockers": [],
+      "productionBlockers": [
+        "Repeat the frozen paired workload on an independent release worker.",
+        "Publish the adapter to an organization-controlled remote registry and verify read-back digests.",
+        "Obtain organization release sign-off for the deterministic evaluation protocol.",
+        "Managed billing delivery, cross-region failover, cloud KMS/HSM, and immutable archive remain external gates."
+      ],
+      "evidenceDigest": "efffa15ce8252cf6243882d0d764bfdbe9e7b7968acb5500a9a315a743bb4fb5"
+    },
+    "latestPassing": {
+      "id": "v151-release-candidate-8e1b9def-7b4a-4eec-8ace-c0c26e15b159",
+      "generatedAt": "2026-08-09T19:07:13.787Z",
+      "status": "pass",
+      "localStatus": "pass",
+      "productionStatus": "hold",
+      "artifact": {
+        "id": "first-llm-studio.adapter.local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+        "version": "1.5.1-d9475c96a3a6",
+        "registryRecordId": "artifact-registry-e091a2b6-e656-4b73-9db2-10e9b26328bb",
+        "checkpointSha256": "d9475c96a3a6766bb719a58bb6a5bb3468826441b401bb63e18ac75395954c7a",
+        "packageSha256": "4121c1f16672b865bdfe015c734ddd56461222a14d95328a2f56274ebe33ee3b"
+      },
+      "workload": {
+        "baseTargetId": "local-qwen3-0.6b",
+        "adapterTargetId": "local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+        "benchmarkRunIds": [
+          "f907c8fe-d692-4401-9e4b-69a20f10944c",
+          "6936fad8-9d2f-459f-92ca-d099780a1662",
+          "dfd0a2e7-ddc3-4612-a7e0-14b62b22b21e"
+        ],
+        "pairedSamples": 36,
+        "pairedBatches": 3
+      },
+      "evidence": {
+        "regressionReceiptId": "regression-suite-fddef942-afa6-4736-8585-c6adb27e9e1c",
+        "bindingReceiptId": "quality-artifact-binding-17cf878b-a7e2-4231-aa2e-79ef0bbf787a",
+        "qualityClaimReceiptId": "quality-billing-feb92ea4-fe39-4aab-968d-7e8b4ceb51b7",
+        "usageReconciliationReceiptId": "usage-reconciliation-ce181a2f-a2ac-4dc8-a334-06908142585c",
+        "usageSettlementReceiptId": "usage-settlement-receipt-e5809e27-2b73-41c0-ab67-77ecf250ea32",
+        "controlPlaneFailoverId": "failover-50674a6d-3360-49ba-82d6-1e2ed0559a31",
+        "controlPlaneSigningReceiptId": "kms-309ce1a1-7e41-41b2-8f80-32be871000a5"
+      },
+      "checks": {
+        "checkpointExists": true,
+        "checkpointChecksumVerified": true,
+        "baseRevisionPinned": true,
+        "registryRoundTripVerified": true,
+        "pairedBatchCoverage": true,
+        "pairedSampleCoverage": true,
+        "objectiveEvaluatorDeclared": true,
+        "regressionPassed": true,
+        "artifactBindingPassed": true,
+        "qualityBillingClaimPassed": true,
+        "tokenAccountingReconciled": true,
+        "currentUsageReconciliationPassed": true,
+        "usageSettlementRetrySafe": true,
+        "localAuditArchived": true,
+        "localSigningReceiptVerified": true,
+        "oldPrimaryFenced": true,
+        "standbyPromoted": true,
+        "rpoRtoMeasured": true
+      },
+      "blockers": [],
+      "productionBlockers": [
+        "Repeat the frozen paired workload on an independent release worker.",
+        "Publish the adapter to an organization-controlled remote registry and verify read-back digests.",
+        "Obtain organization release sign-off for the deterministic evaluation protocol.",
+        "Managed billing delivery, cross-region failover, cloud KMS/HSM, and immutable archive remain external gates."
+      ],
+      "evidenceDigest": "efffa15ce8252cf6243882d0d764bfdbe9e7b7968acb5500a9a315a743bb4fb5"
+    },
+    "receipts": [
+      {
+        "id": "v151-release-candidate-8e1b9def-7b4a-4eec-8ace-c0c26e15b159",
+        "generatedAt": "2026-08-09T19:07:13.787Z",
+        "status": "pass",
+        "localStatus": "pass",
+        "productionStatus": "hold",
+        "artifact": {
+          "id": "first-llm-studio.adapter.local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+          "version": "1.5.1-d9475c96a3a6",
+          "registryRecordId": "artifact-registry-e091a2b6-e656-4b73-9db2-10e9b26328bb",
+          "checkpointSha256": "d9475c96a3a6766bb719a58bb6a5bb3468826441b401bb63e18ac75395954c7a",
+          "packageSha256": "4121c1f16672b865bdfe015c734ddd56461222a14d95328a2f56274ebe33ee3b"
+        },
+        "workload": {
+          "baseTargetId": "local-qwen3-0.6b",
+          "adapterTargetId": "local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+          "benchmarkRunIds": [
+            "f907c8fe-d692-4401-9e4b-69a20f10944c",
+            "6936fad8-9d2f-459f-92ca-d099780a1662",
+            "dfd0a2e7-ddc3-4612-a7e0-14b62b22b21e"
+          ],
+          "pairedSamples": 36,
+          "pairedBatches": 3
+        },
+        "evidence": {
+          "regressionReceiptId": "regression-suite-fddef942-afa6-4736-8585-c6adb27e9e1c",
+          "bindingReceiptId": "quality-artifact-binding-17cf878b-a7e2-4231-aa2e-79ef0bbf787a",
+          "qualityClaimReceiptId": "quality-billing-feb92ea4-fe39-4aab-968d-7e8b4ceb51b7",
+          "usageReconciliationReceiptId": "usage-reconciliation-ce181a2f-a2ac-4dc8-a334-06908142585c",
+          "usageSettlementReceiptId": "usage-settlement-receipt-e5809e27-2b73-41c0-ab67-77ecf250ea32",
+          "controlPlaneFailoverId": "failover-50674a6d-3360-49ba-82d6-1e2ed0559a31",
+          "controlPlaneSigningReceiptId": "kms-309ce1a1-7e41-41b2-8f80-32be871000a5"
+        },
+        "checks": {
+          "checkpointExists": true,
+          "checkpointChecksumVerified": true,
+          "baseRevisionPinned": true,
+          "registryRoundTripVerified": true,
+          "pairedBatchCoverage": true,
+          "pairedSampleCoverage": true,
+          "objectiveEvaluatorDeclared": true,
+          "regressionPassed": true,
+          "artifactBindingPassed": true,
+          "qualityBillingClaimPassed": true,
+          "tokenAccountingReconciled": true,
+          "currentUsageReconciliationPassed": true,
+          "usageSettlementRetrySafe": true,
+          "localAuditArchived": true,
+          "localSigningReceiptVerified": true,
+          "oldPrimaryFenced": true,
+          "standbyPromoted": true,
+          "rpoRtoMeasured": true
+        },
+        "blockers": [],
+        "productionBlockers": [
+          "Repeat the frozen paired workload on an independent release worker.",
+          "Publish the adapter to an organization-controlled remote registry and verify read-back digests.",
+          "Obtain organization release sign-off for the deterministic evaluation protocol.",
+          "Managed billing delivery, cross-region failover, cloud KMS/HSM, and immutable archive remain external gates."
+        ],
+        "evidenceDigest": "efffa15ce8252cf6243882d0d764bfdbe9e7b7968acb5500a9a315a743bb4fb5"
+      },
+      {
+        "id": "v151-release-candidate-60c93e99-946b-4ee7-9107-d211a51b4839",
+        "generatedAt": "2026-08-09T18:49:36.659Z",
+        "status": "pass",
+        "localStatus": "pass",
+        "productionStatus": "hold",
+        "artifact": {
+          "id": "first-llm-studio.adapter.local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+          "version": "1.5.1-d9475c96a3a6",
+          "registryRecordId": "artifact-registry-e091a2b6-e656-4b73-9db2-10e9b26328bb",
+          "checkpointSha256": "d9475c96a3a6766bb719a58bb6a5bb3468826441b401bb63e18ac75395954c7a",
+          "packageSha256": "4121c1f16672b865bdfe015c734ddd56461222a14d95328a2f56274ebe33ee3b"
+        },
+        "workload": {
+          "baseTargetId": "local-qwen3-0.6b",
+          "adapterTargetId": "local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+          "benchmarkRunIds": [
+            "f907c8fe-d692-4401-9e4b-69a20f10944c",
+            "6936fad8-9d2f-459f-92ca-d099780a1662",
+            "dfd0a2e7-ddc3-4612-a7e0-14b62b22b21e"
+          ],
+          "pairedSamples": 36,
+          "pairedBatches": 3
+        },
+        "evidence": {
+          "regressionReceiptId": "regression-suite-0a3ce680-6e37-4b6f-baba-128263546a2f",
+          "bindingReceiptId": "quality-artifact-binding-14e75ed4-ac5a-421e-bc89-2afef9174794",
+          "qualityClaimReceiptId": "quality-billing-e9ddf6aa-56ed-4534-9d50-a95508b3dd2a",
+          "usageReconciliationReceiptId": "usage-reconciliation-8fd01074-9556-4a31-b79a-58613f579b21",
+          "usageSettlementReceiptId": "usage-settlement-receipt-fe378df9-e85b-4eb4-bbab-2b598fde890a",
+          "controlPlaneFailoverId": "failover-ac21d4a2-423b-4b8f-8d68-9b7e4e2df669",
+          "controlPlaneSigningReceiptId": "kms-1fe4053f-38f7-4a4f-82be-f2bc6dc2bdb7"
+        },
+        "checks": {
+          "checkpointExists": true,
+          "checkpointChecksumVerified": true,
+          "baseRevisionPinned": true,
+          "registryRoundTripVerified": true,
+          "pairedBatchCoverage": true,
+          "pairedSampleCoverage": true,
+          "objectiveEvaluatorDeclared": true,
+          "regressionPassed": true,
+          "artifactBindingPassed": true,
+          "qualityBillingClaimPassed": true,
+          "tokenAccountingReconciled": true,
+          "currentUsageReconciliationPassed": true,
+          "usageSettlementRetrySafe": true,
+          "localAuditArchived": true,
+          "localSigningReceiptVerified": true,
+          "oldPrimaryFenced": true,
+          "standbyPromoted": true,
+          "rpoRtoMeasured": true
+        },
+        "blockers": [],
+        "productionBlockers": [
+          "Repeat the frozen paired workload on an independent release worker.",
+          "Publish the adapter to an organization-controlled remote registry and verify read-back digests.",
+          "Obtain organization release sign-off for the deterministic evaluation protocol.",
+          "Managed billing delivery, cross-region failover, cloud KMS/HSM, and immutable archive remain external gates."
+        ],
+        "evidenceDigest": "728346827dd2ec6ad63b53d30ccf122906a70b0cd36fe60f96cb866df199e065"
+      },
+      {
+        "id": "v151-release-candidate-90deb385-1aae-4b19-9344-87b355462313",
+        "generatedAt": "2026-08-09T18:43:46.384Z",
+        "status": "pass",
+        "localStatus": "pass",
+        "productionStatus": "hold",
+        "artifact": {
+          "id": "first-llm-studio.adapter.local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+          "version": "1.5.1-d9475c96a3a6",
+          "registryRecordId": "artifact-registry-e091a2b6-e656-4b73-9db2-10e9b26328bb",
+          "checkpointSha256": "d9475c96a3a6766bb719a58bb6a5bb3468826441b401bb63e18ac75395954c7a",
+          "packageSha256": "4121c1f16672b865bdfe015c734ddd56461222a14d95328a2f56274ebe33ee3b"
+        },
+        "workload": {
+          "baseTargetId": "local-qwen3-0.6b",
+          "adapterTargetId": "local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+          "benchmarkRunIds": [
+            "f907c8fe-d692-4401-9e4b-69a20f10944c",
+            "6936fad8-9d2f-459f-92ca-d099780a1662",
+            "dfd0a2e7-ddc3-4612-a7e0-14b62b22b21e"
+          ],
+          "pairedSamples": 36,
+          "pairedBatches": 3
+        },
+        "evidence": {
+          "regressionReceiptId": "regression-suite-4ba0e24d-9530-4960-bb25-5a9e4c533d3f",
+          "bindingReceiptId": "quality-artifact-binding-9360df0a-b060-4961-b931-ef40432807a8",
+          "qualityClaimReceiptId": "quality-billing-e74df257-e8a3-4123-b5bd-c505562bf28b",
+          "usageReconciliationReceiptId": "usage-reconciliation-7700d835-5550-4bc3-9207-52db1d83b789",
+          "usageSettlementReceiptId": "usage-settlement-receipt-797644dc-6822-41e5-81c3-74b2969c712a",
+          "controlPlaneFailoverId": "failover-83f425b8-4fae-40cb-bf5a-eccd7e7112ad",
+          "controlPlaneSigningReceiptId": "kms-e09c9dd2-a5a6-40e2-afa5-1c4f957b3783"
+        },
+        "checks": {
+          "checkpointExists": true,
+          "checkpointChecksumVerified": true,
+          "baseRevisionPinned": true,
+          "registryRoundTripVerified": true,
+          "pairedBatchCoverage": true,
+          "pairedSampleCoverage": true,
+          "objectiveEvaluatorDeclared": true,
+          "regressionPassed": true,
+          "artifactBindingPassed": true,
+          "qualityBillingClaimPassed": true,
+          "tokenAccountingReconciled": true,
+          "currentUsageReconciliationPassed": true,
+          "usageSettlementRetrySafe": true,
+          "localAuditArchived": true,
+          "localSigningReceiptVerified": true,
+          "oldPrimaryFenced": true,
+          "standbyPromoted": true,
+          "rpoRtoMeasured": true
+        },
+        "blockers": [],
+        "productionBlockers": [
+          "Repeat the frozen paired workload on an independent release worker.",
+          "Publish the adapter to an organization-controlled remote registry and verify read-back digests.",
+          "Obtain organization release sign-off for the deterministic evaluation protocol.",
+          "Managed billing delivery, cross-region failover, cloud KMS/HSM, and immutable archive remain external gates."
+        ],
+        "evidenceDigest": "6f7698429d18be2291522fdad7c807309ece9d003025ba7bf3a902032c8d96cf"
+      },
+      {
+        "id": "v151-release-candidate-3439230b-6c3e-478d-a087-2413fba6071d",
+        "generatedAt": "2026-08-09T18:40:09.906Z",
+        "status": "pass",
+        "localStatus": "pass",
+        "productionStatus": "hold",
+        "artifact": {
+          "id": "first-llm-studio.adapter.local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+          "version": "1.5.1-d9475c96a3a6",
+          "registryRecordId": "artifact-registry-e091a2b6-e656-4b73-9db2-10e9b26328bb",
+          "checkpointSha256": "d9475c96a3a6766bb719a58bb6a5bb3468826441b401bb63e18ac75395954c7a",
+          "packageSha256": "4121c1f16672b865bdfe015c734ddd56461222a14d95328a2f56274ebe33ee3b"
+        },
+        "workload": {
+          "baseTargetId": "local-qwen3-0.6b",
+          "adapterTargetId": "local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+          "benchmarkRunIds": [
+            "f907c8fe-d692-4401-9e4b-69a20f10944c",
+            "6936fad8-9d2f-459f-92ca-d099780a1662",
+            "dfd0a2e7-ddc3-4612-a7e0-14b62b22b21e"
+          ],
+          "pairedSamples": 36,
+          "pairedBatches": 3
+        },
+        "evidence": {
+          "regressionReceiptId": "regression-suite-be7feca7-6a46-46af-a520-4a0c758e32b2",
+          "bindingReceiptId": "quality-artifact-binding-bd0debb5-9db7-4c78-84ca-757bcbfa51b1",
+          "qualityClaimReceiptId": "quality-billing-c20d6440-b94b-4733-9eb1-e97dd9317ada",
+          "usageReconciliationReceiptId": "usage-reconciliation-a4881f59-cb0d-463c-b02e-b80058d62b2c",
+          "usageSettlementReceiptId": "usage-settlement-receipt-69124ef5-a3f3-4f26-a768-0cbcf1b4cb1c",
+          "controlPlaneFailoverId": "failover-501d92e0-36fd-4a88-aee5-7f5cb51c7acd",
+          "controlPlaneSigningReceiptId": "kms-fa8e8b79-8d58-444f-854e-45f2d9e9f95e"
+        },
+        "checks": {
+          "checkpointExists": true,
+          "checkpointChecksumVerified": true,
+          "baseRevisionPinned": true,
+          "registryRoundTripVerified": true,
+          "pairedBatchCoverage": true,
+          "pairedSampleCoverage": true,
+          "objectiveEvaluatorDeclared": true,
+          "regressionPassed": true,
+          "artifactBindingPassed": true,
+          "qualityBillingClaimPassed": true,
+          "tokenAccountingReconciled": true,
+          "currentUsageReconciliationPassed": true,
+          "usageSettlementRetrySafe": true,
+          "localAuditArchived": true,
+          "localSigningReceiptVerified": true,
+          "oldPrimaryFenced": true,
+          "standbyPromoted": true,
+          "rpoRtoMeasured": true
+        },
+        "blockers": [],
+        "productionBlockers": [
+          "Repeat the frozen paired workload on an independent release worker.",
+          "Publish the adapter to an organization-controlled remote registry and verify read-back digests.",
+          "Obtain organization release sign-off for the deterministic evaluation protocol.",
+          "Managed billing delivery, cross-region failover, cloud KMS/HSM, and immutable archive remain external gates."
+        ],
+        "evidenceDigest": "9a1868f419bed38b41d830e8ca252ef1c03c42fa1b24ce723c52acfc34790696"
+      },
+      {
+        "id": "v151-release-candidate-5fa09f70-55e7-4893-984c-5d9c6a32494c",
+        "generatedAt": "2026-08-09T18:38:50.071Z",
+        "status": "pass",
+        "localStatus": "pass",
+        "productionStatus": "hold",
+        "artifact": {
+          "id": "first-llm-studio.adapter.local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+          "version": "1.5.1-d9475c96a3a6",
+          "registryRecordId": "artifact-registry-e091a2b6-e656-4b73-9db2-10e9b26328bb",
+          "checkpointSha256": "d9475c96a3a6766bb719a58bb6a5bb3468826441b401bb63e18ac75395954c7a",
+          "packageSha256": "4121c1f16672b865bdfe015c734ddd56461222a14d95328a2f56274ebe33ee3b"
+        },
+        "workload": {
+          "baseTargetId": "local-qwen3-0.6b",
+          "adapterTargetId": "local-ft-first-llm-studio-smoke-adapter-09caf4fb",
+          "benchmarkRunIds": [
+            "f907c8fe-d692-4401-9e4b-69a20f10944c",
+            "6936fad8-9d2f-459f-92ca-d099780a1662",
+            "dfd0a2e7-ddc3-4612-a7e0-14b62b22b21e"
+          ],
+          "pairedSamples": 36,
+          "pairedBatches": 3
+        },
+        "evidence": {
+          "regressionReceiptId": "regression-suite-5eace533-d474-486e-b1fd-eabd07727013",
+          "bindingReceiptId": "quality-artifact-binding-81cf37c1-5df6-41b9-baf9-331f5a5c390b",
+          "qualityClaimReceiptId": "quality-billing-92bbcdc5-88ca-4a27-954c-c5d32da26ffd"
+        },
+        "checks": {
+          "checkpointExists": true,
+          "checkpointChecksumVerified": true,
+          "baseRevisionPinned": true,
+          "registryRoundTripVerified": true,
+          "pairedBatchCoverage": true,
+          "pairedSampleCoverage": true,
+          "objectiveEvaluatorDeclared": true,
+          "regressionPassed": true,
+          "artifactBindingPassed": true,
+          "qualityBillingClaimPassed": true,
+          "tokenAccountingReconciled": true
+        },
+        "blockers": [],
+        "productionBlockers": [
+          "Repeat the frozen paired workload on an independent release worker.",
+          "Publish the adapter to an organization-controlled remote registry and verify read-back digests.",
+          "Obtain organization release sign-off for the deterministic evaluation protocol.",
+          "Managed billing delivery, cross-region failover, cloud KMS/HSM, and immutable archive remain external gates."
+        ],
+        "evidenceDigest": "ff43394535eacc4ef63a0746854c8169b079ca83d00307eb8e08f7eaea7dd36b"
+      }
+    ],
+    "localStatus": "pass",
+    "productionStatus": "hold",
+    "path": "/Users/chenhaorui/Library/Application Support/local-agent-lab/observability/v1.5.1-release-candidate-acceptance.json"
+  }
+}

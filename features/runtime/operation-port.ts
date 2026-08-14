@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { prependDurableReceipt, readDurableReceipts } from "@/features/persistence/durable-receipt-store";
 import {
   readRuntimeAdapterSpecs,
   resolveRuntimeFabricOperation,
@@ -62,31 +62,11 @@ function contracts() {
 }
 
 function readReceipts(): Receipt[] {
-  if (!existsSync(STORE_FILE)) return [];
-  try {
-    const parsed = JSON.parse(readFileSync(STORE_FILE, "utf8")) as {
-      receipts?: Receipt[];
-    };
-    return Array.isArray(parsed.receipts) ? parsed.receipts : [];
-  } catch {
-    return [];
-  }
+  return readDurableReceipts(STORE_FILE, RUNTIME_OPERATION_PORT_SCHEMA_VERSION);
 }
 
 function persist(receipt: Receipt) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(
-    STORE_FILE,
-    `${JSON.stringify(
-      {
-        schemaVersion: RUNTIME_OPERATION_PORT_SCHEMA_VERSION,
-        receipts: [receipt, ...readReceipts()].slice(0, 100),
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
+  prependDurableReceipt(STORE_FILE, RUNTIME_OPERATION_PORT_SCHEMA_VERSION, receipt, 100);
 }
 
 export function resolveRuntimeOperation(

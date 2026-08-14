@@ -2,9 +2,10 @@ import crypto from "crypto";
 import os from "os";
 import path from "path";
 import { spawn } from "child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statfsSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, statfsSync } from "fs";
 import { getLocalAgentDataPath } from "@/lib/agent/data-dir";
 import { listServerAgentTargets, syncDiscoveredLocalTargetsFromGateway } from "@/lib/agent/server-targets";
+import { readJsonFileDurably, replaceJsonFileDurably, updateJsonFileDurably } from "@/features/persistence/durable-json-file";
 import type {
   CommunityHardwareProfile,
   CommunityModelArtifactKind,
@@ -97,17 +98,15 @@ function ensureCommunityDir() {
 }
 
 function readJsonFile<T>(filePath: string, fallback: T): T {
-  if (!existsSync(filePath)) return fallback;
-  try {
-    return JSON.parse(readFileSync(filePath, "utf8")) as T;
-  } catch {
-    return fallback;
-  }
+  return readJsonFileDurably(filePath, () => fallback);
 }
 
 function writeJsonFile(filePath: string, value: unknown) {
-  ensureCommunityDir();
-  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  replaceJsonFileDurably(filePath, value);
+}
+
+function updateJsonFile<T>(filePath: string, fallback: T, mutate: (current: T) => T) {
+  return updateJsonFileDurably(filePath, () => fallback, mutate);
 }
 
 function slugify(value: string) {
@@ -812,8 +811,14 @@ function readStoredJobs() {
   return readJsonFile<CommunityModelInstallJob[]>(JOBS_FILE, []).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-function writeStoredJobs(jobs: CommunityModelInstallJob[]) {
-  writeJsonFile(JOBS_FILE, jobs);
+function updateStoredJobs(
+  mutate: (jobs: CommunityModelInstallJob[]) => CommunityModelInstallJob[],
+) {
+  return updateJsonFile(
+    JOBS_FILE,
+    [] as CommunityModelInstallJob[],
+    mutate,
+  );
 }
 
 function readInstallRuntimeState(jobId: string) {
@@ -823,12 +828,11 @@ function readInstallRuntimeState(jobId: string) {
 
 function writeInstallRuntimeState(jobId: string, patch: CommunityModelInstallRuntimeState) {
   const { stateFile } = getInstallJobPaths(jobId);
-  const current = readInstallRuntimeState(jobId) || {};
-  writeJsonFile(stateFile, {
+  updateJsonFile<CommunityModelInstallRuntimeState>(stateFile, {}, (current) => ({
     ...current,
     ...patch,
     updatedAt: patch.updatedAt || new Date().toISOString()
-  });
+  }));
 }
 
 function mergeInstallJobState(job: CommunityModelInstallJob) {
@@ -892,7 +896,10 @@ async function reconcileInstallJobs() {
       updatedAt: new Date().toISOString()
     };
   });
-  writeStoredJobs(nextJobs);
+  const reconciledById = new Map(nextJobs.map((job) => [job.id, job]));
+  updateStoredJobs((current) =>
+    current.map((job) => reconciledById.get(job.id) || job),
+  );
   needsVerification.forEach((job) => {
     const verification = buildInstallVerification(job);
     writeInstallRuntimeState(job.id, {
@@ -973,7 +980,6 @@ function queueCommunityModelInstall(
   if (!existsSync(INSTALLER_SCRIPT)) {
     throw new Error(`Missing installer script: ${INSTALLER_SCRIPT}`);
   }
-  const jobs = readStoredJobs();
   const runtimeJobs = readInstallJobs();
   const existingRunning = runtimeJobs.find(
     (job) => job.candidateId === candidate.id && (job.status === "queued" || job.status === "running")
@@ -1021,7 +1027,19 @@ function queueCommunityModelInstall(
     latestMessage: "Install queued.",
     preflight: candidate.preflight
   });
-  writeStoredJobs([job, ...jobs].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+  updateStoredJobs((current) => {
+    const duplicate = current
+      .map(mergeInstallJobState)
+      .find(
+        (entry) =>
+          entry.candidateId === candidate.id &&
+          (entry.status === "queued" || entry.status === "running"),
+      );
+    if (duplicate) throw new Error("This model is already being installed.");
+    return [job, ...current.filter((entry) => entry.id !== job.id)].sort((a, b) =>
+      b.updatedAt.localeCompare(a.updatedAt),
+    );
+  });
 
   const child = spawn(VENV_PYTHON, [INSTALLER_SCRIPT, "--job-file", paths.jobFile], {
     cwd: process.cwd(),
@@ -1038,10 +1056,10 @@ function queueCommunityModelInstall(
     launcherPid: child.pid ?? null,
     latestMessage: "Installer worker started."
   });
-  writeStoredJobs(
-    readStoredJobs().map((entry) =>
+  updateStoredJobs((current) =>
+    current.map((entry) =>
       entry.id === jobId ? { ...entry, launcherPid: child.pid ?? null, updatedAt: new Date().toISOString() } : entry
-    )
+    ),
   );
 
   return mergeInstallJobState({
@@ -1135,8 +1153,8 @@ export async function cleanCommunityModelInstallDirectory(input: { jobId: string
     },
     discoveredTargetIds: []
   });
-  writeStoredJobs(
-    readStoredJobs().map((entry) =>
+  updateStoredJobs((current) =>
+    current.map((entry) =>
       entry.id === job.id
         ? {
             ...entry,
@@ -1152,7 +1170,7 @@ export async function cleanCommunityModelInstallDirectory(input: { jobId: string
             }
           }
         : entry
-    )
+    ),
   );
   return readInstallJobs().find((entry) => entry.id === job.id)!;
 }
@@ -1195,7 +1213,13 @@ export async function verifyCommunityModelInstall(input: { jobId: string }) {
         }
       : entry
   );
-  writeStoredJobs(nextJobs);
+  updateStoredJobs((current) =>
+    current.map((entry) =>
+      entry.id === job.id
+        ? nextJobs.find((next) => next.id === entry.id) || entry
+        : entry,
+    ),
+  );
   writeInstallRuntimeState(job.id, {
     verification,
     discoveredTargetIds: verification.discoveredTargetIds,

@@ -1,5 +1,17 @@
 export const BENCHMARK_CONTRACT_VERSION = "benchmark.contract.v1" as const;
 export const BENCHMARK_RELEASE_EVIDENCE_SUMMARY_VERSION = "benchmark.release-evidence-summary.v1" as const;
+export const BENCHMARK_RUN_API_PATH = "/api/benchmarks" as const;
+export const BENCHMARK_BASELINE_API_PATH = "/api/benchmarks/baseline" as const;
+export const BENCHMARK_PROGRESS_API_PATH = "/api/benchmarks/progress" as const;
+export const BENCHMARK_PROMPT_SETS_API_PATH = "/api/benchmarks/prompt-sets" as const;
+export const BENCHMARK_REPORT_API_PATH = "/api/benchmarks/report" as const;
+export const BENCHMARK_EVIDENCE_API_PATH = "/api/benchmarks/evidence" as const;
+export const BENCHMARK_EXPORT_API_PATH = "/api/benchmarks/export" as const;
+export const BENCHMARK_STANDARDS_API_PATH = "/api/benchmarks/standards" as const;
+export const BENCHMARK_QUALIFICATION_API_PATH =
+  "/api/benchmarks/qualification" as const;
+export const BENCHMARK_OFFICIAL_RUNS_API_PATH =
+  "/api/benchmarks/official-runs" as const;
 
 export type BenchmarkContractVersion = typeof BENCHMARK_CONTRACT_VERSION;
 export type BenchmarkReleaseEvidenceSummaryVersion =
