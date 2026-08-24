@@ -5,6 +5,7 @@ import { AgentWorkbenchHeader } from "./workbench-header";
 import { AgentWorkbenchModeContent, type AgentWorkbenchModeContentProps } from "./workbench-mode-content";
 import { AgentWorkbenchPromptStrip } from "./workbench-prompt-strip";
 import { AgentWorkbenchStatusBand } from "./workbench-status-band";
+import { AgentActionTrustRecoveryPanel } from "./AgentActionTrustRecoveryPanel";
 
 export type AgentWorkbenchMainProps = {
   mode: AgentWorkbenchMode;
@@ -27,6 +28,7 @@ export function AgentWorkbenchMain({
     <div className="min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/75 shadow-[0_30px_80px_rgba(2,6,23,0.55)] backdrop-blur">
       <AgentWorkbenchHeader {...headerProps} />
       <AgentWorkbenchStatusBand {...statusBandProps} />
+      <AgentActionTrustRecoveryPanel />
       <div
         className={`grid gap-0 ${
           mode === "compare"

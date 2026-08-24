@@ -7,6 +7,7 @@ import { addWorkflowEdge, addWorkflowNode, moveWorkflowNode, removeWorkflowEdge,
 import { diffWorkflowGraphs } from "@/features/workflows/graph-diff";
 import { validateWorkflowGraph, type WorkflowEdge, type WorkflowGraph, type WorkflowNode, type WorkflowNodeKind } from "@/features/workflows/graph-contract";
 import { WorkflowGraphCanvas } from "@/features/workflows/WorkflowGraphCanvas";
+import { WorkflowDebuggerClosurePanel } from "@/features/workflows/WorkflowDebuggerClosurePanel";
 
 type Execution = { id: string; graphId: string; graphVersion: number; status: string; currentNodeId: string; completedNodeIds: string[]; usedIdempotencyKeys: string[]; input: string; events: Array<{ type: string; at: string; nodeId?: string }> };
 type GraphRecord = { graph: WorkflowGraph; graphDigest: string; state: "draft" | "published" | "retired"; revision: number; deploymentSlug?: string; updatedAt: string };
@@ -69,6 +70,7 @@ export function WorkflowStudioShell() {
   const activeRecord = useMemo(() => payload?.graphRegistry.records.find((record) => recordKey(record) === activeKey) || null, [activeKey, payload]);
   const editable = activeRecord?.state === "draft";
   const execution = useMemo(() => payload?.executionStore.executions.find((entry) => entry.graphId === graph?.id && entry.graphVersion === graph.version), [graph, payload]);
+  const debuggerExecutionId = useMemo(() => payload?.executionStore.executions.find((entry) => entry.graphId === graph?.id && entry.graphVersion === graph.version && entry.status === "failed")?.id || execution?.id, [execution, graph, payload]);
   const selected = graph?.nodes.find((node) => node.id === selectedNodeId) || graph?.nodes[0];
   const breakpoints = useMemo(() => new Set(payload?.breakpointStore.breakpoints.filter((entry) => entry.enabled && entry.graphId === graph?.id && entry.graphVersion === graph.version).map((entry) => entry.nodeId)), [graph, payload]);
   const validation = useMemo(() => graph ? validateWorkflowGraph(graph) : { valid: false, errors: ["No graph selected."], warnings: [] }, [graph]);
@@ -223,6 +225,7 @@ export function WorkflowStudioShell() {
           <textarea value={input} onChange={(event) => setInput(event.target.value)} className="mt-4 min-h-20 w-full resize-y border border-white/10 bg-black/25 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-300" />
           <div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={pending || !graph} onClick={() => void stepRun()} className="bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-40">{execution?.status === "waiting-approval" ? (en ? "Approve" : "批准") : execution?.status === "paused-breakpoint" ? (en ? "Continue" : "继续") : (en ? "Step" : "单步")}</button><button type="button" disabled={pending || !graph} onClick={() => void runToBoundary()} className="border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 disabled:opacity-40">{en ? "Run to boundary" : "运行到边界"}</button>{execution ? <button type="button" disabled={pending} onClick={() => void perform(async () => { await request("/api/workflows/replay", { sourceExecutionId: execution.id }); })} className="border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200">{en ? "Fork replay" : "派生回放"}</button> : null}</div>
           <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{execution?.events.slice(-6).reverse().map((event, index) => <div key={`${event.at}-${index}`} className="border border-white/10 bg-black/20 px-3 py-2 text-xs"><span className="text-slate-200">{event.type}</span><span className="mt-1 block text-[10px] text-slate-600">{event.nodeId || "state"} · {new Date(event.at).toLocaleTimeString()}</span></div>) || <p className="text-xs text-slate-600">No execution events.</p>}</div>
+          <WorkflowDebuggerClosurePanel executionId={debuggerExecutionId} onChanged={() => void load()} />
         </section>
 
         <section className="border border-white/10 bg-slate-950/70 p-4 backdrop-blur">

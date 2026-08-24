@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerAgentTarget } from "@/lib/agent/server-targets";
 import { resolveTarget } from "@/lib/agent/providers";
 import type { AgentRuntimePrewarmResponse } from "@/lib/agent/types";
+import {
+  advanceRuntimeRecoveryCheckpoint,
+  startRuntimeRecoveryCheckpoint,
+} from "@/features/models/runtime-recovery-performance";
 import { prewarmLocalTargetWithRecovery } from "../prewarm-utils";
 
 export const runtime = "nodejs";
@@ -23,12 +27,43 @@ export async function POST(request: Request) {
     }
 
     const resolvedTarget = resolveTarget(body.targetId);
+    const checkpoint = startRuntimeRecoveryCheckpoint({
+      operation: "load",
+      targetId: body.targetId,
+      targetLabel: target.label,
+      safeBoundary: {
+        kind: "prewarm-request",
+        reference: `${body.targetId}:${resolvedTarget.resolvedModel}`,
+        summary: "Load boundary persisted before local gateway prewarm.",
+      },
+    });
     const response: AgentRuntimePrewarmResponse = await prewarmLocalTargetWithRecovery({
       baseUrl: resolvedTarget.resolvedBaseUrl,
       model: resolvedTarget.resolvedModel,
       targetId: body.targetId,
       targetLabel: target.label
     });
+
+    if (response.ok) {
+      const resumed = advanceRuntimeRecoveryCheckpoint({
+        checkpointId: checkpoint.id,
+        state: "resumed",
+        reason: "Local gateway accepted the persisted prewarm boundary.",
+      });
+      if (response.status === "ready") {
+        advanceRuntimeRecoveryCheckpoint({
+          checkpointId: resumed.id,
+          state: "completed",
+          reason: "Local gateway prewarm reached the ready state.",
+        });
+      }
+    } else {
+      advanceRuntimeRecoveryCheckpoint({
+        checkpointId: checkpoint.id,
+        state: "failed",
+        reason: response.message || "Local gateway prewarm failed.",
+      });
+    }
 
     return NextResponse.json(response, { status: response.ok ? 200 : 503 });
   } catch (error) {

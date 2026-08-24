@@ -1,6 +1,7 @@
 "use client";
 
 import { FineTuneStudioPanel } from "@/features/finetune/FineTuneStudioPanel";
+import { ReproducibleTrainingRecipePanel } from "@/features/finetune/ReproducibleTrainingRecipePanel";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import {
   StudioIdentityBand,
@@ -33,6 +34,7 @@ export function FineTuneStudioShell() {
           />
         }
       />
+      <ReproducibleTrainingRecipePanel locale={locale} />
       <FineTuneStudioPanel locale={locale} surface="fine-tune-studio" />
     </StudioSurface>
   );

@@ -4,6 +4,7 @@ import path from "path";
 import { listServerAgentTargets } from "@/lib/agent/server-targets";
 import { appendExperimentEvent } from "@/features/experiments/timeline-service";
 import { buildFineTuneOperationEventReferences } from "@/features/finetune/experiment-references";
+import { withTelemetrySpan } from "@/features/telemetry/trace-adapter";
 import {
   saveFineTuneDataset,
   validateFineTuneDatasetFromPath,
@@ -20,6 +21,27 @@ import {
 } from "./inference-service";
 
 export async function runFineTuneDistillation(input: {
+  teacherTargetId: string;
+  outputPath?: string;
+  sampleCount?: number;
+  maxNewTokens?: number;
+  temperature?: number;
+  topP?: number;
+  seedPrompt?: string;
+  includeReasoningTrace?: boolean;
+}) {
+  return withTelemetrySpan(
+    "finetune.distillation",
+    {
+      "finetune.teacher.target.id": input.teacherTargetId,
+      "finetune.requested.samples": Math.max(1, input.sampleCount || 16),
+      "finetune.reasoning.summary.enabled": input.includeReasoningTrace === true,
+    },
+    () => runFineTuneDistillationOperation(input),
+  );
+}
+
+async function runFineTuneDistillationOperation(input: {
   teacherTargetId: string;
   outputPath?: string;
   sampleCount?: number;

@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { mkdirSync, writeFileSync } from "fs";
 import { appendExperimentEvent } from "@/features/experiments/timeline-service";
 import { buildFineTuneOperationEventReferences } from "@/features/finetune/experiment-references";
+import { withTelemetrySpan } from "@/features/telemetry/trace-adapter";
 import { readDatasets } from "./dataset-service";
 import {
   artifactFor,
@@ -26,6 +27,28 @@ import {
 } from "@/features/finetune/evaluation-metric-registry";
 
 export async function runFineTuneEvaluation(input: {
+  adapterId: string;
+  datasetId: string;
+  checkpointPath?: string;
+  maxSamples?: number;
+  maxNewTokens?: number;
+  temperature?: number;
+  topP?: number;
+  metrics?: string[];
+  savePredictions?: boolean;
+}) {
+  return withTelemetrySpan(
+    "finetune.evaluation",
+    {
+      "finetune.adapter.id": input.adapterId,
+      "finetune.dataset.id": input.datasetId,
+      "finetune.max.samples": Math.max(1, input.maxSamples || 24),
+    },
+    () => runFineTuneEvaluationOperation(input),
+  );
+}
+
+async function runFineTuneEvaluationOperation(input: {
   adapterId: string;
   datasetId: string;
   checkpointPath?: string;

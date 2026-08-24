@@ -10,7 +10,9 @@ import { ModelDiscoveryPanel } from "@/features/models/ModelDiscoveryPanel";
 import { ModelHubRuntimePanel } from "@/features/models/ModelHubRuntimePanel";
 import { LocalServerAcceptancePanel } from "@/features/models/LocalServerAcceptancePanel";
 import { ModelHubLifecycleEvidencePanel } from "@/features/models/ModelHubLifecycleEvidencePanel";
+import { RuntimeRecoveryPerformanceEvidencePanel } from "@/features/models/RuntimeRecoveryPerformanceEvidencePanel";
 import { RuntimeFabricEvidencePanel } from "@/features/models/RuntimeFabricEvidencePanel";
+import { ModelSupplyChainOperationsPanel } from "@/features/models/ModelSupplyChainOperationsPanel";
 
 export function ModelsStudioShell() {
   const { locale } = useLocale();
@@ -48,6 +50,8 @@ export function ModelsStudioShell() {
       <ModelHubLifecycleEvidencePanel />
       <RuntimeFabricEvidencePanel />
       <LocalServerAcceptancePanel />
+      <RuntimeRecoveryPerformanceEvidencePanel />
+      <ModelSupplyChainOperationsPanel />
       <ModelHubRuntimePanel embedded />
       <ModelDiscoveryPanel locale={locale} />
     </StudioSurface>

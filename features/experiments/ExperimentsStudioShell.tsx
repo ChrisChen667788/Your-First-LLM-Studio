@@ -34,6 +34,17 @@ import { V166BenchmarkDecisionPanel } from "@/features/experiments/V166Benchmark
 import { V167WorkflowExecutionPanel } from "@/features/experiments/V167WorkflowExecutionPanel";
 import { V168FineTuneExecutionTruthPanel } from "@/features/experiments/V168FineTuneExecutionTruthPanel";
 import { V169FineTuneQualityExportPanel } from "@/features/experiments/V169FineTuneQualityExportPanel";
+import { V170BenchmarkCandidateMultimodalPanel } from "@/features/experiments/V170BenchmarkCandidateMultimodalPanel";
+import { V171V190SourceTrainPanel } from "@/features/experiments/V171V190SourceTrainPanel";
+import { V1102V1200SourceTrainPanel } from "@/features/experiments/V1102V1200SourceTrainPanel";
+import { ArtifactFederationTrustPanel } from "@/features/experiments/ArtifactFederationTrustPanel";
+import { QualityPolicySafetyReviewPanel } from "@/features/experiments/QualityPolicySafetyReviewPanel";
+import { EnterpriseControlPlaneCandidatePanel } from "@/features/experiments/EnterpriseControlPlaneCandidatePanel";
+import { EnterpriseProductionGaPanel } from "@/features/experiments/EnterpriseProductionGaPanel";
+import { ProductionEvidenceAuthorityPanel } from "@/features/experiments/ProductionEvidenceAuthorityPanel";
+import { ReleaseAuthorityDecisionLedgerPanel } from "@/features/experiments/ReleaseAuthorityDecisionLedgerPanel";
+import { ProductionLifecycleClosurePanel } from "@/features/experiments/ProductionLifecycleClosurePanel";
+import { PostGaOperationsTrainPanel } from "@/features/experiments/PostGaOperationsTrainPanel";
 
 export function ExperimentsStudioShell() {
   const { locale } = useLocale();
@@ -63,6 +74,17 @@ export function ExperimentsStudioShell() {
       <V167WorkflowExecutionPanel locale={locale} />
       <V168FineTuneExecutionTruthPanel locale={locale} />
       <V169FineTuneQualityExportPanel locale={locale} />
+      <V170BenchmarkCandidateMultimodalPanel locale={locale} />
+      <V171V190SourceTrainPanel locale={locale} />
+      <V1102V1200SourceTrainPanel locale={locale} />
+      <QualityPolicySafetyReviewPanel locale={locale} />
+      <EnterpriseControlPlaneCandidatePanel locale={locale} />
+      <EnterpriseProductionGaPanel locale={locale} />
+      <ProductionEvidenceAuthorityPanel locale={locale} />
+      <ReleaseAuthorityDecisionLedgerPanel locale={locale} />
+      <ProductionLifecycleClosurePanel locale={locale} />
+      <PostGaOperationsTrainPanel locale={locale} />
+      <ArtifactFederationTrustPanel locale={locale} />
       <PostV1PromotionGatePanel locale={locale} />
       <PromotionGatePanel locale={locale} />
       <GaReleaseEvidenceBundlePanel locale={locale} />

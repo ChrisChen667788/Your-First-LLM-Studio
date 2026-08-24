@@ -40,15 +40,14 @@ Date: 2026-08-10
 
 ## Newly numbered source-development train
 
-The completed v1.6.7 milestone and the fifteen source-development versions after
-it now have explicit version numbers. They do not alter the current `1.5.1`
-release truth. v1.6.8 is locally complete and v1.6.9 is the active development
-slice.
+The completed v1.6.7-v1.6.9 milestones and the remaining source-development
+versions have explicit version numbers. They do not alter the current `1.5.1`
+release truth. v1.7.0 is the active development slice.
 
 1. `v1.6.7` Workflow Execution Closure: typed executors for retrieval, read-only tools, guards, evaluators, Provider context, and fail-closed protected effects.
 2. `v1.6.8` Fine-tune Execution Truth: apply or reject scheduler, warmup, packing, target-module, checkpoint, and evaluator behavior at the selected backend.
-3. `v1.6.9` Fine-tune Quality and Export: local adapter-bundle execution and a 3-seed/36-pair quality contract now pass 15/15, but the quality decision remains HOLD and representative 4B evidence, merge/quantized executors, and remote Hub round trips are still required.
-4. `v1.7.0` Benchmark Candidate and Multimodal: a second full candidate run, paired promotion statistics, and official native image/video execution.
+3. `v1.6.9` Fine-tune Quality and Export: local adapter-bundle execution and a 3-seed/36-pair quality contract pass 15/15, but the quality decision remains HOLD and representative 4B evidence, merge/quantized executors, and remote Hub round trips are still required.
+4. `v1.7.0` Benchmark Candidate and Multimodal: active. The source gate now rejects duplicate target/model candidate bindings and separates protocol fixtures from official asset and native image/video execution; a second full candidate run and official execution receipts remain required.
 5. `v1.7.1` Enterprise Data Plane: deployed pgvector/reranker/ACL, shared telemetry, and managed public API identity, quota, and audit.
 6. `v1.7.2` Release and Production Promotion: architecture sunset, channel consistency, external distribution, production HA/security, and organization sign-off.
 7. `v1.7.3` Developer API Reliability: SDK parity, streaming cancellation, retry safety, backpressure, and request attribution.
@@ -60,7 +59,118 @@ slice.
 13. `v1.8.3` Observability and FinOps: trace correlation, usage/cost allocation, SLOs, alerts, redaction, and retention.
 14. `v1.9.0` Desktop Distribution GA: real signing/notarization and independent clean-machine acceptance.
 15. `v1.9.1` Federated Artifact Exchange: remote registry federation, trust roots, revocation, and immutable read-back.
-16. `v2.0.0` Enterprise Production GA: independent multi-region, identity, security, billing, and organization acceptance.
+16. `v1.9.2` Local Workspace and Runtime Clarity: project-first local/remote provenance, cancel/resume lifecycle, and reproducible Apple Silicon performance evidence.
+17. `v1.9.3` Transparent Agent Interaction: streaming tool cards, risk-tier approvals, branching/replay, cancellation/idempotency, and turn-level execution/cost truth.
+18. `v1.10.0` Workflow Debug and Deployment Experience: node locator, checkpoint/replay, safe deploy revisions, rollback, and SSRF-aware connector policy.
+19. `v1.10.1` Training and Governed Knowledge Operations: fine-tune backend/recipe lineage plus corpus revision, deletion proof, retrieval quality, and promotion review.
+20. `v1.10.2` Runtime Recovery and Performance Evidence: project/runtime provenance, restart-safe cancellation and recovery, and same-profile Apple Silicon performance receipts.
+21. `v1.10.3` Workspace Provenance and Operator Context: signed request identity, workspace/organization attribution, expiry, and cross-workspace denial.
+22. `v1.10.4` Agent Action Trust and Recovery: streaming tool cards, risk-tier approval, idempotent retry/reconnect, cancellation, and safe replay.
+23. `v1.10.5` Workflow Debugger Closure: log/error node locator, redacted node state, breakpoint/checkpoint, immutable replay, and controlled resume.
+24. `v1.11.0` Artifact Federation Trust: immutable registry coordinates, publisher trust roots, remote read-back, revocation, dependency policy, and quarantine.
+25. `v1.11.1` Model Supply Chain Operations: authenticated Hub transfer, verified transformation/placement, migration, repair, deduplication, and retirement lineage.
+26. `v1.11.2` Continuous RAG Governance: corpus revisions, queue recovery, ACL/deletion propagation, golden-query diagnostics, leakage, and freshness SLOs.
+27. `v1.11.3` Reproducible Training Recipes: backend/method preflight, recipe/checkpoint/model-card lineage, and cost/quality comparison.
+28. `v1.11.4` Quality Policy and Safety Review: versioned quality policy, statistical/safety gates, calibrated review, expiring waivers, and rollback.
+29. `v1.12.0` Enterprise Control Plane Candidate: reconciled deployment, identity, usage, audit, HA, security, and organization acceptance packet.
+30. `v2.0.0` Enterprise Production GA: independent multi-region, identity, security, billing, and organization acceptance.
+31. `v2.0.1` Production Evidence Authority: pinned-key validation of independently supplied production evidence, without repository-owned GA authorization.
+32. `v2.0.2` Release Authority Decision Ledger: independently signed approval/rejection projection bound to verified evidence and rollback, without local deployment execution.
+33. `v2.0.3` External Transition Witness: independently signed record of a production transition bound to the approved decision and execution checks.
+34. `v2.0.4` Independent Rollback Witness: separately signed rollback rehearsal bound to the transition and measurable RPO/RTO evidence.
+35. `v2.0.5` Release Closure Archive: independently signed terminal archive binding decision, transition, and rollback artifacts; closes the bounded v2.0.x source train.
+
+## 2026-08-21 ten-round source-contract continuation
+
+The `v1.7.1` through `v1.9.0` repository-owned source boundaries now have a single
+read-only acceptance projection at `/api/experiments/v171-v190-source-train` and
+an `/experiments` panel. The projection covers Enterprise Data Plane, promotion,
+developer API, model supply chain, RAG governance, graph runtime, collaboration,
+quality CI, observability/FinOps, and Desktop GA. It also extends OpenTelemetry
+coverage to Benchmark plus Fine-tune evaluation/distillation execution paths.
+
+This is deliberately not a release promotion. The projection labels every source
+contract as present while retaining `HOLD` for unconfigured managed services,
+trace delivery, public API load testing, real artifact transfer, organization
+identity, Apple signing/notarization, and independent clean-machine acceptance.
+
+## 2026-08-21 next-ten source-contract continuation
+
+The next ten repository-owned versions, `v1.10.2` through `v1.12.0`, are now
+defined as executable source contracts and projected at
+`/api/experiments/v1102-v1200-source-train`. They connect the existing runtime,
+workspace context, protected Agent recovery, typed Workflow execution, artifact
+trust, Hub transfer, retrieval replay, Fine-tune capability, Quality CI, and
+deployment/identity ports into one auditable release train.
+
+This continuation completes repository-owned planning and source integration only.
+Every version remains `HOLD` for external and production truth: controlled remote
+registries, managed identity/data/telemetry/billing, actual Apple distribution,
+independent security/HA validation, and organization sign-off cannot be supplied
+by local source contracts. The task-level implementation plan is
+[`docs/next-ten-release-train-2026-08-21.md`](./next-ten-release-train-2026-08-21.md).
+
+## 2026-08-21 v2.0.0 production-GA reconciliation
+
+`v2.0.0` now has a repository-owned reconciliation projection at
+`/api/experiments/enterprise-production-ga` and an `/experiments` panel. It joins
+the control-plane candidate, local release evidence integrity, release-security
+preflight, external-production-readiness contract, and desktop external-acceptance
+contract into one auditable snapshot. It is deliberately fail-closed: its
+`productionStatus` is always `blocked` and its `externalStatus` is always `hold`.
+Independent multi-region, identity/data, billing, security, distribution, and
+organization receipts remain required for the release authority to make any GA
+decision. See [`docs/v2.0.0-enterprise-production-ga-plan-2026-08-21.md`](./v2.0.0-enterprise-production-ga-plan-2026-08-21.md).
+
+## 2026-08-22 v2.0.1 production evidence authority
+
+`v2.0.1` adds the read-only verification boundary at
+`/api/experiments/production-evidence-authority`. It accepts no UI-uploaded or
+locally minted evidence: a configured release-authority bundle must have a detached
+signature, an out-of-band pinned signer digest, a durable issuer, fresh and complete
+independent receipt inventory, and at least two external attestor organizations.
+Even a verified bundle remains `not-authorized` and production remains `blocked`;
+the independent release authority owns semantic review and the real transition. See
+[`docs/v2.0.1-production-evidence-authority-plan-2026-08-22.md`](./v2.0.1-production-evidence-authority-plan-2026-08-22.md).
+
+## 2026-08-22 v2.0.2 release-authority decision ledger
+
+`v2.0.2` adds `/api/experiments/release-authority-decision`, which reads only a
+separately signed decision from the independent release authority. The decision must
+use a distinct pinned trust anchor, bind the verified `v2.0.0` evidence-bundle digest,
+name an independent durable issuer, remain fresh, and reference an immutable rollback
+plan. Approved and rejected decisions are visible for operator review, but the local
+studio stays `not-authorized` and `blocked`; no route can execute a deployment or
+change production state. See
+[`docs/v2.0.2-release-authority-decision-ledger-plan-2026-08-22.md`](./v2.0.2-release-authority-decision-ledger-plan-2026-08-22.md).
+
+## 2026-08-22 v2.0.3–v2.0.5 production lifecycle closure
+
+The rest of the bounded 2.0 series is implemented at
+`/api/experiments/production-lifecycle-closure` and in `/experiments`. It validates
+three separately signed, separately trust-pinned external artifacts: a transition
+witness bound to an approved decision, an independent rollback witness bound to the
+transition and immutable plan, and a closure archive binding the exact artifact chain.
+All three issuers must be durable and independent from prior authorities. A fully
+verified chain remains evidence only: the local studio remains `blocked` and cannot
+deploy or change production state. This completes repository-owned `v2.0.x`; future
+work begins at `v2.1.0`. See
+[`docs/v2.0.3-v2.0.5-production-lifecycle-closure-plan-2026-08-22.md`](./v2.0.3-v2.0.5-production-lifecycle-closure-plan-2026-08-22.md).
+
+## 2026-08-22 v2.1.0–v2.1.9 post-GA operations evidence train
+
+The next ten versions are now source-complete at
+`/api/experiments/post-ga-operations-train` with a dedicated `/experiments`
+projection. They verify a continuous chain of externally supplied, pinned-key
+records for operations continuity, SLOs, changes/incidents, data governance,
+identity/access, supply chain, quality/safety drift, capacity/cost, disaster
+recovery, and a distinct operations review. Each record is digest-bound to the
+prior record; `v2.1.9` must bind the complete ordered chain.
+
+This is not a post-GA production assertion. The API and evidence exporter are
+read-only; all external truth remains `hold` and local production remains
+`blocked`, even when all records verify. See
+[`docs/v2.1.0-v2.1.9-post-ga-operations-plan-2026-08-22.md`](./v2.1.0-v2.1.9-post-ga-operations-plan-2026-08-22.md).
 
 ## Architecture and maintenance closeout
 

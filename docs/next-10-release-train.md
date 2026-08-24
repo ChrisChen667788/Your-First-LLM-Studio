@@ -1,5 +1,17 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-08-22 v2.1.0–v2.1.9 post-GA operations train
+
+The current ten-version continuation is the read-only post-GA operations evidence
+train, not an automatic production-promotion plan. Its source contracts are
+implemented at `/api/experiments/post-ga-operations-train`: a pinned external
+continuity → SLO → change/incident → data → identity → supply chain → quality →
+capacity/cost → disaster-recovery → independent-review chain. The exact task
+breakdown, schema, configuration, and external boundaries are in
+[`v2.1.0-v2.1.9-post-ga-operations-plan-2026-08-22.md`](./v2.1.0-v2.1.9-post-ga-operations-plan-2026-08-22.md).
+All ten are source-complete, while external evidence remains `HOLD` and local
+production remains `BLOCKED`.
+
 ## 2026-08-13 v1.6.6 benchmark decision-intelligence batch
 
 The next 15 repository-owned slices convert the completed MATH-500 run into a release-decision contract. All 500 samples receive one mutually exclusive error class; the real run contains 160 correct answers and 340 extracted-but-mathematically-incorrect answers, with no extraction, runtime, or evaluator gaps. Confidence-aware cohort policy identifies Intermediate Algebra, Precalculus, and Level 5 as critical. The read model adds p95 latency/token outlier accounting, a bounded 24-item review queue, conservative 95%/80% power planning, manual baseline/candidate selection, paired delta confidence, exact McNemar significance, and explicit -2pp non-inferiority plus +20% p95-latency limits. Local contract acceptance can pass while candidate promotion remains `EVIDENCE NEEDED`: duplicate snapshots from the same run id are deduplicated, and only a second distinct complete 500-item run may enter the paired gate. Independent-host, official multimodal, leaderboard, organization, distribution, and production gates remain `HOLD`. Evidence: [`docs/release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md`](./release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md).
@@ -173,15 +185,15 @@ These versions are not all shipped. Their implementation, local readiness, and e
 The next fifteen source-development versions after `v1.6.7` are intentionally separate from the
 existing production promotion gates. `VERSION` and `release-state.json` remain
 at `1.5.1` until a release is actually promoted; the typed release train marks
-`v1.6.9` as the active development slice after the local v1.6.7 and v1.6.8
-acceptance gates each passed 15/15 on 2026-08-14.
+`v1.7.0` as the active development slice after the local v1.6.7-v1.6.9
+source gates completed; this does not change the `1.5.1` release truth.
 
 | Version | Track | Core outcome |
 | --- | --- | --- |
 | `v1.6.7` | Workflow | Complete locally: real executor registry for retrieval, read-only tools, guards, evaluators, Provider context, and protected side-effect boundaries. |
 | `v1.6.8` | Fine-tune | Complete locally: backend-truthful scheduler/warmup/packing controls, capability rejection, checkpoint-specific inference, and metric plugins. |
-| `v1.6.9` | Fine-tune | Active: frozen base/adapter quality evidence plus real merge, quantized export, package, publish, and read-back flows. |
-| `v1.7.0` | Benchmark | Second complete candidate run, paired promotion statistics, official multimodal execution, and MiniMax M3 quality evidence. |
+| `v1.6.9` | Fine-tune | Complete locally: frozen base/adapter quality evidence and local adapter-bundle export pass, while quality promotion and remote Hub/4B gates remain HOLD. |
+| `v1.7.0` | Benchmark | Active: candidate admission rejects duplicate model/adapter bindings; second complete candidate run, official multimodal assets/native execution, and MiniMax M3 quality evidence remain required. |
 | `v1.7.1` | Platform | Deployed enterprise Retrieval, OTel/Langfuse, and managed public API identity/quota/audit controls. |
 | `v1.7.2` | Release | Architecture sunset, channel reconciliation, desktop distribution, production HA/security, and organization promotion receipts. |
 | `v1.7.3` | Runtime | OpenAI-compatible SDK parity, streaming cancellation, retry safety, backpressure, and request attribution. |
@@ -193,7 +205,26 @@ acceptance gates each passed 15/15 on 2026-08-14.
 | `v1.8.3` | Platform | Correlated OTel/Langfuse evidence, FinOps allocation, SLOs, alerts, privacy, and retention. |
 | `v1.9.0` | Desktop | Signed/notarized Desktop GA with clean-machine install, upgrade, rollback, and uninstall evidence. |
 | `v1.9.1` | Ecosystem | Federated artifact registries with organization trust, revocation, dependency policy, and immutable read-back. |
+| `v1.9.2` | Desktop | Project-first local/remote provenance, persistent cancel/resume runtime lifecycle, and reproducible Apple Silicon performance evidence. |
+| `v1.9.3` | Agent | Streaming tool cards, risk-tier approvals, branching/replay, cancellation/idempotency, and user-visible execution/cost truth. |
+| `v1.10.0` | Workflow | Log-to-node locator, checkpoint/replay, safe deployment revisions, rollback, and SSRF-aware connector policy. |
+| `v1.10.1` | Quality | Fine-tune backend/recipe lineage with governed corpus revisions, deletion proof, retrieval quality, and promotion review. |
+| `v1.10.2` | Desktop | Runtime provenance, restart-safe cancellation/recovery, and reproducible Apple Silicon performance evidence. |
+| `v1.10.3` | Governance | Workspace/operator provenance, signed request context, expiry, and cross-workspace denial. |
+| `v1.10.4` | Agent | Protected action cards, approval, cancellation, idempotent recovery, and safe replay. |
+| `v1.10.5` | Workflow | Node locator, redacted state, breakpoint/checkpoint, immutable replay, and controlled resume. |
+| `v1.11.0` | Ecosystem | Artifact federation trust, immutable coordinates, remote read-back, revocation, and quarantine. |
+| `v1.11.1` | Models | Verified Hub transfer, conversion/placement provenance, migration, repair, deduplication, and retirement. |
+| `v1.11.2` | RAG | Versioned corpus operations, queue recovery, ACL/deletion propagation, citation/leakage/freshness evaluation. |
+| `v1.11.3` | Quality | Reproducible Fine-tune recipes, capability preflight, checkpoint/model-card lineage, and cost/quality comparison. |
+| `v1.11.4` | Evaluation | Quality/safety policy, paired regression, judge calibration, expiring waivers, and rollback. |
+| `v1.12.0` | Release | Enterprise control-plane reconciliation for deployment, identity, usage, audit, HA, security, and approval. |
 | `v2.0.0` | Release | Enterprise Production GA after independent identity, HA, billing, security, distribution, and organization evidence. |
+| `v2.0.1` | Release | Read-only verification of independently signed production evidence, with pinned trust anchors and no repository-owned GA authorization. |
+| `v2.0.2` | Release | Read-only projection of an independently signed release approval or rejection, bound to verified evidence and rollback. |
+| `v2.0.3` | Release | Read-only verification of an independent production-transition witness bound to a release decision. |
+| `v2.0.4` | Release | Read-only verification of an independent rollback witness with plan and RPO/RTO evidence. |
+| `v2.0.5` | Release | Read-only closure archive binding the decision, transition, and rollback chain; terminal 2.0.x source slice. |
 
 ## Current Slice
 

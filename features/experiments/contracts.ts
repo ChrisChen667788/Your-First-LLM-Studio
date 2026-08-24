@@ -133,10 +133,12 @@ export type ReleaseTrainStatus =
   | "evidence-needed";
 
 export type ReleaseTrainTrack =
+  | "agent"
   | "ops"
   | "models"
   | "rag"
   | "finetune"
+  | "quality"
   | "deployment"
   | "release"
   | "desktop"

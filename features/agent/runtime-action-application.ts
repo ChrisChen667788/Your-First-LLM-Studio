@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  advanceRuntimeRecoveryCheckpoint,
+  startRuntimeRecoveryCheckpoint,
+} from "@/features/models/runtime-recovery-performance";
 import { getServerAgentTarget } from "@/lib/agent/server-targets";
 import {
   ensureLocalGatewayAvailableDetailed,
@@ -226,8 +230,23 @@ export async function handleAgentRuntimeActionPost(request: Request) {
     }
 
     if (body.action === "restart") {
+      const checkpoint = startRuntimeRecoveryCheckpoint({
+        operation: "restart",
+        targetId: body.targetId,
+        targetLabel: target.label,
+        safeBoundary: {
+          kind: "gateway-health-before-restart",
+          reference: `${body.targetId}:${resolvedTarget.resolvedModel}`,
+          summary: "Gateway restart boundary persisted before the supervisor restart.",
+        },
+      });
       const restarted = await restartLocalGateway(baseUrl, { waitMs: 30000 });
       if (!restarted) {
+        advanceRuntimeRecoveryCheckpoint({
+          checkpointId: checkpoint.id,
+          state: "failed",
+          reason: "Gateway did not become ready before the restart timeout.",
+        });
         return NextResponse.json(
           {
             ok: false,
@@ -249,6 +268,16 @@ export async function handleAgentRuntimeActionPost(request: Request) {
       }
 
       const health = await fetchHealth(baseUrl);
+      const resumed = advanceRuntimeRecoveryCheckpoint({
+        checkpointId: checkpoint.id,
+        state: "resumed",
+        reason: "Gateway became reachable after the persisted restart boundary.",
+      });
+      advanceRuntimeRecoveryCheckpoint({
+        checkpointId: resumed.id,
+        state: "completed",
+        reason: "Gateway health check completed after restart.",
+      });
       return NextResponse.json({
         ok: true,
         action: body.action,
@@ -266,8 +295,23 @@ export async function handleAgentRuntimeActionPost(request: Request) {
       } satisfies AgentRuntimeActionResponse);
     }
 
+    const checkpoint = startRuntimeRecoveryCheckpoint({
+      operation: "unload",
+      targetId: body.targetId,
+      targetLabel: target.label,
+      safeBoundary: {
+        kind: "gateway-health-before-unload",
+        reference: `${body.targetId}:${resolvedTarget.resolvedModel}`,
+        summary: "Unload boundary persisted before releasing the active local model.",
+      },
+    });
     const ensureResult = await ensureLocalGatewayAvailableDetailed(baseUrl, { waitMs: 25000 });
     if (!ensureResult.ok) {
+      advanceRuntimeRecoveryCheckpoint({
+        checkpointId: checkpoint.id,
+        state: "failed",
+        reason: ensureResult.reason,
+      });
       return NextResponse.json(
         {
           ok: false,
@@ -287,6 +331,11 @@ export async function handleAgentRuntimeActionPost(request: Request) {
     });
     const payload = (await upstream.json()) as { released_alias?: string | null; detail?: string; message?: string };
     if (!upstream.ok) {
+      advanceRuntimeRecoveryCheckpoint({
+        checkpointId: checkpoint.id,
+        state: "failed",
+        reason: payload.detail || payload.message || "Failed to release the loaded model.",
+      });
       return NextResponse.json(
         {
           ok: false,
@@ -300,6 +349,16 @@ export async function handleAgentRuntimeActionPost(request: Request) {
     }
 
     const health = await fetchHealth(baseUrl);
+    const resumed = advanceRuntimeRecoveryCheckpoint({
+      checkpointId: checkpoint.id,
+      state: "resumed",
+      reason: "Local gateway accepted the persisted unload boundary.",
+    });
+    advanceRuntimeRecoveryCheckpoint({
+      checkpointId: resumed.id,
+      state: "completed",
+      reason: "Local model release completed and gateway health was refreshed.",
+    });
     return NextResponse.json({
       ok: true,
       action: body.action,

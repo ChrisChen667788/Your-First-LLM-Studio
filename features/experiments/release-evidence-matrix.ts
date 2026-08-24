@@ -788,12 +788,14 @@ export function readReleaseEvidenceMatrix(): ReleaseEvidenceMatrixResponse {
   const byVersion = new Map(drafts.map((draft) => [draft.version, draft]));
   const rounds = RELEASE_TRAIN_MILESTONES.map((milestone) => {
     const draft = byVersion.get(milestone.version);
+    const fallbackStatus: ReleaseEvidenceMatrixStatus =
+      milestone.status === "active" ? "in-progress" : milestone.status;
     return {
       version: milestone.version,
       label: milestone.label,
       track: milestone.track,
       targetWindow: milestone.targetWindow,
-      status: draft?.status || "planned",
+      status: draft?.status || fallbackStatus,
       completionPct: clampPct(draft?.completionPct || 0),
       summary: draft?.summary || milestone.objective,
       shipped: draft?.shipped || [],

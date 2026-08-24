@@ -9,6 +9,7 @@ import {
   formatRuntimeDuration,
   formatRuntimeTimestamp,
 } from "./runtime-formatters";
+import { WorkspaceActionProvenanceChip } from "./WorkspaceActionProvenanceChip";
 
 type AgentDictionary = ReturnType<typeof getDictionary>;
 
@@ -80,6 +81,7 @@ export function AgentWorkbenchStatusBand({
         <StatusChip>{text.toolLoopState}: {enableTools ? text.enabled : text.disabled}</StatusChip>
         <StatusChip>{text.enableRetrieval}: {enableRetrieval ? text.enabled : text.disabled}</StatusChip>
         <StatusChip>{text.loadedAlias}: {loadedAlias || "—"}</StatusChip>
+        <WorkspaceActionProvenanceChip execution={target.execution} locale={locale} />
         {mode === "compare" ? (
           <StatusChip tone="violet">{isEnglish ? "Compare lanes" : "对比 Lane"}: {compareLaneCount}</StatusChip>
         ) : null}

@@ -5,6 +5,10 @@ import {
   runModelAcquisitionTransferStep,
   updateModelAcquisitionJob,
 } from "@/features/models/model-acquisition";
+import {
+  advanceRuntimeRecoveryCheckpoint,
+  startRuntimeRecoveryCheckpoint,
+} from "@/features/models/runtime-recovery-performance";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,6 +49,40 @@ export async function POST(request: Request) {
                 ? action
                 : "start",
           });
+    if (action === "cancel") {
+      startRuntimeRecoveryCheckpoint({
+        operation: "cancel",
+        targetId: `acquisition:${job.id}`,
+        targetLabel: job.modelId,
+        safeBoundary: {
+          kind: "verified-transfer-offset",
+          reference: `${job.id}:${job.bytesDownloaded}:${job.resumeToken}`,
+          summary: "Model acquisition cancellation recorded at its durable transfer boundary.",
+        },
+      });
+    }
+    if (action === "resume") {
+      const checkpoint = startRuntimeRecoveryCheckpoint({
+        operation: "resume",
+        targetId: `acquisition:${job.id}`,
+        targetLabel: job.modelId,
+        safeBoundary: {
+          kind: "verified-transfer-offset",
+          reference: `${job.id}:${job.bytesDownloaded}:${job.resumeToken}`,
+          summary: "Model acquisition resume starts from its persisted transfer boundary.",
+        },
+      });
+      const resumed = advanceRuntimeRecoveryCheckpoint({
+        checkpointId: checkpoint.id,
+        state: "resumed",
+        reason: "Acquisition registry accepted the persisted resume token.",
+      });
+      advanceRuntimeRecoveryCheckpoint({
+        checkpointId: resumed.id,
+        state: "completed",
+        reason: "Acquisition job returned to the downloading state.",
+      });
+    }
     return NextResponse.json({ ok: true, job, registry: readModelAcquisitionRegistry() });
   } catch (error) {
     return NextResponse.json(
