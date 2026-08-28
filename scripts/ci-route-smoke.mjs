@@ -47,6 +47,8 @@ const checks = [
   { id: "release-authority-decision-api", path: "/api/experiments/release-authority-decision", kind: "json", contract: "ok" },
   { id: "production-lifecycle-closure-api", path: "/api/experiments/production-lifecycle-closure", kind: "json", contract: "ok" },
   { id: "post-ga-operations-train-api", path: "/api/experiments/post-ga-operations-train", kind: "json", contract: "ok" },
+  { id: "continuous-assurance-train-api", path: "/api/experiments/continuous-assurance-train", kind: "json", contract: "ok" },
+  { id: "assurance-closure-train-api", path: "/api/experiments/assurance-closure-train", kind: "json", contract: "ok" },
   { id: "runtime-recovery-performance-api", path: "/api/models/runtime-recovery-performance", kind: "json", contract: "ok" },
   { id: "extension-foundation-api", path: "/api/extensions", kind: "json", contract: "object" },
   { id: "workspace-resources-api", path: "/api/governance/workspaces/resources", kind: "json", contract: "ok" },

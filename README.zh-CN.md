@@ -42,6 +42,9 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v1.2.0` Local Server 验收 | 加入真实 Ollama 15-slice 验收，覆盖进程健康、模型驻留、OpenAI-compatible chat/SSE、并发、计量、访问策略、日志保留、idle eviction 和 unload/reload recovery；跨设备 LAN 与持续 daemon 证据继续作为生产门禁。 |
 | `v1.2.1` Runtime Fabric | 用同一标准化合同实现 MLX、Ollama、llama.cpp、LocalAI、vLLM 与 SGLang 适配器；Apple Silicon 上真实 MLX/Ollama/llama.cpp chat 与 SSE 全部通过，硬件或端点不满足时会在执行前给出可操作错误码；外部 LocalAI、Linux/NVIDIA 与异构节点 receipt 继续作为生产门禁。 |
 | `v1.3.0` MCP + 安全扩展 | 加入固定版本 MCP server registry、真实 stdio capability discovery、Ed25519 签名安装/升级/回滚、权限与密钥 scope、quarantine、依赖/路径防御及 macOS Seatbelt 强制隔离；本地验收 11/11 PASS，独立 publisher、Linux/Windows sandbox 与远程 OAuth receipt 继续作为生产门禁。 |
+| `v2.1.x` Post-GA 运维证据 | 加入连续性、SLO、事故、数据、访问、供应链、质量、容量、灾备和独立复核的只读外部签名链；只能验证，不能操作或授权生产。 |
+| `v2.2.x` 持续 Assurance | 加入合规范围、隐私、模型风险、第三方、监管映射、透明度、Responsible UX、资源效率、整改和独立复核的严格外部签名合同。 |
+| `v2.3.0-v2.3.4` Assurance 闭环 | 加入证据迁移回读、Trust Center 发布、持续监控、独立审计整改和不可变闭环归档验证；外部证据保持 `HOLD`，生产保持 `BLOCKED`。 |
 
 当前已打标签版本见 [`VERSION`](./VERSION)。源码树可能包含下一轮 route-owned 重构 checkpoint，正式标签会在后续发布时推进。
 

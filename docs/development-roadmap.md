@@ -1089,3 +1089,20 @@ Next production slices:
 - move extension execution from the Node permission preview into a hardened container/seatbelt profile;
 - retain authenticated non-loopback workflow invocation, distributed worker restart/failover, and multi-user draft-conflict evidence without promoting local receipts into production proof;
 - exercise OIDC JWT/JWKS verification and SCIM provisioning against a real identity provider, then run Postgres RLS under pooled application roles.
+
+## Post-GA assurance continuation (2026-08-28)
+
+The source/evidence train now extends through `v2.3.4` without changing the
+active `v1.5.1` source release or production truth. The repository owns strict
+read-only verification, API/UI projection, export, tests, and documentation for:
+
+- `v2.2.0-v2.2.9`: compliance scope, privacy, model risk, third-party risk,
+  regulatory mapping, customer transparency, accessibility/responsible UX,
+  resource efficiency, remediation, and independent review.
+- `v2.3.0-v2.3.4`: evidence portability, trust-center publication, continuous
+  assurance automation, independent audit remediation, and immutable closure.
+
+Acceptance for this source train requires all repository validations to pass
+and all missing external records to remain explicitly `HOLD`/`BLOCKED`. A later
+version may be defined only for a genuinely new controlled scope; repeating
+local fixtures cannot promote any of these milestones.

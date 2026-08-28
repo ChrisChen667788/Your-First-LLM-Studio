@@ -1,5 +1,20 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-08-28 v2.2.0-v2.3.4 assurance continuation
+
+The next 15 source slices are implemented as two read-only, fail-closed chains.
+`v2.2.0-v2.2.9` covers compliance scope, privacy, model risk, third parties,
+regulatory mapping, customer transparency, accessibility/responsible UX,
+resource efficiency, remediation, and an independent compliance review.
+`v2.3.0-v2.3.4` covers evidence portability, trust-center publication,
+continuous assurance automation, independent audit remediation, and an
+immutable closure archive. The shared verifier enforces strict schemas,
+SHA-256 digests, detached RSA signatures, pinned keys, freshness, exact
+predecessor lineage, semantic coverage, and independent final review. Source is
+`PASS`; absent external records remain `HOLD`, and production remains
+`BLOCKED`. Plan: [`v2.2.0-v2.3.4-assurance-continuation-plan-2026-08-28.md`](./v2.2.0-v2.3.4-assurance-continuation-plan-2026-08-28.md).
+Evidence: [`release-evidence/v2.2.0-v2.3.4-assurance-source-gate-2026-08-28.md`](./release-evidence/v2.2.0-v2.3.4-assurance-source-gate-2026-08-28.md).
+
 ## 2026-08-22 v2.1.0–v2.1.9 post-GA operations train
 
 The current ten-version continuation is the read-only post-GA operations evidence

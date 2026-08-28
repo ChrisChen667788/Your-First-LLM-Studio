@@ -82,6 +82,7 @@
     "evidence:v202-release-authority-decision": "node scripts/run-v202-release-authority-decision.mjs",
     "evidence:v203-v205-production-lifecycle": "node scripts/run-v203-v205-production-lifecycle-evidence.mjs",
     "evidence:v210-v219-post-ga-operations": "node scripts/run-v210-v219-post-ga-operations-evidence.mjs",
+    "evidence:v220-v234-assurance": "node scripts/run-v220-v234-assurance-evidence.mjs",
     "evidence:v1102-v1200-source-train": "node scripts/run-v1102-v1200-source-train-evidence.mjs",
     "preflight:aws-production-promotion": "node scripts/preflight-aws-production-promotion.mjs",
     "preflight:release-security": "node scripts/release-security-preflight.mjs",

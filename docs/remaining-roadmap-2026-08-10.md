@@ -172,6 +172,21 @@ read-only; all external truth remains `hold` and local production remains
 `blocked`, even when all records verify. See
 [`docs/v2.1.0-v2.1.9-post-ga-operations-plan-2026-08-22.md`](./v2.1.0-v2.1.9-post-ga-operations-plan-2026-08-22.md).
 
+## 2026-08-28 v2.2.0-v2.3.4 assurance continuation
+
+The following 15 source versions are now implemented as two strict, read-only
+evidence chains. `v2.2.0-v2.2.9` covers continuous compliance and customer trust;
+`v2.3.0-v2.3.4` covers evidence portability, trust-center publication,
+continuous monitoring, independent remediation, and immutable closure. Both
+APIs enforce exact schemas, SHA-256 lineage, detached RSA signatures, pinned
+keys, freshness, semantic coverage, zero critical findings, and independent
+final review.
+
+This closes repository-owned verifier, API, UI, export, test, and roadmap work.
+It does not close the named external controls. External status remains `hold`
+and production remains `blocked`. See
+[`docs/v2.2.0-v2.3.4-assurance-continuation-plan-2026-08-28.md`](./v2.2.0-v2.3.4-assurance-continuation-plan-2026-08-28.md).
+
 ## Architecture and maintenance closeout
 
 1. Continue shrinking Agent chat/session/runtime composition and Admin runtime/history panels into feature-owned ports.
