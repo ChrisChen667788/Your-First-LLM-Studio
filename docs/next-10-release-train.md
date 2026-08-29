@@ -1,5 +1,20 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-08-30 v2.8.0-v2.9.4 operational remediation and sustainability
+
+The latest 15 source slices convert real module-owned gaps into a prioritized,
+fail-closed remediation queue. `v2.8.0-v2.8.9` covers Provider traffic,
+Retrieval freshness/ACL, model supply-chain reconciliation, workspace audit,
+runtime recovery/capacity, Agent recovery, Workflow failover, Benchmark
+cost-quality, Fine-tune quality/export, and independent review.
+`v2.9.0-v2.9.4` covers telemetry/resource transparency, incident diagnostics,
+Admin compatibility sunset, desktop upgrade/data lifecycle, and independent
+closure. The initial source read is `6 pass`, `7 attention`, `0 unavailable`,
+and `2 external-only`; external evidence remains `0/15`, distribution stays
+`HOLD`, and production stays `BLOCKED`. Plan:
+[`v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md`](./v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md).
+Source gate: [`v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md`](./release-evidence/v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md).
+
 ## 2026-08-29 v2.6.0-v2.7.4 governed autonomy and interoperability
 
 The latest 15 source slices project existing feature-owned controls into two

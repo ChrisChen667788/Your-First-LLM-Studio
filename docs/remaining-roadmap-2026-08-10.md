@@ -214,6 +214,20 @@ and ecosystem closure remain external `HOLD` gates; production remains
 `BLOCKED`. See
 [`docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md`](./v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md).
 
+## 2026-08-30 v2.8.0-v2.9.4 operational remediation and sustainability
+
+This newly approved 15-version train is source-complete. v2.8 turns Provider,
+Retrieval, model supply-chain, workspace audit, runtime, Agent, Workflow,
+Benchmark, and Fine-tune evidence into a prioritized remediation chain. v2.9
+adds telemetry/resource transparency, incident diagnostics, compatibility
+sunset readiness, desktop upgrade/data lifecycle, and independent closure.
+The repository owns exception-safe read models, strict external-chain
+verification, thin APIs, UI, tests, export, route ownership, and docs. Real
+managed services, representative workloads, organization identities, billing,
+clean-machine upgrades, support drills, and independent reviews remain external
+`HOLD` gates; production remains `BLOCKED`. See
+[`docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md`](./v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md).
+
 ## Architecture and maintenance closeout
 
 1. Continue shrinking Agent chat/session/runtime composition and Admin runtime/history panels into feature-owned ports.

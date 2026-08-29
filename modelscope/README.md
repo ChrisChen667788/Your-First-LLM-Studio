@@ -43,12 +43,18 @@ This desktop-onboarding release candidate packages the current Studio as an Appl
 | `v2.5.0-v2.5.4` | Deployment lifecycle contracts for portability, data sovereignty, customer keys, continuity/exit, and independent closure; production authority remains external and BLOCKED. |
 | `v2.6.0-v2.6.9` | Governed autonomy readiness for model choice, provider routing, grounded context, tool permissions, protected actions, Workflow replay, quality, adapter rollback, audit provenance, and independent review. |
 | `v2.7.0-v2.7.4` | Open ecosystem interoperability for OpenAI-compatible clients, MCP extensions, portable models/artifacts, workspace identity, and independent closure. |
+| `v2.8.0-v2.8.9` | Operational remediation for Provider, Retrieval, model supply-chain, workspace audit, runtime, Agent, Workflow, Benchmark, and Fine-tune evidence. |
+| `v2.9.0-v2.9.4` | Sustainable operations for telemetry, incident diagnostics, Admin compatibility sunset, desktop upgrade/data lifecycle, and independent closure. |
 
 Evidence: [`v2.4.0-v2.5.4 operational lifecycle source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) records 8 passing, 5 attention, and 2 external-only local signals; externally verified records remain `0/15`.
 
 Plan: [`v2.6.0-v2.7.4 governed autonomy and interoperability`](../docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md) adds 15 source-backed slices while independent ecosystem evidence remains `HOLD` and production remains `BLOCKED`.
 
 Source gate: [`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md) records 9 pass, 4 attention, 0 unavailable, and 2 external-only signals; independently verified records remain `0/15`.
+
+Latest plan: [`v2.8.0-v2.9.4 operational remediation and sustainability`](../docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md) projects 6 pass, 7 attention, 0 unavailable, and 2 external-only owner signals. Independent evidence remains `0/15`, distribution remains `HOLD`, and production remains `BLOCKED`.
+
+Validated source gate: [`v2.8.0-v2.9.4`](../docs/release-evidence/v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md) records 119/119 tests, 73/73 CI routes, full smoke, desktop/mobile browser QA, and the machine-readable evidence export.
 
 ## Competitive Position
 
@@ -149,12 +155,18 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 | `v2.5.0-v2.5.4` | 部署生命周期：覆盖可移植性、数据主权、客户密钥、连续性/退出与独立闭环；生产授权继续由外部掌握并保持 BLOCKED。 |
 | `v2.6.0-v2.6.9` | 受治理自治就绪度：把模型选择、Provider 路由、Grounded Context、工具权限、受保护动作、Workflow 回放、质量、Adapter 回滚和审计谱系收进一条独立复核链。 |
 | `v2.7.0-v2.7.4` | 开放生态互操作：覆盖 OpenAI-compatible 客户端、MCP 扩展、模型/产物可移植性、Workspace Identity 与独立闭环。 |
+| `v2.8.0-v2.8.9` | 运行整改：覆盖 Provider、Retrieval、模型供应链、Workspace 审计、Runtime、Agent、Workflow、Benchmark 与 Fine-tune 证据。 |
+| `v2.9.0-v2.9.4` | 可持续运行：覆盖遥测、故障诊断、Admin compatibility sunset、桌面升级/数据生命周期与独立闭环。 |
 
 证据：[`v2.4.0-v2.5.4 运行与部署生命周期 source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) 记录了 8 个通过、5 个需关注和 2 个仅外部可满足的本地信号；独立外部签收仍为 `0/15`。
 
 计划：[`v2.6.0-v2.7.4 受治理自治与开放生态互操作`](../docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md) 新增 15 个 source-backed 版本切片；独立生态签收继续保持 `HOLD`，生产状态保持 `BLOCKED`。
 
 Source gate：[`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md) 记录 9 个通过、4 个需关注、0 个不可用和 2 个仅外部可满足的信号；独立外部签收仍为 `0/15`。
+
+最新计划：[`v2.8.0-v2.9.4 运行整改与可持续运行`](../docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md) 投影 6 个通过、7 个需关注、0 个不可用和 2 个仅外部可满足的 owner 信号；独立外部证据仍为 `0/15`，分发保持 `HOLD`，生产保持 `BLOCKED`。
+
+已验证 source gate：[`v2.8.0-v2.9.4`](../docs/release-evidence/v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md) 记录 119/119 测试、73/73 CI 路由、完整 smoke、桌面/移动浏览器验证与机器可读证据导出。
 
 ## 竞品定位对比
 

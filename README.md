@@ -64,14 +64,20 @@ It is not another chat shell. It is built for people who need to compare behavio
 | `v2.5.0-v2.5.4` Deployment Lifecycle | Adds portable deployment, data-sovereignty, customer-key, continuity/exit, and independent closure contracts. Local receipts remain explicitly separate from customer KMS/HSM, managed infrastructure, and production authority. |
 | `v2.6.0-v2.6.9` Governed Autonomy Readiness | Joins model selection, provider routing, grounded context, extension permissions, protected actions, Workflow replay, Benchmark quality, adapter rollback, and audit provenance into one source-backed, independently reviewed chain. |
 | `v2.7.0-v2.7.4` Open Ecosystem Interoperability | Adds fail-closed OpenAI-compatible client, MCP extension, artifact/model portability, workspace/identity portability, and independent closure contracts without claiming external deployment authority. |
+| `v2.8.0-v2.8.9` Operational Remediation and Efficiency | Turns Provider, Retrieval, model supply-chain, workspace audit, runtime, Agent, Workflow, Benchmark, and Fine-tune owner signals into a prioritized remediation chain with an independent terminal review. |
+| `v2.9.0-v2.9.4` Sustainable Operations and Upgrade | Adds telemetry/resource transparency, incident diagnostics/retention, Admin compatibility sunset readiness, desktop upgrade/data lifecycle, and independent closure. |
 
 Current source version: [`v1.5.1`](./VERSION), with source status `COMPLETE` and local acceptance `PASS`. The machine-readable [`release-state.json`](./release-state.json) deliberately separates the active source milestone from the latest public GitHub release (`v0.4.0`) and the latest desktop candidate (`v1.1.0-rc.2`).
 
-Latest operational-lifecycle source gate: [`v2.4.0-v2.5.4`](./docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md). Local projection currently contains 8 passing, 5 attention, and 2 external-only signals; independently verified external records remain `0/15`, so this evidence does not change distribution or production status.
+Previous operational-lifecycle source gate: [`v2.4.0-v2.5.4`](./docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md). Local projection contains 8 passing, 5 attention, and 2 external-only signals; independently verified external records remain `0/15`, so this evidence does not change distribution or production status.
 
-Latest governed-autonomy and interoperability plan: [`v2.6.0-v2.7.4`](./docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md). Its 15 source slices read existing feature-owned evidence and preserve independent external review, distribution `HOLD`, and production `BLOCKED` as separate facts.
+Previous governed-autonomy and interoperability plan: [`v2.6.0-v2.7.4`](./docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md). Its 15 source slices read existing feature-owned evidence and preserve independent external review, distribution `HOLD`, and production `BLOCKED` as separate facts.
 
-Latest source gate: [`v2.6.0-v2.7.4`](./docs/release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md) records 9 passing, 4 attention, 0 unavailable, and 2 external-only signals. Independently verified external records remain `0/15`.
+Previous governed-autonomy source gate: [`v2.6.0-v2.7.4`](./docs/release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md) records 9 passing, 4 attention, 0 unavailable, and 2 external-only signals. Independently verified external records remain `0/15`.
+
+Latest operational remediation plan: [`v2.8.0-v2.9.4`](./docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md). Its initial owner-controlled projection records 6 passing, 7 attention, 0 unavailable, and 2 external-only signals. The attention queue is explicit product work; independently verified external records remain `0/15`, distribution remains `HOLD`, and production remains `BLOCKED`.
+
+Latest validated source gate: [`v2.8.0-v2.9.4`](./docs/release-evidence/v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md) records 119/119 tests, 73/73 CI route checks, full cross-surface smoke, desktop/mobile browser QA, and the machine-readable export while preserving the same `ATTENTION`/`HOLD`/`BLOCKED` truth.
 
 Internal post-release evidence has advanced through the [`v1.6.6 benchmark decision-intelligence checkpoint`](./docs/release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md): all 500 stored results are classified (160 correct and 340 mathematical mismatches, with 100% answer extraction), confidence-aware risk highlights Intermediate Algebra, Precalculus, and Level 5, and the conservative 500-sample detectable effect is 8.27 percentage points. Only one distinct complete run exists, so candidate promotion remains `EVIDENCE NEEDED`. This does not change the active source version or claim hosted leaderboard parity, independent-host reproduction, multimodal execution, distribution, or production promotion.
 
@@ -368,12 +374,18 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v1.6.6` Benchmark 决策智能 | 将真实 500 题 run 转成完整错误分类、置信区间 cohort 风险、延迟/token 异常点、有限复核队列、保守统计功效规划，以及带 McNemar 与非劣效策略的配对候选门槛。本地审计验收与候选晋级分开；在出现第二个不同 run id 的完整运行前，候选晋级保持 `EVIDENCE NEEDED`。 |
 | `v2.6.0-v2.6.9` 受治理自治就绪度 | 把模型选择、Provider 路由、Grounded Context、扩展权限、受保护动作、Workflow 回放、Benchmark 质量、Adapter 回滚和审计谱系连接为 source-backed、独立复核的 fail-closed 证据链。 |
 | `v2.7.0-v2.7.4` 开放生态互操作 | 增加 OpenAI-compatible 客户端、MCP 扩展、模型/产物可移植性、Workspace Identity 与独立闭环合同，同时保持外部部署授权和生产状态严格分离。 |
+| `v2.8.0-v2.8.9` 运行整改与效率 | 把 Provider、Retrieval、模型供应链、Workspace 审计、Runtime、Agent、Workflow、Benchmark 与 Fine-tune 的 owner 信号整理为有优先级的整改链，并保留独立终审。 |
+| `v2.9.0-v2.9.4` 可持续运行与升级 | 增加遥测/资源透明度、故障诊断与保留、Admin compatibility sunset 就绪度、桌面升级/数据生命周期及独立闭环。 |
 
 当前源码版本：[`v1.5.1`](./VERSION)，源码状态为 `COMPLETE`、本地验收为 `PASS`。机器可读的 [`release-state.json`](./release-state.json) 明确区分当前源码里程碑、最近公开 GitHub Release（`v0.4.0`）与最近桌面候选包（`v1.1.0-rc.2`）。
 
-最新受治理自治与互操作计划：[`v2.6.0-v2.7.4`](./docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md)。这 15 个源码切片只读已有 feature-owned 证据；独立生态签收继续为 `HOLD`，生产状态继续为 `BLOCKED`。
+上一阶段受治理自治与互操作计划：[`v2.6.0-v2.7.4`](./docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md)。这 15 个源码切片只读已有 feature-owned 证据；独立生态签收继续为 `HOLD`，生产状态继续为 `BLOCKED`。
 
-最新 source gate：[`v2.6.0-v2.7.4`](./docs/release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md) 记录 9 个通过、4 个需关注、0 个不可用和 2 个仅外部可满足的信号；独立外部签收仍为 `0/15`。
+上一阶段受治理自治 source gate：[`v2.6.0-v2.7.4`](./docs/release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md) 记录 9 个通过、4 个需关注、0 个不可用和 2 个仅外部可满足的信号；独立外部签收仍为 `0/15`。
+
+最新运行整改计划：[`v2.8.0-v2.9.4`](./docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md)。首轮 owner-controlled 投影记录 6 个通过、7 个需关注、0 个不可用和 2 个仅外部可满足的信号；attention 队列属于明确的产品整改项，独立外部签收仍为 `0/15`，分发保持 `HOLD`，生产保持 `BLOCKED`。
+
+最新已验证 source gate：[`v2.8.0-v2.9.4`](./docs/release-evidence/v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md) 记录 119/119 测试、73/73 CI 路由、完整跨页面 smoke、桌面/移动浏览器验证与机器可读导出，同时保持相同的 `ATTENTION`/`HOLD`/`BLOCKED` 事实边界。
 
 内部后续证据已推进到 [`v1.6.6 Benchmark 决策智能检查点`](./docs/release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md)：500 条结果全部完成分类（160 正确、340 条数学不等价，答案提取覆盖 100%），置信区间规则标出 Intermediate Algebra、Precalculus 与 Level 5 风险，500 样本下的保守可检测变化约为 8.27 个百分点。当前只有一个不同 run id 的完整运行，因此候选晋级继续为 `EVIDENCE NEEDED`。该检查点不改变当前源码版本，也不宣称托管榜单等价、独立主机复现、多模态全量执行、分发或生产晋级。
 

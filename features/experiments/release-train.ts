@@ -5,7 +5,7 @@ import type {
 
 export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.5.1" as const;
 export const RELEASE_TRAIN_DEVELOPMENT_VERSION =
-  "v1.7.0-v2.7.4 source and evidence trains" as const;
+  "v1.7.0-v2.9.4 source and evidence trains" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -1833,7 +1833,112 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     scope: ["Ordered v2.7.0-v2.7.3 chain", "Distinct ecosystem reviewers", "Immutable terminal archive", "No local transition path"],
     acceptance: ["Any missing predecessor, reused reviewer, invalid signature, or unverified retention fails closed.", "The terminal projection remains BLOCKED without external records."],
     evidence: ["Signed interoperability closure", "Independent immutable archive receipt"],
-    nextSlice: "v2.6-v2.7 is source-complete; any later train requires a newly approved scope and external authority model.",
+    nextSlice: "Project measurable operational gaps into a prioritized remediation train.",
+  },
+  {
+    version: "v2.8.0", label: "Provider Traffic and Fallback Reconciliation", status: "evidence-needed", track: "ops", targetWindow: "2030-11",
+    objective: "Reconcile provider traffic, release probes, fallback outcomes, quota, cost, snapshot integrity, and retention.",
+    scope: ["Observed provider traffic", "Release probes and fallback", "Quota and cost", "Snapshot integrity and retention"],
+    acceptance: ["No-traffic and action-required providers remain visible.", "Gateway and billing owners reconcile deployed outcomes."],
+    evidence: ["Provider Ops source signal", "External gateway and billing reconciliation"], nextSlice: "Remediate retrieval freshness, citations, deletion, and ACL gaps.",
+  },
+  {
+    version: "v2.8.1", label: "Retrieval Freshness and ACL Remediation", status: "evidence-needed", track: "rag", targetWindow: "2030-11",
+    objective: "Join corpus revision, replay freshness, citations, reranking, deletion propagation, and ACL denials.",
+    scope: ["Corpus and replay freshness", "Citation and reranker diagnostics", "Deletion propagation", "Workspace and subject ACL"],
+    acceptance: ["Missing enterprise dependencies or stale rehearsals remain attention.", "Managed knowledge owners repeat leakage and deletion probes."],
+    evidence: ["RAG governance source signal", "Managed corpus remediation review"], nextSlice: "Reconcile model source, checksums, placement, and rollback.",
+  },
+  {
+    version: "v2.8.2", label: "Model Supply-chain Reconciliation", status: "evidence-needed", track: "models", targetWindow: "2030-11",
+    objective: "Reconcile immutable Hub revisions, multi-file checksums, placement, compatibility, removal, activation, and rollback.",
+    scope: ["Immutable Hub source", "Destination checksums", "Storage and runtime compatibility", "Removal and rollback"],
+    acceptance: ["Every selected file remains destination-bound and checksummed.", "Independent stores and runtimes repeat import and read-back."],
+    evidence: ["Model supply-chain source signal", "External model byte reconciliation"], nextSlice: "Measure workspace audit completeness.",
+  },
+  {
+    version: "v2.8.3", label: "Workspace Audit Completeness", status: "evidence-needed", track: "governance", targetWindow: "2030-12",
+    objective: "Bind database ACL, audit events, signed request context, and privacy-safe action provenance.",
+    scope: ["Database workspace ACL", "Request provenance", "Audit event coverage", "Identity privacy boundary"],
+    acceptance: ["Missing audit events or signed provenance remain attention.", "Organization systems of record are independently reconciled."],
+    evidence: ["Workspace audit source signal", "External audit and privacy review"], nextSlice: "Compare runtime capacity and recovery evidence.",
+  },
+  {
+    version: "v2.8.4", label: "Runtime Recovery and Capacity Efficiency", status: "evidence-needed", track: "runtime", targetWindow: "2030-12",
+    objective: "Compare latency, throughput, memory, queue, tokens, lifecycle checkpoints, and restart-safe recovery.",
+    scope: ["Comparable runtime metrics", "Lifecycle checkpoints", "Safe-boundary restart", "Capacity and energy review"],
+    acceptance: ["Incomplete or incomparable receipts remain attention.", "Representative hardware repeats recovery and capacity workloads."],
+    evidence: ["Runtime performance/recovery source signal", "Independent hardware review"], nextSlice: "Reconcile Agent protected actions and session recovery.",
+  },
+  {
+    version: "v2.8.5", label: "Agent Action and Session Recovery", status: "evidence-needed", track: "agent", targetWindow: "2030-12",
+    objective: "Join protected-action interrupt, approval, idempotent resume, replay, state diff, and duplicate-effect detection.",
+    scope: ["Protected-action approval", "Resume and replay", "State diff", "Duplicate-effect detection"],
+    acceptance: ["Any duplicate side effect downgrades readiness.", "Real multi-client reconnect and tool effects are independently exercised."],
+    evidence: ["Agent trust/recovery source signal", "Independent Agent recovery drill"], nextSlice: "Measure Workflow queue and failover efficiency.",
+  },
+  {
+    version: "v2.8.6", label: "Workflow Queue and Failover Efficiency", status: "evidence-needed", track: "workflow", targetWindow: "2031-01",
+    objective: "Bind durable worker outcomes, queue completion, lease heartbeat, fencing, release, and failover.",
+    scope: ["Worker receipts", "Queue outcomes", "Lease lifecycle", "Process-isolated failover"],
+    acceptance: ["Stale or active orphan leases remain attention.", "Independent worker hosts repeat partition and failover workloads."],
+    evidence: ["Workflow worker/failover source signal", "Distributed worker review"], nextSlice: "Gate Benchmark quality against latency and token cost.",
+  },
+  {
+    version: "v2.8.7", label: "Benchmark Cost-quality Decision Gate", status: "evidence-needed", track: "evaluation", targetWindow: "2031-01",
+    objective: "Join complete datasets, evaluator fingerprints, confidence, non-inferiority, latency, tokens, errors, and review queues.",
+    scope: ["Qualified 500-item runs", "Confidence and non-inferiority", "Latency and token outliers", "Decision digest"],
+    acceptance: ["A second distinct complete run is required for candidate promotion.", "Independent quality owners approve blind sets and budgets."],
+    evidence: ["Benchmark decision source signal", "Independent quality and cost review"], nextSlice: "Apply the same gate to Fine-tune quality and export.",
+  },
+  {
+    version: "v2.8.8", label: "Fine-tune Cost-quality and Export Gate", status: "evidence-needed", track: "finetune", targetWindow: "2031-01",
+    objective: "Bind paired adapter quality, best checkpoint, exact package bytes, read-back, rollback, cost, and ROI.",
+    scope: ["Paired quality", "Best-checkpoint bytes", "Package read-back", "Rollback, cost, and ROI"],
+    acceptance: ["Evaluated and packaged checkpoint identities must match.", "Representative adapters are repeated and published under organization control."],
+    evidence: ["Fine-tune quality/export source signal", "Independent adapter promotion review"], nextSlice: "Submit the remediation chain to independent review.",
+  },
+  {
+    version: "v2.8.9", label: "Independent Operational Remediation Review", status: "evidence-needed", track: "release", targetWindow: "2031-02",
+    objective: "Close v2.8 through distinct operations, quality, security, privacy, and immutable-retention review.",
+    scope: ["Ordered v2.8.0-v2.8.8 chain", "Distinct reviewers", "Signed terminal digest", "Immutable archive"],
+    acceptance: ["Missing, stale, reordered, or self-reviewed evidence fails closed.", "No local endpoint can authorize production."],
+    evidence: ["Signed remediation review", "Independent archive receipt"], nextSlice: "Make telemetry and resource use operationally transparent.",
+  },
+  {
+    version: "v2.9.0", label: "Telemetry and Resource Transparency", status: "evidence-needed", track: "ops", targetWindow: "2031-02",
+    objective: "Expose configured traces, errors, latency, queue, tokens, memory, throughput, and resource attribution.",
+    scope: ["Shared trace adapter", "Configured exporter", "Runtime resource metrics", "Cost attribution"],
+    acceptance: ["Disabled or unconfigured exporters remain attention.", "Infrastructure and finance owners reconcile deployed telemetry and billing."],
+    evidence: ["Telemetry/resource source signal", "External observability reconciliation"], nextSlice: "Retain replayable incident diagnostics.",
+  },
+  {
+    version: "v2.9.1", label: "Incident Diagnostics and Evidence Retention", status: "evidence-needed", track: "ops", targetWindow: "2031-02",
+    objective: "Retain connection checks, provider snapshots, supervisor degradation, recovery, integrity, and export evidence.",
+    scope: ["Connection diagnostics", "Provider snapshots", "Supervisor recovery", "Integrity and retention"],
+    acceptance: ["Missing diagnostics or invalid snapshots remain attention.", "Support and SRE owners replay representative incidents."],
+    evidence: ["Incident diagnostics source signal", "Independent incident replay"], nextSlice: "Prepare Admin compatibility wrappers for evidence-led sunset.",
+  },
+  {
+    version: "v2.9.2", label: "Admin Compatibility Sunset Readiness", status: "evidence-needed", track: "ops", targetWindow: "2031-03",
+    objective: "Require canonical replacements, compatibility smoke, zero runtime usage, archive, and elapsed sunset before deletion.",
+    scope: ["Canonical replacements", "Compatibility smoke", "Usage evidence", "Historical archive and sunset"],
+    acceptance: ["Wrappers remain while runtime or historical evidence is unresolved.", "Gateway and product owners approve deletion."],
+    evidence: ["Compatibility deletion manifest", "External zero-traffic approval"], nextSlice: "Verify upgrade and data lifecycle continuity.",
+  },
+  {
+    version: "v2.9.3", label: "Desktop Upgrade and Data Lifecycle Assurance", status: "evidence-needed", track: "desktop", targetWindow: "2031-03",
+    objective: "Bind signed update rollback, atomic migration, backup, restore, uninstall, purge, and bounded permission repair.",
+    scope: ["Update signing and rollback", "Data migration and restore", "Uninstall and purge", "Permission repair"],
+    acceptance: ["Local fixture rehearsals remain separate from notarized clean-machine evidence.", "Apple, support, and privacy owners repeat representative upgrades."],
+    evidence: ["Desktop lifecycle source signal", "Independent clean-machine review"], nextSlice: "Close sustainable operations under independent authority.",
+  },
+  {
+    version: "v2.9.4", label: "Independent Sustainable Operations Closure", status: "evidence-needed", track: "release", targetWindow: "2031-04",
+    objective: "Close telemetry, supportability, compatibility sunset, upgrade, and data lifecycle under independent review.",
+    scope: ["Ordered v2.9.0-v2.9.3 chain", "Distinct reviewers", "Terminal predecessor binding", "Immutable archive"],
+    acceptance: ["Any local substitution or missing authority fails closed.", "Production remains BLOCKED until every external record verifies."],
+    evidence: ["Signed sustainable-operations closure", "Independent immutable archive"], nextSlice: "v2.8-v2.9 is source-complete; any later train requires a newly approved scope and external authority model.",
   },
 ];
 

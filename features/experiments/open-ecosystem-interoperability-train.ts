@@ -5,6 +5,7 @@ import {
 import { readGovernedAutonomyReadinessTrain } from "@/features/experiments/governed-autonomy-readiness-train";
 import {
   readGovernedAutonomySourceSignals,
+  type GovernedAutonomySourceSignalId,
   type GovernedAutonomySourceSignalSnapshot,
 } from "@/features/experiments/governed-autonomy-source-signals";
 import {
@@ -15,7 +16,9 @@ import {
 export const OPEN_ECOSYSTEM_INTEROPERABILITY_SCHEMA_VERSION =
   "experiments.open-ecosystem-interoperability.v1" as const;
 
-export const OPEN_ECOSYSTEM_INTEROPERABILITY_DEFINITIONS: SourceBackedAssuranceDefinition[] = [
+export const OPEN_ECOSYSTEM_INTEROPERABILITY_DEFINITIONS: Array<
+  SourceBackedAssuranceDefinition<GovernedAutonomySourceSignalId>
+> = [
   {
     version: "v2.7.0",
     key: "OPENAI_API_COMPATIBILITY",

@@ -45,8 +45,16 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v2.1.x` Post-GA 运维证据 | 加入连续性、SLO、事故、数据、访问、供应链、质量、容量、灾备和独立复核的只读外部签名链；只能验证，不能操作或授权生产。 |
 | `v2.2.x` 持续 Assurance | 加入合规范围、隐私、模型风险、第三方、监管映射、透明度、Responsible UX、资源效率、整改和独立复核的严格外部签名合同。 |
 | `v2.3.0-v2.3.4` Assurance 闭环 | 加入证据迁移回读、Trust Center 发布、持续监控、独立审计整改和不可变闭环归档验证；外部证据保持 `HOLD`，生产保持 `BLOCKED`。 |
+| `v2.4.0-v2.5.4` 运行与部署生命周期 | 把 Runtime、Provider、成本、Benchmark、Retrieval、Agent、Workflow、Fine-tune 与部署可移植性、主权、密钥、连续性连接成 source-backed 证据链。 |
+| `v2.6.0-v2.7.4` 受治理自治与开放互操作 | 覆盖模型选择、Provider 路由、Grounded Context、工具权限、受保护动作、质量、Adapter 回滚、OpenAI-compatible、MCP、产物与身份可移植性。 |
+| `v2.8.0-v2.8.9` 运行整改与效率 | 把 Provider、Retrieval、模型供应链、Workspace 审计、Runtime、Agent、Workflow、Benchmark 与 Fine-tune 的真实 owner 信号整理为有优先级的整改链。 |
+| `v2.9.0-v2.9.4` 可持续运行与升级 | 增加遥测/资源透明度、故障诊断与保留、Admin compatibility sunset、桌面升级/数据生命周期及独立闭环。 |
 
 当前已打标签版本见 [`VERSION`](./VERSION)。源码树可能包含下一轮 route-owned 重构 checkpoint，正式标签会在后续发布时推进。
+
+最新运行整改计划见 [`v2.8.0-v2.9.4`](./docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md)。首轮 owner-controlled 投影记录 6 个通过、7 个需关注、0 个不可用和 2 个仅外部可满足的信号；独立外部签收仍为 `0/15`，分发保持 `HOLD`，生产保持 `BLOCKED`。
+
+最新已验证 source gate 见 [`v2.8.0-v2.9.4`](./docs/release-evidence/v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md)：119/119 测试、73/73 CI 路由、完整 smoke 与桌面/移动浏览器验证均通过。
 
 最新发布候选说明：[`v1.1.0-rc.2`](./docs/releases/v1.1.0-rc.2_2026-07-16.md)。生产分发链已可执行并保持 fail-closed；仓库不会把缺失的 Apple 或组织 receipt 表述为已完成证据。
 

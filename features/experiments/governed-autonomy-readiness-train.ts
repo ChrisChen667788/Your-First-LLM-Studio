@@ -5,6 +5,7 @@ import {
 } from "@/features/experiments/external-assurance-chain";
 import {
   readGovernedAutonomySourceSignals,
+  type GovernedAutonomySourceSignalId,
   type GovernedAutonomySourceSignalSnapshot,
 } from "@/features/experiments/governed-autonomy-source-signals";
 import {
@@ -15,7 +16,9 @@ import {
 export const GOVERNED_AUTONOMY_READINESS_SCHEMA_VERSION =
   "experiments.governed-autonomy-readiness.v1" as const;
 
-export const GOVERNED_AUTONOMY_READINESS_DEFINITIONS: SourceBackedAssuranceDefinition[] = [
+export const GOVERNED_AUTONOMY_READINESS_DEFINITIONS: Array<
+  SourceBackedAssuranceDefinition<GovernedAutonomySourceSignalId>
+> = [
   {
     version: "v2.6.0",
     key: "MODEL_SELECTION_POLICY",

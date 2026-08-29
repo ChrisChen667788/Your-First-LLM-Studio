@@ -6,25 +6,37 @@ import {
   type ExternalAssuranceArtifact,
   type ExternalAssuranceDefinition,
 } from "@/features/experiments/external-assurance-chain";
-import type {
-  GovernedAutonomySourceSignal,
-  GovernedAutonomySourceSignalId,
-  GovernedAutonomySourceSignalSnapshot,
-} from "@/features/experiments/governed-autonomy-source-signals";
+export type SourceBackedSignalStatus =
+  | "pass"
+  | "attention"
+  | "unavailable"
+  | "external-only";
 
-export type SourceBackedAssuranceDefinition = ExternalAssuranceDefinition & {
-  sourceSignalId: GovernedAutonomySourceSignalId;
+export type SourceBackedSignal<TId extends string = string> = {
+  id: TId;
+  status: SourceBackedSignalStatus;
+};
+
+export type SourceBackedSignalSnapshot<TSignal extends SourceBackedSignal> = {
+  signals: TSignal[];
+};
+
+export type SourceBackedAssuranceDefinition<TId extends string = string> =
+  ExternalAssuranceDefinition & {
+  sourceSignalId: TId;
 };
 
 function projectionDigest(value: unknown) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
-export function buildSourceBackedAssuranceProjection(input: {
-  definitions: SourceBackedAssuranceDefinition[];
+export function buildSourceBackedAssuranceProjection<
+  TSignal extends SourceBackedSignal,
+>(input: {
+  definitions: SourceBackedAssuranceDefinition<TSignal["id"]>[];
   anchor: ExternalAssuranceAnchor;
   artifacts: ExternalAssuranceArtifact[];
-  sourceSignals: GovernedAutonomySourceSignalSnapshot;
+  sourceSignals: SourceBackedSignalSnapshot<TSignal>;
   now: number;
 }) {
   const assurance = buildExternalAssuranceChainState({
@@ -41,7 +53,7 @@ export function buildSourceBackedAssuranceProjection(input: {
   }));
   const selectedSignals = versions.flatMap((version) =>
     version.sourceSignal ? [version.sourceSignal] : [],
-  ) as GovernedAutonomySourceSignal[];
+  ) as TSignal[];
   const sourceOwnedSignals = selectedSignals.filter(
     (entry) => entry.status !== "external-only",
   );
