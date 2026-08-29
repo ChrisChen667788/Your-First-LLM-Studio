@@ -118,7 +118,7 @@ test("the real detached-signature intake verifies without gaining production aut
       .update(publicKeyBytes)
       .digest("hex");
 
-    const state = readProductionEvidenceAuthority();
+    const state = readProductionEvidenceAuthority({ now });
     assert.equal(state.evidenceStatus, "verified");
     assert.equal(state.authorizationStatus, "not-authorized");
     assert.equal(state.productionStatus, "blocked");

@@ -8,14 +8,17 @@ import {
 } from "fs";
 import path from "path";
 
+const WORKSPACE_ROOT = path.resolve(
+  process.env.FIRST_LLM_WORKSPACE_ROOT?.trim() || process.cwd(),
+);
 const REPORT_PATH = path.join(
-  process.cwd(),
+  WORKSPACE_ROOT,
   "output",
   "release-security",
   "security-preflight-latest.json",
 );
 const HISTORY_DIR = path.join(
-  process.cwd(),
+  WORKSPACE_ROOT,
   "output",
   "release-security",
   "history",
@@ -157,7 +160,7 @@ export function readReleaseSecurityEvidenceHistory(options?: {
             ? report.status
             : "unknown";
           return {
-            file: path.relative(process.cwd(), filePath),
+            file: path.relative(WORKSPACE_ROOT, filePath),
             generatedAt: report?.generatedAt || null,
             status,
             integrityStatus: integrity.status,
@@ -172,7 +175,7 @@ export function readReleaseSecurityEvidenceHistory(options?: {
         )
     : [];
   return {
-    historyDir: path.relative(process.cwd(), HISTORY_DIR),
+    historyDir: path.relative(WORKSPACE_ROOT, HISTORY_DIR),
     totalCount: entries.length,
     verifiedCount: entries.filter((entry) => entry.integrityStatus === "verified").length,
     invalidCount: entries.filter((entry) => entry.integrityStatus === "invalid").length,
@@ -206,7 +209,7 @@ export function applyReleaseSecurityEvidenceRetention(input?: {
       .map((entry) => entry.file),
   );
   for (const entry of before.entries) {
-    if (!retained.has(entry.file)) unlinkSync(path.join(process.cwd(), entry.file));
+    if (!retained.has(entry.file)) unlinkSync(path.join(WORKSPACE_ROOT, entry.file));
   }
   const after = readReleaseSecurityEvidenceHistory({ limit: 200 });
   return {
@@ -267,7 +270,7 @@ export function readReleaseSecurityEvidence(options?: {
   return {
     schemaVersion: "experiments.release-security-evidence.v1",
     generatedAt: new Date().toISOString(),
-    reportPath: path.relative(process.cwd(), REPORT_PATH),
+    reportPath: path.relative(WORKSPACE_ROOT, REPORT_PATH),
     reportGeneratedAt,
     status,
     fresh,

@@ -190,7 +190,7 @@ test("the real dual-signature path binds an independent decision to exact eviden
       .update(decisionPublicKey)
       .digest("hex");
 
-    const state = readReleaseAuthorityDecisionLedger();
+    const state = readReleaseAuthorityDecisionLedger({ now });
     assert.equal(state.decisionStatus, "approved");
     assert.equal(state.authorizationStatus, "not-authorized");
     assert.equal(state.productionStatus, "blocked");

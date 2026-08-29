@@ -187,6 +187,18 @@ It does not close the named external controls. External status remains `hold`
 and production remains `blocked`. See
 [`docs/v2.2.0-v2.3.4-assurance-continuation-plan-2026-08-28.md`](./v2.2.0-v2.3.4-assurance-continuation-plan-2026-08-28.md).
 
+## 2026-08-29 v2.4.0-v2.5.4 operational lifecycle
+
+The next independently bounded 15-version train is source-complete. v2.4 adds
+real module-owned operational signals and a signed AI operations evidence chain;
+v2.5 adds deployment portability, sovereignty, customer-key, continuity/exit,
+and independent closure contracts. The repository can complete implementation,
+tests, API/UI projection, and exports only. Real managed workload, billing,
+identity/data, customer KMS/HSM, independent destination, continuity/exit, and
+customer/organization review remain external `HOLD` gates, with production
+`BLOCKED`. See
+[`docs/v2.4.0-v2.5.4-operational-lifecycle-plan-2026-08-29.md`](./v2.4.0-v2.5.4-operational-lifecycle-plan-2026-08-29.md).
+
 ## Architecture and maintenance closeout
 
 1. Continue shrinking Agent chat/session/runtime composition and Admin runtime/history panels into feature-owned ports.

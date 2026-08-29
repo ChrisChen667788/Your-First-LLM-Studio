@@ -230,7 +230,8 @@ export function buildReleaseAuthorityDecisionLedgerState(
   };
 }
 
-export function readReleaseAuthorityDecisionLedger() {
+export function readReleaseAuthorityDecisionLedger(options?: { now?: number }) {
+  const now = options?.now ?? Date.now();
   const decisionBytes = readFile(process.env.FIRST_LLM_RELEASE_DECISION_PATH);
   const signature = readFile(process.env.FIRST_LLM_RELEASE_DECISION_SIGNATURE_PATH);
   const publicKey = readFile(process.env.FIRST_LLM_RELEASE_DECISION_PUBLIC_KEY_PATH);
@@ -250,7 +251,7 @@ export function readReleaseAuthorityDecisionLedger() {
       signatureVerified = false;
     }
   }
-  const evidenceAuthority = readProductionEvidenceAuthority();
+  const evidenceAuthority = readProductionEvidenceAuthority({ now });
   const state = buildReleaseAuthorityDecisionLedgerState({
     decisionPresent: Boolean(decisionBytes),
     decision: parseDecision(decisionBytes),
@@ -266,12 +267,12 @@ export function readReleaseAuthorityDecisionLedger() {
       bundleDigest: evidenceAuthority.bundleDigest,
       issuerOrganizationId: evidenceAuthority.summary.issuerOrganizationId,
     },
-    now: Date.now(),
+    now,
   });
   return {
     ok: true as const,
     schemaVersion: RELEASE_AUTHORITY_DECISION_LEDGER_SCHEMA_VERSION,
-    generatedAt: new Date().toISOString(),
+    generatedAt: new Date(now).toISOString(),
     ...state,
     decisionDigest: decisionBytes ? sha256(decisionBytes) : null,
     evidenceIssuerOrganizationId: evidenceAuthority.summary.issuerOrganizationId,

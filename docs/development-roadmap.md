@@ -1106,3 +1106,19 @@ Acceptance for this source train requires all repository validations to pass
 and all missing external records to remain explicitly `HOLD`/`BLOCKED`. A later
 version may be defined only for a genuinely new controlled scope; repeating
 local fixtures cannot promote any of these milestones.
+
+## Operational lifecycle continuation (2026-08-29)
+
+An independently bounded product/evidence train now extends source contracts
+through `v2.5.4`. `v2.4.0-v2.4.9` adds an exception-safe aggregation of real
+Runtime, Provider, SLO, token/cost, Benchmark, Retrieval, Agent, Workflow, and
+Fine-tune signals plus independent AI operations review. `v2.5.0-v2.5.4` adds
+deployment portability, data sovereignty, customer-key, continuity/exit, and
+independent lifecycle closure contracts.
+
+The new Experiments panel and APIs keep three truths separate: source
+implementation is `PASS`; current local observations are `PASS` or `ATTENTION`;
+independently signed external evidence remains `HOLD`, and production remains
+`BLOCKED`. See
+[`docs/v2.4.0-v2.5.4-operational-lifecycle-plan-2026-08-29.md`](./v2.4.0-v2.5.4-operational-lifecycle-plan-2026-08-29.md).
+Verified source-gate results are recorded in [`docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md`](./release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md).

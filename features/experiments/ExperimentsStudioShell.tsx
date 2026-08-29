@@ -46,6 +46,7 @@ import { ReleaseAuthorityDecisionLedgerPanel } from "@/features/experiments/Rele
 import { ProductionLifecycleClosurePanel } from "@/features/experiments/ProductionLifecycleClosurePanel";
 import { PostGaOperationsTrainPanel } from "@/features/experiments/PostGaOperationsTrainPanel";
 import { AssuranceContinuationPanel } from "@/features/experiments/AssuranceContinuationPanel";
+import { OperationalLifecyclePanel } from "@/features/experiments/OperationalLifecyclePanel";
 
 export function ExperimentsStudioShell() {
   const { locale } = useLocale();
@@ -86,6 +87,7 @@ export function ExperimentsStudioShell() {
       <ProductionLifecycleClosurePanel locale={locale} />
       <PostGaOperationsTrainPanel locale={locale} />
       <AssuranceContinuationPanel locale={locale} />
+      <OperationalLifecyclePanel locale={locale} />
       <ArtifactFederationTrustPanel locale={locale} />
       <PostV1PromotionGatePanel locale={locale} />
       <PromotionGatePanel locale={locale} />

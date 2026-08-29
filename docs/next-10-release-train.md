@@ -1,5 +1,16 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-08-29 v2.4.0-v2.5.4 operational lifecycle
+
+The latest 15 source slices add real, read-only module signals to the external
+assurance model. `v2.4.0-v2.4.9` covers runtime, provider reliability, SLO,
+token/cost, benchmark, retrieval, Agent safety, Workflow recovery, Fine-tune
+ROI, and independent AI operations review. `v2.5.0-v2.5.4` covers deployment
+portability, data sovereignty, customer-controlled keys, continuity/exit, and
+independent lifecycle closure. Local signals can be `pass`, `attention`, or
+`unavailable`; external evidence remains `HOLD`, and production remains
+`BLOCKED`. Plan: [`v2.4.0-v2.5.4-operational-lifecycle-plan-2026-08-29.md`](./v2.4.0-v2.5.4-operational-lifecycle-plan-2026-08-29.md). Source-gate evidence: [`v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md`](./release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md).
+
 ## 2026-08-28 v2.2.0-v2.3.4 assurance continuation
 
 The next 15 source slices are implemented as two read-only, fail-closed chains.

@@ -247,7 +247,8 @@ export function buildProductionEvidenceAuthorityState(
   };
 }
 
-export function readProductionEvidenceAuthority() {
+export function readProductionEvidenceAuthority(options?: { now?: number }) {
+  const now = options?.now ?? Date.now();
   const bundleBytes = readFile(process.env.FIRST_LLM_PRODUCTION_EVIDENCE_BUNDLE_PATH);
   const signature = readFile(process.env.FIRST_LLM_PRODUCTION_EVIDENCE_SIGNATURE_PATH);
   const publicKey = readFile(process.env.FIRST_LLM_PRODUCTION_EVIDENCE_PUBLIC_KEY_PATH);
@@ -271,12 +272,12 @@ export function readProductionEvidenceAuthority() {
         actualPublicKeySha256 &&
         expectedPublicKeySha256 === actualPublicKeySha256,
     ),
-    now: Date.now(),
+    now,
   });
   return {
     ok: true as const,
     schemaVersion: PRODUCTION_EVIDENCE_AUTHORITY_SCHEMA_VERSION,
-    generatedAt: new Date().toISOString(),
+    generatedAt: new Date(now).toISOString(),
     ...state,
     bundleDigest: bundleBytes ? sha256(bundleBytes) : null,
     configured: {
