@@ -1,5 +1,18 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-08-29 v2.6.0-v2.7.4 governed autonomy and interoperability
+
+The latest 15 source slices project existing feature-owned controls into two
+new fail-closed chains. `v2.6.0-v2.6.9` covers model selection, provider
+routing, grounded context, extension permissions, protected actions, Workflow
+replay, Benchmark quality, adapter rollback, audit provenance, and independent
+review. `v2.7.0-v2.7.4` covers OpenAI-compatible clients, MCP extensions,
+artifact/model portability, workspace/identity portability, and independent
+closure. Local source signals may be `pass`, `attention`, or `unavailable`;
+external evidence stays `HOLD` and production stays `BLOCKED`. Plan:
+[`v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md`](./v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md).
+Source gate: [`v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md`](./release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md).
+
 ## 2026-08-29 v2.4.0-v2.5.4 operational lifecycle
 
 The latest 15 source slices add real, read-only module signals to the external

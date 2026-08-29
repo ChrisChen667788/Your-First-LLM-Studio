@@ -51,6 +51,8 @@ const checks = [
   { id: "assurance-closure-train-api", path: "/api/experiments/assurance-closure-train", kind: "json", contract: "ok" },
   { id: "ai-operations-intelligence-api", path: "/api/experiments/ai-operations-intelligence", kind: "json", contract: "ok" },
   { id: "deployment-lifecycle-assurance-api", path: "/api/experiments/deployment-lifecycle-assurance", kind: "json", contract: "ok" },
+  { id: "governed-autonomy-readiness-api", path: "/api/experiments/governed-autonomy-readiness", kind: "json", contract: "ok" },
+  { id: "open-ecosystem-interoperability-api", path: "/api/experiments/open-ecosystem-interoperability", kind: "json", contract: "ok" },
   { id: "runtime-recovery-performance-api", path: "/api/models/runtime-recovery-performance", kind: "json", contract: "ok" },
   { id: "extension-foundation-api", path: "/api/extensions", kind: "json", contract: "object" },
   { id: "workspace-resources-api", path: "/api/governance/workspaces/resources", kind: "json", contract: "ok" },

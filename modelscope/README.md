@@ -41,8 +41,14 @@ This desktop-onboarding release candidate packages the current Studio as an Appl
 | `v1.1.0-rc.2` | Native arm64 launcher, nested-code/app/DMG signing workflow, dual notarization logs, staple/Gatekeeper verification, external-Mac runner, and RSA organization receipts with an out-of-band trust pin; real external evidence still gates GA. |
 | `v2.4.x` | AI operations intelligence that reads real Runtime, Provider, SLO, token/cost, Benchmark, Retrieval, Agent, Workflow, and Fine-tune signals while keeping independent signed review on HOLD. |
 | `v2.5.0-v2.5.4` | Deployment lifecycle contracts for portability, data sovereignty, customer keys, continuity/exit, and independent closure; production authority remains external and BLOCKED. |
+| `v2.6.0-v2.6.9` | Governed autonomy readiness for model choice, provider routing, grounded context, tool permissions, protected actions, Workflow replay, quality, adapter rollback, audit provenance, and independent review. |
+| `v2.7.0-v2.7.4` | Open ecosystem interoperability for OpenAI-compatible clients, MCP extensions, portable models/artifacts, workspace identity, and independent closure. |
 
 Evidence: [`v2.4.0-v2.5.4 operational lifecycle source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) records 8 passing, 5 attention, and 2 external-only local signals; externally verified records remain `0/15`.
+
+Plan: [`v2.6.0-v2.7.4 governed autonomy and interoperability`](../docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md) adds 15 source-backed slices while independent ecosystem evidence remains `HOLD` and production remains `BLOCKED`.
+
+Source gate: [`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md) records 9 pass, 4 attention, 0 unavailable, and 2 external-only signals; independently verified records remain `0/15`.
 
 ## Competitive Position
 
@@ -141,8 +147,14 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 | `v1.1.0-rc.2` | 原生 arm64 launcher、内部代码/app/DMG 分层签名链、双层公证日志、staple/Gatekeeper 验证、独立 Mac 验收脚本以及带线下信任锚的 RSA 组织签收；真实外部证据仍是 GA 门禁。 |
 | `v2.4.x` | AI 运行智能：读取真实 Runtime、Provider、SLO、Token/成本、Benchmark、Retrieval、Agent、Workflow 与 Fine-tune 信号，同时把独立签名复核保持为 HOLD。 |
 | `v2.5.0-v2.5.4` | 部署生命周期：覆盖可移植性、数据主权、客户密钥、连续性/退出与独立闭环；生产授权继续由外部掌握并保持 BLOCKED。 |
+| `v2.6.0-v2.6.9` | 受治理自治就绪度：把模型选择、Provider 路由、Grounded Context、工具权限、受保护动作、Workflow 回放、质量、Adapter 回滚和审计谱系收进一条独立复核链。 |
+| `v2.7.0-v2.7.4` | 开放生态互操作：覆盖 OpenAI-compatible 客户端、MCP 扩展、模型/产物可移植性、Workspace Identity 与独立闭环。 |
 
 证据：[`v2.4.0-v2.5.4 运行与部署生命周期 source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) 记录了 8 个通过、5 个需关注和 2 个仅外部可满足的本地信号；独立外部签收仍为 `0/15`。
+
+计划：[`v2.6.0-v2.7.4 受治理自治与开放生态互操作`](../docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md) 新增 15 个 source-backed 版本切片；独立生态签收继续保持 `HOLD`，生产状态保持 `BLOCKED`。
+
+Source gate：[`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md) 记录 9 个通过、4 个需关注、0 个不可用和 2 个仅外部可满足的信号；独立外部签收仍为 `0/15`。
 
 ## 竞品定位对比
 

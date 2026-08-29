@@ -41,7 +41,7 @@ type TrainPayload = {
   error?: string;
 };
 
-type TrainId = "operations" | "lifecycle";
+type TrainId = "operations" | "lifecycle" | "autonomy" | "interoperability";
 
 const TRAINS: Record<TrainId, {
   endpoint: string;
@@ -70,6 +70,26 @@ const TRAINS: Record<TrainId, {
       "Portability, data sovereignty, customer keys, continuity, exit, and independent closure remain explicit deployment lifecycle gates.",
     descriptionZh:
       "部署可移植性、数据主权、客户密钥、连续性、退出演练与独立闭环保持为明确门禁。",
+  },
+  autonomy: {
+    endpoint: "/api/experiments/governed-autonomy-readiness",
+    range: "V2.6.0-V2.6.9",
+    labelEn: "Governed autonomy readiness",
+    labelZh: "受治理自治就绪度",
+    descriptionEn:
+      "Model choice, provider routing, grounded context, tool permissions, approvals, replay, quality, adapters, and audit provenance are projected as one fail-closed policy chain.",
+    descriptionZh:
+      "把模型选择、Provider 路由、Grounded Context、工具权限、审批、回放、质量、Adapter 与审计谱系投影为一条 fail-closed 策略链。",
+  },
+  interoperability: {
+    endpoint: "/api/experiments/open-ecosystem-interoperability",
+    range: "V2.7.0-V2.7.4",
+    labelEn: "Open ecosystem interoperability",
+    labelZh: "开放生态互操作",
+    descriptionEn:
+      "OpenAI-compatible clients, MCP extensions, portable model artifacts, and workspace identity contracts remain testable without claiming external deployment authority.",
+    descriptionZh:
+      "OpenAI-compatible 客户端、MCP 扩展、可移植模型产物和 Workspace Identity 合同可被持续验证，但不冒充外部部署授权。",
   },
 };
 
@@ -122,14 +142,14 @@ export function OperationalLifecyclePanel({ locale }: { locale: string }) {
     <section className="min-w-0 border border-cyan-300/20 bg-slate-950/80 p-4 backdrop-blur">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase text-cyan-300">V2.4.0-V2.5.4 OPERATIONAL LIFECYCLE</p>
+          <p className="text-xs font-semibold uppercase text-cyan-300">V2.4.0-V2.7.4 OPERATIONAL ASSURANCE</p>
           <h2 className="mt-2 text-xl font-semibold text-white">
             {en ? "Local operational truth, external production authority" : "本地运行事实，外部生产授权"}
           </h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
             {en
-              ? "The source layer reads real module-owned signals without mutation. Signed external records still own production truth, so missing customer or operator evidence remains HOLD/BLOCKED."
-              : "源码层只读真实 feature-owned 信号，不产生副作用；生产事实仍由外部签名记录负责，因此缺少客户或运营方证据时继续保持 HOLD/BLOCKED。"}
+              ? "The source layer reads real module-owned signals without mutation. Operations, lifecycle, governed autonomy, and interoperability remain separate from signed external production authority."
+              : "源码层只读真实 feature-owned 信号，不产生副作用；运行、生命周期、受治理自治和互操作证据继续与外部签名生产授权严格分离。"}
           </p>
         </div>
         <button
@@ -141,7 +161,7 @@ export function OperationalLifecyclePanel({ locale }: { locale: string }) {
         </button>
       </div>
 
-      <div className="mt-4 inline-flex max-w-full border border-white/10 bg-black/25 p-1">
+      <div className="mt-4 inline-flex max-w-full flex-wrap border border-white/10 bg-black/25 p-1">
         {(Object.keys(TRAINS) as TrainId[]).map((id) => {
           const option = TRAINS[id];
           const selected = id === active;

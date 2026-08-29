@@ -199,6 +199,21 @@ customer/organization review remain external `HOLD` gates, with production
 `BLOCKED`. See
 [`docs/v2.4.0-v2.5.4-operational-lifecycle-plan-2026-08-29.md`](./v2.4.0-v2.5.4-operational-lifecycle-plan-2026-08-29.md).
 
+## 2026-08-29 v2.6.0-v2.7.4 governed autonomy and interoperability
+
+The next independently bounded 15-version train is source-complete. v2.6 joins
+model selection, provider routing, grounded context, extension permissions,
+protected actions, Workflow replay, Benchmark quality, adapter rollback, and
+audit provenance into a governed-autonomy chain. v2.7 verifies
+OpenAI-compatible clients, MCP extensions, portable models/artifacts, and
+workspace/identity contracts. The repository owns read-only projections,
+strict external-chain verification, APIs, UI, tests, exports, and docs. Real
+traffic, independent model/security/quality review, remote MCP/OAuth,
+cross-platform isolation, organization IdP/SCIM/database, independent import,
+and ecosystem closure remain external `HOLD` gates; production remains
+`BLOCKED`. See
+[`docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md`](./v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md).
+
 ## Architecture and maintenance closeout
 
 1. Continue shrinking Agent chat/session/runtime composition and Admin runtime/history panels into feature-owned ports.
