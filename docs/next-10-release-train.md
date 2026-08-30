@@ -1,5 +1,19 @@
 # Release Train and Post-v1 Product Roadmap
 
+# 2026-08-30 v3.0.0-v3.1.4 remediation control and service readiness
+
+The newly approved 15-version scope converts seven unresolved owner signals
+into an accountable remediation control plane and keeps customer-facing service
+readiness fail-closed. `v3.0.0-v3.0.9` adds owners, priorities, dependencies,
+acceptance checks, next actions, evidence fingerprints, a deterministic package,
+and independent remediation acceptance. `v3.1.0-v3.1.4` covers readiness
+disclosure, support diagnostics, upgrade/change continuity, operational
+transition, and independent closure. The initial source read is `5 pass`,
+`8 attention`, `0 unavailable`, and `2 external-only`; external evidence is
+`0/15`, distribution is `HOLD`, and production is `BLOCKED`. Plan:
+[`v3.0.0-v3.1.4-remediation-service-readiness-plan-2026-08-30.md`](./v3.0.0-v3.1.4-remediation-service-readiness-plan-2026-08-30.md).
+Source gate: [`v3.0.0-v3.1.4-remediation-service-readiness-source-gate-2026-08-30.md`](./release-evidence/v3.0.0-v3.1.4-remediation-service-readiness-source-gate-2026-08-30.md).
+
 ## 2026-08-30 v2.8.0-v2.9.4 operational remediation and sustainability
 
 The latest 15 source slices convert real module-owned gaps into a prioritized,

@@ -139,11 +139,11 @@ test("v2.9 fails closed when its predecessor is unavailable", () => {
 });
 
 test("release train exposes all fifteen v2.8-v2.9 evidence milestones", () => {
-  const versions = RELEASE_TRAIN_MILESTONES.slice(-15).map((entry) => entry.version);
+  const versions = RELEASE_TRAIN_MILESTONES.slice(-30, -15).map((entry) => entry.version);
   assert.deepEqual(versions, [
     "v2.8.0", "v2.8.1", "v2.8.2", "v2.8.3", "v2.8.4", "v2.8.5", "v2.8.6", "v2.8.7", "v2.8.8", "v2.8.9", "v2.9.0", "v2.9.1", "v2.9.2", "v2.9.3", "v2.9.4",
   ]);
-  assert.equal(RELEASE_TRAIN_MILESTONES.length, 125);
-  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v2.9.4 source and evidence trains");
-  assert.ok(RELEASE_TRAIN_MILESTONES.slice(-15).every((entry) => entry.status === "evidence-needed"));
+  assert.equal(RELEASE_TRAIN_MILESTONES.length, 140);
+  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v3.1.4 source and evidence trains");
+  assert.ok(RELEASE_TRAIN_MILESTONES.slice(-30, -15).every((entry) => entry.status === "evidence-needed"));
 });

@@ -48,6 +48,7 @@ import { PostGaOperationsTrainPanel } from "@/features/experiments/PostGaOperati
 import { AssuranceContinuationPanel } from "@/features/experiments/AssuranceContinuationPanel";
 import { OperationalLifecyclePanel } from "@/features/experiments/OperationalLifecyclePanel";
 import { OperationalSustainabilityPanel } from "@/features/experiments/OperationalSustainabilityPanel";
+import { OperationalClosurePanel } from "@/features/experiments/OperationalClosurePanel";
 
 export function ExperimentsStudioShell() {
   const { locale } = useLocale();
@@ -90,6 +91,7 @@ export function ExperimentsStudioShell() {
       <AssuranceContinuationPanel locale={locale} />
       <OperationalLifecyclePanel locale={locale} />
       <OperationalSustainabilityPanel locale={locale} />
+      <OperationalClosurePanel locale={locale} />
       <ArtifactFederationTrustPanel locale={locale} />
       <PostV1PromotionGatePanel locale={locale} />
       <PromotionGatePanel locale={locale} />

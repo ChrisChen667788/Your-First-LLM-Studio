@@ -214,6 +214,19 @@ and ecosystem closure remain external `HOLD` gates; production remains
 `BLOCKED`. See
 [`docs/v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md`](./v2.6.0-v2.7.4-governed-interoperability-plan-2026-08-29.md).
 
+## 2026-08-30 v3.0.0-v3.1.4 remediation control and service readiness
+
+The user-approved next scope turns the seven visible owner gaps into an actual
+remediation control plane instead of another disconnected status list. Every
+signal has a responsible domain, priority, review window, dependencies,
+acceptance checks, next actions, evidence fingerprint, and deterministic state.
+The service-readiness train projects disclosure, support diagnostics,
+upgrade/change continuity, transition ownership, and independent closure while
+upstream remediation remains visible. Current projection: 5 pass, 8 attention,
+0 unavailable, 2 external-only; external evidence 0/15; distribution HOLD;
+production BLOCKED. See
+[`docs/v3.0.0-v3.1.4-remediation-service-readiness-plan-2026-08-30.md`](./v3.0.0-v3.1.4-remediation-service-readiness-plan-2026-08-30.md).
+
 ## 2026-08-30 v2.8.0-v2.9.4 operational remediation and sustainability
 
 This newly approved 15-version train is source-complete. v2.8 turns Provider,

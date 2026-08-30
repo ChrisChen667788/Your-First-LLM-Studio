@@ -45,6 +45,8 @@ This desktop-onboarding release candidate packages the current Studio as an Appl
 | `v2.7.0-v2.7.4` | Open ecosystem interoperability for OpenAI-compatible clients, MCP extensions, portable models/artifacts, workspace identity, and independent closure. |
 | `v2.8.0-v2.8.9` | Operational remediation for Provider, Retrieval, model supply-chain, workspace audit, runtime, Agent, Workflow, Benchmark, and Fine-tune evidence. |
 | `v2.9.0-v2.9.4` | Sustainable operations for telemetry, incident diagnostics, Admin compatibility sunset, desktop upgrade/data lifecycle, and independent closure. |
+| `v3.0.0-v3.0.9` | Remediation control plane with owners, priorities, dependencies, acceptance checks, next actions, evidence fingerprints, deterministic packaging, and independent acceptance. |
+| `v3.1.0-v3.1.4` | Service-readiness disclosure, support diagnostics, upgrade/change continuity, operational transition, and independent closure. |
 
 Evidence: [`v2.4.0-v2.5.4 operational lifecycle source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) records 8 passing, 5 attention, and 2 external-only local signals; externally verified records remain `0/15`.
 
@@ -52,9 +54,13 @@ Plan: [`v2.6.0-v2.7.4 governed autonomy and interoperability`](../docs/v2.6.0-v2
 
 Source gate: [`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md) records 9 pass, 4 attention, 0 unavailable, and 2 external-only signals; independently verified records remain `0/15`.
 
-Latest plan: [`v2.8.0-v2.9.4 operational remediation and sustainability`](../docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md) projects 6 pass, 7 attention, 0 unavailable, and 2 external-only owner signals. Independent evidence remains `0/15`, distribution remains `HOLD`, and production remains `BLOCKED`.
+Previous plan: [`v2.8.0-v2.9.4 operational remediation and sustainability`](../docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md) projects 6 pass, 7 attention, 0 unavailable, and 2 external-only owner signals. Independent evidence remains `0/15`, distribution remains `HOLD`, and production remains `BLOCKED`.
 
 Validated source gate: [`v2.8.0-v2.9.4`](../docs/release-evidence/v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md) records 119/119 tests, 73/73 CI routes, full smoke, desktop/mobile browser QA, and the machine-readable evidence export.
+
+Latest plan: [`v3.0.0-v3.1.4 remediation control and service readiness`](../docs/v3.0.0-v3.1.4-remediation-service-readiness-plan-2026-08-30.md) reports 5 pass, 8 attention, 0 unavailable, and 2 external-only signals. The control plane classifies 2 satisfied, 3 open, 8 blocked, and 2 external-only items; independent evidence remains `0/15` and production remains `BLOCKED`.
+
+Validated source gate: [`v3.0.0-v3.1.4`](../docs/release-evidence/v3.0.0-v3.1.4-remediation-service-readiness-source-gate-2026-08-30.md) records 125/125 tests, 75/75 CI routes, full smoke, production build, security preflight, and desktop/mobile browser QA.
 
 ## Competitive Position
 
@@ -157,6 +163,8 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 | `v2.7.0-v2.7.4` | 开放生态互操作：覆盖 OpenAI-compatible 客户端、MCP 扩展、模型/产物可移植性、Workspace Identity 与独立闭环。 |
 | `v2.8.0-v2.8.9` | 运行整改：覆盖 Provider、Retrieval、模型供应链、Workspace 审计、Runtime、Agent、Workflow、Benchmark 与 Fine-tune 证据。 |
 | `v2.9.0-v2.9.4` | 可持续运行：覆盖遥测、故障诊断、Admin compatibility sunset、桌面升级/数据生命周期与独立闭环。 |
+| `v3.0.0-v3.0.9` | 整改控制面：加入 owner、优先级、依赖、验收条件、下一动作、证据指纹、确定性打包与独立签收。 |
+| `v3.1.0-v3.1.4` | 服务就绪：覆盖客户披露、支持诊断、升级变更连续性、运行交接和独立闭环。 |
 
 证据：[`v2.4.0-v2.5.4 运行与部署生命周期 source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) 记录了 8 个通过、5 个需关注和 2 个仅外部可满足的本地信号；独立外部签收仍为 `0/15`。
 
@@ -164,9 +172,13 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 
 Source gate：[`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-interoperability-source-gate-2026-08-29.md) 记录 9 个通过、4 个需关注、0 个不可用和 2 个仅外部可满足的信号；独立外部签收仍为 `0/15`。
 
-最新计划：[`v2.8.0-v2.9.4 运行整改与可持续运行`](../docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md) 投影 6 个通过、7 个需关注、0 个不可用和 2 个仅外部可满足的 owner 信号；独立外部证据仍为 `0/15`，分发保持 `HOLD`，生产保持 `BLOCKED`。
+上一阶段计划：[`v2.8.0-v2.9.4 运行整改与可持续运行`](../docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md) 投影 6 个通过、7 个需关注、0 个不可用和 2 个仅外部可满足的 owner 信号；独立外部证据仍为 `0/15`，分发保持 `HOLD`，生产保持 `BLOCKED`。
 
 已验证 source gate：[`v2.8.0-v2.9.4`](../docs/release-evidence/v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md) 记录 119/119 测试、73/73 CI 路由、完整 smoke、桌面/移动浏览器验证与机器可读证据导出。
+
+最新计划：[`v3.0.0-v3.1.4 整改控制与服务就绪`](../docs/v3.0.0-v3.1.4-remediation-service-readiness-plan-2026-08-30.md) 记录 5 个通过、8 个需关注、0 个不可用和 2 个仅外部可满足；控制面分类为 2 个 satisfied、3 个 open、8 个 blocked 和 2 个 external-only。独立证据仍为 `0/15`，生产保持 `BLOCKED`。
+
+已验证 source gate：[`v3.0.0-v3.1.4`](../docs/release-evidence/v3.0.0-v3.1.4-remediation-service-readiness-source-gate-2026-08-30.md) 记录 125/125 测试、75/75 CI 路由、完整 smoke、生产构建、安全预检和桌面/移动浏览器验证。
 
 ## 竞品定位对比
 

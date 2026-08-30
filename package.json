@@ -86,6 +86,7 @@
     "evidence:v240-v254-operational-lifecycle": "node scripts/run-v240-v254-operational-lifecycle-evidence.mjs",
     "evidence:v260-v274-governed-interoperability": "node scripts/run-v260-v274-governed-interoperability-evidence.mjs",
     "evidence:v280-v294-operational-sustainability": "node scripts/run-v280-v294-operational-sustainability-evidence.mjs",
+    "evidence:v300-v314-remediation-readiness": "node scripts/run-v300-v314-remediation-readiness-evidence.mjs",
     "evidence:v1102-v1200-source-train": "node scripts/run-v1102-v1200-source-train-evidence.mjs",
     "preflight:aws-production-promotion": "node scripts/preflight-aws-production-promotion.mjs",
     "preflight:release-security": "node scripts/release-security-preflight.mjs",

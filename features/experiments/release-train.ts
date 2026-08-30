@@ -5,7 +5,7 @@ import type {
 
 export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.5.1" as const;
 export const RELEASE_TRAIN_DEVELOPMENT_VERSION =
-  "v1.7.0-v2.9.4 source and evidence trains" as const;
+  "v1.7.0-v3.1.4 source and evidence trains" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -1939,6 +1939,111 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     scope: ["Ordered v2.9.0-v2.9.3 chain", "Distinct reviewers", "Terminal predecessor binding", "Immutable archive"],
     acceptance: ["Any local substitution or missing authority fails closed.", "Production remains BLOCKED until every external record verifies."],
     evidence: ["Signed sustainable-operations closure", "Independent immutable archive"], nextSlice: "v2.8-v2.9 is source-complete; any later train requires a newly approved scope and external authority model.",
+  },
+  {
+    version: "v3.0.0", label: "Provider Remediation Control", status: "evidence-needed", track: "ops", targetWindow: "2031-04",
+    objective: "Convert missing provider traffic, release probes, fallback, quota, cost, and snapshot reconciliation into an owned remediation control.",
+    scope: ["Provider Ops owner", "Release probe and traffic window", "Fallback and billing reconciliation", "Evidence fingerprint"],
+    acceptance: ["No-traffic and failed-probe states remain open.", "Gateway, provider, and billing owners execute and sign the deployed workload."],
+    evidence: ["Provider remediation control", "External traffic and billing reconciliation"], nextSlice: "Turn managed Retrieval gaps into a dependency-bound remediation control.",
+  },
+  {
+    version: "v3.0.1", label: "Retrieval Remediation Control", status: "evidence-needed", track: "rag", targetWindow: "2031-05",
+    objective: "Bind managed dependencies, corpus freshness, citations, deletion propagation, reranking, and ACL probes to one accountable Retrieval control.",
+    scope: ["Managed dependency preflight", "Frozen Retrieval evaluation", "Workspace dependency", "Leakage and deletion review"],
+    acceptance: ["Missing managed dependencies or failed probes remain open or blocked.", "Knowledge, identity, and database owners repeat the workload."],
+    evidence: ["Retrieval remediation control", "Managed corpus and leakage review"], nextSlice: "Close authenticated model-transfer and destination checksum gaps.",
+  },
+  {
+    version: "v3.0.2", label: "Model Supply-chain Remediation Control", status: "evidence-needed", track: "models", targetWindow: "2031-05",
+    objective: "Bind authenticated immutable Hub identity, selected files, destination checksums, activation, removal, and rollback into one control.",
+    scope: ["Authenticated Hub revision", "Multi-file checksums", "Destination ownership", "Activation and rollback"],
+    acceptance: ["Anonymous or mutable source identity remains attention.", "Managed stores and runtimes repeat transfer and read-back."],
+    evidence: ["Model supply-chain remediation control", "External transfer reconciliation"], nextSlice: "Bind signed action provenance to database audit completeness.",
+  },
+  {
+    version: "v3.0.3", label: "Workspace Audit Remediation Control", status: "evidence-needed", track: "governance", targetWindow: "2031-05",
+    objective: "Join database ACL, audit events, signed request context, and privacy-safe action provenance under accountable governance ownership.",
+    scope: ["Database workspace ACL", "Signed action provenance", "Audit reconciliation", "Privacy-safe identity"],
+    acceptance: ["Unsigned action provenance remains attention.", "Organization identity, audit, database, and privacy owners reconcile real actions."],
+    evidence: ["Workspace audit remediation control", "External identity and audit review"], nextSlice: "Collect comparable runtime capacity and complete recovery evidence.",
+  },
+  {
+    version: "v3.0.4", label: "Runtime Capacity Remediation Control", status: "evidence-needed", track: "runtime", targetWindow: "2031-06",
+    objective: "Require same-profile performance comparison and six-operation lifecycle recovery on representative model and hardware identity.",
+    scope: ["Comparable performance pair", "Load and unload", "Cancel and resume", "Restart and benchmark recovery"],
+    acceptance: ["Incomplete or incomparable receipts remain blocked.", "Independent runtime operators repeat representative workloads."],
+    evidence: ["Runtime capacity remediation control", "Independent hardware and recovery review"], nextSlice: "Run and compare a distinct qualified Benchmark candidate.",
+  },
+  {
+    version: "v3.0.5", label: "Benchmark Candidate Remediation Control", status: "evidence-needed", track: "evaluation", targetWindow: "2031-06",
+    objective: "Require a distinct complete candidate and bind confidence, non-inferiority, latency, tokens, errors, and review policy.",
+    scope: ["Distinct 500-item candidate", "Paired statistics", "Latency and token budget", "Bounded review queue"],
+    acceptance: ["Duplicate run identity cannot satisfy the candidate gate.", "Independent quality owners approve evaluator, blind set, and thresholds."],
+    evidence: ["Benchmark candidate remediation control", "Independent quality and cost decision"], nextSlice: "Configure real telemetry export and trace-to-usage reconciliation.",
+  },
+  {
+    version: "v3.0.6", label: "Telemetry Export Remediation Control", status: "evidence-needed", track: "ops", targetWindow: "2031-06",
+    objective: "Bind a configured exporter, end-to-end traces, runtime/provider identities, token accounting, errors, resource use, and cost.",
+    scope: ["OTLP or Langfuse exporter", "Trace and usage reconciliation", "Resource attribution", "Secret-safe retention"],
+    acceptance: ["Disabled or unconfigured export remains attention.", "Observability, infrastructure, and finance owners reconcile deployed traces."],
+    evidence: ["Telemetry export remediation control", "External trace and billing reconciliation"], nextSlice: "Order every remediation control in an acyclic dependency graph.",
+  },
+  {
+    version: "v3.0.7", label: "Remediation Dependency Graph", status: "evidence-needed", track: "platform", targetWindow: "2031-07",
+    objective: "Give every owner signal one policy, deterministic dependencies, priority, blocked-by state, review window, and accountable next action.",
+    scope: ["One policy per signal", "Acyclic dependency graph", "Priority and owner", "Blocked-by projection"],
+    acceptance: ["Missing policies, cycles, or actionless controls fail source readiness.", "Program owners approve sequencing and escalation."],
+    evidence: ["Deterministic remediation graph", "External owner-accountability review"], nextSlice: "Package every control with acceptance and evidence fingerprints.",
+  },
+  {
+    version: "v3.0.8", label: "Remediation Evidence Package", status: "evidence-needed", track: "release", targetWindow: "2031-07",
+    objective: "Export owner, priority, dependencies, acceptance, actions, blockers, and evidence fingerprints under one deterministic digest.",
+    scope: ["Per-control fingerprints", "Package state digest", "Machine-readable export", "Destination read-back contract"],
+    acceptance: ["Every control has acceptance and action contracts.", "A separately operated archive verifies exact package bytes."],
+    evidence: ["Remediation evidence export", "Independent archive read-back"], nextSlice: "Submit the complete remediation chain for independent acceptance.",
+  },
+  {
+    version: "v3.0.9", label: "Independent Remediation Acceptance", status: "evidence-needed", track: "release", targetWindow: "2031-07",
+    objective: "Close v3.0 through distinct operations, quality, security, privacy, and immutable-retention review.",
+    scope: ["Ordered v3.0.0-v3.0.8 chain", "Distinct reviewers", "Terminal digest", "Immutable archive"],
+    acceptance: ["Missing, stale, reordered, or self-reviewed evidence fails closed.", "No local endpoint can authorize production."],
+    evidence: ["Signed remediation acceptance", "Independent archive receipt"], nextSlice: "Publish an audience-approved service-readiness disclosure.",
+  },
+  {
+    version: "v3.1.0", label: "Customer Service-readiness Disclosure", status: "evidence-needed", track: "release", targetWindow: "2031-08",
+    objective: "Expose source completion, unresolved remediation, external evidence, distribution, and production authority as separate customer-facing facts.",
+    scope: ["Audience-safe readiness summary", "Unresolved control counts", "Evidence links", "Claim and limitation policy"],
+    acceptance: ["Local completion never implies production authority.", "Customer, legal, security, and product owners approve claims."],
+    evidence: ["Service-readiness disclosure source signal", "External disclosure approval"], nextSlice: "Verify support diagnostics, escalation, and retention through incident replay.",
+  },
+  {
+    version: "v3.1.1", label: "Support Diagnostics Readiness", status: "evidence-needed", track: "ops", targetWindow: "2031-08",
+    objective: "Make connection, provider, service, recovery, retention, redaction, export, and replay diagnostics support-ready.",
+    scope: ["Connection diagnostics", "Provider snapshots", "Service recovery", "Redacted retention and replay"],
+    acceptance: ["Missing or corrupt diagnostics remain attention.", "Support, SRE, privacy, and customer owners replay incidents."],
+    evidence: ["Support diagnostics source signal", "Independent incident replay"], nextSlice: "Join compatibility sunset with upgrade and data-lifecycle continuity.",
+  },
+  {
+    version: "v3.1.2", label: "Upgrade and Change Readiness", status: "evidence-needed", track: "desktop", targetWindow: "2031-08",
+    objective: "Join compatibility sunset, signed staged updates, rollback, migration, restore, uninstall, purge, and permission repair.",
+    scope: ["Zero-traffic compatibility evidence", "Signed update and rollback", "Migration and restore", "Uninstall and purge"],
+    acceptance: ["Wrappers remain until the evidence threshold and sunset date pass.", "Apple, support, privacy, and clean-machine owners repeat upgrades."],
+    evidence: ["Upgrade/change source signal", "Independent clean-machine change review"], nextSlice: "Present all transition decisions to accountable operating owners.",
+  },
+  {
+    version: "v3.1.3", label: "Operational Transition Board", status: "evidence-needed", track: "ops", targetWindow: "2031-09",
+    objective: "Present every remediation state, owner, priority, dependency, acceptance check, action, and authority boundary in one transition board.",
+    scope: ["Classified remediation queue", "Owner and priority", "Blocked dependencies", "Explicit authority boundary"],
+    acceptance: ["Every control is classified without hidden unknown state.", "Operations, product, security, privacy, support, and finance owners approve transition decisions."],
+    evidence: ["Operational transition board", "External accountable-owner review"], nextSlice: "Close service readiness under an independent authority.",
+  },
+  {
+    version: "v3.1.4", label: "Independent Service-readiness Closure", status: "evidence-needed", track: "release", targetWindow: "2031-09",
+    objective: "Close disclosure, supportability, upgrade/change, and operational transition through an independent predecessor-bound review.",
+    scope: ["Ordered v3.1.0-v3.1.3 chain", "Distinct service reviewers", "Terminal predecessor binding", "Immutable archive"],
+    acceptance: ["Local substitution, reused authority, or missing predecessor fails closed.", "Production remains BLOCKED until every external record verifies."],
+    evidence: ["Signed service-readiness closure", "Independent immutable archive"], nextSlice: "v3.0-v3.1 is source-complete; further versions require a newly approved product or external-authority scope.",
   },
 ];
 
