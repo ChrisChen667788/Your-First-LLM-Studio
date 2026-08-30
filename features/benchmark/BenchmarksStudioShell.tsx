@@ -860,9 +860,11 @@ export function BenchmarksStudioShell() {
           <div className="mt-5 grid gap-4 2xl:grid-cols-[minmax(0,1.25fr)_420px]">
             <div className="space-y-3">
               {latestRuns.length ? (
-                latestRuns.map((run) => (
+                latestRuns.map((run, runIndex) => (
                   <article
                     key={run.id}
+                    id={runIndex === 0 ? "latest-live-benchmark-run" : undefined}
+                    data-evidence-ready={runIndex === 0 ? true : undefined}
                     className="rounded-3xl border border-white/10 bg-black/20 p-4"
                   >
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">

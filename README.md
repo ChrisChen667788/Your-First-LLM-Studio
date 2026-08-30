@@ -162,9 +162,21 @@ Selection and stability guidance: [`docs/benchmark-lane-comparison.md`](./docs/b
 
 Contributor onboarding: [English](./CONTRIBUTING.md) · [中文快速上手](./docs/chinese-contributor-quickstart.md) · [GitHub setup checklist](./docs/github-repository-setup-checklist.md).
 
+## Latest Live-machine Evidence
+
+The 2026-08-30 refresh adds fresh, high-resolution evidence from the running application:
+
+- Runtime Fabric: real MLX, Ollama, and llama.cpp passed 3/3 backends, 6/6 adapter contracts, and 42/42 normalized operations.
+- Local Server: real Ollama 0.31.1 + Qwen3 0.6B passed 15/15 slices, 6 requests, 95 tokens, and 169 ms average latency.
+- Benchmark smoke: Local Qwen3 0.6B completed 3/3 runs at 192.67 ms first token, 504.67 ms total latency, and 234.02 tokens/s.
+- MATH-500: the complete 500-item run scored 500/500 outputs and replayed 500/500 evaluator decisions with 32% local accuracy.
+- Fine-tune: the archived real Qwen3 4B LoRA run preserves 816 steps, save/eval markers, and the selected best checkpoint at step 800.
+
+Full metrics, digests, capture dimensions, and evidence boundaries: [`v3.1.4-high-resolution-live-machine-capture-2026-08-30.md`](./docs/release-evidence/v3.1.4-high-resolution-live-machine-capture-2026-08-30.md). Local source acceptance passes where stated; production promotion remains `HOLD` or `BLOCKED` where independent external evidence is still absent.
+
 ## Screenshots
 
-Captured from the running local app after `npm run typecheck` and `npm run smoke:routes`. README screenshots are generated with `npm run screenshots:readme` at 2x DPR so text stays sharp on GitHub and ModelScope; the LoRA evidence chart is exported from SVG at 2x DPR.
+Captured from the running local app after type, test, build, route, and screenshot validation. The 1920x1200 capture viewport uses 2x DPR for 3840x2400 route images; evidence panels retain their native high-resolution crop, and the LoRA chart is exported from SVG at 2x DPR.
 
 Agent workbench with target catalog, runtime rail, and tool-enabled composer:
 
@@ -184,7 +196,7 @@ Fine-tune Studio with workflow tabs, training controls, and report/evidence pane
 
 Fine-tune completed run with live loss curves, train/validation traces, and handoff actions:
 
-![Fine-tune training curve](./docs/assets/screenshots/fine-tune-training-curve.png)
+![Fine-tune live training curve](./docs/assets/screenshots/fine-tune-live-training-curve.png)
 
 Real Qwen3 4B LoRA release evidence with save/eval markers and selected best checkpoint:
 
@@ -196,13 +208,22 @@ Benchmark Studio with run controls and historical evidence cards:
 
 ![Benchmark Studio](./docs/assets/screenshots/benchmarks-studio.png)
 
-Benchmark run evidence from a real local smoke run:
+Benchmark run evidence from the fresh real local smoke run:
 
-![Benchmark run evidence](./docs/assets/screenshots/benchmark-run-evidence.png)
+![Latest live benchmark run](./docs/assets/screenshots/latest-live-benchmark-run.png)
+
+Complete MATH-500 result with subject/difficulty breakdown, Wilson confidence interval, evaluator replay, and latency/token performance:
+
+![MATH-500 reproducibility and performance](./docs/assets/screenshots/math500-reproducibility-performance.png)
 
 Models Studio with immutable Hub/storage receipts, real Ollama Local Server acceptance, and the real MLX/Ollama/llama.cpp Runtime Fabric matrix:
 
 ![Models Studio](./docs/assets/screenshots/models-studio.png)
+
+Fresh local Runtime Fabric and Local Server acceptance panels:
+
+![Runtime Fabric live performance](./docs/assets/screenshots/runtime-fabric-live-performance.png)
+![Local Server live acceptance](./docs/assets/screenshots/local-server-live-acceptance.png)
 
 MCP and secure extension acceptance with signed lifecycle, real tool discovery, quarantine defenses, and explicit production gates:
 
@@ -214,6 +235,10 @@ Compare, Retrieval, and Admin surfaces:
 ![Retrieval Studio](./docs/assets/screenshots/retrieval-studio.png)
 ![Admin dashboard](./docs/assets/screenshots/admin-dashboard.png)
 ![Admin benchmark heatmap](./docs/assets/screenshots/admin-benchmark-heatmap.png)
+
+Operational remediation and service-readiness controls, with unresolved external gates kept visible:
+
+![Operational remediation readiness](./docs/assets/screenshots/operational-remediation-readiness.png)
 
 ## Quick Start
 
@@ -476,9 +501,21 @@ Target 选择、稳定性与适用任务对照：[`docs/benchmark-lane-compariso
 
 贡献者入口：[English](./CONTRIBUTING.md) · [中文快速上手](./docs/chinese-contributor-quickstart.md) · [GitHub 仓库设置清单](./docs/github-repository-setup-checklist.md)。
 
+## 最新真机证据
+
+2026-08-30 的证据刷新从当前运行中的应用生成了新一批高清实机材料：
+
+- Runtime Fabric：真实 MLX、Ollama、llama.cpp 3/3 后端通过，adapter contract 6/6，标准化操作 42/42。
+- Local Server：真实 Ollama 0.31.1 + Qwen3 0.6B 通过 15/15 项，完成 6 个请求、95 tokens，平均延迟 169 ms。
+- Benchmark smoke：Local Qwen3 0.6B 完成 3/3 次运行，首 token 192.67 ms，总延迟 504.67 ms，吞吐 234.02 tokens/s。
+- MATH-500：完整 500 题输出全部判分，官方等价判分器决定 500/500 重放一致，本地准确率 32%。
+- Fine-tune：真实 Qwen3 4B LoRA 归档保留 816 steps、save/eval 事件和 step 800 最佳 checkpoint。
+
+完整指标、摘要、截图尺寸与证据边界见：[`v3.1.4-high-resolution-live-machine-capture-2026-08-30.md`](./docs/release-evidence/v3.1.4-high-resolution-live-machine-capture-2026-08-30.md)。已通过的项目仅代表本地源码/实机验收；缺少独立外部证据的生产晋级继续保持 `HOLD` 或 `BLOCKED`。
+
 ## 截图
 
-以下截图来自本地运行版本，并已通过 `npm run typecheck` 与 `npm run smoke:routes`。README 截图使用 `npm run screenshots:readme` 以 2x DPR 生成，LoRA 证据图从 SVG 以 2x DPR 导出，确保在 GitHub 和 ModelScope 缩放后文字仍然清晰。
+以下截图来自本地运行版本，并经过类型、测试、构建、路由与截图完整性验证。1920x1200 截图视口使用 2x DPR，路由图达到 3840x2400；证据面板保留原生高清裁切，LoRA 图从 SVG 以 2x DPR 导出。
 
 Agent 工作台：target catalog、runtime rail 与工具化输入区：
 
@@ -498,7 +535,7 @@ Fine-tune Studio：工作流 tab、训练控制与 report/evidence 面板：
 
 Fine-tune 完成作业：真实 loss 曲线、训练/验证轨迹与 handoff 操作：
 
-![Fine-tune 训练曲线](./docs/assets/screenshots/fine-tune-training-curve.png)
+![Fine-tune 实时训练曲线](./docs/assets/screenshots/fine-tune-live-training-curve.png)
 
 真实 Qwen3 4B LoRA 发布证据：包含 save/eval 事件标记和自动选择的最佳 checkpoint：
 
@@ -510,13 +547,22 @@ Benchmark Studio：运行控制与历史证据卡片：
 
 ![Benchmark Studio](./docs/assets/screenshots/benchmarks-studio.png)
 
-Benchmark：本地 smoke run 生成的真实评测证据：
+Benchmark：本轮本地实机 smoke run 生成的评测证据：
 
-![Benchmark 运行证据](./docs/assets/screenshots/benchmark-run-evidence.png)
+![最新实机 Benchmark 运行](./docs/assets/screenshots/latest-live-benchmark-run.png)
+
+完整 MATH-500 结果：学科/难度分层、Wilson 置信区间、判分器重放、延迟与 token 性能：
+
+![MATH-500 可复现性与性能](./docs/assets/screenshots/math500-reproducibility-performance.png)
 
 Models Studio：不可变 Hub/外置盘证据、真实 Ollama Local Server 验收，以及真实 MLX/Ollama/llama.cpp Runtime Fabric 矩阵：
 
 ![Models Studio](./docs/assets/screenshots/models-studio.png)
+
+本轮真实 Runtime Fabric 与 Local Server 验收面板：
+
+![Runtime Fabric 实机性能](./docs/assets/screenshots/runtime-fabric-live-performance.png)
+![Local Server 实机验收](./docs/assets/screenshots/local-server-live-acceptance.png)
 
 MCP 与安全扩展验收：签名生命周期、真实工具发现、隔离/检疫防御和显式生产门禁：
 
@@ -528,6 +574,10 @@ Compare、Retrieval 与 Admin：
 ![Retrieval Studio](./docs/assets/screenshots/retrieval-studio.png)
 ![Admin dashboard](./docs/assets/screenshots/admin-dashboard.png)
 ![Admin benchmark 热力图](./docs/assets/screenshots/admin-benchmark-heatmap.png)
+
+运行整改与服务就绪控制面板，尚未完成的外部门禁保持可见：
+
+![运行整改与服务就绪](./docs/assets/screenshots/operational-remediation-readiness.png)
 
 ## 快速开始
 

@@ -95,19 +95,36 @@ The v0.4.2 public baseline preserves the real local Qwen3 4B LoRA run introduced
 
 Vector chart: [`fine-tune-qwen4b-lora-chart.svg`](../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.svg). Full evidence directory: [`docs/release-evidence/finetune-qwen4b-lora-2026-07-01`](../docs/release-evidence/finetune-qwen4b-lora-2026-07-01).
 
+## Latest Live-machine Evidence
+
+The 2026-08-30 refresh adds fresh evidence from the running local application:
+
+- Runtime Fabric: real MLX, Ollama, and llama.cpp passed 3/3 backends, 6/6 contracts, and 42/42 normalized operations.
+- Local Server: Ollama 0.31.1 + Qwen3 0.6B passed 15/15 slices with 169 ms average latency.
+- Benchmark smoke: Local Qwen3 0.6B completed 3/3 runs at 234.02 tokens/s.
+- MATH-500: 500/500 outputs scored and 500/500 evaluator decisions replayed; local accuracy was 32%.
+- Fine-tune: the real Qwen3 4B LoRA archive preserves 816 steps and the best checkpoint at step 800.
+
+Metrics, digests, dimensions, and evidence boundaries: [`v3.1.4-high-resolution-live-machine-capture-2026-08-30.md`](../docs/release-evidence/v3.1.4-high-resolution-live-machine-capture-2026-08-30.md). Production promotion remains `HOLD` or `BLOCKED` where independent evidence is absent.
+
 ## Screenshots
 
-README screenshots are captured from the running local app at 2x DPR. Route screenshots are 3200x2000; the LoRA evidence chart PNG is 3360x1960 and is exported from SVG for sharp display.
+README screenshots are captured from the running local app with a 1920x1200 viewport at 2x DPR. Route screenshots reach 3840x2400; evidence panels retain high-resolution crops, and the 3360x1960 LoRA chart is exported from SVG.
 
 ![Agent workbench](../docs/assets/screenshots/agent-workbench.png)
 ![Fine-tune Studio](../docs/assets/screenshots/fine-tune-studio.png)
-![Fine-tune training curve](../docs/assets/screenshots/fine-tune-training-curve.png)
+![Fine-tune live training curve](../docs/assets/screenshots/fine-tune-live-training-curve.png)
+![Qwen3 4B LoRA release evidence](../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png)
 ![Benchmark Studio](../docs/assets/screenshots/benchmarks-studio.png)
-![Benchmark evidence](../docs/assets/screenshots/benchmark-run-evidence.png)
+![Latest live benchmark run](../docs/assets/screenshots/latest-live-benchmark-run.png)
+![MATH-500 reproducibility and performance](../docs/assets/screenshots/math500-reproducibility-performance.png)
 ![Models Studio](../docs/assets/screenshots/models-studio.png)
+![Runtime Fabric live performance](../docs/assets/screenshots/runtime-fabric-live-performance.png)
+![Local Server live acceptance](../docs/assets/screenshots/local-server-live-acceptance.png)
 ![Compare Studio](../docs/assets/screenshots/compare-studio.png)
 ![Retrieval Studio](../docs/assets/screenshots/retrieval-studio.png)
 ![Admin dashboard](../docs/assets/screenshots/admin-dashboard.png)
+![Operational remediation readiness](../docs/assets/screenshots/operational-remediation-readiness.png)
 
 ## Repository
 
@@ -213,19 +230,36 @@ v0.4.2 公开基线继续保留 v0.4.1 引入的真实本地 Qwen3 4B LoRA 训�
 
 矢量图：[`fine-tune-qwen4b-lora-chart.svg`](../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.svg)。完整证据目录：[`docs/release-evidence/finetune-qwen4b-lora-2026-07-01`](../docs/release-evidence/finetune-qwen4b-lora-2026-07-01)。
 
+## 最新真机证据
+
+2026-08-30 的证据刷新从当前运行中的应用生成了新一批高清实机材料：
+
+- Runtime Fabric：真实 MLX、Ollama、llama.cpp 3/3 后端通过，contract 6/6，标准化操作 42/42。
+- Local Server：Ollama 0.31.1 + Qwen3 0.6B 通过 15/15 项，平均延迟 169 ms。
+- Benchmark smoke：Local Qwen3 0.6B 完成 3/3 次运行，吞吐 234.02 tokens/s。
+- MATH-500：完整 500 题全部判分，判分决定 500/500 重放一致，本地准确率 32%。
+- Fine-tune：真实 Qwen3 4B LoRA 归档保留 816 steps 和 step 800 最佳 checkpoint。
+
+完整指标、摘要、尺寸与证据边界见：[`v3.1.4-high-resolution-live-machine-capture-2026-08-30.md`](../docs/release-evidence/v3.1.4-high-resolution-live-machine-capture-2026-08-30.md)。缺少独立外部证据的生产晋级继续保持 `HOLD` 或 `BLOCKED`。
+
 ## 截图
 
-README 截图来自本地运行版本，按 2x DPR 生成。页面截图为 3200x2000，LoRA 证据图为 3360x1960，并从 SVG 导出以保证放大后清晰。
+README 截图来自本地运行版本，使用 1920x1200 视口按 2x DPR 生成。路由图达到 3840x2400；证据面板保留高清裁切，3360x1960 LoRA 图从 SVG 导出。
 
 ![Agent 工作台](../docs/assets/screenshots/agent-workbench.png)
 ![Fine-tune Studio](../docs/assets/screenshots/fine-tune-studio.png)
-![Fine-tune 训练曲线](../docs/assets/screenshots/fine-tune-training-curve.png)
+![Fine-tune 实时训练曲线](../docs/assets/screenshots/fine-tune-live-training-curve.png)
+![Qwen3 4B LoRA 发布证据](../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png)
 ![Benchmark Studio](../docs/assets/screenshots/benchmarks-studio.png)
-![Benchmark 证据](../docs/assets/screenshots/benchmark-run-evidence.png)
+![最新实机 Benchmark 运行](../docs/assets/screenshots/latest-live-benchmark-run.png)
+![MATH-500 可复现性与性能](../docs/assets/screenshots/math500-reproducibility-performance.png)
 ![Models Studio](../docs/assets/screenshots/models-studio.png)
+![Runtime Fabric 实机性能](../docs/assets/screenshots/runtime-fabric-live-performance.png)
+![Local Server 实机验收](../docs/assets/screenshots/local-server-live-acceptance.png)
 ![Compare Studio](../docs/assets/screenshots/compare-studio.png)
 ![Retrieval Studio](../docs/assets/screenshots/retrieval-studio.png)
 ![Admin dashboard](../docs/assets/screenshots/admin-dashboard.png)
+![运行整改与服务就绪](../docs/assets/screenshots/operational-remediation-readiness.png)
 
 ## 仓库地址
 

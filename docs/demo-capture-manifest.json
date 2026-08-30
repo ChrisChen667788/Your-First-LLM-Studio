@@ -1,6 +1,6 @@
 {
   "schemaVersion": "first-llm-studio.demo-capture-manifest.v1",
-  "generatedAt": "2026-07-22T19:31:28.860Z",
+  "generatedAt": "2026-08-30T08:14:45.204Z",
   "baseUrl": "http://127.0.0.1:3011",
   "command": "BASE_URL=http://localhost:3011 npm run screenshots:release",
   "viewport": {
@@ -37,6 +37,32 @@
       "purpose": "Show Model Hub storage evidence, real Ollama Local Server acceptance, and real MLX/Ollama/llama.cpp Runtime Fabric evidence."
     },
     {
+      "id": "runtime-fabric-live-performance",
+      "label": "Live Runtime Fabric performance",
+      "route": "/models",
+      "selector": "#runtime-fabric-live-performance",
+      "readySelector": "#runtime-fabric-live-performance[data-evidence-ready=\"true\"]",
+      "minimumPixelWidth": 3000,
+      "minimumPixelHeight": 1000,
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/runtime-fabric-live-performance.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow runtime-fabric-live-performance",
+      "purpose": "Show fresh same-machine MLX, Ollama, and llama.cpp conformance, normalized operation coverage, token totals, and measured latency."
+    },
+    {
+      "id": "local-server-live-acceptance",
+      "label": "Live Ollama Local Server acceptance",
+      "route": "/models",
+      "selector": "#local-server-live-acceptance",
+      "readySelector": "#local-server-live-acceptance[data-evidence-ready=\"true\"]",
+      "minimumPixelWidth": 3000,
+      "minimumPixelHeight": 1000,
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/local-server-live-acceptance.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow local-server-live-acceptance",
+      "purpose": "Show the fresh 15-slice Ollama lifecycle, streaming, concurrency, accounting, policy, eviction, and recovery receipt."
+    },
+    {
       "id": "benchmarks-studio",
       "label": "Benchmarks studio",
       "route": "/benchmarks",
@@ -44,6 +70,32 @@
       "screenshotPath": "docs/assets/screenshots/benchmarks-studio.png",
       "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow benchmarks-studio",
       "purpose": "Show route-owned benchmark controls, progress, history, and release evidence."
+    },
+    {
+      "id": "latest-live-benchmark-run",
+      "label": "Latest live local benchmark performance",
+      "route": "/benchmarks",
+      "selector": "#latest-live-benchmark-run",
+      "readySelector": "#latest-live-benchmark-run[data-evidence-ready=\"true\"]",
+      "minimumPixelWidth": 1800,
+      "minimumPixelHeight": 400,
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/latest-live-benchmark-run.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow latest-live-benchmark-run",
+      "purpose": "Show the newest three-run local Qwen benchmark with first-token latency, total latency, throughput, and success evidence."
+    },
+    {
+      "id": "math500-reproducibility-performance",
+      "label": "MATH-500 reproducibility and performance",
+      "route": "/benchmarks",
+      "selector": "#math500-reproducibility-performance",
+      "readySelector": "#math500-reproducibility-performance[data-evidence-ready=\"true\"]",
+      "minimumPixelWidth": 2600,
+      "minimumPixelHeight": 1000,
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/math500-reproducibility-performance.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow math500-reproducibility-performance",
+      "purpose": "Show the completed 500-item scorecard, Wilson confidence interval, pinned evaluator replay, latency percentiles, and token totals."
     },
     {
       "id": "retrieval-studio",
@@ -74,12 +126,25 @@
     },
     {
       "id": "experiments-evidence-matrix",
-      "label": "Experiments evidence matrix",
+      "label": "Experiments readiness overview",
       "route": "/experiments",
-      "fullPage": true,
+      "fullPage": false,
       "screenshotPath": "docs/assets/screenshots/experiments-evidence-matrix.png",
       "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow experiments-evidence-matrix",
-      "purpose": "Show the v0.5.0 and v0.5.1 promotion status inside the product evidence matrix."
+      "purpose": "Show the current Experiments readiness overview at readable 4K viewport scale; detailed gates are captured as separate evidence panels."
+    },
+    {
+      "id": "operational-remediation-readiness",
+      "label": "Operational remediation and service readiness",
+      "route": "/experiments",
+      "selector": "#operational-remediation-readiness",
+      "readySelector": "#operational-remediation-readiness[data-evidence-ready=\"true\"]",
+      "minimumPixelWidth": 3000,
+      "minimumPixelHeight": 1000,
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/operational-remediation-readiness.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow operational-remediation-readiness",
+      "purpose": "Show the v3.0-v3.1 owner queue, dependency blockers, source state, signed-evidence state, and production authority boundary."
     },
     {
       "id": "post-v1-promotion-gate",
@@ -104,7 +169,7 @@
       "readyTimeoutMs": 60000,
       "settleMs": 1000,
       "minimumPixelWidth": 3000,
-      "minimumPixelHeight": 1200,
+      "minimumPixelHeight": 1100,
       "fullPage": false,
       "screenshotPath": "docs/assets/screenshots/extension-ecosystem-acceptance.png",
       "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow extension-ecosystem-acceptance",
@@ -144,6 +209,25 @@
       "screenshotPath": "docs/assets/screenshots/fine-tune-studio.png",
       "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow fine-tune-distillation",
       "purpose": "Show the Fine-tune studio surface that owns distillation, LoRA recipe, report, and adapter export evidence."
+    },
+    {
+      "id": "fine-tune-live-training-curve",
+      "label": "Fine-tune live training curve evidence",
+      "route": "/fine-tune",
+      "clickTexts": [
+        "作业与日志",
+        "已完成"
+      ],
+      "selector": "[data-finetune-training-curve]",
+      "readySelector": "[data-finetune-training-curve]",
+      "readyTimeoutMs": 60000,
+      "actionSettleMs": 1000,
+      "minimumPixelWidth": 3000,
+      "minimumPixelHeight": 900,
+      "fullPage": false,
+      "screenshotPath": "docs/assets/screenshots/fine-tune-live-training-curve.png",
+      "command": "BASE_URL=http://localhost:3011 npm run screenshots:release -- --flow fine-tune-live-training-curve",
+      "purpose": "Show persisted real LoRA training loss, eval/save markers, best checkpoint, smoothing, overlay controls, and chart export action."
     }
   ]
 }

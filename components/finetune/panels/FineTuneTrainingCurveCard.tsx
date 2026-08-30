@@ -506,7 +506,10 @@ export function FineTuneTrainingCurveCard({
   };
 
   return (
-    <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+    <div
+      data-finetune-training-curve={job.id}
+      className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">

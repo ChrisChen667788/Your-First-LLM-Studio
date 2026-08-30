@@ -31,6 +31,7 @@ try {
   const context = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor,
+    locale: "zh-CN",
     colorScheme: "dark",
   });
   for (const flow of flows) {
@@ -44,8 +45,25 @@ try {
       waitUntil: flow.waitUntil || "networkidle",
       timeout: Number(flow.gotoTimeoutMs) || 120_000,
     });
+    const clickTexts = Array.isArray(flow.clickTexts)
+      ? flow.clickTexts
+      : flow.clickText
+        ? [flow.clickText]
+        : [];
+    for (const clickText of clickTexts) {
+      const target = page
+        .locator("button, [role='button'], a")
+        .filter({ hasText: String(clickText) })
+        .first();
+      await target.waitFor({
+        state: "visible",
+        timeout: Number(flow.readyTimeoutMs) || 60_000,
+      });
+      await target.click();
+      await page.waitForTimeout(Number(flow.actionSettleMs) || 750);
+    }
     if (flow.readySelector) {
-      await page.locator(String(flow.readySelector)).waitFor({
+      await page.locator(String(flow.readySelector)).first().waitFor({
         state: "visible",
         timeout: Number(flow.readyTimeoutMs) || 60_000,
       });
@@ -56,7 +74,7 @@ try {
     });
     await page.waitForTimeout(Number(flow.settleMs) || 500);
     if (flow.selector) {
-      const target = page.locator(String(flow.selector));
+      const target = page.locator(String(flow.selector)).first();
       await target.waitFor({ state: "visible", timeout: 30_000 });
       await target.screenshot({
         path: outputPath,

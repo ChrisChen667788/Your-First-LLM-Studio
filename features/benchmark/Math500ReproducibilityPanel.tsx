@@ -40,7 +40,11 @@ export function Math500ReproducibilityPanel({ isEnglish }: { isEnglish: boolean 
   const replay = payload?.replay;
 
   return (
-    <section className="border border-cyan-300/20 bg-slate-950/75 p-4 backdrop-blur">
+    <section
+      id="math500-reproducibility-performance"
+      data-evidence-ready={Boolean(analysis)}
+      className="border border-cyan-300/20 bg-slate-950/75 p-4 backdrop-blur"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase text-cyan-300">

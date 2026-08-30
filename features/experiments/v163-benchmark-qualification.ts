@@ -122,8 +122,7 @@ export function readV163BenchmarkQualificationEvidence() {
       ? [
           "This historical v1.6.3 receipt excludes evaluator output; the v1.6.4 evidence read model now reports pinned Math-Verify scoring and the completed 500-item run.",
           ...latest.productionBlockers.filter(
-            (blocker) =>
-              !blocker.startsWith("The official MATH-500 evaluator"),
+            (blocker) => !blocker.toLowerCase().includes("evaluator"),
           ),
         ]
       : ["v1.6.3 benchmark qualification acceptance has not been run."],

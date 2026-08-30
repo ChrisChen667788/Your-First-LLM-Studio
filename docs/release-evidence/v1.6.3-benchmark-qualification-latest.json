@@ -1,10 +1,10 @@
 {
   "schemaVersion": "experiments.v163-benchmark-qualification-runner-evidence.v1",
-  "generatedAt": "2026-08-10T00:51:29.194Z",
+  "generatedAt": "2026-08-30T03:35:54.082Z",
   "sourceUrl": "http://127.0.0.1:3011/api/experiments/v163-benchmark-qualification",
   "receipt": {
-    "id": "v163-benchmark-qualification-19f07fe3-b9ba-4a18-a9c2-9ead9d36afe3",
-    "generatedAt": "2026-08-10T00:51:29.161Z",
+    "id": "v163-benchmark-qualification-79440e94-2062-4240-a4e1-63c56dd57d33",
+    "generatedAt": "2026-08-30T03:35:54.057Z",
     "status": "pass",
     "localStatus": "pass",
     "productionStatus": "hold",
@@ -157,10 +157,10 @@
       "evaluatorMode": "manual-review-compatibility",
       "officialScoreEligible": false
     },
-    "benchmarkQualificationReceiptId": "benchmark-qualification-da446717-69d1-45ec-8186-d088b2f47b04",
-    "evidenceDigest": "45ecd1a79a05d3ff614a76ef91ad3733c498dec6c0f082b11ece923472162774",
+    "benchmarkQualificationReceiptId": "benchmark-qualification-0c2ef868-f023-44e7-b8a7-dd0e3b6a7b3b",
+    "evidenceDigest": "dd46a40d6728cd9c95463adf611b9182d8af726c54ed3b77a6e392fb4900de45",
     "productionBlockers": [
-      "The official MATH-500 evaluator and score normalization are not yet integrated.",
+      "This v1.6.3 qualification receipt does not contain evaluator output; pinned Math-Verify scoring and the completed 500-item run are reported separately by the v1.6.4 evidence read model.",
       "A qualified local snapshot proves dataset provenance, not an official leaderboard score or production deployment."
     ]
   },
@@ -177,23 +177,23 @@
     "qualifiedDataset": {
       "id": "math-500-qualified",
       "label": "HuggingFaceH4/MATH-500 (qualified snapshot)",
-      "description": "Immutable official test snapshot with provenance and schema checks. Outputs are retained for manual review until the official evaluator is integrated.",
+      "description": "Immutable official test snapshot with provenance and schema checks, wired to the pinned Hugging Face Math-Verify evaluator.",
       "sourceLabel": "Hugging Face · HuggingFaceH4/MATH-500@6e4ed1a2a79a",
       "sourceUrl": "https://huggingface.co/datasets/HuggingFaceH4/MATH-500/resolve/6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be/test.jsonl",
       "taskCategory": "Mathematical reasoning",
-      "scoringLabel": "Manual review compatibility · official score HOLD",
+      "scoringLabel": "Math-Verify 0.9.0 equivalence · full-run evidence gated",
       "sampleCount": 500,
       "revision": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
       "sha256": "35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132"
     },
     "productionBlockers": [
-      "The official MATH-500 evaluator and score normalization are not yet integrated.",
+      "This historical v1.6.3 receipt excludes evaluator output; the v1.6.4 evidence read model now reports pinned Math-Verify scoring and the completed 500-item run.",
       "A qualified local snapshot proves dataset provenance, not an official leaderboard score or production deployment."
     ]
   },
   "runtimeSmoke": {
-    "runId": "34aff595-3d79-423c-9b36-6d95116ef8fd",
-    "reportDigest": "8039f21feb48c8d2b9cbac0c225f439e1e77225c5c1a9cc1d51559a4f64c6a75",
-    "report": "# Benchmark Regression Report\n\nGenerated at: 2026-08-10T00:51:29.515Z\nWindow: last 720 minutes\nExport schema: 0.2.1\n\n## Workload\n\n- Mode: dataset\n- Prompt: [dataset] HuggingFaceH4/MATH-500 (qualified snapshot)\n- Context window: 4096\n- Runs: 1\n- Provider profile: speed\n- Thinking mode: standard\n- Run ID: 34aff595-3d79-423c-9b36-6d95116ef8fd\n- Match source: exact runId\n- Dataset: HuggingFaceH4/MATH-500 (qualified snapshot) (1 samples)\n- Dataset source: Hugging Face · HuggingFaceH4/MATH-500@6e4ed1a2a79a\n- Dataset URL: https://huggingface.co/datasets/HuggingFaceH4/MATH-500/resolve/6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be/test.jsonl\n\n## Workload breakdown\n\n- [dataset] HuggingFaceH4/MATH-500 (qualified snapshot) · n=1 · Hugging Face · HuggingFaceH4/MATH-500@6e4ed1a2a79a\n\n## Current results\n\n| Target | Profile | Thinking | Success | Skipped | Avg first token (ms) | Avg total latency (ms) | Avg throughput (tps) | Avg score | Pass rate |\n| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n| Local Qwen3 0.6B | speed | standard | 1/1 | 0 | 1686.00 | 1688.00 | 94.79 | -- | -- |\n\n## Baseline\n\n- No matching baseline found for this workload.\n\n## Heatmap summary\n\n| Profile | Thinking | Samples | Avg first token (ms) | Avg total latency (ms) | Avg throughput (tps) | Success rate |\n| --- | --- | ---: | ---: | ---: | ---: | ---: |\n| balanced | standard | 72 | 415.55 | 471.83 | 157.58 | 100.00% |\n| speed | standard | 1 | 1686.00 | 1688.00 | 94.79 | 100.00% |\n\n## Anomaly summary\n\n- No obvious regression anomaly detected in the current workload.\n"
+    "runId": "bench-release-capture-20260830-113418",
+    "reportDigest": "e2d65d1919f158079492c0473c42a4ceb1922b91fce7942dcf8d3e7d8f30bdba",
+    "report": "# Benchmark Regression Report\n\nGenerated at: 2026-08-30T03:35:54.303Z\nWindow: last 720 minutes\nExport schema: 0.2.1\n\n## Workload\n\n- Mode: prompt\n- Prompt: 请用三点说明本地大模型工作台如何兼顾隐私、性能与可复现评测。\n- Context window: 4096\n- Runs: 3\n- Provider profile: speed\n- Thinking mode: standard\n- Run ID: bench-release-capture-20260830-113418\n- Match source: exact runId\n\n## Workload breakdown\n\n- [prompt] Custom prompt · n=1\n\n## Current results\n\n| Target | Profile | Thinking | Success | Skipped | Avg first token (ms) | Avg total latency (ms) | Avg throughput (tps) | Avg score | Pass rate |\n| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n| Local Qwen3 0.6B | speed | standard | 3/3 | 0 | 192.67 | 504.67 | 234.02 | -- | -- |\n\n## Baseline\n\n- No matching baseline found for this workload.\n\n## Heatmap summary\n\n| Profile | Thinking | Samples | Avg first token (ms) | Avg total latency (ms) | Avg throughput (tps) | Success rate |\n| --- | --- | ---: | ---: | ---: | ---: | ---: |\n| speed | standard | 3 | 192.67 | 504.67 | 234.02 | 100.00% |\n\n## Anomaly summary\n\n- No obvious regression anomaly detected in the current workload.\n"
   }
 }

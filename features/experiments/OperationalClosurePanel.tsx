@@ -157,7 +157,11 @@ export function OperationalClosurePanel({ locale }: { locale: string }) {
   );
 
   return (
-    <section className="min-w-0 border border-cyan-300/20 bg-slate-950/80 p-4 backdrop-blur">
+    <section
+      id="operational-remediation-readiness"
+      data-evidence-ready={Boolean(payloads.control && payloads.readiness)}
+      className="min-w-0 border border-cyan-300/20 bg-slate-950/80 p-4 backdrop-blur"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase text-cyan-300">V3.0.0-V3.1.4 REMEDIATION CONTROL</p>

@@ -5,8 +5,8 @@ import { pathToFileURL } from "node:url";
 
 const baseUrl = process.env.BASE_URL ?? "http://127.0.0.1:3011";
 const outDir = path.resolve(process.env.README_SCREENSHOT_OUT_DIR ?? "docs/assets/screenshots");
-const width = Number(process.env.README_SCREENSHOT_WIDTH ?? 1600);
-const height = Number(process.env.README_SCREENSHOT_HEIGHT ?? 1000);
+const width = Number(process.env.README_SCREENSHOT_WIDTH ?? 1920);
+const height = Number(process.env.README_SCREENSHOT_HEIGHT ?? 1200);
 const deviceScaleFactor = Number(process.env.README_SCREENSHOT_DPR ?? 2);
 
 const pages = [
