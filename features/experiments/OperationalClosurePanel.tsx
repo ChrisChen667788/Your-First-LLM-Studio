@@ -46,7 +46,7 @@ type TrainPayload = {
     unavailableSignals: number;
   };
   summary: { verifiedVersions: number; requiredVersions: number };
-  remediationControlPlane: {
+  remediationControlPlane?: {
     summary: {
       totalItems: number;
       satisfiedItems: number;
@@ -57,11 +57,39 @@ type TrainPayload = {
     };
     items: RemediationItem[];
   };
+  ownerWorkloadProtocol?: {
+    requests: Array<{
+      actionId: string;
+      owner: string;
+      admissionState: "completed" | "admitted" | "blocked";
+      reviewWithinHours: number;
+      escalationAfterHours: number;
+      validation: { route: string };
+    }>;
+  };
+  ownerReceiptLifecycle?: {
+    revision: number;
+    ledgerDigest: string;
+    summary: {
+      acceptedCandidates: number;
+      quarantinedCandidates: number;
+      compensatedActions: number;
+      acknowledgedEscalations: number;
+      activeWaivers: number;
+      expiredWaivers: number;
+    };
+    requests: Array<{
+      actionId: string;
+      owner: string;
+      state: "awaiting-receipt" | "candidate-received" | "quarantined" | "compensated";
+      escalationAcknowledged: boolean;
+    }>;
+  };
   versions: Version[];
   error?: string;
 };
 
-type TrainId = "control" | "readiness";
+type TrainId = "control" | "readiness" | "execution" | "acceptance" | "workload" | "decision" | "receipts" | "exceptions";
 
 const TRAINS: Record<TrainId, {
   endpoint: string;
@@ -86,6 +114,54 @@ const TRAINS: Record<TrainId, {
     labelZh: "服务就绪",
     descriptionEn: "Customer disclosure, support diagnostics, upgrade/change readiness, operational transition, and independent closure stay distinct from local source completion.",
     descriptionZh: "客户披露、支持诊断、升级变更、运行交接与独立终审继续和本地源码完成度严格分离。",
+  },
+  execution: {
+    endpoint: "/api/experiments/remediation-execution",
+    range: "V3.2.0-V3.2.9",
+    labelEn: "Remediation execution",
+    labelZh: "整改执行",
+    descriptionEn: "Seven owner actions gain deterministic idempotency, bounded leases, fencing, rollback plans, and evidence packages without enabling remote mutation.",
+    descriptionZh: "为 7 个 owner 动作增加确定性幂等、短租约、围栏、回滚方案与证据包，同时不开放未经授权的远端变更。",
+  },
+  acceptance: {
+    endpoint: "/api/experiments/operational-acceptance",
+    range: "V3.3.0-V3.3.4",
+    labelEn: "Operational acceptance",
+    labelZh: "运营验收",
+    descriptionEn: "SLO policy, incident/change rehearsal, owner sign-off, release decision, and independent acceptance remain predecessor-bound and fail closed.",
+    descriptionZh: "SLO 策略、事故/变更演练、owner 签收、发布决策与独立验收均绑定前序证据并保持失败关闭。",
+  },
+  workload: {
+    endpoint: "/api/experiments/owner-workload-admission",
+    range: "V3.4.0-V3.4.9",
+    labelEn: "Owner workload admission",
+    labelZh: "Owner 工作负载准入",
+    descriptionEn: "Seven feature-owner workloads gain strict requests, dry-run admission, receipt validation, bounded execution, and independent archive closure.",
+    descriptionZh: "为 7 类 feature owner 工作负载增加严格请求、只读准入、回执校验、受限执行与独立归档闭环。",
+  },
+  decision: {
+    endpoint: "/api/experiments/operational-decision-governance",
+    range: "V3.5.0-V3.5.4",
+    labelEn: "Decision governance",
+    labelZh: "运营决策治理",
+    descriptionEn: "Freshness, drift, dependency impact, owner SLA, bounded waivers, and final decision closure remain measurable and fail closed.",
+    descriptionZh: "证据时效、漂移、依赖影响、owner SLA、限时豁免与最终决策闭环均保持可度量和失败关闭。",
+  },
+  receipts: {
+    endpoint: "/api/experiments/owner-receipt-lifecycle",
+    range: "V3.6.0-V3.6.9",
+    labelEn: "Receipt lifecycle",
+    labelZh: "回执生命周期",
+    descriptionEn: "Strict candidate receipts enter an authenticated, digest-only, revision-protected event ledger with quarantine and compensation reconciliation.",
+    descriptionZh: "严格候选回执进入带鉴权、仅摘要留存和 revision 并发保护的事件账本，并支持隔离与补偿对账。",
+  },
+  exceptions: {
+    endpoint: "/api/experiments/operational-exception-lifecycle",
+    range: "V3.7.0-V3.7.4",
+    labelEn: "Exception governance",
+    labelZh: "异常治理",
+    descriptionEn: "SLA breach detection, acknowledgement, bounded waivers, expiry, and decision packages become durable events without granting production authority.",
+    descriptionZh: "SLA 超时检测、确认、限时豁免、到期与决策包成为持久事件，同时不授予生产权限。",
   },
 };
 
@@ -148,30 +224,59 @@ export function OperationalClosurePanel({ locale }: { locale: string }) {
   const train = TRAINS[active];
   const payload = payloads[active];
   const queue = useMemo(
-    () =>
-      [...(payload?.remediationControlPlane.items || [])]
+    () => {
+      const remediationItems = payload?.remediationControlPlane?.items || [];
+      const receiptItems: RemediationItem[] = (payload?.ownerReceiptLifecycle?.requests || []).map((request) => ({
+        sourceSignalId: request.actionId,
+        label: request.actionId.replaceAll("-", " "),
+        owner: request.owner,
+        priority: "high",
+        state: request.state === "candidate-received" || request.state === "compensated" ? "satisfied" : request.state === "quarantined" ? "blocked" : "open",
+        blockedBy: request.state === "quarantined" ? ["strict receipt validation"] : [],
+        nextActions: [
+          request.state === "quarantined"
+            ? "Correct the candidate receipt or attach rollback evidence."
+            : request.state === "awaiting-receipt"
+              ? "Submit a digest-bound candidate receipt through the authenticated lifecycle API."
+              : "Retain detached signature and immutable archive evidence externally.",
+        ],
+        evidenceUri: "/experiments",
+      }));
+      const workloadItems: RemediationItem[] = (payload?.ownerWorkloadProtocol?.requests || []).map((request) => ({
+        sourceSignalId: request.actionId,
+        label: request.actionId.replaceAll("-", " "),
+        owner: request.owner,
+        priority: request.reviewWithinHours <= 4 ? "critical" : request.reviewWithinHours <= 24 ? "high" : "medium",
+        state: request.admissionState === "completed" ? "satisfied" : request.admissionState === "admitted" ? "open" : "blocked",
+        blockedBy: [],
+        nextActions: [`Review within ${request.reviewWithinHours}h; escalate after ${request.escalationAfterHours}h.`, request.validation.route],
+        evidenceUri: request.validation.route,
+      }));
+      const selectedItems = remediationItems.length ? remediationItems : receiptItems.length ? receiptItems : workloadItems;
+      return [...selectedItems]
         .filter((item) => item.state === "open" || item.state === "blocked")
         .sort((left, right) => PRIORITY_ORDER[left.priority] - PRIORITY_ORDER[right.priority])
-        .slice(0, 7),
+        .slice(0, 7);
+    },
     [payload],
   );
 
   return (
     <section
       id="operational-remediation-readiness"
-      data-evidence-ready={Boolean(payloads.control && payloads.readiness)}
+      data-evidence-ready={Boolean(payloads.control && payloads.readiness && payloads.execution && payloads.acceptance && payloads.workload && payloads.decision && payloads.receipts && payloads.exceptions)}
       className="min-w-0 border border-cyan-300/20 bg-slate-950/80 p-4 backdrop-blur"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase text-cyan-300">V3.0.0-V3.1.4 REMEDIATION CONTROL</p>
+          <p className="text-xs font-semibold uppercase text-cyan-300">V3.0.0-V3.7.4 OPERATIONAL CLOSURE</p>
           <h2 className="mt-2 text-xl font-semibold text-white">
             {en ? "Turn evidence gaps into accountable work" : "把证据缺口变成可负责的工作"}
           </h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
             {en
-              ? "This train adds control-plane mechanics and service-readiness contracts. Open work stays open; signed external authority and production remain separate gates."
-              : "这组版本增加整改控制面与服务就绪合同。未完成项继续保持未完成；外部签收与生产授权仍是独立门禁。"}
+              ? "These trains connect remediation control, service readiness, idempotent owner execution, digest-only receipt intake, exception governance, and operational decisions. Open work stays open; signed authority and production remain separate gates."
+              : "这组版本串联整改控制、服务就绪、可重入 owner 执行、仅摘要回执接收、异常治理与运营决策。未完成项继续保持未完成；外部签收与生产授权仍是独立门禁。"}
           </p>
         </div>
         <button
@@ -239,6 +344,24 @@ export function OperationalClosurePanel({ locale }: { locale: string }) {
               );
             })}
           </div>
+
+          {payload?.ownerReceiptLifecycle ? (
+            <div className="mt-4 grid gap-px border border-white/10 bg-white/10 sm:grid-cols-3 xl:grid-cols-6">
+              {[
+                [en ? "Revision" : "账本版本", payload.ownerReceiptLifecycle.revision],
+                [en ? "Accepted" : "已接收", payload.ownerReceiptLifecycle.summary.acceptedCandidates],
+                [en ? "Quarantined" : "已隔离", payload.ownerReceiptLifecycle.summary.quarantinedCandidates],
+                [en ? "Compensated" : "已补偿", payload.ownerReceiptLifecycle.summary.compensatedActions],
+                [en ? "Acknowledged" : "已确认", payload.ownerReceiptLifecycle.summary.acknowledgedEscalations],
+                [en ? "Active waivers" : "有效豁免", payload.ownerReceiptLifecycle.summary.activeWaivers],
+              ].map(([label, value]) => (
+                <div key={label} className="bg-slate-950/90 px-3 py-3">
+                  <p className="text-[10px] font-semibold uppercase text-slate-500">{label}</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <aside className="min-w-0 border border-white/10 bg-black/25 p-4">

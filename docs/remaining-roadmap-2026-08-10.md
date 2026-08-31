@@ -11,6 +11,26 @@ Date: 2026-08-10
 - Production: `BLOCKED`.
 - Repository-owned acceptance through `v1.5.1` is locally complete. Internal evidence documents also describe later implementation slices through `v1.6.6`; neither local completion nor later internal slices are equivalent to a public or production promotion.
 
+## Latest approved source train
+
+`v3.6.0-v3.7.4` adds authenticated, revision-protected candidate receipt
+intake, digest-only quarantine, compensation reconciliation, SLA breach and
+acknowledgement state, bounded waiver expiry, and deterministic decision
+packages. Repository source can execute and export these local contracts, but
+all seven real owner receipts, detached signatures, immutable archive records,
+and all 15 external assurance records remain outside local authority. See
+[`v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md`](./v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md).
+
+## Latest approved product plan
+
+`v3.8.0-v3.9.4` is a 15-version **planned** competitive product train derived
+from the 2026-08-31 official-source review. The order is: model/provider drift
+and Agent conformance first; multi-agent/sandbox/runtime ergonomics second; RAG,
+training federation and Team Studio third; competitive freshness enforcement
+last. None of these planned cards changes the current source release or closes
+Apple, identity, cloud, independent-operator, distribution, or production
+gates. See [`docs/competitive-landscape.md`](./competitive-landscape.md).
+
 ## Remaining version gates
 
 | Milestone | Remaining work |
@@ -248,3 +268,31 @@ clean-machine upgrades, support drills, and independent reviews remain external
 3. Keep the route ownership matrix and module contracts aligned with physical imports, not intended ownership.
 4. Maintain cross-surface route smoke, Safari/browser stability, screenshot freshness, dependency audit, migration rehearsal, and release evidence as promotion gates.
 5. Preserve explicit labels for local proof, configured adapters, remote execution, production acceptance, `HOLD`, and `BLOCKED` in every surface and README.
+
+## 2026-08-30 v3.2.0-v3.3.4 remediation execution and operational acceptance
+
+This approved 15-version train is source-complete. v3.2 projects the seven
+owner remediation controls into deterministic, non-mutating execution plans
+with idempotency, lease/fencing, rollback, evidence fingerprints, and external
+acceptance. v3.3 projects SLO/quality policy, incident/change rehearsal, owner
+sign-off, release decision, and independent operational acceptance. The
+repository owns read-only plans, strict external-chain validation, thin APIs,
+UI, tests, export, route ownership, and docs. Authorized provider traffic,
+managed Retrieval, authenticated Hub transfer, trusted organization identity,
+representative hardware, a distinct complete Benchmark candidate, real
+telemetry export, organization sign-off, distribution authority, and immutable
+independent retention remain external `HOLD` gates. Production remains
+`BLOCKED`. See
+[`docs/v3.2.0-v3.3.4-remediation-execution-operational-acceptance-plan-2026-08-30.md`](./v3.2.0-v3.3.4-remediation-execution-operational-acceptance-plan-2026-08-30.md).
+## 2026-08-30 v3.6.0-v3.7.4 owner receipt and exception lifecycle
+
+The repository-owned work is implemented: authenticated append-only receipt
+events, strict quarantine, optimistic concurrency, compensation binding, SLA
+read-models, acknowledgement events, bounded waiver expiry, deterministic
+decision packages, thin APIs, Experiments UI, tests, export, route ownership,
+and documentation. Remaining work is external and cannot be completed by local
+source changes alone: seven authorized workloads, detached signature and trust
+anchor verification, immutable archive read-back, organization incident and
+waiver reconciliation, distinct receipt and operating authorities, distribution
+approval, and production authorization. See
+[`docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md`](./v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md).

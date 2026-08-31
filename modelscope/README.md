@@ -47,6 +47,14 @@ This desktop-onboarding release candidate packages the current Studio as an Appl
 | `v2.9.0-v2.9.4` | Sustainable operations for telemetry, incident diagnostics, Admin compatibility sunset, desktop upgrade/data lifecycle, and independent closure. |
 | `v3.0.0-v3.0.9` | Remediation control plane with owners, priorities, dependencies, acceptance checks, next actions, evidence fingerprints, deterministic packaging, and independent acceptance. |
 | `v3.1.0-v3.1.4` | Service-readiness disclosure, support diagnostics, upgrade/change continuity, operational transition, and independent closure. |
+| `v3.2.0-v3.2.9` | Idempotent, lease/fencing-protected, rollback-bound owner remediation execution and independent execution acceptance. |
+| `v3.3.0-v3.3.4` | SLO/quality policy, incident/change rehearsal, owner sign-off, release decision, and independent operational acceptance. |
+| `v3.4.0-v3.4.9` | Strict digest-bound owner workload requests, dry-run admission, candidate receipt validation, and independent receipt closure. |
+| `v3.5.0-v3.5.4` | Evidence freshness/drift, dependency impact, owner SLA, bounded waivers, and independent decision closure. |
+| `v3.6.0-v3.6.9` | Authenticated candidate receipt intake, digest-only quarantine, optimistic concurrency, compensation, and independent ledger closure. |
+| `v3.7.0-v3.7.4` | SLA breach detection, acknowledgement events, bounded waiver expiry, decision packages, and independent exception closure. |
+| `v3.8.0-v3.8.9` | **Planned:** official-source registry, provider discovery/routing, Agent conformance/state/cache, isolated teams, sandboxing, multimodal evaluator gating, Model Hub v3, and Local Server v3. |
+| `v3.9.0-v3.9.4` | **Planned:** governed RAG lifecycle/quality, Fine-tune backend federation, Team Studio/marketplace, and a <=14-day competitive promotion gate. |
 
 Evidence: [`v2.4.0-v2.5.4 operational lifecycle source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) records 8 passing, 5 attention, and 2 external-only local signals; externally verified records remain `0/15`.
 
@@ -58,13 +66,25 @@ Previous plan: [`v2.8.0-v2.9.4 operational remediation and sustainability`](../d
 
 Validated source gate: [`v2.8.0-v2.9.4`](../docs/release-evidence/v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md) records 119/119 tests, 73/73 CI routes, full smoke, desktop/mobile browser QA, and the machine-readable evidence export.
 
-Latest plan: [`v3.0.0-v3.1.4 remediation control and service readiness`](../docs/v3.0.0-v3.1.4-remediation-service-readiness-plan-2026-08-30.md) reports 5 pass, 8 attention, 0 unavailable, and 2 external-only signals. The control plane classifies 2 satisfied, 3 open, 8 blocked, and 2 external-only items; independent evidence remains `0/15` and production remains `BLOCKED`.
+Previous plan: [`v3.0.0-v3.1.4 remediation control and service readiness`](../docs/v3.0.0-v3.1.4-remediation-service-readiness-plan-2026-08-30.md) reports 5 pass, 8 attention, 0 unavailable, and 2 external-only signals. The control plane classifies 2 satisfied, 3 open, 8 blocked, and 2 external-only items; independent evidence remains `0/15` and production remains `BLOCKED`.
 
-Validated source gate: [`v3.0.0-v3.1.4`](../docs/release-evidence/v3.0.0-v3.1.4-remediation-service-readiness-source-gate-2026-08-30.md) records 125/125 tests, 75/75 CI routes, full smoke, production build, security preflight, and desktop/mobile browser QA.
+Previous validated source gate: [`v3.0.0-v3.1.4`](../docs/release-evidence/v3.0.0-v3.1.4-remediation-service-readiness-source-gate-2026-08-30.md) records 125/125 tests, 75/75 CI routes, full smoke, production build, security preflight, and desktop/mobile browser QA.
+
+Latest plan: [`v3.2.0-v3.3.4 remediation execution and operational acceptance`](../docs/v3.2.0-v3.3.4-remediation-execution-operational-acceptance-plan-2026-08-30.md) gives seven owner actions deterministic idempotency, bounded leases, fencing, rollback, and evidence fingerprints. Current action state is 0 satisfied, 3 ready, and 4 blocked; independent evidence remains `0/15` and production remains `BLOCKED`.
+
+Latest validated source gate: [`v3.2.0-v3.3.4`](../docs/release-evidence/v3.2.0-v3.3.4-remediation-execution-operational-acceptance-source-gate-2026-08-30.md) records 131/131 tests, 77/77 CI routes, full smoke, production build, security preflight, and desktop/mobile browser QA.
+
+Current plan: [`v3.4.0-v3.5.4 owner workload and operational decision governance`](../docs/v3.4.0-v3.5.4-owner-workload-operational-decision-plan-2026-08-30.md) adds strict request and candidate receipt contracts for seven owner workloads. The source projection is 5 pass, 8 attention, and 2 external-only; external evidence remains `0/15` and production remains `BLOCKED`.
+
+Current validated source gate: [`v3.4.0-v3.5.4`](../docs/release-evidence/v3.4.0-v3.5.4-owner-workload-operational-decision-source-gate-2026-08-30.md) records 137/137 tests, all 11 changed TypeScript partitions, 79/79 CI routes, full smoke, production build, security preflight, and desktop/mobile browser QA.
+
+Current plan: [`v3.6.0-v3.7.4 owner receipt and exception lifecycle`](../docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md) adds authenticated append-only receipt events, quarantine, compensation, escalation acknowledgement, bounded waiver expiry, and deterministic decision packages. The source projection is 6 pass, 7 attention, and 2 external-only; no real owner receipt was submitted during source validation, external evidence remains `0/15`, and production remains `BLOCKED`.
+
+Current validated source gate: [`v3.6.0-v3.7.4`](../docs/release-evidence/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-source-gate-2026-08-31.md) records 146/146 tests, all 11 changed TypeScript partitions, 81/81 CI routes, full smoke, production build, release-truth validation, architecture/durable-state checks, and security preflight. The `v3.8.0-v3.9.4` competitive train remains planned work only.
 
 ## Competitive Position
 
-Official-documentation review dated 2026-07-12. **Core** means a primary first-party workflow; **integrated** means available but not the product's deepest specialization; **ecosystem** means normally assembled through adjacent clients or plugins.
+First-party product and model review dated 2026-08-31. **Core** means a primary first-party workflow; **integrated** means available but not the product's deepest specialization; **ecosystem** means normally assembled through adjacent clients or plugins. Vendor benchmark claims are not First LLM Studio evidence.
 
 | Product | Strongest position | Runtime / Model Hub | Agent / RAG | Fine-tune | Evaluation / evidence |
 | --- | --- | --- | --- | --- | --- |
@@ -74,10 +94,14 @@ Official-documentation review dated 2026-07-12. **Core** means a primary first-p
 | [Open WebUI](https://docs.openwebui.com/features/) | Self-hosted team AI workspace | Integrated | **Core**, hybrid RAG/tools/MCP | Not primary | Integrated arena/A-B/ELO/OTel |
 | [Jan](https://www.jan.ai/docs/desktop/api-server) | Open-source desktop assistant | **Core** | Integrated agents/projects/MCP | Not primary | Server logs |
 | [AnythingLLM](https://docs.anythingllm.com/) | Workspace RAG and agent automation | Integrated | **Core**, flows/skills/jobs | Not primary | Flow/run inspection |
+| [Dify](https://docs.dify.ai/en/develop-plugin/getting-started/choose-plugin-type) | Visual AI application delivery | Integrated | **Core**, workflow/Agent/knowledge/plugins | Not primary | Application/run inspection |
 | [LLaMA-Factory](https://github.com/hiyouga/LlamaFactory) | Efficient training breadth | Training/inference tooling | Task-focused | **Core**, broad LoRA/QLoRA | **Core** training monitors |
+| [ModelScope SWIFT](https://swift.readthedocs.io/en/v3.7/Instruction/Evaluation.html) | China model training and multimodal evaluation breadth | Multi-backend | Task-focused | **Core**, training/multimodal methods | **Core**, EvalScope/OpenCompass/VLMEvalKit |
 | [LocalAI](https://localai.io/) | Modular private AI runtime | **Core**, broad backends/hardware | **Core**, agents/MCP/RAG | Integrated | Runtime/control-plane ops |
 
-First LLM Studio is strongest where these workflows need one reproducible evidence chain. It is currently weaker in desktop packaging, runtime breadth, extension/community scale, team identity/governance, visual workflow authoring, and real cloud/multi-node production proof. See the full bilingual [competitive landscape and post-v1 direction](../docs/competitive-landscape.md).
+The current official model/Agent radar includes OpenAI `gpt-5.6-sol`, Anthropic `claude-fable-5` / `claude-opus-5` and Managed Agents, Google `gemini-3.7-flash` and Antigravity, DeepSeek V4, MiniMax M2.7, Kimi K2.6, Zhipu `glm-5.2`, and Qwen3-Coder/Qwen Code Agent Teams. It is a watchlist, not a claim that every model is locally configured or paid for.
+
+First LLM Studio is strongest where these workflows need one reproducible evidence chain. The refreshed analysis adds 15 `planned` milestones, `v3.8.0-v3.9.4`, for provider discovery, model routing, Agent conformance/state, isolated teams, sandboxing, multimodal evaluation, Model Hub/Local Server v3, governed RAG, training federation, Team Studio, and a <=14-day competitive freshness gate. See the full bilingual [competitive landscape and product direction](../docs/competitive-landscape.md).
 
 ## Real Fine-tune / LoRA Evidence
 
@@ -182,6 +206,14 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 | `v2.9.0-v2.9.4` | 可持续运行：覆盖遥测、故障诊断、Admin compatibility sunset、桌面升级/数据生命周期与独立闭环。 |
 | `v3.0.0-v3.0.9` | 整改控制面：加入 owner、优先级、依赖、验收条件、下一动作、证据指纹、确定性打包与独立签收。 |
 | `v3.1.0-v3.1.4` | 服务就绪：覆盖客户披露、支持诊断、升级变更连续性、运行交接和独立闭环。 |
+| `v3.2.0-v3.2.9` | 整改执行：覆盖幂等、租约/围栏、回滚、owner 执行和独立执行签收。 |
+| `v3.3.0-v3.3.4` | 运营验收：覆盖 SLO/质量策略、事故/变更演练、owner 签收、发布决策和独立运营验收。 |
+| `v3.4.0-v3.4.9` | Owner 工作负载准入：严格摘要绑定请求、只读准入、候选回执校验和独立回执闭环。 |
+| `v3.5.0-v3.5.4` | 运营决策治理：覆盖证据时效/漂移、依赖影响、owner SLA、限时豁免和独立决策闭环。 |
+| `v3.6.0-v3.6.9` | Owner 回执生命周期：带鉴权的候选回执接收、仅摘要隔离、乐观并发、补偿与独立账本闭环。 |
+| `v3.7.0-v3.7.4` | 运营异常治理：SLA 超时检测、确认事件、限时豁免到期、决策包与独立异常闭环。 |
+| `v3.8.0-v3.8.9` | **计划中：** 官方来源注册表、Provider 能力探测/路由、Agent conformance/state/cache、隔离团队、沙箱、多模态 evaluator gate、Model Hub v3 与 Local Server v3。 |
+| `v3.9.0-v3.9.4` | **计划中：** RAG 生命周期/质量、Fine-tune 后端联邦、Team Studio/marketplace 与不超过 14 天的竞品 promotion gate。 |
 
 证据：[`v2.4.0-v2.5.4 运行与部署生命周期 source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) 记录了 8 个通过、5 个需关注和 2 个仅外部可满足的本地信号；独立外部签收仍为 `0/15`。
 
@@ -193,13 +225,25 @@ Source gate：[`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-
 
 已验证 source gate：[`v2.8.0-v2.9.4`](../docs/release-evidence/v2.8.0-v2.9.4-operational-sustainability-source-gate-2026-08-30.md) 记录 119/119 测试、73/73 CI 路由、完整 smoke、桌面/移动浏览器验证与机器可读证据导出。
 
-最新计划：[`v3.0.0-v3.1.4 整改控制与服务就绪`](../docs/v3.0.0-v3.1.4-remediation-service-readiness-plan-2026-08-30.md) 记录 5 个通过、8 个需关注、0 个不可用和 2 个仅外部可满足；控制面分类为 2 个 satisfied、3 个 open、8 个 blocked 和 2 个 external-only。独立证据仍为 `0/15`，生产保持 `BLOCKED`。
+上一阶段计划：[`v3.0.0-v3.1.4 整改控制与服务就绪`](../docs/v3.0.0-v3.1.4-remediation-service-readiness-plan-2026-08-30.md) 记录 5 个通过、8 个需关注、0 个不可用和 2 个仅外部可满足；控制面分类为 2 个 satisfied、3 个 open、8 个 blocked 和 2 个 external-only。独立证据仍为 `0/15`，生产保持 `BLOCKED`。
 
-已验证 source gate：[`v3.0.0-v3.1.4`](../docs/release-evidence/v3.0.0-v3.1.4-remediation-service-readiness-source-gate-2026-08-30.md) 记录 125/125 测试、75/75 CI 路由、完整 smoke、生产构建、安全预检和桌面/移动浏览器验证。
+上一阶段已验证 source gate：[`v3.0.0-v3.1.4`](../docs/release-evidence/v3.0.0-v3.1.4-remediation-service-readiness-source-gate-2026-08-30.md) 记录 125/125 测试、75/75 CI 路由、完整 smoke、生产构建、安全预检和桌面/移动浏览器验证。
+
+最新计划：[`v3.2.0-v3.3.4 整改执行与运营验收`](../docs/v3.2.0-v3.3.4-remediation-execution-operational-acceptance-plan-2026-08-30.md) 为 7 个 owner 动作增加确定性幂等、短租约、围栏、回滚和证据指纹。当前动作状态为 0 个 satisfied、3 个 ready、4 个 blocked；独立证据仍为 `0/15`，生产保持 `BLOCKED`。
+
+最新已验证 source gate：[`v3.2.0-v3.3.4`](../docs/release-evidence/v3.2.0-v3.3.4-remediation-execution-operational-acceptance-source-gate-2026-08-30.md) 记录 131/131 测试、77/77 CI 路由、完整 smoke、生产构建、安全预检和桌面/移动浏览器验证。
+
+当前计划：[`v3.4.0-v3.5.4 Owner 工作负载与运营决策治理`](../docs/v3.4.0-v3.5.4-owner-workload-operational-decision-plan-2026-08-30.md) 为 7 类 owner 工作负载增加严格请求与候选回执合同。源码投影为 5 个通过、8 个需关注和 2 个仅外部可满足；外部证据仍为 `0/15`，生产保持 `BLOCKED`。
+
+当前已验证 source gate：[`v3.4.0-v3.5.4`](../docs/release-evidence/v3.4.0-v3.5.4-owner-workload-operational-decision-source-gate-2026-08-30.md) 记录 137/137 测试、全部 11 个变更 TypeScript 分区、79/79 CI 路由、完整 smoke、生产构建、安全预检和桌面/移动浏览器验证。
+
+当前计划：[`v3.6.0-v3.7.4 Owner 回执与异常生命周期`](../docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md) 已实现带鉴权的 append-only 回执事件、隔离、补偿、升级确认、限时豁免到期和确定性决策包。源码投影为 6 个通过、7 个需关注、2 个仅外部可满足；本轮未提交真实 owner 回执，外部证据仍为 `0/15`，生产保持 `BLOCKED`。
+
+当前已验证 source gate：[`v3.6.0-v3.7.4`](../docs/release-evidence/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-source-gate-2026-08-31.md) 记录 146/146 测试、全部 11 个变更 TypeScript 分区、81/81 CI 路由、完整 smoke、生产构建、发布事实、架构/持久化边界和安全预检；`v3.8.0-v3.9.4` 竞品列车仍仅是计划任务。
 
 ## 竞品定位对比
 
-本表基于 2026-07-12 可查的官方产品文档。**核心**表示原生主流程，**已集成**表示具备但并非最深专长，**生态**表示通常由相邻客户端或插件组装。
+本表基于 2026-08-31 可查的官方产品与模型文档。**核心**表示原生主流程，**已集成**表示具备但并非最深专长，**生态**表示通常由相邻客户端或插件组装。厂商自报 benchmark 不直接算作本项目证据。
 
 | 产品 | 最强定位 | Runtime / Model Hub | Agent / RAG | Fine-tune | 评测 / 证据 |
 | --- | --- | --- | --- | --- | --- |
@@ -209,10 +253,14 @@ Source gate：[`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-
 | [Open WebUI](https://docs.openwebui.com/features/) | 自托管团队 AI 工作区 | 已集成 | **核心**，混合 RAG/工具/MCP | 非主线 | Arena/A-B/ELO/OTel |
 | [Jan](https://www.jan.ai/docs/desktop/api-server) | 开源桌面助手 | **核心** | Agent/Project/MCP | 非主线 | Server 日志 |
 | [AnythingLLM](https://docs.anythingllm.com/) | Workspace RAG 与 Agent 自动化 | 已集成 | **核心**，Flow/Skill/定时任务 | 非主线 | Flow/Run 检查 |
+| [Dify](https://docs.dify.ai/en/develop-plugin/getting-started/choose-plugin-type) | 可视化 AI 应用交付 | 已集成 | **核心**，Workflow/Agent/Knowledge/Plugin | 非主线 | 应用与运行检查 |
 | [LLaMA-Factory](https://github.com/hiyouga/LlamaFactory) | 高效训练广度 | 训练/推理工具 | 面向任务 | **核心**，广泛 LoRA/QLoRA | **核心**，训练监控 |
+| [ModelScope SWIFT](https://swift.readthedocs.io/en/v3.7/Instruction/Evaluation.html) | 国内模型训练与多模态评测广度 | 多后端 | 面向任务 | **核心**，训练/多模态方法 | **核心**，EvalScope/OpenCompass/VLMEvalKit |
 | [LocalAI](https://localai.io/) | 模块化私有 AI runtime | **核心**，广后端/硬件 | **核心**，Agent/MCP/RAG | 已集成 | Runtime/控制面运维 |
 
-First LLM Studio 在需要统一可复现证据链时更有优势；当前短板是桌面打包、运行时广度、扩展/社区规模、团队身份与治理、可视化 workflow，以及真实云/多节点生产证据。完整双语分析与 post-v1 规划见：[竞品格局与产品方向](../docs/competitive-landscape.md)。
+当前官方模型/Agent 雷达包括 OpenAI `gpt-5.6-sol`、Anthropic `claude-fable-5` / `claude-opus-5` 与 Managed Agents、Google `gemini-3.7-flash` 与 Antigravity、DeepSeek V4、MiniMax M2.7、Kimi K2.6、智谱 `glm-5.2` 以及 Qwen3-Coder / Qwen Code Agent Team。它不代表本机已配置或购买全部模型。
+
+First LLM Studio 在统一证据链上更有优势。最新版已把 provider 型号漂移、Agent 长任务/多 Agent/沙箱、Local Server、RAG connector/index、训练后端广度和团队治理差距拆成 `v3.8.0-v3.9.4` 15 个 `planned` 版本，并加入不超过 14 天的竞品 freshness gate。完整双语分析见：[竞品格局与产品方向](../docs/competitive-landscape.md)。
 
 ## 真实 Fine-tune / LoRA 证据
 

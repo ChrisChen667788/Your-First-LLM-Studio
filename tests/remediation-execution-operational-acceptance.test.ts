@@ -6,24 +6,23 @@ import type {
   ExternalAssuranceDefinition,
 } from "@/features/experiments/external-assurance-chain";
 import {
-  buildOperationalRemediationControlPlane,
-} from "@/features/experiments/operational-remediation-control-plane";
+  OPERATIONAL_ACCEPTANCE_DEFINITIONS,
+  buildOperationalAcceptanceTrainState,
+} from "@/features/experiments/operational-acceptance-train";
+import { buildOperationalRemediationControlPlane } from "@/features/experiments/operational-remediation-control-plane";
 import {
   buildOperationalSustainabilitySourceSignalSnapshot,
   type OperationalSustainabilitySourceSignal,
   type OperationalSustainabilitySourceSignalId,
 } from "@/features/experiments/operational-sustainability-source-signals";
 import {
-  REMEDIATION_CONTROL_DEFINITIONS,
-  buildRemediationControlTrainState,
-} from "@/features/experiments/remediation-control-train";
+  REMEDIATION_EXECUTION_DEFINITIONS,
+  buildRemediationExecutionTrainState,
+} from "@/features/experiments/remediation-execution-train";
 import {
-  buildServiceReadinessSourceSignalSnapshot,
-} from "@/features/experiments/service-readiness-source-signals";
-import {
-  SERVICE_READINESS_DEFINITIONS,
-  buildServiceReadinessTrainState,
-} from "@/features/experiments/service-readiness-train";
+  buildRemediationExecutionPlan,
+  buildRemediationExecutionSourceSignalSnapshot,
+} from "@/features/experiments/remediation-execution-source-signals";
 import {
   RELEASE_TRAIN_DEVELOPMENT_VERSION,
   RELEASE_TRAIN_MILESTONES,
@@ -31,7 +30,6 @@ import {
 
 const now = Date.parse("2026-08-30T00:00:00.000Z");
 const digest = (character: string) => character.repeat(64);
-
 const sourceIds: OperationalSustainabilitySourceSignalId[] = [
   "provider-traffic-reconciliation",
   "retrieval-freshness-remediation",
@@ -95,18 +93,14 @@ function artifactsFor(
         control: {
           status: "passed",
           primaryEvidenceDigest: digest("a"),
-          ...(definition.requireSecondaryDigest
-            ? { secondaryEvidenceDigest: digest("b") }
-            : {}),
+          ...(definition.requireSecondaryDigest ? { secondaryEvidenceDigest: digest("b") } : {}),
           observationWindowHours: definition.minObservationWindowHours,
           coveragePct: definition.minimumCoveragePct,
           unresolvedCriticalFindings: 0,
           assertions: definition.requiredAssertions,
           ...(definition.finalReview
             ? {
-                reviewedDigests: definitions
-                  .slice(0, index)
-                  .map((_, reviewedIndex) => digest((reviewedIndex + 1).toString(16))),
+                reviewedDigests: definitions.slice(0, index).map((_, reviewedIndex) => digest((reviewedIndex + 1).toString(16))),
                 reviewDigest: digest("c"),
               }
             : {}),
@@ -121,62 +115,62 @@ function artifactsFor(
   });
 }
 
-test("remediation control plane covers every owner signal with an acyclic policy graph", () => {
+test("remediation execution plan is deterministic, fenced, rollback-bound, and non-mutating", () => {
   const controlPlane = buildOperationalRemediationControlPlane(
     sourceSnapshot([
       "provider-traffic-reconciliation",
+      "retrieval-freshness-remediation",
       "model-supply-chain-reconciliation",
+      "workspace-audit-completeness",
+      "runtime-recovery-efficiency",
+      "benchmark-cost-quality",
+      "telemetry-resource-transparency",
     ]),
   );
-  assert.equal(controlPlane.summary.totalItems, 15);
-  assert.equal(controlPlane.topologicalOrder.length, 15);
-  assert.ok(Object.values(controlPlane.checks).every(Boolean));
-  assert.equal(controlPlane.localStatus, "attention");
-  assert.match(controlPlane.stateDigest, /^[a-f0-9]{64}$/u);
-  assert.ok(controlPlane.items.every((item) => item.acceptanceChecks.length > 0));
-  assert.ok(controlPlane.items.every((item) => item.nextActions.length > 0));
-  assert.equal(
-    controlPlane.items.find((item) => item.sourceSignalId === "runtime-recovery-efficiency")?.state,
-    "blocked",
-  );
+  const first = buildRemediationExecutionPlan(controlPlane);
+  const second = buildRemediationExecutionPlan(controlPlane);
+  const timeShifted = buildRemediationExecutionPlan({
+    ...controlPlane,
+    generatedAt: "2026-08-31T00:00:00.000Z",
+    stateDigest: digest("f"),
+  });
+  assert.equal(first.summary.totalActions, 7);
+  assert.equal(first.packageDigest, second.packageDigest);
+  assert.equal(first.queueDigest, second.queueDigest);
+  assert.equal(first.packageDigest, timeShifted.packageDigest);
+  assert.equal(first.queueDigest, timeShifted.queueDigest);
+  assert.ok(Object.values(first.checks).every(Boolean));
+  assert.ok(first.actions.every((action) => action.remoteMutationAllowed === false));
+  assert.ok(first.actions.every((action) => action.rollback.required));
+  assert.equal(first.productionStatus, "blocked");
 });
 
-test("service readiness projection preserves seven open controls and two external authorities", () => {
-  const service = buildServiceReadinessSourceSignalSnapshot(
-    buildOperationalRemediationControlPlane(
-      sourceSnapshot([
-        "provider-traffic-reconciliation",
-        "retrieval-freshness-remediation",
-        "model-supply-chain-reconciliation",
-        "workspace-audit-completeness",
-        "runtime-recovery-efficiency",
-        "benchmark-cost-quality",
-        "telemetry-resource-transparency",
-      ]),
-    ),
-  );
-  assert.equal(service.summary.totalSignals, 15);
-  assert.equal(service.summary.sourceOwnedSignals, 13);
-  assert.equal(service.summary.passingSignals, 5);
-  assert.equal(service.summary.attentionSignals, 8);
-  assert.equal(service.summary.externalOnlySignals, 2);
-  assert.equal(service.localStatus, "attention");
-});
-
-test("v3.0 verifies ten external records without granting production", () => {
-  const anchor = {
-    version: "v2.9.4",
-    evidenceStatus: "verified" as const,
-    digest: digest("e"),
-    recordId: "sustainable-operations-closure",
-    issuerOrganizationId: "sustainable-operations-authority",
-  };
-  const sourceSignals = buildServiceReadinessSourceSignalSnapshot(
+test("execution signals expose thirteen source-owned gates and two external authorities", () => {
+  const snapshot = buildRemediationExecutionSourceSignalSnapshot(
     buildOperationalRemediationControlPlane(sourceSnapshot()),
   );
-  const state = buildRemediationControlTrainState({
+  assert.equal(snapshot.summary.totalSignals, 15);
+  assert.equal(snapshot.summary.sourceOwnedSignals, 13);
+  assert.equal(snapshot.summary.externalOnlySignals, 2);
+  assert.equal(snapshot.remediationExecutionPlan.summary.satisfiedActions, 7);
+  assert.equal(snapshot.localStatus, "pass");
+  assert.match(snapshot.stateDigest, /^[a-f0-9]{64}$/u);
+});
+
+test("v3.2 verifies ten predecessor-bound records without granting production", () => {
+  const anchor = {
+    version: "v3.1.4",
+    evidenceStatus: "verified" as const,
+    digest: digest("e"),
+    recordId: "service-readiness-closure",
+    issuerOrganizationId: "service-readiness-authority",
+  };
+  const sourceSignals = buildRemediationExecutionSourceSignalSnapshot(
+    buildOperationalRemediationControlPlane(sourceSnapshot()),
+  );
+  const state = buildRemediationExecutionTrainState({
     anchor,
-    artifacts: artifactsFor(REMEDIATION_CONTROL_DEFINITIONS, {
+    artifacts: artifactsFor(REMEDIATION_EXECUTION_DEFINITIONS, {
       version: anchor.version,
       digest: anchor.digest,
       recordId: anchor.recordId,
@@ -190,20 +184,20 @@ test("v3.0 verifies ten external records without granting production", () => {
   assert.equal(state.productionStatus, "blocked");
 });
 
-test("v3.1 binds the independent v3.0 acceptance and remains fail-closed", () => {
+test("v3.3 binds execution acceptance and preserves independent final authority", () => {
   const anchor = {
-    version: "v3.0.9",
+    version: "v3.2.9",
     evidenceStatus: "verified" as const,
     digest: digest("e"),
-    recordId: "remediation-control-acceptance",
-    issuerOrganizationId: "remediation-control-authority",
+    recordId: "execution-acceptance",
+    issuerOrganizationId: "execution-authority",
   };
-  const sourceSignals = buildServiceReadinessSourceSignalSnapshot(
+  const sourceSignals = buildRemediationExecutionSourceSignalSnapshot(
     buildOperationalRemediationControlPlane(sourceSnapshot()),
   );
-  const state = buildServiceReadinessTrainState({
+  const state = buildOperationalAcceptanceTrainState({
     anchor,
-    artifacts: artifactsFor(SERVICE_READINESS_DEFINITIONS, {
+    artifacts: artifactsFor(OPERATIONAL_ACCEPTANCE_DEFINITIONS, {
       version: anchor.version,
       digest: anchor.digest,
       recordId: anchor.recordId,
@@ -218,21 +212,19 @@ test("v3.1 binds the independent v3.0 acceptance and remains fail-closed", () =>
   assert.equal(state.productionStatus, "blocked");
 });
 
-test("missing v3.0 predecessor and local attention remain visible", () => {
-  const sourceSignals = buildServiceReadinessSourceSignalSnapshot(
-    buildOperationalRemediationControlPlane(
-      sourceSnapshot(["provider-traffic-reconciliation"]),
-    ),
+test("missing execution predecessor and incomplete owner actions remain fail closed", () => {
+  const sourceSignals = buildRemediationExecutionSourceSignalSnapshot(
+    buildOperationalRemediationControlPlane(sourceSnapshot(["provider-traffic-reconciliation"])),
   );
-  const state = buildServiceReadinessTrainState({
+  const state = buildOperationalAcceptanceTrainState({
     anchor: {
-      version: "v3.0.9",
+      version: "v3.2.9",
       evidenceStatus: "missing",
       digest: null,
       recordId: null,
       issuerOrganizationId: null,
     },
-    artifacts: SERVICE_READINESS_DEFINITIONS.map(() => ({ present: false })),
+    artifacts: OPERATIONAL_ACCEPTANCE_DEFINITIONS.map(() => ({ present: false })),
     sourceSignals,
     now,
   });
@@ -242,21 +234,14 @@ test("missing v3.0 predecessor and local attention remain visible", () => {
   assert.equal(state.productionStatus, "blocked");
 });
 
-test("release train exposes all fifteen v3.0-v3.1 milestones", () => {
-  const versions = RELEASE_TRAIN_MILESTONES.slice(-75, -60).map((entry) => entry.version);
+test("release train exposes all fifteen v3.2-v3.3 milestones", () => {
+  const versions = RELEASE_TRAIN_MILESTONES.slice(-60, -45).map((entry) => entry.version);
   assert.deepEqual(versions, [
-    "v3.0.0", "v3.0.1", "v3.0.2", "v3.0.3", "v3.0.4",
-    "v3.0.5", "v3.0.6", "v3.0.7", "v3.0.8", "v3.0.9",
-    "v3.1.0", "v3.1.1", "v3.1.2", "v3.1.3", "v3.1.4",
+    "v3.2.0", "v3.2.1", "v3.2.2", "v3.2.3", "v3.2.4",
+    "v3.2.5", "v3.2.6", "v3.2.7", "v3.2.8", "v3.2.9",
+    "v3.3.0", "v3.3.1", "v3.3.2", "v3.3.3", "v3.3.4",
   ]);
   assert.equal(RELEASE_TRAIN_MILESTONES.length, 200);
-  assert.equal(
-    RELEASE_TRAIN_DEVELOPMENT_VERSION,
-    "v1.7.0-v3.7.4 source; v3.8.0-v3.9.4 planned",
-  );
-  assert.ok(
-    RELEASE_TRAIN_MILESTONES.slice(-75, -60).every(
-      (entry) => entry.status === "evidence-needed",
-    ),
-  );
+  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v3.7.4 source; v3.8.0-v3.9.4 planned");
+  assert.ok(RELEASE_TRAIN_MILESTONES.slice(-60, -45).every((entry) => entry.status === "evidence-needed"));
 });

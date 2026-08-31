@@ -1,5 +1,50 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-08-31 v3.8.0-v3.9.4 competitive product train
+
+The latest approved product scope adds 15 planned versions without representing
+them as source-complete. `v3.8.0-v3.8.4` covers official competitive-source
+provenance, provider capability discovery, explainable model routing, Agent
+harness conformance, and stateful/cache-aware interactions. `v3.8.5-v3.8.9`
+covers isolated Agent teams, secure sandboxing, multimodal evaluator gating,
+Model Hub operations v3, and Local Server diagnostics v3. `v3.9.0-v3.9.4`
+covers governed RAG lifecycle/quality, Fine-tune backend federation, Team
+Studio, and a <=14-day competitive promotion gate. See
+[`docs/competitive-landscape.md`](./competitive-landscape.md). Existing source,
+external, distribution, and production truth is unchanged.
+
+Latest approved source train: `v3.6.0-v3.7.4` adds authenticated,
+revision-protected candidate receipt intake, quarantine/compensation, SLA
+acknowledgement, bounded waiver expiry, and deterministic decision packages.
+The detailed source/external boundary is recorded in
+[`v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md`](./v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md).
+
+## 2026-08-30 v3.4.0-v3.5.4 owner workload and decision governance
+
+The latest approved 15-version source train gives the seven owner workloads a
+strict request/receipt protocol and then governs freshness, drift, dependency
+impact, owner SLA, bounded waivers, and independent decision closure. Candidate
+receipts are schema-, digest-, identity-, and time-bound but never grant local
+release or production authority. Current source projection is `5 pass`, `8
+attention`, `0 unavailable`, and `2 external-only`; external evidence is
+`0/15`, distribution is `HOLD`, and production is `BLOCKED`. Plan:
+[`v3.4.0-v3.5.4-owner-workload-operational-decision-plan-2026-08-30.md`](./v3.4.0-v3.5.4-owner-workload-operational-decision-plan-2026-08-30.md).
+Source gate:
+[`v3.4.0-v3.5.4-owner-workload-operational-decision-source-gate-2026-08-30.md`](./release-evidence/v3.4.0-v3.5.4-owner-workload-operational-decision-source-gate-2026-08-30.md).
+
+## 2026-08-30 v3.2.0-v3.3.4 remediation execution and operational acceptance
+
+The latest approved 15-version source train converts the seven owner gaps into
+deterministic execution plans with idempotency, bounded leases, fencing,
+rollback, and evidence packaging. v3.3 then adds SLO policy, incident/change
+rehearsal, accountable sign-off, release decision, and independent operational
+acceptance. Current execution state is 0 satisfied, 3 ready, and 4 blocked;
+independent evidence is `0/15`, distribution is `HOLD`, and production is
+`BLOCKED`. Plan:
+[`v3.2.0-v3.3.4-remediation-execution-operational-acceptance-plan-2026-08-30.md`](./v3.2.0-v3.3.4-remediation-execution-operational-acceptance-plan-2026-08-30.md).
+Source gate:
+[`v3.2.0-v3.3.4-remediation-execution-operational-acceptance-source-gate-2026-08-30.md`](./release-evidence/v3.2.0-v3.3.4-remediation-execution-operational-acceptance-source-gate-2026-08-30.md).
+
 # 2026-08-30 v3.0.0-v3.1.4 remediation control and service readiness
 
 The newly approved 15-version scope converts seven unresolved owner signals
@@ -168,7 +213,7 @@ The next 15 local acceptance slices now have repeatable runtime evidence: deskto
 
 The current continuation turns the planned desktop, hub, runtime, extension, workflow, governance, evaluation, and package foundations into 15 independently evidenced slices. It adds bounded Hub retry state, a non-destructive content-address index, Local Server safety and request accounting, live Ollama OpenAI-compatible conformance, dependency-first extension install plans, permission sandbox policy, immutable workflow versions and deploy ingress, OIDC/JWKS verification, SCIM lifecycle routes, transaction-local Postgres RLS context, paired confidence gates, and signed artifact provenance. The aggregate projection is 12 ready, 0 partial, and 3 externally blocked at 84% average completion. Evidence: [`docs/release-evidence/post-v1-15-slice-2026-07-14.md`](./release-evidence/post-v1-15-slice-2026-07-14.md).
 
-## 2026-07-12 competitive landscape checkpoint
+## 2026-07-12 competitive landscape checkpoint (superseded by 2026-08-31)
 
 The roadmap now incorporates a first-party documentation review of LM Studio, Ollama, Open WebUI, Jan, AnythingLLM, LLaMA-Factory, and LocalAI. The existing v0.5-v1.0 evidence train is preserved unchanged, while ten post-v1 milestones are appended as planned work. The product direction is to keep First LLM Studio evidence-driven and lifecycle-oriented while borrowing stronger desktop onboarding, runtime breadth, extension, workflow, team, and production patterns. See [`docs/competitive-landscape.md`](./competitive-landscape.md).
 
@@ -388,3 +433,15 @@ Next implementation slice:
 - `features/experiments/ReleaseTrainPanel.tsx`
 
 当前正式标签仍是 `v1.1.0-rc.2`，源码里程碑已按 release truth 推进到 `v1.5.1`。v1.4.0-v1.5.1 的仓库内本地 contracts、真实 adapter 配对评测、artifact binding、usage settlement 与本地 failover evidence 已闭环；认证非回环调用、分布式 worker、真实 IdP/SCIM、部署后 Postgres、组织远端 registry、跨区 failover、云 KMS/Object Lock 与组织签收继续保持生产阻塞。原生 launcher 的 Developer ID notarization 和独立可信 clean-machine签收同样保持 fail-closed。
+## 2026-08-30 v3.6.0-v3.7.4 owner receipt and exception lifecycle
+
+This approved 15-version train is source-complete. v3.6 adds authenticated
+candidate receipt intake for Provider, Retrieval, Models, Workspace, Runtime,
+Benchmark, and Telemetry plus a revision-protected quarantine ledger,
+compensation reconciliation, and independent receipt closure. v3.7 adds SLA
+breach detection, durable acknowledgement, protected-scope waiver expiry,
+deterministic decision packages, and independent exception closure. Raw receipt
+payloads are not persisted; detached signature verification, immutable external
+archive, organization incident reconciliation, distribution, and production
+remain external `HOLD` / `BLOCKED` gates. See
+[`docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md`](./v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md).

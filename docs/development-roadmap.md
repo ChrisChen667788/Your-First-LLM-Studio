@@ -1,5 +1,55 @@
 # Agent Lab Development Roadmap
 
+## v3.8-v3.9 competitive product roadmap checkpoint
+
+The 2026-08-31 first-party review now covers local studios/runtimes, team
+RAG/application workspaces, training/evaluation stacks, and frontier model or
+Agent providers. It approves 15 **planned** product milestones from `v3.8.0`
+through `v3.9.4`: competitive-source registry, provider capability discovery,
+explainable routing, Agent harness/state/cache conformance, isolated
+multi-agent work, secure sandboxes, multimodal evaluator gating, Model Hub and
+Local Server v3, governed RAG, Fine-tune backend federation, Team Studio, and a
+14-day competitive freshness gate. Full method, model radar, strengths,
+weaknesses, official sources, and acceptance criteria are in
+[`docs/competitive-landscape.md`](./competitive-landscape.md). These versions
+remain planned and do not change current distribution or production status.
+
+## v3.6-v3.7 owner receipt and exception lifecycle checkpoint
+
+The latest 15 source milestones turn the v3.4 candidate validator into an
+authenticated, durable, digest-only receipt lifecycle. Valid candidates,
+quarantine, compensation, escalation acknowledgement, bounded waiver expiry,
+and decision-package events use optimistic concurrency and a predecessor digest
+chain. Raw receipt payloads are not retained, and no local event grants external
+signature or production authority. Current projection is `6 pass`, `7
+attention`, and `2 external-only`; the local ledger remains revision 0 because
+no real owner receipt was submitted during source validation. External evidence
+is `0/15` and production remains `BLOCKED`. See
+[`docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md`](./v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md).
+
+## v3.4-v3.5 owner workload and decision governance checkpoint
+
+The latest 15 source milestones turn seven remediation actions into strict,
+digest-bound, fenced, rollback-required workload requests and validate candidate
+receipts against action, idempotency, time, evidence, and durable identity.
+Freshness/drift, dependency impact, owner SLA, and a non-renewable 24-hour
+waiver policy then feed an independent decision chain. Local validation never
+executes remote mutations or grants production authority. Current projection is
+`5 pass`, `8 attention`, and `2 external-only`; external evidence is `0/15` and
+production remains `BLOCKED`. See
+[`docs/v3.4.0-v3.5.4-owner-workload-operational-decision-plan-2026-08-30.md`](./v3.4.0-v3.5.4-owner-workload-operational-decision-plan-2026-08-30.md).
+
+## v3.2-v3.3 remediation execution and operational acceptance checkpoint
+
+The latest 15 source milestones turn the seven open owner remediations into
+idempotent, lease/fencing-protected, rollback-bound execution plans and then
+project SLO, rehearsal, sign-off, release-decision, and independent operational
+acceptance contracts. The source tree can plan, validate, display, and export
+the work, but cannot execute protected remote mutations or issue third-party
+signatures. Current direct actions are 0 satisfied, 3 ready, and 4 blocked;
+external evidence is 0/15 and production remains `BLOCKED`. See
+[`docs/v3.2.0-v3.3.4-remediation-execution-operational-acceptance-plan-2026-08-30.md`](./v3.2.0-v3.3.4-remediation-execution-operational-acceptance-plan-2026-08-30.md).
+
 ## v1.5.1 local release-candidate completion
 
 The active source milestone is now `v1.5.1`. A real attached Qwen3 0.6B adapter checkpoint is pinned by SHA-256, packaged with a pinned base-model revision, round-tripped through the immutable local artifact registry, and bound to three real paired Benchmark batches with 36 samples. The deterministic Quality CI non-regression gate, usage reconciliation, retry-safe settlement, local audit/signing, primary fencing, standby promotion, and measured local RPO/RTO all pass. This is repository and single-machine evidence only: distribution remains `HOLD` and production remains `BLOCKED` until the independent worker, organization registry/sign-off, managed billing, cross-region failover, cloud KMS/Object Lock, identity, and deployed-database gates are accepted. See [`docs/release-evidence/v1.5.1-local-completion-2026-08-10.md`](./release-evidence/v1.5.1-local-completion-2026-08-10.md).
@@ -82,7 +132,7 @@ ModelScope `onnx-community/tiny-gpt2-ONNX` 已完成真实 9 文件下载、不�
 
 ## Post-v1 competitive roadmap checkpoint
 
-基于 LM Studio、Ollama、Open WebUI、Jan、AnythingLLM、LLaMA-Factory 和 LocalAI 官方资料的竞品评估已经归档到 [`docs/competitive-landscape.md`](./competitive-landscape.md)。后续 10 个 planned 版本已追加到 [`docs/next-10-release-train.md`](./next-10-release-train.md) 与 typed release-train contract，重点依次覆盖桌面分发、模型下载/存储生命周期、Local Server、运行时广度、MCP/扩展、可视化 workflow、团队治理、训练/评测 CI、artifact marketplace 与企业 HA/FinOps。既有 `v0.9.0` 云证据阻塞和 `v1.0.0` active 状态保持不变。
+2026-08-31 更新已把样本扩展到 Dify、Cherry Studio、ModelScope SWIFT，以及 OpenAI、Anthropic、Google、DeepSeek、MiniMax、Kimi、GLM、Qwen 的官方模型/Agent 页面，结论归档在 [`docs/competitive-landscape.md`](./competitive-landscape.md)。新增的 `v3.8.0-v3.9.4` 15 个版本全部标为 `planned`，优先处理型号漂移、能力探测、Agent 长任务/多 Agent/沙箱、Local Server、企业 RAG、训练后端联邦与双周 freshness gate。历史版本状态和所有外部生产门槛保持不变。
 
 ## Version snapshot
 
