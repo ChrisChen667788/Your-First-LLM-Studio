@@ -90,6 +90,10 @@ const checks = [
   { id: "v170-benchmark-candidate-multimodal", path: "/api/experiments/v170-benchmark-candidate-multimodal", kind: "json", contract: "ok" },
   { id: "v171-v190-source-train", path: "/api/experiments/v171-v190-source-train", kind: "json", contract: "ok" },
   { id: "v1102-v1200-source-train", path: "/api/experiments/v1102-v1200-source-train", kind: "json", contract: "ok" },
+  { id: "competitive-source-registry", path: "/api/competitive/registry", kind: "json", contract: "ok" },
+  { id: "provider-capability-discovery", path: "/api/providers/capabilities", kind: "json", contract: "ok" },
+  { id: "workload-routing-scorecard", path: "/api/providers/routing", kind: "json", contract: "ok" },
+  { id: "competitive-product-train", path: "/api/experiments/competitive-product-train", kind: "json", contract: "ok" },
 ];
 
 function validateJsonContract(body, contract) {

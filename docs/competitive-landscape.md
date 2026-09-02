@@ -137,6 +137,13 @@ configured or paid for in the current installation.
 
 ## Approved `v3.8.0-v3.9.4` Roadmap
 
+Implementation update, 2026-09-02: all 15 repository-owned contracts are
+source-complete and are classified `evidence-needed`. The `/experiments`
+projection intentionally remains on local HOLD wherever it lacks measured
+workload, provider-account, runtime, OS-sandbox, licensed multimodal, managed
+RAG/training, multi-user, or independent acceptance receipts. Source completion
+does not alter distribution or production status.
+
 | Version | Product slice | Acceptance focus | Competitive source |
 | --- | --- | --- | --- |
 | `v3.8.0` | Competitive intelligence registry | Official-source records have owner, category, checked-at, digest, stability and change reason | Model catalogs and release notes |
@@ -159,6 +166,8 @@ Execution order is fixed by risk: `v3.8.0-v3.8.4` closes model and Agent drift;
 `v3.8.5-v3.8.9` closes execution/runtime ergonomics; `v3.9.0-v3.9.3`
 expands RAG, training and team workflows; `v3.9.4` makes the review cadence a
 release gate. External production gates remain independent of this source plan.
+The detailed ownership and remaining evidence are recorded in
+[`v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md`](./v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md).
 
 ## Biweekly Review Playbook
 
@@ -221,7 +230,7 @@ Workflow 和发布门槛能共享可复现证据；最紧急的短板则是 prov
 Agent 长任务/多 Agent/沙箱闭环、Local Server 产品化、RAG 连接器与索引运维、
 LLaMA-Factory/SWIFT 后端广度，以及真实多用户和外部生产证据。
 
-因此后续新增 `v3.8.0-v3.9.4` 15 个计划版本，依次处理：
+因此 `v3.8.0-v3.9.4` 的 15 个源码版本依次处理：
 
 1. 官方竞品情报注册表、模型能力探测、模型退役与自动降级；
 2. 可解释模型路由、Agent conformance、stateful interaction/cache；
@@ -231,6 +240,7 @@ LLaMA-Factory/SWIFT 后端广度，以及真实多用户和外部生产证据。
 6. MLX、LLaMA-Factory、SWIFT 微调后端联邦；
 7. Team Studio、受治理 marketplace 与双周竞品 promotion gate。
 
-上述版本目前全部是 `planned`。Apple 签名、真实 IdP/SCIM、异构远端节点、
-云 KMS/Object Lock、组织签收和独立生产授权仍保持 `HOLD` / `BLOCKED`，不会
-因为竞品分析或本地 fixture 被提前标记为完成。
+上述版本已推进为 `source-complete / evidence-needed`。Apple 签名、真实
+Provider/workload、IdP/SCIM、异构远端节点、云 KMS/Object Lock、组织签收和
+独立生产授权仍保持 `HOLD` / `BLOCKED`，不会因为源码契约或本地 fixture 被
+提前标记为完成。

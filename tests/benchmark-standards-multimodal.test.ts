@@ -36,7 +36,7 @@ test("standards catalog pins authoritative sources and evaluator protocols", asy
   );
 });
 
-test("MiniMax M3 is the only currently verified native image and video target", async () => {
+test("MiniMax account aliases remain text-only until model-specific modality discovery", async () => {
   const { agentTargets } = await import("@/lib/agent/catalog");
   const {
     assessBenchmarkTargetModality,
@@ -48,13 +48,14 @@ test("MiniMax M3 is the only currently verified native image and video target", 
   assert.ok(local);
 
   const capability = getBenchmarkTargetCapability(minimax);
-  assert.equal(capability.evidenceStatus, "verified");
-  assert.deepEqual(capability.effectiveModalities, ["text", "image", "video"]);
-  assert.equal(assessBenchmarkTargetModality(minimax, "video").supported, true);
+  assert.equal(capability.evidenceStatus, "unverified");
+  assert.deepEqual(capability.effectiveModalities, ["text"]);
+  assert.equal(assessBenchmarkTargetModality(minimax, "video").supported, false);
+  assert.ok(capability.officialDocsUrl);
   assert.equal(assessBenchmarkTargetModality(local, "image").supported, false);
 });
 
-test("multimodal prompt plan preserves media and emits MiniMax message parts", async () => {
+test("multimodal prompt plan preserves media for a capability-gated provider transport", async () => {
   const { buildPlan, expandPlanTasks } = await import(
     "@/features/benchmark/run-plan"
   );

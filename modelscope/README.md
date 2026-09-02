@@ -53,8 +53,8 @@ This desktop-onboarding release candidate packages the current Studio as an Appl
 | `v3.5.0-v3.5.4` | Evidence freshness/drift, dependency impact, owner SLA, bounded waivers, and independent decision closure. |
 | `v3.6.0-v3.6.9` | Authenticated candidate receipt intake, digest-only quarantine, optimistic concurrency, compensation, and independent ledger closure. |
 | `v3.7.0-v3.7.4` | SLA breach detection, acknowledgement events, bounded waiver expiry, decision packages, and independent exception closure. |
-| `v3.8.0-v3.8.9` | **Planned:** official-source registry, provider discovery/routing, Agent conformance/state/cache, isolated teams, sandboxing, multimodal evaluator gating, Model Hub v3, and Local Server v3. |
-| `v3.9.0-v3.9.4` | **Planned:** governed RAG lifecycle/quality, Fine-tune backend federation, Team Studio/marketplace, and a <=14-day competitive promotion gate. |
+| `v3.8.0-v3.8.9` | **Source-complete / evidence-needed:** official-source registry, provider discovery/routing, Agent conformance/cache, isolated teams, sandboxing, multimodal admission, Model Hub v3, and Local Server v3. |
+| `v3.9.0-v3.9.4` | **Source-complete / evidence-needed:** governed RAG lifecycle/quality, MLX/LLaMA-Factory/SWIFT federation, governed marketplace policy, and a <=14-day competitive promotion gate. |
 
 Evidence: [`v2.4.0-v2.5.4 operational lifecycle source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) records 8 passing, 5 attention, and 2 external-only local signals; externally verified records remain `0/15`.
 
@@ -80,7 +80,9 @@ Current validated source gate: [`v3.4.0-v3.5.4`](../docs/release-evidence/v3.4.0
 
 Current plan: [`v3.6.0-v3.7.4 owner receipt and exception lifecycle`](../docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md) adds authenticated append-only receipt events, quarantine, compensation, escalation acknowledgement, bounded waiver expiry, and deterministic decision packages. The source projection is 6 pass, 7 attention, and 2 external-only; no real owner receipt was submitted during source validation, external evidence remains `0/15`, and production remains `BLOCKED`.
 
-Current validated source gate: [`v3.6.0-v3.7.4`](../docs/release-evidence/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-source-gate-2026-08-31.md) records 146/146 tests, all 11 changed TypeScript partitions, 81/81 CI routes, full smoke, production build, release-truth validation, architecture/durable-state checks, and security preflight. The `v3.8.0-v3.9.4` competitive train remains planned work only.
+Current competitive product plan: [`v3.8.0-v3.9.4`](../docs/v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md) implements all 15 repository-owned contracts while retaining real provider, runtime, multimodal, managed RAG/training, organization, distribution, and production evidence as separate `HOLD` gates.
+
+Current validated source gate: [`v3.8.0-v3.9.4`](../docs/release-evidence/v3.8.0-v3.9.4-competitive-product-source-gate-2026-09-02.md) records 156/156 tests, all 11 changed TypeScript partitions, 85/85 CI routes, full smoke, production build, architecture/durable-state checks, and security preflight. Source is `15/15` pass; local evidence is `12/15` pass with routing-quality, licensed multimodal, and real Hub-transfer evidence held.
 
 ## Competitive Position
 
@@ -101,7 +103,7 @@ First-party product and model review dated 2026-08-31. **Core** means a primary 
 
 The current official model/Agent radar includes OpenAI `gpt-5.6-sol`, Anthropic `claude-fable-5` / `claude-opus-5` and Managed Agents, Google `gemini-3.7-flash` and Antigravity, DeepSeek V4, MiniMax M2.7, Kimi K2.6, Zhipu `glm-5.2`, and Qwen3-Coder/Qwen Code Agent Teams. It is a watchlist, not a claim that every model is locally configured or paid for.
 
-First LLM Studio is strongest where these workflows need one reproducible evidence chain. The refreshed analysis adds 15 `planned` milestones, `v3.8.0-v3.9.4`, for provider discovery, model routing, Agent conformance/state, isolated teams, sandboxing, multimodal evaluation, Model Hub/Local Server v3, governed RAG, training federation, Team Studio, and a <=14-day competitive freshness gate. See the full bilingual [competitive landscape and product direction](../docs/competitive-landscape.md).
+First LLM Studio is strongest where these workflows need one reproducible evidence chain. The 15 `v3.8.0-v3.9.4` source contracts now cover provider discovery, model routing, Agent conformance/cache, isolated teams, sandboxing, multimodal admission, Model Hub/Local Server v3, governed RAG, training federation, Team Studio policy, and a <=14-day freshness gate. Missing real workload and external receipts remain `HOLD`. See the full bilingual [competitive landscape and product direction](../docs/competitive-landscape.md).
 
 ## Real Fine-tune / LoRA Evidence
 
@@ -212,8 +214,8 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 | `v3.5.0-v3.5.4` | 运营决策治理：覆盖证据时效/漂移、依赖影响、owner SLA、限时豁免和独立决策闭环。 |
 | `v3.6.0-v3.6.9` | Owner 回执生命周期：带鉴权的候选回执接收、仅摘要隔离、乐观并发、补偿与独立账本闭环。 |
 | `v3.7.0-v3.7.4` | 运营异常治理：SLA 超时检测、确认事件、限时豁免到期、决策包与独立异常闭环。 |
-| `v3.8.0-v3.8.9` | **计划中：** 官方来源注册表、Provider 能力探测/路由、Agent conformance/state/cache、隔离团队、沙箱、多模态 evaluator gate、Model Hub v3 与 Local Server v3。 |
-| `v3.9.0-v3.9.4` | **计划中：** RAG 生命周期/质量、Fine-tune 后端联邦、Team Studio/marketplace 与不超过 14 天的竞品 promotion gate。 |
+| `v3.8.0-v3.8.9` | **源码完成 / 待真实证据：** 官方来源注册表、Provider 能力探测/路由、Agent conformance/cache、隔离团队、沙箱、多模态准入、Model Hub v3 与 Local Server v3。 |
+| `v3.9.0-v3.9.4` | **源码完成 / 待真实证据：** RAG 生命周期/质量、MLX/LLaMA-Factory/SWIFT 后端联邦、受治理 marketplace 与不超过 14 天的竞品 promotion gate。 |
 
 证据：[`v2.4.0-v2.5.4 运行与部署生命周期 source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) 记录了 8 个通过、5 个需关注和 2 个仅外部可满足的本地信号；独立外部签收仍为 `0/15`。
 
@@ -239,7 +241,9 @@ Source gate：[`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-
 
 当前计划：[`v3.6.0-v3.7.4 Owner 回执与异常生命周期`](../docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md) 已实现带鉴权的 append-only 回执事件、隔离、补偿、升级确认、限时豁免到期和确定性决策包。源码投影为 6 个通过、7 个需关注、2 个仅外部可满足；本轮未提交真实 owner 回执，外部证据仍为 `0/15`，生产保持 `BLOCKED`。
 
-当前已验证 source gate：[`v3.6.0-v3.7.4`](../docs/release-evidence/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-source-gate-2026-08-31.md) 记录 146/146 测试、全部 11 个变更 TypeScript 分区、81/81 CI 路由、完整 smoke、生产构建、发布事实、架构/持久化边界和安全预检；`v3.8.0-v3.9.4` 竞品列车仍仅是计划任务。
+当前竞品产品计划：[`v3.8.0-v3.9.4`](../docs/v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md) 已实现全部 15 个仓库自有契约；真实 Provider、runtime、多模态、托管 RAG/训练、组织、分发与生产证据继续作为独立 `HOLD` 门槛。
+
+当前已验证 source gate：[`v3.8.0-v3.9.4`](../docs/release-evidence/v3.8.0-v3.9.4-competitive-product-source-gate-2026-09-02.md) 记录 156/156 测试、全部 11 个变更 TypeScript 分区、85/85 CI 路由、完整 smoke、生产构建、架构/持久化检查和安全预检。源码 15/15 通过，本地证据 12/15 通过；路由质量、多模态授权执行和真实 Hub 传输证据继续 HOLD。
 
 ## 竞品定位对比
 
@@ -260,7 +264,7 @@ Source gate：[`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-
 
 当前官方模型/Agent 雷达包括 OpenAI `gpt-5.6-sol`、Anthropic `claude-fable-5` / `claude-opus-5` 与 Managed Agents、Google `gemini-3.7-flash` 与 Antigravity、DeepSeek V4、MiniMax M2.7、Kimi K2.6、智谱 `glm-5.2` 以及 Qwen3-Coder / Qwen Code Agent Team。它不代表本机已配置或购买全部模型。
 
-First LLM Studio 在统一证据链上更有优势。最新版已把 provider 型号漂移、Agent 长任务/多 Agent/沙箱、Local Server、RAG connector/index、训练后端广度和团队治理差距拆成 `v3.8.0-v3.9.4` 15 个 `planned` 版本，并加入不超过 14 天的竞品 freshness gate。完整双语分析见：[竞品格局与产品方向](../docs/competitive-landscape.md)。
+First LLM Studio 在统一证据链上更有优势。`v3.8.0-v3.9.4` 的 15 个源码契约现已覆盖 provider 探测/路由、Agent conformance/cache、多 Agent 隔离、沙箱、多模态准入、Model Hub/Local Server、RAG、训练后端联邦、团队治理和不超过 14 天的 freshness gate；真实 workload 与外部回执继续 `HOLD`。完整双语分析见：[竞品格局与产品方向](../docs/competitive-landscape.md)。
 
 ## 真实 Fine-tune / LoRA 证据
 

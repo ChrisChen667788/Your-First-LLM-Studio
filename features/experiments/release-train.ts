@@ -5,7 +5,7 @@ import type {
 
 export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.5.1" as const;
 export const RELEASE_TRAIN_DEVELOPMENT_VERSION =
-  "v1.7.0-v3.7.4 source; v3.8.0-v3.9.4 planned" as const;
+  "v1.7.0-v3.9.4 source" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -2361,109 +2361,109 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     evidence: ["Signed exception governance closure", "Independent immutable archive"], nextSlice: "Start the approved competitive intelligence and provider capability train without changing external production truth.",
   },
   {
-    version: "v3.8.0", label: "Competitive Intelligence Registry", status: "planned", track: "platform", targetWindow: "2026-Q4",
+    version: "v3.8.0", label: "Competitive Intelligence Registry", status: "evidence-needed", track: "platform", targetWindow: "2026-Q4",
     objective: "Turn first-party product and model research into a dated, digest-bound registry instead of periodically rewriting an untraceable comparison table.",
     scope: ["Official source registry", "Checked-at and content digest", "Stability and deprecation labels", "Material-change decision log"],
     acceptance: ["Every tracked claim names a first-party source, review date, and stability class.", "Stale or missing sources cannot silently refresh competitive claims."],
     evidence: ["Competitive registry snapshot", "Changed-source decision report"], nextSlice: "Implement provider capability discovery from official catalogs and bounded probes.",
   },
   {
-    version: "v3.8.1", label: "Provider Capability Discovery", status: "planned", track: "platform", targetWindow: "2026-Q4",
+    version: "v3.8.1", label: "Provider Capability Discovery", status: "evidence-needed", track: "platform", targetWindow: "2026-Q4",
     objective: "Discover callable model identities and runtime capabilities rather than relying on static aliases that drift behind provider APIs.",
     scope: ["Models endpoint discovery", "Text, vision, tool and structured-output probes", "Thinking and context metadata", "Alias deprecation and availability"],
     acceptance: ["A removed or renamed model is classified before Agent or Benchmark execution.", "Unsupported multimodal work is rejected with the provider's official source."],
     evidence: ["Capability probe receipt", "Alias migration and fallback report"], nextSlice: "Build workload-specific routing scorecards from measured evidence.",
   },
   {
-    version: "v3.8.2", label: "Workload Routing Scorecards", status: "planned", track: "evaluation", targetWindow: "2026-Q4",
+    version: "v3.8.2", label: "Workload Routing Scorecards", status: "evidence-needed", track: "evaluation", targetWindow: "2026-Q4",
     objective: "Select models by workload quality, latency, cost, reliability, privacy, and locality using an explainable decision contract.",
     scope: ["Workload taxonomy", "Quality and reliability evidence", "Cost and latency budgets", "Explainable fallback chain"],
     acceptance: ["Every automatic route exposes its measured inputs and fallback reason.", "Missing quality evidence cannot be converted into a winning score."],
     evidence: ["Pinned routing scorecard", "Fallback replay receipt"], nextSlice: "Run one Agent harness conformance suite across eligible providers.",
   },
   {
-    version: "v3.8.3", label: "Agent Harness Conformance", status: "planned", track: "agent", targetWindow: "2026-Q4",
+    version: "v3.8.3", label: "Agent Harness Conformance", status: "evidence-needed", track: "agent", targetWindow: "2026-Q4",
     objective: "Compare local and hosted Agent harnesses through one protected-action and lifecycle conformance suite.",
     scope: ["Tool calls and protected approvals", "Resume, cancellation and idempotency", "Branching and session events", "Usage and failure normalization"],
     acceptance: ["Duplicate side effects are denied across retry and resume.", "Provider-specific Agent features remain visible instead of being flattened into false parity."],
     evidence: ["Cross-provider Agent conformance run", "Protected-action recovery receipt"], nextSlice: "Add stateful interaction and cache-aware session adapters.",
   },
   {
-    version: "v3.8.4", label: "Stateful Interaction and Cache", status: "planned", track: "agent", targetWindow: "2026-Q4",
+    version: "v3.8.4", label: "Stateful Interaction and Cache", status: "evidence-needed", track: "agent", targetWindow: "2026-Q4",
     objective: "Normalize stateful and stateless provider conversations while measuring cache behavior, token use, and replay boundaries.",
     scope: ["Previous interaction linkage", "Stateful and stateless modes", "Cache diagnostics", "Compaction and token accounting"],
     acceptance: ["A session can resume without duplicating protected actions.", "Cache savings and misses are attributable to a concrete request chain."],
     evidence: ["Stateful session replay", "Cache and token delta report"], nextSlice: "Add isolated multi-agent teams with bounded budgets.",
   },
   {
-    version: "v3.8.5", label: "Isolated Multi-agent Teams", status: "planned", track: "agent", targetWindow: "2026-Q4",
+    version: "v3.8.5", label: "Isolated Multi-agent Teams", status: "evidence-needed", track: "agent", targetWindow: "2026-Q4",
     objective: "Run parallel specialist agents with isolated workspaces, shared tasks, bounded budgets, and controlled merge or review.",
     scope: ["Named Agent team", "Isolated workspace or worktree", "Shared task and message ledger", "Leader merge and reviewer gate"],
     acceptance: ["Parallel agents cannot silently overwrite one another's state.", "The final result identifies every contributing task, artifact, cost, and review decision."],
     evidence: ["Multi-agent coordination trace", "Conflict and merge rehearsal"], nextSlice: "Unify local and hosted tool execution behind a secure sandbox fabric.",
   },
   {
-    version: "v3.8.6", label: "Secure Sandbox Fabric", status: "planned", track: "governance", targetWindow: "2026-Q4",
+    version: "v3.8.6", label: "Secure Sandbox Fabric", status: "evidence-needed", track: "governance", targetWindow: "2026-Q4",
     objective: "Apply one resource, network, secret, artifact, and teardown policy to local and remote Agent execution environments.",
     scope: ["Filesystem and process policy", "Network and connector allowlist", "Scoped secret injection", "Resource budget and teardown receipt"],
     acceptance: ["A denied secret or network scope fails before tool execution.", "Sandbox lifecycle, output artifacts, and cleanup are independently auditable."],
     evidence: ["Sandbox policy conformance", "Isolation and teardown receipt"], nextSlice: "Create the official multimodal capability and evaluator registry.",
   },
   {
-    version: "v3.8.7", label: "Multimodal Capability and Evaluator Registry", status: "planned", track: "evaluation", targetWindow: "2026-Q4",
+    version: "v3.8.7", label: "Multimodal Capability and Evaluator Registry", status: "evidence-needed", track: "evaluation", targetWindow: "2026-Q4",
     objective: "Gate image, audio, video, and document tasks by official model support and a versioned evaluator contract.",
     scope: ["Official modality claims", "Media preflight", "Evaluator and dataset identity", "Unsupported-reason source links"],
     acceptance: ["Unsupported models are skipped with a clear official reason instead of hanging a run.", "Multimodal results identify native versus transformed inputs and evaluator versions."],
     evidence: ["Multimodal preflight matrix", "Official evaluator comparison run"], nextSlice: "Move the complete runtime lifecycle onto canonical Model Hub cards.",
   },
   {
-    version: "v3.8.8", label: "Model Hub Operations v3", status: "planned", track: "models", targetWindow: "2026-Q4",
+    version: "v3.8.8", label: "Model Hub Operations v3", status: "evidence-needed", track: "models", targetWindow: "2026-Q4",
     objective: "Make download, verification, load, serve, switch, unload, migration, and diagnostics one canonical model-card workflow.",
     scope: ["Transfer and checksum lifecycle", "Hardware and storage fit", "Load, serve, hot-switch and unload", "Remote node and migration state"],
     acceptance: ["Agent, Compare, Benchmark, and Fine-tune consume one model identity and runtime state.", "Every state-changing action has progress, cancellation, recovery, and provenance."],
     evidence: ["Model-card lifecycle smoke", "Transfer-to-runtime provenance receipt"], nextSlice: "Add multi-instance Local Server diagnostics and API parity checks.",
   },
   {
-    version: "v3.8.9", label: "Local Server Diagnostics v3", status: "planned", track: "runtime", targetWindow: "2026-Q4",
+    version: "v3.8.9", label: "Local Server Diagnostics v3", status: "evidence-needed", track: "runtime", targetWindow: "2026-Q4",
     objective: "Turn the Local Server into an observable multi-instance runtime with explicit concurrency, batching, eviction, logs, and accounting.",
     scope: ["Server instance registry", "Concurrency and batching", "Idle TTL and eviction", "Request logs, cancellation and API parity"],
     acceptance: ["Operators can identify model, caller, latency, token use, failure class, and cancellation for every request.", "Hot switching drains old work and preserves a rollback target."],
     evidence: ["Local Server load and cancellation run", "OpenAI-compatible conformance report"], nextSlice: "Build governed connector and index lifecycle operations for Retrieval.",
   },
   {
-    version: "v3.9.0", label: "Governed Connector and Index Lifecycle", status: "planned", track: "rag", targetWindow: "2026-Q4",
+    version: "v3.9.0", label: "Governed Connector and Index Lifecycle", status: "evidence-needed", track: "rag", targetWindow: "2026-Q4",
     objective: "Manage enterprise source sync, parsing, index revisions, hybrid retrieval, reranking, ACL, deletion, and rollback as one corpus lifecycle.",
     scope: ["Incremental connectors", "Parser and chunk revisions", "Hybrid retrieval and reranker", "ACL, deletion and rollback proof"],
     acceptance: ["A document deletion propagates through lexical, vector, cache, and citation stores.", "Every query binds a corpus, parser, embedding, reranker, and ACL revision."],
     evidence: ["Connector-to-citation lineage", "Deletion and rollback rehearsal"], nextSlice: "Close the RAG quality and human-feedback regression loop.",
   },
   {
-    version: "v3.9.1", label: "RAG Quality and Feedback Loop", status: "planned", track: "rag", targetWindow: "2026-Q4",
+    version: "v3.9.1", label: "RAG Quality and Feedback Loop", status: "evidence-needed", track: "rag", targetWindow: "2026-Q4",
     objective: "Turn citation, retrieval, answer, leakage, freshness, and human feedback into repeatable RAG promotion policy.",
     scope: ["Frozen RAG evaluation set", "Retrieval and answer metrics", "Citation and leakage checks", "Human feedback and regression gates"],
     acceptance: ["A corpus or reranker change cannot promote on answer quality alone.", "Feedback is attributable to query, corpus revision, route, and evaluator."],
     evidence: ["Paired RAG regression report", "Leakage and citation failure evidence"], nextSlice: "Federate MLX, LLaMA-Factory, and SWIFT training backends.",
   },
   {
-    version: "v3.9.2", label: "Fine-tune Backend Federation", status: "planned", track: "finetune", targetWindow: "2026-Q4",
+    version: "v3.9.2", label: "Fine-tune Backend Federation", status: "evidence-needed", track: "finetune", targetWindow: "2026-Q4",
     objective: "Negotiate supported recipe parameters across MLX, LLaMA-Factory, and ModelScope SWIFT while retaining one artifact and report contract.",
     scope: ["Backend capability matrix", "Recipe parameter negotiation", "Preference and multimodal methods", "Distributed execution and unified artifacts"],
     acceptance: ["Unsupported parameter combinations fail preflight with an actionable alternative.", "Backend changes do not break dataset, checkpoint, eval, chart, or export lineage."],
     evidence: ["Cross-backend recipe conformance", "Comparable training and export report"], nextSlice: "Productize governed team sharing and marketplace review.",
   },
   {
-    version: "v3.9.3", label: "Team Studio and Governed Marketplace", status: "planned", track: "governance", targetWindow: "2026-Q4",
+    version: "v3.9.3", label: "Team Studio and Governed Marketplace", status: "evidence-needed", track: "governance", targetWindow: "2026-Q4",
     objective: "Share profiles, prompts, recipes, datasets, extensions, and workflows through workspace policy, review, provenance, and rollback.",
     scope: ["Workspace asset catalog", "Role and review policy", "Signed extension and recipe provenance", "Version, revocation and rollback"],
     acceptance: ["Cross-workspace access is denied by data-layer policy, not UI hiding.", "Every install or promotion identifies publisher, revision, permissions, reviewer, and rollback."],
     evidence: ["Multi-user sharing conflict run", "Marketplace install and revocation receipt"], nextSlice: "Make competitive freshness a visible promotion gate.",
   },
   {
-    version: "v3.9.4", label: "Competitive Promotion Gate", status: "planned", track: "release", targetWindow: "2026-Q4",
+    version: "v3.9.4", label: "Competitive Promotion Gate", status: "evidence-needed", track: "release", targetWindow: "2026-Q4",
     objective: "Require a current official-source competitive review and repository evidence before publishing comparative claims or changing product priorities.",
     scope: ["Fourteen-day freshness policy", "Official-source coverage", "Repository capability reconciliation", "Roadmap change and rejection log"],
     acceptance: ["A stale or unsupported competitive claim blocks docs promotion.", "External production status remains independent from market-positioning evidence."],
-    evidence: ["Biweekly competitive delta report", "Docs and roadmap freshness receipt"], nextSlice: "Execute v3.8.0 first; do not promote later slices without their own implementation and evidence.",
+    evidence: ["Biweekly competitive delta report", "Docs and roadmap freshness receipt"], nextSlice: "Collect real provider, runtime, workload, managed-service, and organization evidence without changing production HOLD.",
   },
 ];
 

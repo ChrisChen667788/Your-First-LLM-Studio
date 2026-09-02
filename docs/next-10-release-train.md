@@ -1,17 +1,22 @@
 # Release Train and Post-v1 Product Roadmap
 
-## 2026-08-31 v3.8.0-v3.9.4 competitive product train
+## 2026-09-02 v3.8.0-v3.9.4 competitive product source train
 
-The latest approved product scope adds 15 planned versions without representing
-them as source-complete. `v3.8.0-v3.8.4` covers official competitive-source
+The 15 approved versions are now source-complete and evidence-needed.
+`v3.8.0-v3.8.4` covers official competitive-source
 provenance, provider capability discovery, explainable model routing, Agent
 harness conformance, and stateful/cache-aware interactions. `v3.8.5-v3.8.9`
 covers isolated Agent teams, secure sandboxing, multimodal evaluator gating,
 Model Hub operations v3, and Local Server diagnostics v3. `v3.9.0-v3.9.4`
 covers governed RAG lifecycle/quality, Fine-tune backend federation, Team
-Studio, and a <=14-day competitive promotion gate. See
-[`docs/competitive-landscape.md`](./competitive-landscape.md). Existing source,
-external, distribution, and production truth is unchanged.
+Studio, and a <=14-day competitive promotion gate. The product train is visible
+under `/experiments` with source, local, external and production status kept
+separate. See
+[`docs/competitive-landscape.md`](./competitive-landscape.md) and the
+[`implementation plan`](./v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md).
+Real provider accounts, workload evidence, runtime/model transfers, licensed
+multimodal assets, managed RAG/training, organization identity, distribution,
+and production truth remain unchanged and fail closed.
 
 Latest approved source train: `v3.6.0-v3.7.4` adds authenticated,
 revision-protected candidate receipt intake, quarantine/compensation, SLA

@@ -129,7 +129,9 @@ export function buildTrainingExecutionPlan(input: TrainingExecutionPlanInput) {
     ? ["python", "-m", "mlx_lm.lora", "--config", "training-plan.json"]
     : backend.id === "llama-factory"
       ? ["llamafactory-cli", "train", "training-plan.json"]
-      : ["python", "-m", "first_llm_studio_peft", "--config", "training-plan.json"];
+      : backend.id === "modelscope-swift"
+        ? ["swift", "sft", "--config", "training-plan.json"]
+        : ["python", "-m", "first_llm_studio_peft", "--config", "training-plan.json"];
 
   return {
     schemaVersion: TRAINING_EXECUTION_PLAN_SCHEMA_VERSION,
@@ -183,12 +185,21 @@ export function readTrainingExecutionPlanCatalog() {
     backendId: "llama-factory",
     modelId: "Qwen/Qwen3-8B",
   });
+  const swiftPreview = buildTrainingExecutionPlan({
+    ...sampleInput,
+    backendId: "modelscope-swift",
+    modelId: "Qwen/Qwen3-8B",
+  });
   return {
     ok: true as const,
     schemaVersion: TRAINING_EXECUTION_PLAN_SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
     sample: buildTrainingExecutionPlan(sampleInput),
     preview: llamaFactoryPreview,
+    previews: {
+      llamaFactory: llamaFactoryPreview,
+      modelscopeSwift: swiftPreview,
+    },
     policy: {
       implementedBackendsMayExecute: true,
       previewBackendsMayExecute: false,

@@ -74,8 +74,8 @@ It is not another chat shell. It is built for people who need to compare behavio
 | `v3.5.0-v3.5.4` Operational Decision Governance | Adds evidence freshness/drift, dependency-unblock impact, owner SLA, non-renewable bounded waivers, and independent decision closure. |
 | `v3.6.0-v3.6.9` Owner Receipt Lifecycle | Adds authenticated candidate intake, digest-only quarantine, optimistic concurrency, compensation binding, and independent receipt-ledger closure. |
 | `v3.7.0-v3.7.4` Operational Exception Governance | Adds SLA breach detection, acknowledgement events, protected-scope waiver expiry, decision packages, and independent exception closure. |
-| `v3.8.0-v3.8.9` Competitive Model and Agent Product Train | **Planned:** official-source registry, capability discovery, explainable routing, Agent conformance/state/cache, isolated teams, sandboxing, multimodal evaluator gating, Model Hub operations v3, and Local Server diagnostics v3. |
-| `v3.9.0-v3.9.4` RAG, Training, Team, and Freshness Train | **Planned:** governed connector/index lifecycle, RAG quality/feedback, Fine-tune backend federation, Team Studio/marketplace, and a <=14-day competitive promotion gate. |
+| `v3.8.0-v3.8.9` Competitive Model and Agent Product Train | **Source-complete / evidence-needed:** official-source registry, account capability discovery, explainable routing, Agent conformance/state/cache, isolated teams, sandboxing, multimodal evaluator gating, Model Hub operations v3, and Local Server diagnostics v3. |
+| `v3.9.0-v3.9.4` RAG, Training, Team, and Freshness Train | **Source-complete / evidence-needed:** governed connector/index lifecycle, paired RAG quality/feedback, MLX/LLaMA-Factory/SWIFT backend federation, governed marketplace policy, and a <=14-day competitive promotion gate. |
 
 Current source version: [`v1.5.1`](./VERSION), with source status `COMPLETE` and local acceptance `PASS`. The machine-readable [`release-state.json`](./release-state.json) deliberately separates the active source milestone from the latest public GitHub release (`v0.4.0`) and the latest desktop candidate (`v1.1.0-rc.2`).
 
@@ -103,7 +103,11 @@ Current validated source gate: [`v3.4.0-v3.5.4`](./docs/release-evidence/v3.4.0-
 
 Current receipt and exception lifecycle plan: [`v3.6.0-v3.7.4`](./docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md). The repository now owns authenticated append-only receipt events, quarantine, compensation, escalation acknowledgement, bounded waiver expiry, and deterministic decision packages. The source projection is 6 pass, 7 attention, and 2 external-only; no real owner receipt was submitted during source validation, external evidence remains `0/15`, distribution remains `HOLD`, and production remains `BLOCKED`.
 
-Current validated source gate: [`v3.6.0-v3.7.4`](./docs/release-evidence/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-source-gate-2026-08-31.md) records 146/146 tests, all 11 changed TypeScript partitions, 81/81 CI routes, full smoke, production build, release-truth validation, architecture/durable-state checks, and security preflight. The same gate adds the `v3.8.0-v3.9.4` competitive train as planned work only.
+Previous validated source gate: [`v3.6.0-v3.7.4`](./docs/release-evidence/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-source-gate-2026-08-31.md) records 146/146 tests, all 11 changed TypeScript partitions, 81/81 CI routes, full smoke, production build, release-truth validation, architecture/durable-state checks, and security preflight.
+
+Current competitive product plan: [`v3.8.0-v3.9.4`](./docs/v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md) implements all 15 repository-owned contracts and exposes their source/local/external/production truth in `/experiments`. Real provider accounts, workload scorecards, runtime/model transfers, OS sandbox receipts, licensed multimodal assets, managed RAG, non-MLX training workers, multi-user identity and independent acceptance remain explicit evidence gates; distribution remains `HOLD` and production remains `BLOCKED`.
+
+Current validated source gate: [`v3.8.0-v3.9.4`](./docs/release-evidence/v3.8.0-v3.9.4-competitive-product-source-gate-2026-09-02.md) records 156/156 tests, all 11 changed TypeScript partitions, 85/85 CI routes, full smoke, production build, architecture/durable-state checks, and security preflight. Source is `15/15` pass; local evidence is `12/15` pass with routing-quality, licensed multimodal, and real Hub-transfer evidence deliberately held.
 
 Internal post-release evidence has advanced through the [`v1.6.6 benchmark decision-intelligence checkpoint`](./docs/release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md): all 500 stored results are classified (160 correct and 340 mathematical mismatches, with 100% answer extraction), confidence-aware risk highlights Intermediate Algebra, Precalculus, and Level 5, and the conservative 500-sample detectable effect is 8.27 percentage points. Only one distinct complete run exists, so candidate promotion remains `EVIDENCE NEEDED`. This does not change the active source version or claim hosted leaderboard parity, independent-host reproduction, multimodal execution, distribution, or production promotion.
 
@@ -128,7 +132,7 @@ Reviewed against first-party product and model documentation on 2026-08-31. **Co
 
 Current official model/Agent watchlist: OpenAI `gpt-5.6-sol`; Anthropic `claude-fable-5` / `claude-opus-5` and Managed Agents; Google `gemini-3.7-flash` and Antigravity; DeepSeek `deepseek-v4-pro` / `deepseek-v4-flash`; MiniMax `MiniMax-M2.7`; Kimi `kimi-k2.6`; Zhipu's `glm-5.2` quickstart; and Qwen3-Coder plus Qwen Code Agent Teams. This is an integration watchlist, not a claim that every model is configured or paid for locally.
 
-First LLM Studio's advantage is the connected evidence chain across Agent, Compare, Retrieval, Benchmark, Fine-tune, adapter export, Workflow Studio, and release review. The refreshed analysis adds 15 honest `planned` milestones, `v3.8.0-v3.9.4`, for capability discovery, explainable routing, Agent conformance/state, isolated multi-agent execution, sandboxing, multimodal evaluation, Model Hub/Local Server v3, governed RAG, training backend federation, Team Studio, and a <=14-day competitive freshness gate. See the full bilingual [competitive landscape and product direction](./docs/competitive-landscape.md).
+First LLM Studio's advantage is the connected evidence chain across Agent, Compare, Retrieval, Benchmark, Fine-tune, adapter export, Workflow Studio, and release review. The 15 `v3.8.0-v3.9.4` source contracts now cover capability discovery, explainable routing, Agent conformance/cache, isolated multi-agent plans, sandbox policy, multimodal admission, Model Hub/Local Server v3, governed RAG, training backend federation, Team Studio policy, and a <=14-day competitive freshness gate. Missing real workload and external receipts remain visible as `HOLD`. See the full bilingual [competitive landscape and product direction](./docs/competitive-landscape.md).
 
 ## Who It Helps
 
@@ -439,8 +443,8 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v3.5.0-v3.5.4` 运营决策治理 | 增加证据时效/漂移、依赖解锁影响、owner SLA、不可续期的限时豁免和独立决策闭环。 |
 | `v3.6.0-v3.6.9` Owner 回执生命周期 | 增加带鉴权的候选回执接收、仅摘要隔离、乐观并发、补偿绑定与独立账本闭环。 |
 | `v3.7.0-v3.7.4` 运营异常治理 | 增加 SLA 超时检测、确认事件、受保护 scope 的豁免到期、决策包与独立异常闭环。 |
-| `v3.8.0-v3.8.9` 竞品模型与 Agent 产品列车 | **计划中：** 官方来源注册表、能力探测、可解释路由、Agent conformance/state/cache、隔离式团队、沙箱、多模态 evaluator gate、Model Hub v3 和 Local Server v3。 |
-| `v3.9.0-v3.9.4` RAG、训练、团队与 freshness 列车 | **计划中：** connector/index 生命周期、RAG 质量反馈、Fine-tune 后端联邦、Team Studio/marketplace 和不超过 14 天的竞品 promotion gate。 |
+| `v3.8.0-v3.8.9` 竞品模型与 Agent 产品列车 | **源码完成 / 待真实证据：** 官方来源注册表、账号能力探测、可解释路由、Agent conformance/state/cache、隔离式团队、沙箱、多模态 evaluator gate、Model Hub v3 和 Local Server v3。 |
+| `v3.9.0-v3.9.4` RAG、训练、团队与 freshness 列车 | **源码完成 / 待真实证据：** connector/index 生命周期、成对 RAG 质量反馈、MLX/LLaMA-Factory/SWIFT 后端联邦、受治理 marketplace 和不超过 14 天的竞品 promotion gate。 |
 
 当前源码版本：[`v1.5.1`](./VERSION)，源码状态为 `COMPLETE`、本地验收为 `PASS`。机器可读的 [`release-state.json`](./release-state.json) 明确区分当前源码里程碑、最近公开 GitHub Release（`v0.4.0`）与最近桌面候选包（`v1.1.0-rc.2`）。
 
@@ -466,7 +470,11 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 
 当前回执与异常生命周期计划：[`v3.6.0-v3.7.4`](./docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md)。仓库现在具备带鉴权的 append-only 回执事件、隔离、补偿、升级确认、限时豁免到期和确定性决策包；源码投影为 6 个通过、7 个需关注、2 个仅外部可满足。本轮源码验证未提交真实 owner 回执，外部证据仍为 `0/15`，分发保持 `HOLD`，生产保持 `BLOCKED`。
 
-当前已验证 source gate：[`v3.6.0-v3.7.4`](./docs/release-evidence/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-source-gate-2026-08-31.md) 记录 146/146 测试、全部 11 个变更 TypeScript 分区、81/81 CI 路由、完整 smoke、生产构建、发布事实、架构/持久化边界和安全预检；同一 gate 只把 `v3.8.0-v3.9.4` 竞品列车登记为计划任务，并未冒充已实现。
+上一阶段已验证 source gate：[`v3.6.0-v3.7.4`](./docs/release-evidence/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-source-gate-2026-08-31.md) 记录 146/146 测试、全部 11 个变更 TypeScript 分区、81/81 CI 路由、完整 smoke、生产构建、发布事实、架构/持久化边界和安全预检。
+
+当前竞品产品计划：[`v3.8.0-v3.9.4`](./docs/v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md) 已实现 15 个仓库自有契约，并在 `/experiments` 分开显示 source/local/external/production 状态。真实 Provider 账号、workload scorecard、模型传输与 runtime、OS 沙箱、多模态授权数据、托管 RAG、非 MLX 训练 worker、多用户身份和独立签收仍是明确门槛；分发保持 `HOLD`，生产保持 `BLOCKED`。
+
+当前已验证 source gate：[`v3.8.0-v3.9.4`](./docs/release-evidence/v3.8.0-v3.9.4-competitive-product-source-gate-2026-09-02.md) 记录 156/156 测试、全部 11 个变更 TypeScript 分区、85/85 CI 路由、完整 smoke、生产构建、架构/持久化检查和安全预检。源码为 `15/15` 通过；本地证据为 `12/15` 通过，路由质量样本、多模态授权执行和真实 Hub 传输证据继续保持 HOLD。
 
 内部后续证据已推进到 [`v1.6.6 Benchmark 决策智能检查点`](./docs/release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md)：500 条结果全部完成分类（160 正确、340 条数学不等价，答案提取覆盖 100%），置信区间规则标出 Intermediate Algebra、Precalculus 与 Level 5 风险，500 样本下的保守可检测变化约为 8.27 个百分点。当前只有一个不同 run id 的完整运行，因此候选晋级继续为 `EVIDENCE NEEDED`。该检查点不改变当前源码版本，也不宣称托管榜单等价、独立主机复现、多模态全量执行、分发或生产晋级。
 
@@ -491,7 +499,7 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 
 当前官方模型/Agent 雷达包括 OpenAI `gpt-5.6-sol`、Anthropic `claude-fable-5` / `claude-opus-5` 与 Managed Agents、Google `gemini-3.7-flash` 与 Antigravity、DeepSeek V4、MiniMax M2.7、Kimi K2.6、智谱 `glm-5.2` 以及 Qwen3-Coder / Qwen Code Agent Team。它只是 provider 集成雷达，不代表本机已配置或已购买全部模型。
 
-First LLM Studio 的优势是统一证据链；最紧急短板是 provider 型号漂移、Agent 长任务/多 Agent/沙箱、Local Server 产品化、RAG connector/index 运维、训练后端广度和真实多用户/生产证据。最新版已把这些差距细化为 `v3.8.0-v3.9.4` 15 个 `planned` 版本，并加入不超过 14 天的竞品 freshness gate。完整方法、优劣势、官方来源和版本顺序见：[竞品格局与产品方向](./docs/competitive-landscape.md)。
+First LLM Studio 的优势是统一证据链。`v3.8.0-v3.9.4` 的 15 个源码契约现已覆盖 Provider 型号漂移、Agent conformance/cache、多 Agent 隔离计划、沙箱策略、Local Server、RAG 生命周期、训练后端联邦、团队资产策略与不超过 14 天的竞品 freshness gate；缺少的真实 workload 和外部回执继续显示为 `HOLD`。完整方法、优劣势、官方来源和版本顺序见：[竞品格局与产品方向](./docs/competitive-landscape.md)。
 
 ## 对哪些用户有价值
 

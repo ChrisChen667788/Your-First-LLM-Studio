@@ -11,7 +11,7 @@ Date: 2026-08-10
 - Production: `BLOCKED`.
 - Repository-owned acceptance through `v1.5.1` is locally complete. Internal evidence documents also describe later implementation slices through `v1.6.6`; neither local completion nor later internal slices are equivalent to a public or production promotion.
 
-## Latest approved source train
+## Previous approved source train
 
 `v3.6.0-v3.7.4` adds authenticated, revision-protected candidate receipt
 intake, digest-only quarantine, compensation reconciliation, SLA breach and
@@ -23,13 +23,15 @@ and all 15 external assurance records remain outside local authority. See
 
 ## Latest approved product plan
 
-`v3.8.0-v3.9.4` is a 15-version **planned** competitive product train derived
-from the 2026-08-31 official-source review. The order is: model/provider drift
+`v3.8.0-v3.9.4` is a 15-version **source-complete, evidence-needed** competitive
+product train derived from the 2026-08-31 official-source review and implemented
+on 2026-09-02. The order is: model/provider drift
 and Agent conformance first; multi-agent/sandbox/runtime ergonomics second; RAG,
 training federation and Team Studio third; competitive freshness enforcement
-last. None of these planned cards changes the current source release or closes
+last. None of these source contracts changes the active public release or closes
 Apple, identity, cloud, independent-operator, distribution, or production
-gates. See [`docs/competitive-landscape.md`](./competitive-landscape.md).
+gates. See [`docs/competitive-landscape.md`](./competitive-landscape.md) and
+[`docs/v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md`](./v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md).
 
 ## Remaining version gates
 

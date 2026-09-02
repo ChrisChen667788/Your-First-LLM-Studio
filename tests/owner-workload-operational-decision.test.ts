@@ -237,6 +237,6 @@ test("release train exposes all fifteen v3.4-v3.5 milestones", () => {
     "v3.5.0", "v3.5.1", "v3.5.2", "v3.5.3", "v3.5.4",
   ]);
   assert.equal(RELEASE_TRAIN_MILESTONES.length, 200);
-  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v3.7.4 source; v3.8.0-v3.9.4 planned");
+  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v3.9.4 source");
   assert.ok(RELEASE_TRAIN_MILESTONES.slice(-45, -30).every((entry) => entry.status === "evidence-needed"));
 });

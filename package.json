@@ -91,6 +91,7 @@
     "evidence:v340-v354-owner-workload-decision": "node scripts/run-v340-v354-owner-workload-decision-evidence.mjs",
     "evidence:v360-v374-owner-receipt-exception": "node scripts/run-v360-v374-owner-receipt-exception-evidence.mjs",
     "evidence:v1102-v1200-source-train": "node scripts/run-v1102-v1200-source-train-evidence.mjs",
+    "evidence:v380-v394-competitive-product": "node scripts/run-v380-v394-competitive-product-evidence.mjs",
     "preflight:aws-production-promotion": "node scripts/preflight-aws-production-promotion.mjs",
     "preflight:release-security": "node scripts/release-security-preflight.mjs",
     "rehearse:post-v1-foundations": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/rehearse-post-v1-foundations.mjs",

@@ -245,7 +245,7 @@ test("MATH-500 analysis produces stable scorecards and Wilson confidence", async
   assert.match(analysis.runDigest, /^[a-f0-9]{64}$/);
 });
 
-test("multimodal execution plan is actionable while full runs remain gated", async () => {
+test("multimodal execution plan exposes protocols while native execution remains gated", async () => {
   const { buildMultimodalExecutionPlan } = await import(
     "@/features/benchmark/multimodal-execution-readiness"
   );
@@ -253,8 +253,9 @@ test("multimodal execution plan is actionable while full runs remain gated", asy
   assert.equal(plan.protocols.length, 4);
   assert.equal(plan.conformance.passed, plan.conformance.total);
   assert.equal(plan.candidateTarget?.id, "minimax-m3");
-  assert.ok(plan.candidateTarget?.modalities.includes("image"));
-  assert.ok(plan.candidateTarget?.modalities.includes("video"));
+  assert.deepEqual(plan.candidateTarget?.modalities, ["text"]);
+  assert.equal(plan.candidateTarget?.capabilityStatus, "unverified");
+  assert.equal(plan.localStatus, "hold");
   assert.ok(plan.protocols.every((protocol) => protocol.adapterStatus === "pass"));
   assert.ok(plan.protocols.every((protocol) => protocol.executionStatus === "hold"));
   assert.ok(plan.blockers.length > 0);

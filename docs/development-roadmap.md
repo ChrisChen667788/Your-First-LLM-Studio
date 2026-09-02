@@ -4,15 +4,17 @@
 
 The 2026-08-31 first-party review now covers local studios/runtimes, team
 RAG/application workspaces, training/evaluation stacks, and frontier model or
-Agent providers. It approves 15 **planned** product milestones from `v3.8.0`
+Agent providers. The 15 product milestones from `v3.8.0`
 through `v3.9.4`: competitive-source registry, provider capability discovery,
 explainable routing, Agent harness/state/cache conformance, isolated
 multi-agent work, secure sandboxes, multimodal evaluator gating, Model Hub and
 Local Server v3, governed RAG, Fine-tune backend federation, Team Studio, and a
-14-day competitive freshness gate. Full method, model radar, strengths,
+14-day competitive freshness gate are now source-complete and evidence-needed. Full method, model radar, strengths,
 weaknesses, official sources, and acceptance criteria are in
 [`docs/competitive-landscape.md`](./competitive-landscape.md). These versions
-remain planned and do not change current distribution or production status.
+do not change current distribution or production status; the feature-owned gate
+keeps missing real workload, provider, runtime, managed-service and organization
+receipts visible as HOLD.
 
 ## v3.6-v3.7 owner receipt and exception lifecycle checkpoint
 
@@ -132,7 +134,7 @@ ModelScope `onnx-community/tiny-gpt2-ONNX` 已完成真实 9 文件下载、不�
 
 ## Post-v1 competitive roadmap checkpoint
 
-2026-08-31 更新已把样本扩展到 Dify、Cherry Studio、ModelScope SWIFT，以及 OpenAI、Anthropic、Google、DeepSeek、MiniMax、Kimi、GLM、Qwen 的官方模型/Agent 页面，结论归档在 [`docs/competitive-landscape.md`](./competitive-landscape.md)。新增的 `v3.8.0-v3.9.4` 15 个版本全部标为 `planned`，优先处理型号漂移、能力探测、Agent 长任务/多 Agent/沙箱、Local Server、企业 RAG、训练后端联邦与双周 freshness gate。历史版本状态和所有外部生产门槛保持不变。
+2026-09-02 更新已把 `v3.8.0-v3.9.4` 的 15 个版本推进为 `source-complete / evidence-needed`：官方来源注册表、能力探测、可解释路由、Agent conformance/cache、多 Agent 隔离计划、沙箱策略、多模态准入、Model Hub/Local Server、RAG 生命周期与质量门、训练后端联邦、Team Studio policy 和双周 freshness gate 均有 feature-owned contract。真实 Provider、runtime、托管 RAG/训练 worker、多用户和独立生产回执保持不变，仍为 `HOLD/BLOCKED`。详见 [`docs/v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md`](./v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md)。
 
 ## Version snapshot
 

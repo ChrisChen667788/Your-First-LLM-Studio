@@ -28,16 +28,17 @@ export type BenchmarkModalityAssessment = {
   officialDocsUrl?: string;
 };
 
-const REVIEWED_AT = "2026-08-07";
+const REVIEWED_AT = "2026-08-31";
 
 const PROVIDER_DOCS: Record<string, string> = {
-  "openai-codex": "https://platform.openai.com/docs/models",
-  "openai-gpt54": "https://platform.openai.com/docs/models",
+  "openai-codex": "https://developers.openai.com/api/docs/models",
+  "openai-gpt54": "https://developers.openai.com/api/docs/models",
   "anthropic-claude":
-    "https://docs.anthropic.com/en/docs/about-claude/models/overview",
+    "https://platform.claude.com/docs/en/models/overview",
   "deepseek-api": "https://api-docs.deepseek.com/quick_start/pricing",
-  "kimi-api": "https://platform.moonshot.cn/docs/intro",
-  "glm-api": "https://docs.bigmodel.cn/cn/guide/models/text/glm-4.5",
+  "minimax-m3": "https://platform.minimax.io/docs/guides/models-intro",
+  "kimi-api": "https://platform.kimi.com/docs/models",
+  "glm-api": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2",
   "qwen-api":
     "https://help.aliyun.com/zh/model-studio/getting-started/models",
 };
@@ -49,20 +50,19 @@ function uniqueModalities(values: AgentBenchmarkModality[]) {
 export function getBenchmarkTargetCapability(
   target: AgentTarget,
 ): BenchmarkTargetCapability {
-  if (target.id === "minimax-m3" || /minimax-m3/i.test(target.modelDefault)) {
+  if (target.id === "minimax-m3") {
     return {
       schemaVersion: BENCHMARK_CAPABILITY_SCHEMA_VERSION,
       targetId: target.id,
       targetLabel: target.label,
-      evidenceStatus: "verified",
-      officialDocsUrl:
-        "https://platform.minimaxi.com/docs/api-reference/text-chat-openai",
+      evidenceStatus: "unverified",
+      officialDocsUrl: PROVIDER_DOCS[target.id],
       reviewedAt: REVIEWED_AT,
-      modelModalities: ["text", "image", "video"],
+      modelModalities: ["text"],
       transportModalities: ["text", "image", "video"],
-      effectiveModalities: ["text", "image", "video"],
+      effectiveModalities: ["text"],
       reason:
-        "MiniMax M3 official OpenAI-compatible documentation declares native text, image, and video message content.",
+        "The pinned public MiniMax catalog documents M2.7 text routes. The configured account-specific M3 alias must pass model discovery and a model-specific modality probe before image or video tasks are enabled.",
     };
   }
 

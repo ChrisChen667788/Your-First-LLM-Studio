@@ -11,7 +11,7 @@ export type TrainingMethod =
   | "orpo";
 
 export type TrainingBackendCapability = {
-  id: "mlx-lm" | "llama-factory" | "transformers-peft";
+  id: "mlx-lm" | "llama-factory" | "modelscope-swift" | "transformers-peft";
   status: "implemented" | "preview" | "planned";
   platforms: string[];
   modelFamilies: string[];
@@ -50,6 +50,20 @@ export const TRAINING_BACKENDS: TrainingBackendCapability[] = [
     distributed: true,
     bestCheckpoint: true,
     supportedSchedulers: ["linear", "cosine", "cosine_with_restarts", "polynomial", "constant", "constant_with_warmup"],
+    supportedPackingPolicies: ["disabled", "pack-by-length", "chat-boundary-safe"],
+    supportedBestCheckpointMetrics: ["eval_loss", "win_rate", "exact_match"],
+    targetModulePolicy: "explicit-keys",
+  },
+  {
+    id: "modelscope-swift",
+    status: "preview",
+    platforms: ["linux-x64-nvidia", "linux-x64-amd", "darwin-arm64"],
+    modelFamilies: ["qwen", "llama", "mistral", "gemma", "phi", "deepseek", "glm"],
+    methods: ["lora", "qlora", "dora", "rslora", "full", "dpo", "orpo"],
+    quantizationBits: [4, 8, 16],
+    distributed: true,
+    bestCheckpoint: true,
+    supportedSchedulers: ["linear", "cosine", "cosine_with_restarts", "constant", "constant_with_warmup"],
     supportedPackingPolicies: ["disabled", "pack-by-length", "chat-boundary-safe"],
     supportedBestCheckpointMetrics: ["eval_loss", "win_rate", "exact_match"],
     targetModulePolicy: "explicit-keys",

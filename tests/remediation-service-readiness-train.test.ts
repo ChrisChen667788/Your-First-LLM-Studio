@@ -252,7 +252,7 @@ test("release train exposes all fifteen v3.0-v3.1 milestones", () => {
   assert.equal(RELEASE_TRAIN_MILESTONES.length, 200);
   assert.equal(
     RELEASE_TRAIN_DEVELOPMENT_VERSION,
-    "v1.7.0-v3.7.4 source; v3.8.0-v3.9.4 planned",
+    "v1.7.0-v3.9.4 source",
   );
   assert.ok(
     RELEASE_TRAIN_MILESTONES.slice(-75, -60).every(
