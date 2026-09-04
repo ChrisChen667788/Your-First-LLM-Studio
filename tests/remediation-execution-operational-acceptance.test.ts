@@ -235,13 +235,16 @@ test("missing execution predecessor and incomplete owner actions remain fail clo
 });
 
 test("release train exposes all fifteen v3.2-v3.3 milestones", () => {
-  const versions = RELEASE_TRAIN_MILESTONES.slice(-60, -45).map((entry) => entry.version);
+  const milestones = RELEASE_TRAIN_MILESTONES.filter((entry) =>
+    /^v3\.(?:2|3)\./u.test(entry.version),
+  );
+  const versions = milestones.map((entry) => entry.version);
   assert.deepEqual(versions, [
     "v3.2.0", "v3.2.1", "v3.2.2", "v3.2.3", "v3.2.4",
     "v3.2.5", "v3.2.6", "v3.2.7", "v3.2.8", "v3.2.9",
     "v3.3.0", "v3.3.1", "v3.3.2", "v3.3.3", "v3.3.4",
   ]);
-  assert.equal(RELEASE_TRAIN_MILESTONES.length, 200);
-  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v3.9.4 source");
-  assert.ok(RELEASE_TRAIN_MILESTONES.slice(-60, -45).every((entry) => entry.status === "evidence-needed"));
+  assert.equal(RELEASE_TRAIN_MILESTONES.length, 215);
+  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v4.1.4 source");
+  assert.ok(milestones.every((entry) => entry.status === "evidence-needed"));
 });

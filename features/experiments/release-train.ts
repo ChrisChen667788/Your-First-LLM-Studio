@@ -5,7 +5,7 @@ import type {
 
 export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.5.1" as const;
 export const RELEASE_TRAIN_DEVELOPMENT_VERSION =
-  "v1.7.0-v3.9.4 source" as const;
+  "v1.7.0-v4.1.4 source" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -2463,7 +2463,112 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     objective: "Require a current official-source competitive review and repository evidence before publishing comparative claims or changing product priorities.",
     scope: ["Fourteen-day freshness policy", "Official-source coverage", "Repository capability reconciliation", "Roadmap change and rejection log"],
     acceptance: ["A stale or unsupported competitive claim blocks docs promotion.", "External production status remains independent from market-positioning evidence."],
-    evidence: ["Biweekly competitive delta report", "Docs and roadmap freshness receipt"], nextSlice: "Collect real provider, runtime, workload, managed-service, and organization evidence without changing production HOLD.",
+    evidence: ["Biweekly competitive delta report", "Docs and roadmap freshness receipt"], nextSlice: "Start the evidence-operations train with strict provider account catalog receipts.",
+  },
+  {
+    version: "v4.0.0", label: "Provider Account Catalog Receipts", status: "evidence-needed", track: "platform", targetWindow: "2026-Q4",
+    objective: "Replace configured aliases with current account-visible model catalog receipts before any paid inference or routing decision.",
+    scope: ["Account model-list probe", "Advertised model digest", "Alias migration decision", "Probe latency and failure class"],
+    acceptance: ["Every configured account has a fresh bounded catalog receipt.", "Missing or failed discovery cannot be reported as provider availability."],
+    evidence: ["Provider catalog candidate receipt", "Alias reconciliation report"], nextSlice: "Attach representative workload quality cohorts to routing candidates.",
+  },
+  {
+    version: "v4.0.1", label: "Workload Quality Cohorts", status: "evidence-needed", track: "evaluation", targetWindow: "2026-Q4",
+    objective: "Bind each routing candidate to representative evaluator-scored samples instead of health traffic alone.",
+    scope: ["Workload cohort identity", "Evaluator and dataset digest", "Quality, reliability and latency", "Minimum sample policy"],
+    acceptance: ["Every candidate has at least 20 aligned samples.", "Stale, missing or incomparable quality remains ineligible."],
+    evidence: ["Pinned quality cohort receipt", "Candidate comparability report"], nextSlice: "Replay selected and fallback routes in shadow mode.",
+  },
+  {
+    version: "v4.0.2", label: "Shadow Routing and Fallback Replay", status: "evidence-needed", track: "platform", targetWindow: "2026-Q4",
+    objective: "Validate routing and fallback decisions against observed requests without changing the user-visible target.",
+    scope: ["Shadow request cohort", "Decision parity", "Fallback replay", "Cost and policy guardrails"],
+    acceptance: ["Every replay binds the original decision and candidate evidence.", "A mismatch or policy breach blocks automatic rollout."],
+    evidence: ["Shadow routing receipt", "Fallback divergence report"], nextSlice: "Run the Agent harness against each live target.",
+  },
+  {
+    version: "v4.0.3", label: "Live Agent Harness Matrix", status: "evidence-needed", track: "agent", targetWindow: "2026-Q4",
+    objective: "Move protected-action and lifecycle conformance from deterministic scenarios to each configured live provider and runtime.",
+    scope: ["Protected tools and approval", "Reconnect, resume and cancellation", "Idempotent effects", "Usage and error normalization"],
+    acceptance: ["Every eligible target completes the same scenario matrix.", "Duplicate protected effects remain zero across retries."],
+    evidence: ["Live harness matrix", "Protected-effect recovery receipt"], nextSlice: "Reconcile cache attribution with provider billing records.",
+  },
+  {
+    version: "v4.0.4", label: "Cache and Billing Attribution", status: "evidence-needed", track: "agent", targetWindow: "2026-Q4",
+    objective: "Join cache observations, token accounting and provider billing without inferring financial savings from latency alone.",
+    scope: ["Request-chain cache identity", "Cached and billed tokens", "Latency delta", "Invoice-compatible attribution"],
+    acceptance: ["Every claimed cache saving has provider-native token evidence.", "Unpriced local observations remain non-financial diagnostics."],
+    evidence: ["Cache billing reconciliation", "Unattributed-token exception report"], nextSlice: "Run isolated Agent workers and reviewed merge recovery.",
+  },
+  {
+    version: "v4.0.5", label: "Multi-Agent Worker Isolation", status: "evidence-needed", track: "agent", targetWindow: "2026-Q4",
+    objective: "Prove that parallel specialists use separate workers, leases and file claims with controlled conflict recovery.",
+    scope: ["Worker identity and lease", "Workspace and file claims", "Crash recovery", "Conflict and reviewed merge"],
+    acceptance: ["A stale worker cannot commit after lease loss.", "Every merge binds contributors, artifacts, costs and reviewer decision."],
+    evidence: ["Worker isolation trace", "Conflict and merge receipt"], nextSlice: "Attach runtime-enforced sandbox and teardown evidence.",
+  },
+  {
+    version: "v4.0.6", label: "Sandbox Runtime Attestation", status: "evidence-needed", track: "governance", targetWindow: "2026-Q4",
+    objective: "Bind sandbox policy decisions to actual process isolation, denied scopes, artifacts and teardown results.",
+    scope: ["Filesystem and process isolation", "Network and secret denial", "Resource limits", "Artifact and teardown receipt"],
+    acceptance: ["Denied scopes fail before process launch.", "Execution and cleanup are attributable to one immutable workload digest."],
+    evidence: ["OS sandbox execution receipt", "Teardown and escape-denial report"], nextSlice: "Execute licensed multimodal tasks with official evaluators.",
+  },
+  {
+    version: "v4.0.7", label: "Licensed Multimodal Execution", status: "evidence-needed", track: "evaluation", targetWindow: "2026-Q4",
+    objective: "Run native multimodal tasks only where model, transport, licensed assets and evaluator revisions all agree.",
+    scope: ["Licensed asset manifest", "Native media transport", "Unsupported-target skip", "Official evaluator output"],
+    acceptance: ["Unsupported work is skipped without blocking other targets.", "Scores bind sample, media transformation, model and evaluator revisions."],
+    evidence: ["Multimodal execution ledger", "Official evaluator comparison"], nextSlice: "Complete an authenticated multi-file model transfer and runtime activation.",
+  },
+  {
+    version: "v4.0.8", label: "Model Transfer and Provenance", status: "evidence-needed", track: "models", targetWindow: "2026-Q4",
+    objective: "Close transfer-to-runtime lineage with authenticated multi-file acquisition, resume, checksums, storage migration and activation.",
+    scope: ["Immutable source revision", "Interrupted transfer resume", "Checksum and provenance", "Migration and runtime activation"],
+    acceptance: ["Every installed byte is bound to a source revision and checksum.", "Recovery and migration preserve ownership and rollback."],
+    evidence: ["Hub transfer receipt", "Transfer-to-runtime lineage"], nextSlice: "Exercise Local Server load, cancellation, drain and rollback.",
+  },
+  {
+    version: "v4.0.9", label: "Local Server Load and Drain", status: "evidence-needed", track: "runtime", targetWindow: "2026-Q4",
+    objective: "Validate bounded concurrency, cancellation and drain-aware hot switching with request-level accounting.",
+    scope: ["Concurrent load", "Streaming cancellation", "Drain and hot switch", "Rollback and idle unload"],
+    acceptance: ["Old work drains before model replacement.", "Every request exposes caller, model, latency, tokens, cancellation and failure class."],
+    evidence: ["Load and cancellation report", "Drain and rollback receipt"], nextSlice: "Rehearse the complete managed RAG corpus lifecycle.",
+  },
+  {
+    version: "v4.1.0", label: "Managed RAG Corpus Lifecycle", status: "evidence-needed", track: "rag", targetWindow: "2027-Q1",
+    objective: "Run connector, parser, hybrid index, reranker, ACL, deletion, citation and rollback against a managed corpus.",
+    scope: ["Connector and corpus revision", "Hybrid index and reranker", "Identity ACL", "Deletion, citation and rollback"],
+    acceptance: ["Deleted content disappears from lexical, vector, cache and citation stores.", "Every query binds all corpus and policy revisions."],
+    evidence: ["Managed corpus lifecycle receipt", "Deletion and leakage report"], nextSlice: "Run paired RAG quality and human-feedback promotion.",
+  },
+  {
+    version: "v4.1.1", label: "RAG Feedback Promotion", status: "evidence-needed", track: "rag", targetWindow: "2027-Q1",
+    objective: "Use paired retrieval, answer, citation, leakage, freshness and human review to govern RAG promotion.",
+    scope: ["Pinned evaluation set", "Paired quality deltas", "Citation and leakage", "Human review lineage"],
+    acceptance: ["Answer gain cannot hide retrieval, citation or leakage regression.", "Feedback binds query, corpus, route and evaluator revisions."],
+    evidence: ["Paired RAG promotion report", "Human-review and failure ledger"], nextSlice: "Run one frozen recipe across federated training workers.",
+  },
+  {
+    version: "v4.1.2", label: "Federated Training Workers", status: "evidence-needed", track: "finetune", targetWindow: "2027-Q1",
+    objective: "Execute one frozen recipe on eligible MLX, LLaMA-Factory, SWIFT and PEFT workers with unified artifacts.",
+    scope: ["Worker capability negotiation", "Frozen dataset and recipe", "Checkpoint and metric lineage", "Comparable export package"],
+    acceptance: ["Unsupported parameters fail before queueing.", "Backend changes preserve comparable checkpoints, reports, charts and checksums."],
+    evidence: ["Cross-worker execution receipts", "Comparable quality and export report"], nextSlice: "Rehearse concurrent team asset conflicts and revocation.",
+  },
+  {
+    version: "v4.1.3", label: "Team Asset Conflict and Revocation", status: "evidence-needed", track: "governance", targetWindow: "2027-Q1",
+    objective: "Prove multi-user revisions, review, signed install, revocation propagation and rollback under real workspace identity.",
+    scope: ["Concurrent revisions", "Optimistic conflict", "Review and signed install", "Revocation and rollback"],
+    acceptance: ["Stale writers receive an auditable conflict.", "Revoked assets cannot execute and have a verified rollback target."],
+    evidence: ["Concurrent writer receipt", "Revocation propagation report"], nextSlice: "Evaluate all evidence operations through one fail-closed promotion gate.",
+  },
+  {
+    version: "v4.1.4", label: "Evidence Operations Promotion Gate", status: "evidence-needed", track: "release", targetWindow: "2027-Q1",
+    objective: "Aggregate observed domain receipts without allowing local candidates to grant external, distribution or production authority.",
+    scope: ["Strict candidate receipt intake", "Current local evidence", "External verification boundary", "Fail-closed release decision"],
+    acceptance: ["All 14 domain operations require current evidence before local pass.", "Aggregate self-attestation cannot promote an incomplete domain or production status."],
+    evidence: ["Evidence operations train receipt", "Independent acceptance backlog"], nextSlice: "Collect authorized real receipts and preserve production BLOCKED until independent authorities approve them.",
   },
 ];
 

@@ -1,6 +1,6 @@
 # Route and Module Ownership Matrix
 
-Last updated: 2026-09-02
+Last updated: 2026-09-03
 Refactor phase: Phase 5 release-evidence checkpoint, tracked against the Phase 0 map
 
 This matrix captures the current route ownership, the intended product surface, and the module boundary that should own future implementation. It is the routing companion to [`architecture-refactor-plan.md`](./architecture-refactor-plan.md).
@@ -72,6 +72,7 @@ This matrix captures the current route ownership, the intended product surface, 
 | `/api/experiments/v165-benchmark-reproducibility` | Durable 15-slice run-reproducibility and multimodal-readiness acceptance. | `features/experiments/v165-benchmark-reproducibility` | Binds scorecards, digests, scorer replay, execution plans, and fail-closed truth labels into one local PASS / production HOLD receipt. |
 | `/api/experiments/v166-benchmark-decision-intelligence` | Durable 15-slice audit and model-promotion-policy acceptance. | `features/experiments/v166-benchmark-decision-intelligence` | Local audit can pass while candidate promotion remains evidence-needed and production remains HOLD. |
 | `/api/experiments/v170-benchmark-candidate-multimodal` | Durable candidate-binding and official multimodal admission gate. | `features/experiments/v170-benchmark-candidate-multimodal` | A new run id does not qualify as a candidate unless its model or adapter binding differs; official image/video execution remains HOLD until assets and native receipts exist. |
+| `/api/experiments/evidence-operations-train` | v4.0.0-v4.1.4 observed evidence-operation read model and candidate intake. | `features/experiments/evidence-operations-application`, `features/experiments/evidence-operations-train`, `features/evidence/operational-receipts`, domain feature evidence adapters | Thin transport delegates source/local/external/production projection and operator-authenticated candidate intake to the feature application. Local candidates cannot grant external or production authority. |
 | `/api/experiments/post-ga-operations-train` | Read-only v2.1.0–v2.1.9 external operations-attestation chain. | `features/experiments/post-ga-operations-train` | Validates pinned external signatures, closure/predecessor digest binding, freshness, semantic controls, and distinct final reviewer; it cannot operate or authorize production. |
 | `/api/experiments/continuous-assurance-train` | Read-only v2.2.0-v2.2.9 continuous compliance and customer-trust chain. | `features/experiments/continuous-assurance-train`, `features/experiments/external-assurance-chain` | Strict schema, signature/pin, freshness, predecessor, semantic coverage, and independent-review verification; no local compliance or production transition. |
 | `/api/experiments/assurance-closure-train` | Read-only v2.3.0-v2.3.4 assurance portability and closure chain. | `features/experiments/assurance-closure-train`, `features/experiments/external-assurance-chain` | Verifies portable evidence, publication, monitoring, remediation, and immutable-archive attestations without operating those external systems. |

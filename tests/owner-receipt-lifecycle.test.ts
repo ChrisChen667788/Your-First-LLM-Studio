@@ -233,16 +233,20 @@ test("owner receipt lifecycle persists a fail-closed event chain", async (t) => 
         "v3.7.0", "v3.7.1", "v3.7.2", "v3.7.3", "v3.7.4",
       ],
     );
+    const milestones = RELEASE_TRAIN_MILESTONES.filter((entry) =>
+      /^v3\.(?:6|7)\./u.test(entry.version),
+    );
+
     assert.deepEqual(
-      RELEASE_TRAIN_MILESTONES.slice(-30, -15).map((entry) => entry.version),
+      milestones.map((entry) => entry.version),
       [
         "v3.6.0", "v3.6.1", "v3.6.2", "v3.6.3", "v3.6.4",
         "v3.6.5", "v3.6.6", "v3.6.7", "v3.6.8", "v3.6.9",
         "v3.7.0", "v3.7.1", "v3.7.2", "v3.7.3", "v3.7.4",
       ],
     );
-    assert.equal(RELEASE_TRAIN_MILESTONES.length, 200);
-    assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v3.9.4 source");
-    assert.ok(RELEASE_TRAIN_MILESTONES.slice(-30, -15).every((entry) => entry.status === "evidence-needed"));
+    assert.equal(RELEASE_TRAIN_MILESTONES.length, 215);
+    assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v4.1.4 source");
+    assert.ok(milestones.every((entry) => entry.status === "evidence-needed"));
   });
 });

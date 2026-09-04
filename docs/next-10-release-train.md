@@ -1,5 +1,24 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-09-03 v4.0.0-v4.1.4 evidence operations train
+
+The next 15 versions are now source-complete and evidence-needed. They convert
+the remaining provider, workload-quality, Agent, sandbox, multimodal, model
+transfer, Local Server, managed RAG, federated training, and team-governance
+gaps into strict observed-receipt operations. The shared candidate contract is
+schema-, identity-, digest-, metric-, and time-bound; accepted candidates can
+close only local evidence. The aggregate `v4.1.4` gate cannot pass until all 14
+domain operations pass, and no local candidate grants external, distribution,
+or production authority. See the
+[`implementation plan`](./v4.0.0-v4.1.4-evidence-operations-plan-2026-09-03.md).
+The validated source gate records `15/15` source contracts, `3/15` observed
+local passes, zero candidate receipts and zero independent external receipts:
+[`source evidence`](./release-evidence/v4.0.0-v4.1.4-evidence-operations-source-gate-2026-09-04.md).
+
+Real workload receipts, independent signatures, immutable archive read-back,
+distribution approval, and production authorization remain `HOLD` or
+`BLOCKED` as applicable.
+
 ## 2026-09-02 v3.8.0-v3.9.4 competitive product source train
 
 The 15 approved versions are now source-complete and evidence-needed.
@@ -18,7 +37,7 @@ Real provider accounts, workload evidence, runtime/model transfers, licensed
 multimodal assets, managed RAG/training, organization identity, distribution,
 and production truth remain unchanged and fail closed.
 
-Latest approved source train: `v3.6.0-v3.7.4` adds authenticated,
+Previous approved source train: `v3.6.0-v3.7.4` adds authenticated,
 revision-protected candidate receipt intake, quarantine/compensation, SLA
 acknowledgement, bounded waiver expiry, and deterministic decision packages.
 The detailed source/external boundary is recorded in

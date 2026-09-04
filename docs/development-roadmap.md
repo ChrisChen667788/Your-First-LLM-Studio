@@ -1,5 +1,20 @@
 # Agent Lab Development Roadmap
 
+## v4.0-v4.1 evidence operations checkpoint
+
+The 15 milestones from `v4.0.0` through `v4.1.4` are source-complete and
+evidence-needed. They add strict, durable candidate receipt intake and explicit
+real-workload gates for Provider catalogs and routing, live Agent harness/cache/
+worker/sandbox behavior, licensed multimodal evaluation, model transfer and
+Local Server load, managed RAG, federated training, team asset conflict and an
+aggregate promotion gate. A candidate can satisfy only local evidence; external
+signatures, immutable archive read-back, distribution, and production remain
+separate authorities. See
+[`v4.0.0-v4.1.4-evidence-operations-plan-2026-09-03.md`](./v4.0.0-v4.1.4-evidence-operations-plan-2026-09-03.md).
+The source gate records 164/164 tests, 86/86 CI routes, `15/15` source
+contracts, `3/15` local passes, zero candidates and zero external receipts:
+[`source evidence`](./release-evidence/v4.0.0-v4.1.4-evidence-operations-source-gate-2026-09-04.md).
+
 ## v3.8-v3.9 competitive product roadmap checkpoint
 
 The 2026-08-31 first-party review now covers local studios/runtimes, team

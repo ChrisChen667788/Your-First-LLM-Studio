@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const workspace = process.cwd();
@@ -13,6 +13,15 @@ const outputPath = path.join(
 );
 const historyDir = path.join(workspace, "output", "release-security", "history");
 const MAX_SCAN_BYTES = 1024 * 1024;
+const MAX_AUDIT_BYTES = 20 * 1024 * 1024;
+const AUDIT_TIMEOUT_MS = 180_000;
+const AUDIT_NPM_PATH = [
+  process.env.FIRST_LLM_NPM_CLI_PATH,
+  process.env.NODE22_BIN
+    ? path.join(path.dirname(process.env.NODE22_BIN), "npm")
+    : null,
+  "/opt/homebrew/opt/node@22/bin/npm",
+].find((candidate) => candidate && existsSync(candidate)) || "npm";
 const SECRET_RULES = [
   { id: "api-key-sk", pattern: /\bsk-[A-Za-z0-9_-]{20,}\b/g },
   { id: "modelscope-token", pattern: /\bms-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b/gi },
@@ -102,53 +111,96 @@ function scanTrackedFiles() {
 }
 
 function runPackageAudit() {
-  const result = spawnSync("npm", ["audit", "--omit=dev", "--json"], {
-    cwd: workspace,
-    encoding: "utf8",
-    timeout: 120_000,
-    maxBuffer: 20 * 1024 * 1024,
+  return new Promise((resolve) => {
+    const child = spawn(AUDIT_NPM_PATH, ["audit", "--omit=dev", "--json"], {
+      cwd: workspace,
+      env: {
+        ...process.env,
+        npm_config_fetch_retries: process.env.npm_config_fetch_retries || "1",
+        npm_config_fetch_retry_mintimeout:
+          process.env.npm_config_fetch_retry_mintimeout || "1000",
+        npm_config_fetch_retry_maxtimeout:
+          process.env.npm_config_fetch_retry_maxtimeout || "5000",
+        npm_config_fetch_timeout: process.env.npm_config_fetch_timeout || "120000",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    let failure = null;
+    let settled = false;
+    const stop = (reason) => {
+      if (!failure) failure = reason;
+      child.kill("SIGTERM");
+    };
+    const timer = setTimeout(
+      () => stop(`npm audit exceeded the ${AUDIT_TIMEOUT_MS} ms timeout.`),
+      AUDIT_TIMEOUT_MS,
+    );
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+      if (Buffer.byteLength(stdout) > MAX_AUDIT_BYTES) {
+        stop(`npm audit exceeded the ${MAX_AUDIT_BYTES} byte output limit.`);
+      }
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+      if (Buffer.byteLength(stderr) > MAX_AUDIT_BYTES) {
+        stop(`npm audit exceeded the ${MAX_AUDIT_BYTES} byte error-output limit.`);
+      }
+    });
+    child.on("error", (error) => {
+      failure = `npm audit could not start: ${error.message}`;
+    });
+    child.on("close", (exitCode) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      let parsed;
+      try {
+        parsed = JSON.parse(stdout || "{}");
+      } catch {
+        parsed = null;
+      }
+      const vulnerabilities = {
+        info: Number(parsed?.metadata?.vulnerabilities?.info || 0),
+        low: Number(parsed?.metadata?.vulnerabilities?.low || 0),
+        moderate: Number(parsed?.metadata?.vulnerabilities?.moderate || 0),
+        high: Number(parsed?.metadata?.vulnerabilities?.high || 0),
+        critical: Number(parsed?.metadata?.vulnerabilities?.critical || 0),
+        total: Number(parsed?.metadata?.vulnerabilities?.total || 0),
+      };
+      const available = Boolean(parsed?.metadata?.vulnerabilities);
+      const unavailableReason = failure || stderr.trim() || "npm audit did not return a parseable vulnerability summary.";
+      const blockers = [
+        ...(available ? [] : [unavailableReason]),
+        ...(vulnerabilities.high || vulnerabilities.critical
+          ? [`npm audit reports ${vulnerabilities.high} high and ${vulnerabilities.critical} critical production vulnerability(ies).`]
+          : []),
+      ];
+      const warnings = vulnerabilities.moderate
+        ? [`npm audit reports ${vulnerabilities.moderate} moderate production vulnerability(ies).`]
+        : [];
+      resolve({
+        status: blockers.length
+          ? (available ? "blocked" : "evidence-needed")
+          : warnings.length
+            ? "evidence-needed"
+            : "pass",
+        command: "npm audit --omit=dev --json",
+        runtimePath: AUDIT_NPM_PATH,
+        available,
+        exitCode,
+        vulnerabilities,
+        blockers,
+        warnings,
+      });
+    });
   });
-  let parsed;
-  try {
-    parsed = JSON.parse(result.stdout || "{}");
-  } catch {
-    parsed = null;
-  }
-  const vulnerabilities = {
-    info: Number(parsed?.metadata?.vulnerabilities?.info || 0),
-    low: Number(parsed?.metadata?.vulnerabilities?.low || 0),
-    moderate: Number(parsed?.metadata?.vulnerabilities?.moderate || 0),
-    high: Number(parsed?.metadata?.vulnerabilities?.high || 0),
-    critical: Number(parsed?.metadata?.vulnerabilities?.critical || 0),
-    total: Number(parsed?.metadata?.vulnerabilities?.total || 0),
-  };
-  const available = Boolean(parsed?.metadata?.vulnerabilities);
-  const blockers = [
-    ...(available ? [] : ["npm audit did not return a parseable vulnerability summary."]),
-    ...(vulnerabilities.high || vulnerabilities.critical
-      ? [`npm audit reports ${vulnerabilities.high} high and ${vulnerabilities.critical} critical production vulnerability(ies).`]
-      : []),
-  ];
-  const warnings = vulnerabilities.moderate
-    ? [`npm audit reports ${vulnerabilities.moderate} moderate production vulnerability(ies).`]
-    : [];
-  return {
-    status: blockers.length
-      ? (available ? "blocked" : "evidence-needed")
-      : warnings.length
-        ? "evidence-needed"
-        : "pass",
-    command: "npm audit --omit=dev --json",
-    available,
-    exitCode: result.status,
-    vulnerabilities,
-    blockers,
-    warnings,
-  };
 }
 
 const secretScan = scanTrackedFiles();
-const packageAudit = runPackageAudit();
+const packageAudit = await runPackageAudit();
 const blockers = [...secretScan.blockers, ...packageAudit.blockers];
 const warnings = [...packageAudit.warnings];
 const status = blockers.length

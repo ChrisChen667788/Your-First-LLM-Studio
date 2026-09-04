@@ -94,6 +94,7 @@ const checks = [
   { id: "provider-capability-discovery", path: "/api/providers/capabilities", kind: "json", contract: "ok" },
   { id: "workload-routing-scorecard", path: "/api/providers/routing", kind: "json", contract: "ok" },
   { id: "competitive-product-train", path: "/api/experiments/competitive-product-train", kind: "json", contract: "ok" },
+  { id: "evidence-operations-train", path: "/api/experiments/evidence-operations-train", kind: "json", contract: "ok" },
 ];
 
 function validateJsonContract(body, contract) {

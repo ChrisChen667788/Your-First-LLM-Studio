@@ -59,6 +59,7 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v3.7.0-v3.7.4` 运营异常治理 | 增加 SLA 超时检测、确认事件、受保护 scope 的豁免到期、决策包与独立异常闭环。 |
 | `v3.8.0-v3.8.9` 竞品模型与 Agent 产品列车 | **源码完成 / 待真实证据：** 官方来源注册表、账号能力探测、可解释路由、Agent conformance/state/cache、隔离式团队、沙箱、多模态 evaluator gate、Model Hub v3 和 Local Server v3。 |
 | `v3.9.0-v3.9.4` RAG、训练、团队与 freshness 列车 | **源码完成 / 待真实证据：** connector/index 生命周期、成对 RAG 质量反馈、MLX/LLaMA-Factory/SWIFT 后端联邦、受治理 marketplace 和不超过 14 天的竞品 promotion gate。 |
+| `v4.0.0-v4.1.4` 证据运营列车 | **源码完成 / 待真实证据：** 为 Provider/路由、真实 Agent 与沙箱、多模态授权评测、模型/runtime 迁移、托管 RAG、联邦训练和团队资产建立严格观测回执，并以 fail-closed 总门禁收口。 |
 
 当前已打标签版本见 [`VERSION`](./VERSION)。源码树可能包含下一轮 route-owned 重构 checkpoint，正式标签会在后续发布时推进。
 
@@ -79,6 +80,10 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 当前已验证 source gate 见 [`v3.4.0-v3.5.4`](./docs/release-evidence/v3.4.0-v3.5.4-owner-workload-operational-decision-source-gate-2026-08-30.md)：137/137 测试、全部 11 个变更 TypeScript 分区、79/79 CI 路由、完整 smoke、生产构建、安全预检及桌面/移动浏览器验证均通过，同时保持 `ATTENTION`/`HOLD`/`BLOCKED` 事实边界。
 
 当前竞品产品 source gate 见 [`v3.8.0-v3.9.4`](./docs/release-evidence/v3.8.0-v3.9.4-competitive-product-source-gate-2026-09-02.md)：156/156 测试、全部 11 个变更 TypeScript 分区、85/85 CI 路由、完整 smoke、生产构建、架构/持久化检查和安全预检均通过。15 个源码契约全部通过，本地证据为 12/15；路由质量样本、多模态授权执行和真实 Hub 传输仍保持 HOLD，分发与生产状态不变。
+
+当前证据运营计划见 [`v4.0.0-v4.1.4`](./docs/v4.0.0-v4.1.4-evidence-operations-plan-2026-09-03.md)：严格候选回执会校验 schema、身份、摘要、指标和时效，并在 `/experiments` 分开呈现 source/local/external/production。候选回执只能满足本地门禁，独立签名、不可变归档、分发与生产授权继续保持 `HOLD` 或 `BLOCKED`。
+
+最新已验证 source gate 见 [`v4.0.0-v4.1.4`](./docs/release-evidence/v4.0.0-v4.1.4-evidence-operations-source-gate-2026-09-04.md)：164/164 测试、全部 11 个变更 TypeScript 分区、86/86 CI 路由、完整 smoke、53 页生产构建、架构/持久化检查和已归档的零漏洞安全预检均通过；最新在线审计重跑因 npm registry 超时而正确 fail-closed，并非检出漏洞。源码为 15/15，本地真实证据为 3/15，候选回执为 0，外部签收为 0/15；分发继续 `HOLD`，生产继续 `BLOCKED`。
 
 当前回执与异常生命周期计划见 [`v3.6.0-v3.7.4`](./docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md)：仓库已实现带鉴权的 append-only 回执事件、隔离、补偿、升级确认、限时豁免到期和确定性决策包。源码投影为 6 个通过、7 个需关注、2 个仅外部可满足；本轮未提交真实 owner 回执，外部证据仍为 `0/15`，分发保持 `HOLD`，生产保持 `BLOCKED`。
 

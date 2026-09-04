@@ -21,7 +21,22 @@ all seven real owner receipts, detached signatures, immutable archive records,
 and all 15 external assurance records remain outside local authority. See
 [`v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md`](./v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md).
 
-## Latest approved product plan
+## Latest approved evidence-operations plan
+
+`v4.0.0-v4.1.4` is a 15-version **source-complete, evidence-needed** train. It
+turns the real-workload gaps left by v3.8-v3.9 into strict candidate receipt
+operations for provider accounts, quality cohorts, live Agent behavior,
+sandboxing, multimodal execution, model/runtime lifecycle, managed RAG,
+federated training, team assets, and final promotion. Source completion does not
+change public release truth. Real workload receipts, independent signatures,
+immutable archive read-back, distribution, and production authorization remain
+open. See
+[`docs/v4.0.0-v4.1.4-evidence-operations-plan-2026-09-03.md`](./v4.0.0-v4.1.4-evidence-operations-plan-2026-09-03.md).
+The validated source projection is `15/15` source pass, `3/15` local pass,
+`0` candidate receipts, and `0/15` external verification. See the
+[`source gate`](./release-evidence/v4.0.0-v4.1.4-evidence-operations-source-gate-2026-09-04.md).
+
+## Previous approved product plan
 
 `v3.8.0-v3.9.4` is a 15-version **source-complete, evidence-needed** competitive
 product train derived from the 2026-08-31 official-source review and implemented

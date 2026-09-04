@@ -76,6 +76,7 @@ It is not another chat shell. It is built for people who need to compare behavio
 | `v3.7.0-v3.7.4` Operational Exception Governance | Adds SLA breach detection, acknowledgement events, protected-scope waiver expiry, decision packages, and independent exception closure. |
 | `v3.8.0-v3.8.9` Competitive Model and Agent Product Train | **Source-complete / evidence-needed:** official-source registry, account capability discovery, explainable routing, Agent conformance/state/cache, isolated teams, sandboxing, multimodal evaluator gating, Model Hub operations v3, and Local Server diagnostics v3. |
 | `v3.9.0-v3.9.4` RAG, Training, Team, and Freshness Train | **Source-complete / evidence-needed:** governed connector/index lifecycle, paired RAG quality/feedback, MLX/LLaMA-Factory/SWIFT backend federation, governed marketplace policy, and a <=14-day competitive promotion gate. |
+| `v4.0.0-v4.1.4` Evidence Operations Train | **Source-complete / evidence-needed:** strict observed receipts for provider/workload routing, live Agent and sandbox behavior, licensed multimodal evaluation, model/runtime transfer, managed RAG, federated training, team assets, and a fail-closed aggregate promotion gate. |
 
 Current source version: [`v1.5.1`](./VERSION), with source status `COMPLETE` and local acceptance `PASS`. The machine-readable [`release-state.json`](./release-state.json) deliberately separates the active source milestone from the latest public GitHub release (`v0.4.0`) and the latest desktop candidate (`v1.1.0-rc.2`).
 
@@ -108,6 +109,10 @@ Previous validated source gate: [`v3.6.0-v3.7.4`](./docs/release-evidence/v3.6.0
 Current competitive product plan: [`v3.8.0-v3.9.4`](./docs/v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md) implements all 15 repository-owned contracts and exposes their source/local/external/production truth in `/experiments`. Real provider accounts, workload scorecards, runtime/model transfers, OS sandbox receipts, licensed multimodal assets, managed RAG, non-MLX training workers, multi-user identity and independent acceptance remain explicit evidence gates; distribution remains `HOLD` and production remains `BLOCKED`.
 
 Current validated source gate: [`v3.8.0-v3.9.4`](./docs/release-evidence/v3.8.0-v3.9.4-competitive-product-source-gate-2026-09-02.md) records 156/156 tests, all 11 changed TypeScript partitions, 85/85 CI routes, full smoke, production build, architecture/durable-state checks, and security preflight. Source is `15/15` pass; local evidence is `12/15` pass with routing-quality, licensed multimodal, and real Hub-transfer evidence deliberately held.
+
+Current evidence-operations plan: [`v4.0.0-v4.1.4`](./docs/v4.0.0-v4.1.4-evidence-operations-plan-2026-09-03.md) adds a strict, durable candidate receipt contract and 15 visible source/local/external/production gates in `/experiments`. Candidate receipts can close only local evidence; independent signatures, immutable archive read-back, distribution approval, and production authority remain `HOLD` or `BLOCKED`.
+
+Latest validated source gate: [`v4.0.0-v4.1.4`](./docs/release-evidence/v4.0.0-v4.1.4-evidence-operations-source-gate-2026-09-04.md) records 164/164 tests, all 11 changed TypeScript partitions, 86/86 CI routes, full smoke, a 53-page production build, architecture/durable-state checks, and an archived repaired zero-vulnerability security preflight. The latest online-audit rerun failed closed on an npm registry timeout, not a detected vulnerability. Source is `15/15` pass; observed local evidence is `3/15` pass, candidate receipts are `0`, external verification is `0/15`, distribution remains `HOLD`, and production remains `BLOCKED`.
 
 Internal post-release evidence has advanced through the [`v1.6.6 benchmark decision-intelligence checkpoint`](./docs/release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md): all 500 stored results are classified (160 correct and 340 mathematical mismatches, with 100% answer extraction), confidence-aware risk highlights Intermediate Algebra, Precalculus, and Level 5, and the conservative 500-sample detectable effect is 8.27 percentage points. Only one distinct complete run exists, so candidate promotion remains `EVIDENCE NEEDED`. This does not change the active source version or claim hosted leaderboard parity, independent-host reproduction, multimodal execution, distribution, or production promotion.
 
@@ -445,6 +450,7 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v3.7.0-v3.7.4` 运营异常治理 | 增加 SLA 超时检测、确认事件、受保护 scope 的豁免到期、决策包与独立异常闭环。 |
 | `v3.8.0-v3.8.9` 竞品模型与 Agent 产品列车 | **源码完成 / 待真实证据：** 官方来源注册表、账号能力探测、可解释路由、Agent conformance/state/cache、隔离式团队、沙箱、多模态 evaluator gate、Model Hub v3 和 Local Server v3。 |
 | `v3.9.0-v3.9.4` RAG、训练、团队与 freshness 列车 | **源码完成 / 待真实证据：** connector/index 生命周期、成对 RAG 质量反馈、MLX/LLaMA-Factory/SWIFT 后端联邦、受治理 marketplace 和不超过 14 天的竞品 promotion gate。 |
+| `v4.0.0-v4.1.4` 证据运营列车 | **源码完成 / 待真实证据：** 为 Provider/路由、真实 Agent 与沙箱、多模态授权评测、模型/runtime 迁移、托管 RAG、联邦训练和团队资产建立严格观测回执，并以 fail-closed 总门禁收口。 |
 
 当前源码版本：[`v1.5.1`](./VERSION)，源码状态为 `COMPLETE`、本地验收为 `PASS`。机器可读的 [`release-state.json`](./release-state.json) 明确区分当前源码里程碑、最近公开 GitHub Release（`v0.4.0`）与最近桌面候选包（`v1.1.0-rc.2`）。
 
@@ -475,6 +481,10 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 当前竞品产品计划：[`v3.8.0-v3.9.4`](./docs/v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md) 已实现 15 个仓库自有契约，并在 `/experiments` 分开显示 source/local/external/production 状态。真实 Provider 账号、workload scorecard、模型传输与 runtime、OS 沙箱、多模态授权数据、托管 RAG、非 MLX 训练 worker、多用户身份和独立签收仍是明确门槛；分发保持 `HOLD`，生产保持 `BLOCKED`。
 
 当前已验证 source gate：[`v3.8.0-v3.9.4`](./docs/release-evidence/v3.8.0-v3.9.4-competitive-product-source-gate-2026-09-02.md) 记录 156/156 测试、全部 11 个变更 TypeScript 分区、85/85 CI 路由、完整 smoke、生产构建、架构/持久化检查和安全预检。源码为 `15/15` 通过；本地证据为 `12/15` 通过，路由质量样本、多模态授权执行和真实 Hub 传输证据继续保持 HOLD。
+
+当前证据运营计划：[`v4.0.0-v4.1.4`](./docs/v4.0.0-v4.1.4-evidence-operations-plan-2026-09-03.md) 新增严格、可持久化的候选回执合同，并在 `/experiments` 分开显示 15 项 source/local/external/production 门禁。候选回执只能闭环本地证据；独立签名、不可变归档回读、分发批准与生产授权继续保持 `HOLD` 或 `BLOCKED`。
+
+最新已验证 source gate：[`v4.0.0-v4.1.4`](./docs/release-evidence/v4.0.0-v4.1.4-evidence-operations-source-gate-2026-09-04.md) 记录 164/164 测试、全部 11 个变更 TypeScript 分区、86/86 CI 路由、完整 smoke、53 页生产构建、架构/持久化检查和已归档的修复后零漏洞安全预检；最新在线审计重跑因 npm registry 超时而正确 fail-closed，并非检出漏洞。源码为 `15/15` 通过；真实本地证据为 `3/15`，候选回执为 `0`，外部签收为 `0/15`，分发继续 `HOLD`，生产继续 `BLOCKED`。
 
 内部后续证据已推进到 [`v1.6.6 Benchmark 决策智能检查点`](./docs/release-evidence/v1.6.6-benchmark-decision-intelligence-2026-08-13.md)：500 条结果全部完成分类（160 正确、340 条数学不等价，答案提取覆盖 100%），置信区间规则标出 Intermediate Algebra、Precalculus 与 Level 5 风险，500 样本下的保守可检测变化约为 8.27 个百分点。当前只有一个不同 run id 的完整运行，因此候选晋级继续为 `EVIDENCE NEEDED`。该检查点不改变当前源码版本，也不宣称托管榜单等价、独立主机复现、多模态全量执行、分发或生产晋级。
 

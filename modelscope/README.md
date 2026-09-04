@@ -55,6 +55,7 @@ This desktop-onboarding release candidate packages the current Studio as an Appl
 | `v3.7.0-v3.7.4` | SLA breach detection, acknowledgement events, bounded waiver expiry, decision packages, and independent exception closure. |
 | `v3.8.0-v3.8.9` | **Source-complete / evidence-needed:** official-source registry, provider discovery/routing, Agent conformance/cache, isolated teams, sandboxing, multimodal admission, Model Hub v3, and Local Server v3. |
 | `v3.9.0-v3.9.4` | **Source-complete / evidence-needed:** governed RAG lifecycle/quality, MLX/LLaMA-Factory/SWIFT federation, governed marketplace policy, and a <=14-day competitive promotion gate. |
+| `v4.0.0-v4.1.4` | **Source-complete / evidence-needed:** strict observed receipts for provider/workload routing, live Agent/sandbox behavior, licensed multimodal evaluation, model/runtime transfer, managed RAG, federated training, team assets, and aggregate promotion. |
 
 Evidence: [`v2.4.0-v2.5.4 operational lifecycle source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) records 8 passing, 5 attention, and 2 external-only local signals; externally verified records remain `0/15`.
 
@@ -83,6 +84,10 @@ Current plan: [`v3.6.0-v3.7.4 owner receipt and exception lifecycle`](../docs/v3
 Current competitive product plan: [`v3.8.0-v3.9.4`](../docs/v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md) implements all 15 repository-owned contracts while retaining real provider, runtime, multimodal, managed RAG/training, organization, distribution, and production evidence as separate `HOLD` gates.
 
 Current validated source gate: [`v3.8.0-v3.9.4`](../docs/release-evidence/v3.8.0-v3.9.4-competitive-product-source-gate-2026-09-02.md) records 156/156 tests, all 11 changed TypeScript partitions, 85/85 CI routes, full smoke, production build, architecture/durable-state checks, and security preflight. Source is `15/15` pass; local evidence is `12/15` pass with routing-quality, licensed multimodal, and real Hub-transfer evidence held.
+
+Current evidence-operations plan: [`v4.0.0-v4.1.4`](../docs/v4.0.0-v4.1.4-evidence-operations-plan-2026-09-03.md) exposes 15 source/local/external/production gates and strict durable candidate intake. Candidate receipts can close local evidence only; independent signatures, immutable archive read-back, distribution, and production authority remain fail-closed.
+
+Latest validated source gate: [`v4.0.0-v4.1.4`](../docs/release-evidence/v4.0.0-v4.1.4-evidence-operations-source-gate-2026-09-04.md) records 164/164 tests, all 11 changed TypeScript partitions, 86/86 CI routes, full smoke, a 53-page production build, architecture/durable-state checks, and an archived zero-vulnerability security preflight. The latest online-audit rerun failed closed on an npm registry timeout, not a detected vulnerability. Source is `15/15`; observed local evidence is `3/15`, candidates are `0`, external verification is `0/15`, distribution remains `HOLD`, and production remains `BLOCKED`.
 
 ## Competitive Position
 
@@ -216,6 +221,7 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 | `v3.7.0-v3.7.4` | 运营异常治理：SLA 超时检测、确认事件、限时豁免到期、决策包与独立异常闭环。 |
 | `v3.8.0-v3.8.9` | **源码完成 / 待真实证据：** 官方来源注册表、Provider 能力探测/路由、Agent conformance/cache、隔离团队、沙箱、多模态准入、Model Hub v3 与 Local Server v3。 |
 | `v3.9.0-v3.9.4` | **源码完成 / 待真实证据：** RAG 生命周期/质量、MLX/LLaMA-Factory/SWIFT 后端联邦、受治理 marketplace 与不超过 14 天的竞品 promotion gate。 |
+| `v4.0.0-v4.1.4` | **源码完成 / 待真实证据：** 为 Provider/路由、真实 Agent/沙箱、多模态授权评测、模型/runtime 迁移、托管 RAG、联邦训练与团队资产建立严格观测回执和总晋级门禁。 |
 
 证据：[`v2.4.0-v2.5.4 运行与部署生命周期 source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) 记录了 8 个通过、5 个需关注和 2 个仅外部可满足的本地信号；独立外部签收仍为 `0/15`。
 
@@ -244,6 +250,10 @@ Source gate：[`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-
 当前竞品产品计划：[`v3.8.0-v3.9.4`](../docs/v3.8.0-v3.9.4-competitive-product-plan-2026-09-02.md) 已实现全部 15 个仓库自有契约；真实 Provider、runtime、多模态、托管 RAG/训练、组织、分发与生产证据继续作为独立 `HOLD` 门槛。
 
 当前已验证 source gate：[`v3.8.0-v3.9.4`](../docs/release-evidence/v3.8.0-v3.9.4-competitive-product-source-gate-2026-09-02.md) 记录 156/156 测试、全部 11 个变更 TypeScript 分区、85/85 CI 路由、完整 smoke、生产构建、架构/持久化检查和安全预检。源码 15/15 通过，本地证据 12/15 通过；路由质量、多模态授权执行和真实 Hub 传输证据继续 HOLD。
+
+当前证据运营计划：[`v4.0.0-v4.1.4`](../docs/v4.0.0-v4.1.4-evidence-operations-plan-2026-09-03.md) 在 `/experiments` 分开呈现 15 项 source/local/external/production 门禁，并提供严格、可持久化的候选回执接收。候选只能闭环本地证据；独立签名、不可变归档、分发与生产授权继续 fail closed。
+
+最新已验证 source gate：[`v4.0.0-v4.1.4`](../docs/release-evidence/v4.0.0-v4.1.4-evidence-operations-source-gate-2026-09-04.md) 记录 164/164 测试、全部 11 个变更 TypeScript 分区、86/86 CI 路由、完整 smoke、53 页生产构建、架构/持久化检查与已归档的零漏洞安全预检；最新在线审计重跑因 npm registry 超时而正确 fail-closed，并非检出漏洞。源码为 15/15，本地真实证据为 3/15，候选为 0，外部签收为 0/15；分发继续 `HOLD`，生产继续 `BLOCKED`。
 
 ## 竞品定位对比
 

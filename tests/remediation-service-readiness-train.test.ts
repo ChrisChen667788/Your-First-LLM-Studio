@@ -243,19 +243,22 @@ test("missing v3.0 predecessor and local attention remain visible", () => {
 });
 
 test("release train exposes all fifteen v3.0-v3.1 milestones", () => {
-  const versions = RELEASE_TRAIN_MILESTONES.slice(-75, -60).map((entry) => entry.version);
+  const milestones = RELEASE_TRAIN_MILESTONES.filter((entry) =>
+    /^v3\.(?:0|1)\./u.test(entry.version),
+  );
+  const versions = milestones.map((entry) => entry.version);
   assert.deepEqual(versions, [
     "v3.0.0", "v3.0.1", "v3.0.2", "v3.0.3", "v3.0.4",
     "v3.0.5", "v3.0.6", "v3.0.7", "v3.0.8", "v3.0.9",
     "v3.1.0", "v3.1.1", "v3.1.2", "v3.1.3", "v3.1.4",
   ]);
-  assert.equal(RELEASE_TRAIN_MILESTONES.length, 200);
+  assert.equal(RELEASE_TRAIN_MILESTONES.length, 215);
   assert.equal(
     RELEASE_TRAIN_DEVELOPMENT_VERSION,
-    "v1.7.0-v3.9.4 source",
+    "v1.7.0-v4.1.4 source",
   );
   assert.ok(
-    RELEASE_TRAIN_MILESTONES.slice(-75, -60).every(
+    milestones.every(
       (entry) => entry.status === "evidence-needed",
     ),
   );

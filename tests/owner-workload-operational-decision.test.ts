@@ -230,13 +230,16 @@ test("v3.5 verifies decision governance while preserving independent final autho
 });
 
 test("release train exposes all fifteen v3.4-v3.5 milestones", () => {
-  const versions = RELEASE_TRAIN_MILESTONES.slice(-45, -30).map((entry) => entry.version);
+  const milestones = RELEASE_TRAIN_MILESTONES.filter((entry) =>
+    /^v3\.(?:4|5)\./u.test(entry.version),
+  );
+  const versions = milestones.map((entry) => entry.version);
   assert.deepEqual(versions, [
     "v3.4.0", "v3.4.1", "v3.4.2", "v3.4.3", "v3.4.4",
     "v3.4.5", "v3.4.6", "v3.4.7", "v3.4.8", "v3.4.9",
     "v3.5.0", "v3.5.1", "v3.5.2", "v3.5.3", "v3.5.4",
   ]);
-  assert.equal(RELEASE_TRAIN_MILESTONES.length, 200);
-  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v3.9.4 source");
-  assert.ok(RELEASE_TRAIN_MILESTONES.slice(-45, -30).every((entry) => entry.status === "evidence-needed"));
+  assert.equal(RELEASE_TRAIN_MILESTONES.length, 215);
+  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v4.1.4 source");
+  assert.ok(milestones.every((entry) => entry.status === "evidence-needed"));
 });
