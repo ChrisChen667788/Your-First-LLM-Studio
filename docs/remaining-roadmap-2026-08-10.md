@@ -11,6 +11,19 @@ Date: 2026-08-10
 - Production: `BLOCKED`.
 - Repository-owned acceptance through `v1.5.1` is locally complete. Internal evidence documents also describe later implementation slices through `v1.6.6`; neither local completion nor later internal slices are equivalent to a public or production promotion.
 
+## Latest approved evidence-collection plan
+
+`v4.2.0-v4.3.4` is a 15-version **in-development** train. It
+adds the durable queue, idempotency, lease/fencing, feature-owned collector
+registry, strict submission, four-eyes review, retry/cancel controls, and
+promotion bundle needed to execute the v4.0-v4.1 evidence backlog. The source
+gate is `7/15`; deterministic local control evidence is `4/15`. Provider catalog
+and routing quality/shadow execution are connected to fresh account probes. Eight other domain executors
+remain source TODOs, not merely missing credentials. All real workload review
+and independent acceptance gates remain fail-closed. See
+[`docs/v4.2.0-v4.3.4-evidence-collection-plan-2026-09-05.md`](./v4.2.0-v4.3.4-evidence-collection-plan-2026-09-05.md)
+and the [`source gate`](./release-evidence/v4.2.0-v4.3.4-evidence-collection-source-gate-2026-09-05.md).
+
 ## Previous approved source train
 
 `v3.6.0-v3.7.4` adds authenticated, revision-protected candidate receipt
@@ -65,6 +78,8 @@ gates. See [`docs/competitive-landscape.md`](./competitive-landscape.md) and
 | `v1.6.4` Official evaluators | Pinned Math-Verify 0.9.0, durable per-sample resume, and a real local Qwen3 0.6B run pass 15/15 acceptance with 500/500 scored, 160 correct, zero runtime failures, and 32.00% local accuracy. MMMU, MathVista, MMBench, and Video-MME v2 protocol adapters are pinned and fixture-tested. Remaining: independent-worker repetition, complete official multimodal assets and compatible runtimes, MathVista judge extraction, MMBench external submission, licensed Video-MME v2 execution, paid native MiniMax M3 quality evidence, and external leaderboard reproduction. |
 | `v1.6.5` Benchmark reproducibility | The complete run is bound to dataset/evaluator/run digests, seven subject and five difficulty scorecards, Wilson 95% confidence, latency/token/checkpoint/failure accounting, and a same-host isolated scorer replay with 500/500 decisions matching. Multimodal execution requirements are explicit. Remaining: independently managed worker/host repetition, official image/video assets, compatible paid/native execution, calibrated MathVista judge, MMBench submission receipt, licensed Video-MME v2 run, and external leaderboard reproduction. |
 | `v1.6.6` Benchmark decision intelligence | The real 500-item run has complete error taxonomy, confidence-aware cohort risk, bounded review items, latency/token outliers, conservative power targets, and a fail-closed paired candidate policy using exact McNemar, paired delta confidence, non-inferiority, and latency limits. Remaining: a second distinct full candidate run, planned repetitions sufficient for 3pp/5pp effects, independently managed worker execution, approved promotion owner, and every external evaluator/production receipt carried from v1.6.5. |
+| `v4.0.0-v4.1.4` Evidence operations | Strict candidate intake and fourteen domain evidence gates are source-complete. Remaining: twelve held local operations, independently signed immutable receipts, distribution approval, and production authority. |
+| `v4.2.0-v4.3.4` Evidence collection control | Seven source milestones implemented: queue, idempotency, lease/fencing, plan registry, Provider catalog executor, routing quality/shadow executor, review/export. Remaining: implement v4.2.6-v4.3.3 executors, artifact read-back and metric-specific gate policies; authenticate distinct reviewer principals; collect reviewed receipts and independent acceptance. |
 
 ## Cross-cutting product work
 

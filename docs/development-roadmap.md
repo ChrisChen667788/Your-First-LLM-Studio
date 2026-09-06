@@ -1,5 +1,24 @@
 # Agent Lab Development Roadmap
 
+## v4.2-v4.3 evidence collection control checkpoint
+
+The 15 milestones from `v4.2.0` through `v4.3.4` are in development: seven source
+milestones are implemented and eight domain executors remain planned. They turn
+the prior observed-receipt requirements into strict,
+durable collection jobs with idempotent enqueue, optimistic revisions, bounded
+leases, heartbeat recovery, stale-worker fencing, retry/cancel policy, feature-
+owned collector plans, executable Provider catalog discovery, strict submission,
+distinct-ID review, and a
+digest-bound promotion bundle. All fourteen v4.0-v4.1 domain milestones are
+covered exactly once by plans, not by executable collectors. Current source
+implementation is `7/15`; deterministic local control evidence is `4/15`.
+Next: implement v4.2.6-v4.3.3 in
+the existing ownership order. Independent reviewer authentication, artifact
+read-back, domain metric policies and external acceptance remain separate work.
+See the
+[`plan`](./v4.2.0-v4.3.4-evidence-collection-plan-2026-09-05.md) and
+[`source gate`](./release-evidence/v4.2.0-v4.3.4-evidence-collection-source-gate-2026-09-05.md).
+
 ## v4.0-v4.1 evidence operations checkpoint
 
 The 15 milestones from `v4.0.0` through `v4.1.4` are source-complete and

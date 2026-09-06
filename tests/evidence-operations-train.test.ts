@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   OPERATIONAL_EVIDENCE_RECEIPT_SCHEMA_VERSION,
   validateOperationalEvidenceReceipt,
+  operationalReadModelDigest,
 } from "@/features/evidence/operational-receipts";
 import {
   readEvidenceOperationSpecs,
@@ -12,6 +13,13 @@ import {
 
 const now = new Date("2026-09-03T04:00:00.000Z");
 const digest = "a".repeat(64);
+
+test("state fingerprint ignores only the read envelope, not artifact content or event time", () => {
+  const base = { generatedAt: "read-one", evidenceDigest: "volatile-one", artifacts: [{ digest, completedAt: "event-one" }], summary: "unchanged" };
+  assert.equal(operationalReadModelDigest(base), operationalReadModelDigest({ ...base, generatedAt: "read-two", evidenceDigest: "volatile-two" }));
+  assert.notEqual(operationalReadModelDigest(base), operationalReadModelDigest({ ...base, artifacts: [{ digest: "b".repeat(64), completedAt: "event-one" }] }));
+  assert.notEqual(operationalReadModelDigest(base), operationalReadModelDigest({ ...base, artifacts: [{ digest, completedAt: "event-two" }] }));
+});
 
 function validReceipt(version: string, metrics: Record<string, number>) {
   return {
@@ -119,4 +127,10 @@ test("aggregate promotion cannot pass before all domain operations pass", () => 
   const promotion = evidence.versions.find((version) => version.version === "v4.1.4");
   assert.ok(promotion);
   if (evidence.totals.localPassed < 15) assert.equal(promotion.localStatus, "hold");
+});
+
+test("aggregate state digest is stable when material evidence state is unchanged", () => {
+  const first = readEvidenceOperationsTrainEvidence();
+  const second = readEvidenceOperationsTrainEvidence();
+  assert.equal(first.stateDigest, second.stateDigest);
 });

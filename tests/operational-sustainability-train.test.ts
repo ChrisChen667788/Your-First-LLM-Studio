@@ -146,7 +146,7 @@ test("release train exposes all fifteen v2.8-v2.9 evidence milestones", () => {
   assert.deepEqual(versions, [
     "v2.8.0", "v2.8.1", "v2.8.2", "v2.8.3", "v2.8.4", "v2.8.5", "v2.8.6", "v2.8.7", "v2.8.8", "v2.8.9", "v2.9.0", "v2.9.1", "v2.9.2", "v2.9.3", "v2.9.4",
   ]);
-  assert.equal(RELEASE_TRAIN_MILESTONES.length, 215);
-  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v4.1.4 source");
+  assert.equal(RELEASE_TRAIN_MILESTONES.length, 230);
+  assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v4.3.4 source");
   assert.ok(milestones.every((entry) => entry.status === "evidence-needed"));
 });

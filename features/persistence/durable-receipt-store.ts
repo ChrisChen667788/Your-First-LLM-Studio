@@ -31,12 +31,13 @@ export function prependDurableReceipt<T>(
   schemaVersion: string,
   receipt: T,
   limit: number,
+  equivalent?: (existing: T) => boolean,
 ) {
   const { initial, validate } = options<T>(schemaVersion);
   return updateJsonFileDurably(
     filePath,
     initial,
-    (store) => ({
+    (store) => equivalent && store.receipts.some(equivalent) ? store : ({
       ...store,
       receipts: [receipt, ...store.receipts].slice(0, limit),
     }),

@@ -1,6 +1,6 @@
 import { readMultimodalCapabilityRegistry } from "@/features/benchmark/multimodal-capability-registry";
 import type { EvidenceOperationMilestoneSpec } from "@/features/evidence/operational-receipts";
-import { operationalEvidenceDigest } from "@/features/evidence/operational-receipts";
+import { operationalReadModelDigest } from "@/features/evidence/operational-receipts";
 
 export function readMultimodalEvidenceOperationSpecs(): EvidenceOperationMilestoneSpec[] {
   const registry = readMultimodalCapabilityRegistry();
@@ -18,7 +18,7 @@ export function readMultimodalEvidenceOperationSpecs(): EvidenceOperationMilesto
     currentSignal: {
       status: "hold",
       summary: `${registry.conformance.passed}/${registry.conformance.total} evaluator adapter checks pass with ${eligible} eligible target binding(s); licensed task execution is absent.`,
-      evidenceDigest: registry.registryDigest,
+      evidenceDigest: operationalReadModelDigest(registry, "registryDigest"),
     },
     localGate: "Bind licensed assets, native media transport, model capability, evaluator revision, skip reasons, and sample outputs.",
     externalGate: "Dataset licensing, official submission, and independent score reproduction remain external.",

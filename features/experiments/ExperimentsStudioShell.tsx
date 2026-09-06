@@ -51,6 +51,7 @@ import { OperationalSustainabilityPanel } from "@/features/experiments/Operation
 import { OperationalClosurePanel } from "@/features/experiments/OperationalClosurePanel";
 import { CompetitiveProductTrainPanel } from "@/features/experiments/CompetitiveProductTrainPanel";
 import { EvidenceOperationsTrainPanel } from "@/features/experiments/EvidenceOperationsTrainPanel";
+import { EvidenceCollectionTrainPanel } from "@/features/experiments/EvidenceCollectionTrainPanel";
 
 export function ExperimentsStudioShell() {
   const { locale } = useLocale();
@@ -96,6 +97,7 @@ export function ExperimentsStudioShell() {
       <OperationalClosurePanel locale={locale} />
       <CompetitiveProductTrainPanel locale={locale} />
       <EvidenceOperationsTrainPanel locale={locale} />
+      <EvidenceCollectionTrainPanel locale={locale} />
       <ArtifactFederationTrustPanel locale={locale} />
       <PostV1PromotionGatePanel locale={locale} />
       <PromotionGatePanel locale={locale} />

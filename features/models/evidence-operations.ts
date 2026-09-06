@@ -1,4 +1,5 @@
 import type { EvidenceOperationMilestoneSpec } from "@/features/evidence/operational-receipts";
+import { operationalReadModelDigest } from "@/features/evidence/operational-receipts";
 import { readLocalServerDiagnosticsV3 } from "@/features/models/local-server-diagnostics-v3";
 import { readModelHubOperationsV3 } from "@/features/models/model-hub-operations-v3";
 
@@ -16,7 +17,7 @@ export function readModelEvidenceOperationSpecs(): EvidenceOperationMilestoneSpe
       currentSignal: {
         status: modelHub.localStatus,
         summary: `${modelHub.totals.evidencedActions}/${modelHub.totals.actions} lifecycle action(s) have current local evidence.`,
-        evidenceDigest: modelHub.evidenceDigest,
+        evidenceDigest: operationalReadModelDigest(modelHub),
       },
       localGate: "Complete an authenticated multi-file transfer, interrupted resume, checksum read-back, migration, and runtime activation.",
       externalGate: "Hub ownership, malware/license review, and organization mirror acceptance remain external.",
@@ -31,7 +32,7 @@ export function readModelEvidenceOperationSpecs(): EvidenceOperationMilestoneSpe
       currentSignal: {
         status: server.localStatus,
         summary: `${server.instances.length} server instance(s), ${server.totals.requests} request ledger row(s); load and drain remain evidence-gated.`,
-        evidenceDigest: server.evidenceDigest,
+        evidenceDigest: operationalReadModelDigest(server),
       },
       localGate: "Run bounded concurrency, cancellation, drain-aware hot switch, rollback, idle unload, and API conformance.",
       externalGate: "Independent load generation, LAN security review, and SLO acceptance remain external.",

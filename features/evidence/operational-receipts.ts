@@ -78,6 +78,7 @@ export type StoredOperationalEvidenceCandidate = {
   receipt: Required<Omit<OperationalEvidenceReceipt, "predecessorDigest">> & {
     predecessorDigest?: string;
   };
+  receiptDigest?: string;
   evidenceDigest: string;
 };
 
@@ -95,6 +96,12 @@ function stableJson(value: unknown): string {
 
 export function operationalEvidenceDigest(value: unknown) {
   return createHash("sha256").update(stableJson(value)).digest("hex");
+}
+
+export function operationalReadModelDigest(value: Record<string, unknown>, envelopeDigestKey = "evidenceDigest") {
+  // Remove only the live read envelope. Nested artifact digests and event times remain binding.
+  return operationalEvidenceDigest(Object.fromEntries(Object.entries(value)
+    .filter(([key]) => key !== "generatedAt" && key !== envelopeDigestKey)));
 }
 
 function isDigest(value: unknown) {
@@ -201,17 +208,23 @@ export function recordOperationalEvidenceCandidate(input: {
     throw new Error(validation.blockers.join(" "));
   }
   const normalized = input.receipt as StoredOperationalEvidenceCandidate["receipt"];
+  const receiptDigest = operationalEvidenceDigest(normalized);
   const withoutDigest = {
     id: `operational-evidence-${randomUUID()}`,
     receivedAt: (input.now || new Date()).toISOString(),
     receipt: normalized,
+    receiptDigest,
   };
   const candidate: StoredOperationalEvidenceCandidate = {
     ...withoutDigest,
     evidenceDigest: operationalEvidenceDigest(withoutDigest),
   };
-  prependDurableReceipt(STORE_PATH, STORE_SCHEMA_VERSION, candidate, 200);
-  return { candidate, validation };
+  const equivalent = (entry: StoredOperationalEvidenceCandidate) =>
+    (entry.receiptDigest || operationalEvidenceDigest(entry.receipt)) === receiptDigest;
+  // Dedupe under the same file lock as the write, including cross-process retries.
+  const store = prependDurableReceipt(STORE_PATH, STORE_SCHEMA_VERSION, candidate, 200, equivalent);
+  const stored = store.receipts.find(equivalent)!;
+  return { candidate: stored, validation, deduplicated: stored.id !== candidate.id };
 }
 
 export function operationalEvidenceCandidatePath() {

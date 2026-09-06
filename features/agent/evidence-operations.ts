@@ -2,7 +2,7 @@ import { readAgentHarnessConformance } from "@/features/agent/harness-conformanc
 import { readInteractionCacheEvidence } from "@/features/agent/interaction-cache";
 import { readIsolatedAgentTeamEvidence } from "@/features/agent/isolated-team-service";
 import type { EvidenceOperationMilestoneSpec } from "@/features/evidence/operational-receipts";
-import { operationalEvidenceDigest } from "@/features/evidence/operational-receipts";
+import { operationalReadModelDigest } from "@/features/evidence/operational-receipts";
 import { readSecureSandboxFabricEvidence } from "@/features/extensions/secure-sandbox-fabric";
 
 export function readAgentEvidenceOperationSpecs(): EvidenceOperationMilestoneSpec[] {
@@ -21,7 +21,7 @@ export function readAgentEvidenceOperationSpecs(): EvidenceOperationMilestoneSpe
       currentSignal: {
         status: "hold",
         summary: `${harness.totals.passed}/${harness.totals.scenarios} deterministic scenarios pass; live provider/runtime coverage is not yet evidenced.`,
-        evidenceDigest: operationalEvidenceDigest(harness),
+        evidenceDigest: operationalReadModelDigest(harness),
       },
       localGate: "Run protected tools, resume, cancellation, usage, and reconnect scenarios on every eligible target.",
       externalGate: "Independent worker and provider-side request receipts remain required.",
@@ -36,7 +36,7 @@ export function readAgentEvidenceOperationSpecs(): EvidenceOperationMilestoneSpe
       currentSignal: {
         status: "hold",
         summary: `${cache.attribution.hits} cache hit(s) and ${cache.attribution.misses} miss(es); provider billing reconciliation is absent.`,
-        evidenceDigest: operationalEvidenceDigest(cache),
+        evidenceDigest: operationalReadModelDigest(cache),
       },
       localGate: "Join request-chain cache observations to provider-native cached-token and billing records.",
       externalGate: "Provider invoices remain the financial system of record.",
@@ -51,7 +51,7 @@ export function readAgentEvidenceOperationSpecs(): EvidenceOperationMilestoneSpe
       currentSignal: {
         status: "hold",
         summary: `${teams.agents.length} reference agent(s); isolated worker execution and controlled merge receipts are missing.`,
-        evidenceDigest: operationalEvidenceDigest(teams),
+        evidenceDigest: operationalReadModelDigest(teams),
       },
       localGate: "Run separate workers with bounded leases, file claims, crash recovery, conflict detection, and reviewed merge.",
       externalGate: "Independent worker-host identity and repository-owner approval remain external.",
@@ -66,7 +66,7 @@ export function readAgentEvidenceOperationSpecs(): EvidenceOperationMilestoneSpe
       currentSignal: {
         status: sandbox.localStatus,
         summary: `Preferred isolation ${sandbox.capabilities.preferredIsolation}; source policy and local evidence remain separately visible.`,
-        evidenceDigest: operationalEvidenceDigest(sandbox),
+        evidenceDigest: operationalReadModelDigest(sandbox),
       },
       localGate: "Retain per-execution filesystem, network, secret, resource, artifact, and teardown receipts.",
       externalGate: "Linux, Windows, hosted sandbox, and independent penetration evidence remain external.",

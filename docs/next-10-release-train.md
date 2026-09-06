@@ -1,5 +1,26 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-09-05 v4.2.0-v4.3.4 evidence collection control train
+
+The next 15 versions are in development (seven source milestones implemented).
+Four control
+milestones add strict collection jobs, an atomic idempotent queue, bounded
+lease/heartbeat/fencing, and a complete feature-owned collector registry. Ten
+domain plans cover all fourteen v4.0.0-v4.1.3 evidence operations exactly once:
+Provider catalogs and routing, Agent harness/workers/cache billing, licensed
+multimodal evaluation, model transfer/runtime, managed RAG, federated training,
+and sandbox/team assets. The Provider catalog and routing quality/shadow
+executors are wired; the other eight domain execution plans still need
+implementation, not just credentials.
+The final v4.3.4 bundle requires distinct-ID
+review and cannot bypass the upstream evidence-operations gate. See the
+[`implementation plan`](./v4.2.0-v4.3.4-evidence-collection-plan-2026-09-05.md)
+and [`source gate`](./release-evidence/v4.2.0-v4.3.4-evidence-collection-source-gate-2026-09-05.md).
+
+Validated state is `7/15` source, `4/15` local control passes, zero jobs, zero
+accepted receipts, and zero external verification. Distribution remains `HOLD`
+and production remains `BLOCKED`.
+
 ## 2026-09-03 v4.0.0-v4.1.4 evidence operations train
 
 The next 15 versions are now source-complete and evidence-needed. They convert

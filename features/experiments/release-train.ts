@@ -5,7 +5,7 @@ import type {
 
 export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.5.1" as const;
 export const RELEASE_TRAIN_DEVELOPMENT_VERSION =
-  "v1.7.0-v4.1.4 source" as const;
+  "v1.7.0-v4.3.4 source" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -2569,6 +2569,111 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     scope: ["Strict candidate receipt intake", "Current local evidence", "External verification boundary", "Fail-closed release decision"],
     acceptance: ["All 14 domain operations require current evidence before local pass.", "Aggregate self-attestation cannot promote an incomplete domain or production status."],
     evidence: ["Evidence operations train receipt", "Independent acceptance backlog"], nextSlice: "Collect authorized real receipts and preserve production BLOCKED until independent authorities approve them.",
+  },
+  {
+    version: "v4.2.0", label: "Evidence Collection Job Contract", status: "evidence-needed", track: "platform", targetWindow: "2027-Q1",
+    objective: "Represent each evidence workload as a strict, revisioned and identity-bound collection job.",
+    scope: ["Exact job schema", "Durable identities", "Source milestone binding", "Append-only transition events"],
+    acceptance: ["Placeholder identities and unsupported source milestones fail before queueing.", "Job transitions retain revision, actor and reason."],
+    evidence: ["Collection contract conformance", "Invalid-input denial matrix"], nextSlice: "Persist jobs through an atomic idempotent queue.",
+  },
+  {
+    version: "v4.2.1", label: "Durable Queue and Idempotency", status: "evidence-needed", track: "platform", targetWindow: "2027-Q1",
+    objective: "Make evidence collection recoverable without duplicating a workload after client or process retries.",
+    scope: ["Atomic durable state", "Idempotency index", "Backup recovery", "Corruption quarantine"],
+    acceptance: ["One idempotency key creates one job.", "Interrupted writes recover or quarantine instead of silently resetting state."],
+    evidence: ["Queue deduplication test", "Durable-state validation"], nextSlice: "Fence workers with bounded leases and heartbeats.",
+  },
+  {
+    version: "v4.2.2", label: "Lease Heartbeat and Fencing", status: "evidence-needed", track: "platform", targetWindow: "2027-Q1",
+    objective: "Prevent stale or duplicate workers from mutating one evidence collection job.",
+    scope: ["Exclusive claim", "Heartbeat extension", "Expired-lease recovery", "Monotonic fence token"],
+    acceptance: ["An active lease rejects another worker.", "Recovery advances the fence token and denies the stale worker."],
+    evidence: ["Lease recovery conformance", "Stale-worker denial receipt"], nextSlice: "Publish one feature-owned collector capability registry.",
+  },
+  {
+    version: "v4.2.3", label: "Collector Capability Registry", status: "evidence-needed", track: "platform", targetWindow: "2027-Q1",
+    objective: "Give every held domain milestone one bounded collector owner, input contract and artifact plan.",
+    scope: ["Feature-owned plans", "Source coverage", "Timeout budgets", "Retry policies"],
+    acceptance: ["All fourteen domain milestones map exactly once.", "Every plan declares inputs, steps, artifacts and local/external gates."],
+    evidence: ["Collector registry digest", "Coverage conformance"], nextSlice: "Collect account-visible provider catalogs.",
+  },
+  {
+    version: "v4.2.4", label: "Provider Catalog Collector", status: "evidence-needed", track: "platform", targetWindow: "2027-Q1",
+    objective: "Run bounded provider model-list discovery and preserve alias reconciliation as a reviewable receipt.",
+    scope: ["Account model discovery", "Advertised-id normalization", "Alias decision", "Probe timing"],
+    acceptance: ["A failed or missing discovery remains unavailable.", "Accepted receipts bind account subject, model digest and latency."],
+    evidence: ["Provider catalog job", "Reviewed account receipt"], nextSlice: "Collect comparable quality and shadow replay evidence.",
+  },
+  {
+    version: "v4.2.5", label: "Routing Quality and Shadow Collector", status: "evidence-needed", track: "evaluation", targetWindow: "2027-Q1",
+    objective: "Collect evaluator-bound routing quality and shadow fallback replay through one comparable workload plan.",
+    scope: ["Pinned cohort", "Target scorecards", "Shadow decisions", "Fallback divergence"],
+    acceptance: ["Each routing candidate has at least twenty aligned samples.", "Policy or decision divergence blocks acceptance."],
+    evidence: ["Quality cohort job", "Shadow replay receipt"], nextSlice: "Run live Agent harness and worker-isolation collection.",
+  },
+  {
+    version: "v4.2.6", label: "Agent Harness and Worker Collector", status: "planned", track: "agent", targetWindow: "2027-Q1",
+    objective: "Collect live lifecycle, protected-action and isolated-worker behavior for eligible Agent targets.",
+    scope: ["Resume and cancellation", "Protected effects", "Worker recovery", "Conflict and merge review"],
+    acceptance: ["Every eligible target completes the same harness.", "Duplicate protected effects remain zero and stale workers stay fenced."],
+    evidence: ["Live harness collection job", "Worker isolation receipt"], nextSlice: "Reconcile cache and provider billing exports.",
+  },
+  {
+    version: "v4.2.7", label: "Cache and Billing Reconciliation Collector", status: "planned", track: "agent", targetWindow: "2027-Q1",
+    objective: "Join local cache and token observations to provider-native billing records without inventing savings.",
+    scope: ["Request-chain identity", "Cached tokens", "Billed tokens", "Unattributed exceptions"],
+    acceptance: ["Every financial claim has provider-native evidence.", "Unpriced local observations remain non-financial diagnostics."],
+    evidence: ["Billing import job", "Reconciliation and exception report"], nextSlice: "Collect licensed native multimodal execution.",
+  },
+  {
+    version: "v4.2.8", label: "Licensed Multimodal Execution Collector", status: "planned", track: "evaluation", targetWindow: "2027-Q1",
+    objective: "Admit and collect native multimodal runs only when license, model, transport and evaluator contracts agree.",
+    scope: ["License manifest", "Capability admission", "Native transport", "Official evaluator output"],
+    acceptance: ["Unsupported targets skip without blocking the cohort.", "Every result binds media, model, transformation and evaluator revisions."],
+    evidence: ["Multimodal collection ledger", "Reviewed evaluator receipt"], nextSlice: "Link model transfer to runtime load and drain collection.",
+  },
+  {
+    version: "v4.2.9", label: "Model Transfer and Runtime Collector", status: "planned", track: "models", targetWindow: "2027-Q1",
+    objective: "Collect authenticated transfer, checksum, migration, activation, load, cancellation, drain and rollback lineage.",
+    scope: ["Multi-file transfer", "Checksum read-back", "Runtime activation", "Load and drain lifecycle"],
+    acceptance: ["Installed bytes bind one immutable source revision.", "Request-level runtime evidence links to the activated model."],
+    evidence: ["Transfer collection job", "Runtime lifecycle receipt"], nextSlice: "Collect a managed RAG corpus lifecycle rehearsal.",
+  },
+  {
+    version: "v4.3.0", label: "Managed Corpus Lifecycle Collector", status: "planned", track: "rag", targetWindow: "2027-Q2",
+    objective: "Collect connector, parser, index, ACL, deletion, citation and rollback evidence for one managed corpus.",
+    scope: ["Managed connector", "Hybrid indexes", "Identity ACL", "Deletion and rollback"],
+    acceptance: ["Deleted content disappears from every retrieval and citation layer.", "Every query binds corpus and policy revisions."],
+    evidence: ["Managed corpus collection job", "Deletion and leakage receipt"], nextSlice: "Collect paired RAG quality and blinded feedback.",
+  },
+  {
+    version: "v4.3.1", label: "RAG Feedback Review Collector", status: "planned", track: "rag", targetWindow: "2027-Q2",
+    objective: "Collect paired retrieval, answer, citation, leakage, freshness and distinct human review evidence.",
+    scope: ["Pinned evaluation set", "Paired deltas", "Citation and leakage", "Blinded review queue"],
+    acceptance: ["Answer gain cannot hide another RAG regression.", "Reviewer identity is distinct and attributable."],
+    evidence: ["RAG feedback collection job", "Human review ledger"], nextSlice: "Dispatch one frozen recipe across eligible training workers.",
+  },
+  {
+    version: "v4.3.2", label: "Federated Training Dispatch Collector", status: "planned", track: "finetune", targetWindow: "2027-Q2",
+    objective: "Dispatch a frozen recipe through capability negotiation and collect comparable cross-backend artifacts.",
+    scope: ["Backend negotiation", "Frozen recipe and dataset", "Checkpoint lineage", "Comparable exports"],
+    acceptance: ["Unsupported parameters fail before queueing.", "At least one non-MLX receipt binds quality, chart and export checksums."],
+    evidence: ["Federated dispatch job", "Comparable training report"], nextSlice: "Collect sandbox and team-asset lifecycle evidence.",
+  },
+  {
+    version: "v4.3.3", label: "Sandbox and Team Asset Collector", status: "planned", track: "governance", targetWindow: "2027-Q2",
+    objective: "Collect runtime isolation plus concurrent asset review, revocation and rollback under durable identities.",
+    scope: ["Scope denial", "Teardown", "Concurrent writers", "Review, revocation and rollback"],
+    acceptance: ["Denied scopes fail before launch and teardown is recorded.", "Stale or revoked assets cannot execute."],
+    evidence: ["Sandbox collection job", "Team asset conflict and revocation receipt"], nextSlice: "Seal the reviewed collection promotion bundle.",
+  },
+  {
+    version: "v4.3.4", label: "Evidence Review and Promotion Bundle", status: "evidence-needed", track: "release", targetWindow: "2027-Q2",
+    objective: "Aggregate accepted four-eyes collection jobs into a digest-bound local promotion bundle.",
+    scope: ["Review queue", "Receipt revalidation", "Promotion bundle", "Independent acceptance backlog"],
+    acceptance: ["All fourteen domain milestones have distinct current accepted jobs.", "External, distribution and production authority remain independent."],
+    evidence: ["Evidence collection train receipt", "Promotion bundle digest"], nextSlice: "Execute authorized collectors and submit externally signed immutable receipts without weakening production gates.",
   },
 ];
 

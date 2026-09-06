@@ -1,5 +1,5 @@
 import type { EvidenceOperationMilestoneSpec } from "@/features/evidence/operational-receipts";
-import { operationalEvidenceDigest } from "@/features/evidence/operational-receipts";
+import { operationalReadModelDigest } from "@/features/evidence/operational-receipts";
 import { readProviderCapabilityCatalog } from "@/features/providers/capability-application";
 import { readWorkloadRoutingReadModel } from "@/features/providers/workload-routing";
 
@@ -17,7 +17,7 @@ export function readProviderEvidenceOperationSpecs(): EvidenceOperationMilestone
       currentSignal: {
         status: "hold",
         summary: `${catalog.totals.configuredRemote} configured remote target(s); no fresh account catalog receipt is promoted automatically.`,
-        evidenceDigest: operationalEvidenceDigest(catalog),
+        evidenceDigest: operationalReadModelDigest(catalog),
       },
       localGate: "Probe each configured account model catalog and retain latency, advertised ids, alias decision, and digest.",
       externalGate: "Provider account ownership and billing authorization require independent review.",
@@ -32,7 +32,7 @@ export function readProviderEvidenceOperationSpecs(): EvidenceOperationMilestone
       currentSignal: {
         status: routing.selectedTargetId ? "pass" : "hold",
         summary: routing.decision,
-        evidenceDigest: routing.scorecardDigest,
+        evidenceDigest: operationalReadModelDigest(routing, "scorecardDigest"),
       },
       localGate: "Attach at least 20 aligned, evaluator-bound samples to every routing candidate.",
       externalGate: "Independent quality reproduction and provider invoice reconciliation remain required.",
@@ -49,7 +49,7 @@ export function readProviderEvidenceOperationSpecs(): EvidenceOperationMilestone
         summary: routing.failClosed
           ? "Routing correctly fails closed, but no observed shadow-request replay receipt exists."
           : "A measured route exists; shadow replay still requires an observed request cohort.",
-        evidenceDigest: routing.scorecardDigest,
+        evidenceDigest: operationalReadModelDigest(routing, "scorecardDigest"),
       },
       localGate: "Replay shadow requests through the selected and fallback targets without changing user-visible routing.",
       externalGate: "Live-traffic authorization, cost ownership, and rollout approval remain external.",

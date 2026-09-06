@@ -73,6 +73,7 @@ export async function probeProviderCapabilityTarget(input: {
   targetId: string;
   thinkingMode?: AgentThinkingMode;
   fetchImpl?: typeof fetch;
+  freshProbe?: boolean;
 }) {
   const catalog = readProviderCapabilityCatalog();
   const catalogTarget = catalog.targets.find((entry) => entry.targetId === input.targetId);
@@ -106,6 +107,7 @@ export async function probeProviderCapabilityTarget(input: {
     thinkingMode: input.thinkingMode || "standard",
     candidateModels: catalogTarget.officialCandidates,
     fetchImpl: input.fetchImpl,
+    freshProbe: input.freshProbe,
   });
   return {
     ok: true as const,

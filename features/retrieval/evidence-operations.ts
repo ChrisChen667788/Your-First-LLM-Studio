@@ -1,5 +1,5 @@
 import type { EvidenceOperationMilestoneSpec } from "@/features/evidence/operational-receipts";
-import { operationalEvidenceDigest } from "@/features/evidence/operational-receipts";
+import { operationalReadModelDigest } from "@/features/evidence/operational-receipts";
 import { readConnectorIndexLifecycleEvidence } from "@/features/retrieval/connector-index-lifecycle";
 import { readRagQualityLoopEvidence } from "@/features/retrieval/rag-quality-loop";
 
@@ -17,7 +17,7 @@ export function readRetrievalEvidenceOperationSpecs(): EvidenceOperationMileston
       currentSignal: {
         status: "hold",
         summary: `${lifecycle.lifecycle.status} reference lifecycle; managed connector, index, ACL, deletion, and citation reconciliation are absent.`,
-        evidenceDigest: operationalEvidenceDigest(lifecycle),
+        evidenceDigest: operationalReadModelDigest(lifecycle),
       },
       localGate: "Rehearse real connector sync, parser/index revisions, ACL-filtered query, deletion propagation, rollback, and citation read-back.",
       externalGate: "Managed database, identity, retention, legal-hold, and data-owner approval remain external.",

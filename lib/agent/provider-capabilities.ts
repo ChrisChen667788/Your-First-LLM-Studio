@@ -94,10 +94,11 @@ function uniqueModels(values: string[]) {
 async function probeAdvertisedModels(
   target: ResolvedTarget,
   fetchImpl: typeof fetch,
+  freshProbe = false,
 ) {
   const cacheKey = `${target.id}:${target.resolvedBaseUrl}`;
   const cached = modelCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
+  if (!freshProbe && cached && cached.expiresAt > Date.now()) {
     return cached.models;
   }
 
@@ -145,6 +146,7 @@ export async function resolveProviderCapabilityRoute(input: {
   thinkingMode: AgentThinkingMode;
   candidateModels?: string[];
   fetchImpl?: typeof fetch;
+  freshProbe?: boolean;
 }): Promise<ProviderCapabilityRoute> {
   const { target } = input;
   const policy = PROVIDER_DISCOVERY_POLICIES[target.id];
@@ -186,6 +188,7 @@ export async function resolveProviderCapabilityRoute(input: {
     const advertisedModels = await probeAdvertisedModels(
       target,
       input.fetchImpl || fetch,
+      input.freshProbe,
     );
     const available = candidates.filter((model) =>
       advertisedModels.includes(model),
