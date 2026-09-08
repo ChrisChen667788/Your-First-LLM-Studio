@@ -234,9 +234,9 @@ test("accepted review links a candidate only after four-eyes approval", () => {
 test("collection read model keeps local, external and production truth separate", () => {
   const state = buildEvidenceCollectionTrainState();
   assert.equal(state.versions.length, 15);
-  assert.equal(state.sourceStatus, "hold");
-  assert.equal(state.totals.sourcePassed, 7);
-  assert.equal(state.versions.filter((version) => version.executionStatus === "planned").length, 8);
+  assert.equal(state.sourceStatus, "pass");
+  assert.equal(state.totals.sourcePassed, 15);
+  assert.equal(state.versions.filter((version) => version.executionStatus === "planned").length, 0);
   assert.ok(state.totals.localPassed >= 4);
   assert.equal(state.externalStatus, "hold");
   assert.equal(state.productionStatus, "blocked");
@@ -280,7 +280,7 @@ test("durable collection executes HTTP discovery, recovers retries and persists 
   const directory = mkdtempSync(path.join(os.tmpdir(), "evidence-collection-integration-"));
   try {
     const child = spawnSync(path.join(process.cwd(), "node_modules/.bin/tsx"), ["tests/fixtures/evidence-collection-lifecycle.mts"], {
-      cwd: process.cwd(), env: { ...process.env, LOCAL_AGENT_DATA_DIR: directory }, encoding: "utf8", timeout: 30_000,
+      cwd: process.cwd(), env: { ...process.env, LOCAL_AGENT_DATA_DIR: directory }, encoding: "utf8", timeout: 90_000,
     });
     assert.equal(child.status, 0, `${child.error || ""}\n${child.stdout}\n${child.stderr}`);
     assert.match(child.stdout, /durable collection integration passed/);

@@ -183,7 +183,7 @@ export function buildEvidenceCollectionTrainState(jobs = readEvidenceCollectionS
       localHeld: upstream.totals.localHeld,
       stateDigest: upstream.stateDigest,
     },
-    disclosure: "Queue, review/export, Provider catalog execution, and routing quality/shadow execution are implemented; eight domain executors remain planned. Distinct reviewer IDs are recorded, not independently authenticated principals. Receipt import is not execution or production authority.",
+    disclosure: "All ten feature-owned collectors are implemented. Eight domain collectors fail closed until their live, non-fixture observations satisfy plan-specific metrics; distinct reviewer IDs are recorded, not independently authenticated principals. Receipt import is not execution or production authority.",
     stateDigest: operationalEvidenceDigest({ stateCore, jobs, upstream: upstream.stateDigest }),
   };
 }

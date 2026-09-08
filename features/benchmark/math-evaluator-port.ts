@@ -25,6 +25,7 @@ const DEFAULT_PYTHON = path.join(
   "python",
 );
 const REQUEST_TIMEOUT_MS = 30_000;
+const HEALTH_CHECK_TIMEOUT_MS = 30_000;
 
 type WorkerResponse = {
   requestId: string;
@@ -92,7 +93,7 @@ export function inspectMathVerifyRuntime(): MathVerifyRuntimeHealth {
   }
   const probe = spawnSync(python, [WORKER_SCRIPT, "--health"], {
     encoding: "utf8",
-    timeout: 15_000,
+    timeout: HEALTH_CHECK_TIMEOUT_MS,
   });
   try {
     const payload = JSON.parse(probe.stdout.trim()) as { ok?: boolean; error?: string };

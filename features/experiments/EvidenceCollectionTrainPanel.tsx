@@ -95,7 +95,7 @@ export function EvidenceCollectionTrainPanel({ locale }: { locale: string }) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300">V4.2.0-V4.3.4 COLLECTION CONTROL</p>
           <h2 className="mt-1 text-lg font-semibold text-slate-50">{en ? "Evidence collection queue" : "证据采集任务队列"}</h2>
           <p className="mt-1 max-w-4xl text-xs leading-5 text-slate-400">
-            {en ? "Provider catalog: executable. Nine domain collectors: planned. Independent identity assurance: pending." : "Provider 目录可执行 · 9 个领域采集器待开发 · 独立身份认证待接入"}
+            {en ? "All ten feature-owned collectors are executable. Live workload observations and independent identity assurance remain required." : "10 个 feature-owned 采集器均可执行 · 真实 workload 观察与独立身份认证仍待接入"}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

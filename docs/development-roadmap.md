@@ -1,23 +1,36 @@
 # Agent Lab Development Roadmap
 
+## v4.8-v4.9 evidence authority campaign checkpoint
+
+The next fifteen milestones from `v4.8.0` through `v4.9.4` are source-complete. They add authority profiles with opaque credential references, trust discovery/rotation/retention contracts, fourteen-domain campaigns, independent observer assignments, nonce-bound challenges, receipt quarantine, renewal, escrow coverage, and authority separation. Nine deterministic controls pass locally; no controlled profile, campaign, externally attested receipt, or covered milestone is persisted. The default external port is deliberately unavailable, so external remains `HOLD` and production remains `BLOCKED`. See the [`plan`](./v4.8.0-v4.9.4-evidence-authority-campaign-plan-2026-09-08.md) and [`source-gate record`](./release-evidence/v4.8.0-v4.9.4-evidence-authority-campaign-source-gate-2026-09-08.md).
+
+## v4.6-v4.7 evidence acceptance lifecycle checkpoint
+
+The next fifteen milestones from `v4.6.0` through `v4.7.4` are source-complete. They add strict external-authority configuration, durable acceptance-package intake, fenced state transitions, distinct re-observation, verification/read-back challenge binding, revocation, portable import, evidence aging, and a distribution-handoff gate. Eight deterministic lifecycle controls pass locally; verified external package coverage remains `0/14`. The default external port is deliberately unconfigured and fails closed, so distribution remains `HOLD` and production remains `BLOCKED`. See the [`plan`](./v4.6.0-v4.7.4-evidence-acceptance-plan-2026-09-08.md) and [`source-gate record`](./release-evidence/v4.6.0-v4.7.4-evidence-acceptance-source-gate-2026-09-08.md).
+
+## v4.4-v4.5 evidence adjudication and retention checkpoint
+
+The next fifteen milestones from `v4.4.0` through `v4.5.4` are source-complete. They add strict reviewer attestation, issuer/separation/quorum contracts, digest-bound artifact read-back and retention policy, one metric policy per collected domain, re-observation and acceptance-package boundaries, portable export, revocation, and aggregate adjudication. Seven deterministic schema/policy controls pass locally; no current accepted workload package, external reviewer verification, immutable archive read-back, or independent observer exists. The default external port is deliberately unconfigured and fails closed. Distribution remains `HOLD`; production remains `BLOCKED`. See the [`plan`](./v4.4.0-v4.5.4-evidence-adjudication-plan-2026-09-07.md) and [`source-gate record`](./release-evidence/v4.4.0-v4.5.4-evidence-adjudication-source-gate-2026-09-07.md).
+
 ## v4.2-v4.3 evidence collection control checkpoint
 
-The 15 milestones from `v4.2.0` through `v4.3.4` are in development: seven source
-milestones are implemented and eight domain executors remain planned. They turn
+The 15 milestones from `v4.2.0` through `v4.3.4` are source-complete: all ten
+feature-owned collectors are implemented. They turn
 the prior observed-receipt requirements into strict,
 durable collection jobs with idempotent enqueue, optimistic revisions, bounded
 leases, heartbeat recovery, stale-worker fencing, retry/cancel policy, feature-
 owned collector plans, executable Provider catalog discovery, strict submission,
 distinct-ID review, and a
 digest-bound promotion bundle. All fourteen v4.0-v4.1 domain milestones are
-covered exactly once by plans, not by executable collectors. Current source
-implementation is `7/15`; deterministic local control evidence is `4/15`.
-Next: implement v4.2.6-v4.3.3 in
-the existing ownership order. Independent reviewer authentication, artifact
-read-back, domain metric policies and external acceptance remain separate work.
+covered exactly once by executable feature-owned dispatchers. Current source
+implementation is `15/15`; deterministic local control evidence is `4/15`.
+The eight domain adapters fail closed for reference, fixture, or derived
+read-models, so real workload observations and accepted reviews remain separate
+work. Next: verified reviewer authentication, artifact read-back, domain metric
+policies, queue retention, and external acceptance.
 See the
 [`plan`](./v4.2.0-v4.3.4-evidence-collection-plan-2026-09-05.md) and
-[`source gate`](./release-evidence/v4.2.0-v4.3.4-evidence-collection-source-gate-2026-09-05.md).
+[`source gate`](./release-evidence/v4.2.0-v4.3.4-evidence-collection-source-gate-2026-09-07.md).
 
 ## v4.0-v4.1 evidence operations checkpoint
 

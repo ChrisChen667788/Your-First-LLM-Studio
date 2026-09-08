@@ -13,16 +13,22 @@ Date: 2026-08-10
 
 ## Latest approved evidence-collection plan
 
-`v4.2.0-v4.3.4` is a 15-version **in-development** train. It
+`v4.8.0-v4.9.4` is the current 15-version **source-complete, evidence-needed** authority-campaign train. It adds opaque credential references, non-local HTTPS authority profiles, trust/rotation/retention contracts, complete campaign manifests, independent observer assignments, nonce-bound challenges, strict receipt quarantine, freshness, escrow coverage, and release authority separation. The current source projection is `15/15`, deterministic local conformance is `9/15`, persisted external profile/campaign/receipt coverage is `0`, and production remains `BLOCKED`. See [`docs/v4.8.0-v4.9.4-evidence-authority-campaign-plan-2026-09-08.md`](./v4.8.0-v4.9.4-evidence-authority-campaign-plan-2026-09-08.md) and its [`source gate`](./release-evidence/v4.8.0-v4.9.4-evidence-authority-campaign-source-gate-2026-09-08.md).
+
+`v4.6.0-v4.7.4` is the preceding 15-version **source-complete, evidence-needed** acceptance-lifecycle train. It adds strict authority configuration, durable package intake, fenced transitions, re-observation and read-back challenge binding, revocation, portable import, evidence aging, and a distribution-handoff boundary. The current source projection is `15/15`, deterministic local conformance is `8/15`, externally verified package coverage is `0/14`, and production remains `BLOCKED`. See [`docs/v4.6.0-v4.7.4-evidence-acceptance-plan-2026-09-08.md`](./v4.6.0-v4.7.4-evidence-acceptance-plan-2026-09-08.md).
+
+`v4.4.0-v4.5.4` is the preceding 15-version **source-complete, evidence-needed** adjudication train. It adds reviewer attestation, artifact read-back/retention, domain metric policies, independent re-observation, acceptance-package/export/revocation contracts, and an aggregate gate. The current source projection is `15/15`, deterministic local conformance is `7/15`, accepted workload-package coverage is `0/14`, external verification is `0`, and production remains `BLOCKED`. See [`docs/v4.4.0-v4.5.4-evidence-adjudication-plan-2026-09-07.md`](./v4.4.0-v4.5.4-evidence-adjudication-plan-2026-09-07.md).
+
+`v4.2.0-v4.3.4` is a 15-version **source-complete, evidence-needed** train. It
 adds the durable queue, idempotency, lease/fencing, feature-owned collector
 registry, strict submission, four-eyes review, retry/cancel controls, and
 promotion bundle needed to execute the v4.0-v4.1 evidence backlog. The source
-gate is `7/15`; deterministic local control evidence is `4/15`. Provider catalog
-and routing quality/shadow execution are connected to fresh account probes. Eight other domain executors
-remain source TODOs, not merely missing credentials. All real workload review
-and independent acceptance gates remain fail-closed. See
+gate is `15/15`; deterministic local control evidence is `4/15`. Provider catalog
+and routing quality/shadow execution are connected to fresh account probes, and
+the eight domain adapters now reject non-live read models before receipt submission.
+All real workload review and independent acceptance gates remain fail-closed. See
 [`docs/v4.2.0-v4.3.4-evidence-collection-plan-2026-09-05.md`](./v4.2.0-v4.3.4-evidence-collection-plan-2026-09-05.md)
-and the [`source gate`](./release-evidence/v4.2.0-v4.3.4-evidence-collection-source-gate-2026-09-05.md).
+and the [`source gate`](./release-evidence/v4.2.0-v4.3.4-evidence-collection-source-gate-2026-09-07.md).
 
 ## Previous approved source train
 
@@ -79,7 +85,10 @@ gates. See [`docs/competitive-landscape.md`](./competitive-landscape.md) and
 | `v1.6.5` Benchmark reproducibility | The complete run is bound to dataset/evaluator/run digests, seven subject and five difficulty scorecards, Wilson 95% confidence, latency/token/checkpoint/failure accounting, and a same-host isolated scorer replay with 500/500 decisions matching. Multimodal execution requirements are explicit. Remaining: independently managed worker/host repetition, official image/video assets, compatible paid/native execution, calibrated MathVista judge, MMBench submission receipt, licensed Video-MME v2 run, and external leaderboard reproduction. |
 | `v1.6.6` Benchmark decision intelligence | The real 500-item run has complete error taxonomy, confidence-aware cohort risk, bounded review items, latency/token outliers, conservative power targets, and a fail-closed paired candidate policy using exact McNemar, paired delta confidence, non-inferiority, and latency limits. Remaining: a second distinct full candidate run, planned repetitions sufficient for 3pp/5pp effects, independently managed worker execution, approved promotion owner, and every external evaluator/production receipt carried from v1.6.5. |
 | `v4.0.0-v4.1.4` Evidence operations | Strict candidate intake and fourteen domain evidence gates are source-complete. Remaining: twelve held local operations, independently signed immutable receipts, distribution approval, and production authority. |
-| `v4.2.0-v4.3.4` Evidence collection control | Seven source milestones implemented: queue, idempotency, lease/fencing, plan registry, Provider catalog executor, routing quality/shadow executor, review/export. Remaining: implement v4.2.6-v4.3.3 executors, artifact read-back and metric-specific gate policies; authenticate distinct reviewer principals; collect reviewed receipts and independent acceptance. |
+| `v4.2.0-v4.3.4` Evidence collection control | All fifteen source mechanisms are implemented. Remaining: live observations, accepted reviews, and independent acceptance. |
+| `v4.4.0-v4.5.4` Evidence adjudication | All fifteen source contracts are implemented. Remaining: live IdP/key verification, immutable archive read-back, accepted packages for all fourteen domains, independent re-observation, and external acceptance. |
+| `v4.6.0-v4.7.4` Evidence acceptance lifecycle | All fifteen source contracts are implemented. Remaining: controlled authority configuration, immutable archive read-back, current verified packages for all fourteen domains, independent observer evidence, distribution approval, and production authority. |
+| `v4.8.0-v4.9.4` Evidence authority campaign | All fifteen source contracts are implemented. Remaining: controlled credential resolution, live trust discovery/rotation, immutable archive policy/read-back, independently executed observer assignments, fourteen current attested receipts, discrepancy resolution, distribution approval, and production authority. |
 
 ## Cross-cutting product work
 

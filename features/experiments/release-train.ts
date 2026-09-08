@@ -2,10 +2,12 @@ import type {
   ReleaseTrainMilestone,
   ReleaseTrainResponse,
 } from "@/features/experiments/contracts";
+import { EVIDENCE_ACCEPTANCE_LIFECYCLE_PLANS } from "@/features/evidence/acceptance-lifecycle";
+import { EVIDENCE_AUTHORITY_CAMPAIGN_PLANS } from "@/features/evidence/authority-campaign";
 
 export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.5.1" as const;
 export const RELEASE_TRAIN_DEVELOPMENT_VERSION =
-  "v1.7.0-v4.3.4 source" as const;
+  "v1.7.0-v4.9.4 source" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -2613,56 +2615,56 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     evidence: ["Quality cohort job", "Shadow replay receipt"], nextSlice: "Run live Agent harness and worker-isolation collection.",
   },
   {
-    version: "v4.2.6", label: "Agent Harness and Worker Collector", status: "planned", track: "agent", targetWindow: "2027-Q1",
+    version: "v4.2.6", label: "Agent Harness and Worker Collector", status: "evidence-needed", track: "agent", targetWindow: "2027-Q1",
     objective: "Collect live lifecycle, protected-action and isolated-worker behavior for eligible Agent targets.",
     scope: ["Resume and cancellation", "Protected effects", "Worker recovery", "Conflict and merge review"],
     acceptance: ["Every eligible target completes the same harness.", "Duplicate protected effects remain zero and stale workers stay fenced."],
     evidence: ["Live harness collection job", "Worker isolation receipt"], nextSlice: "Reconcile cache and provider billing exports.",
   },
   {
-    version: "v4.2.7", label: "Cache and Billing Reconciliation Collector", status: "planned", track: "agent", targetWindow: "2027-Q1",
+    version: "v4.2.7", label: "Cache and Billing Reconciliation Collector", status: "evidence-needed", track: "agent", targetWindow: "2027-Q1",
     objective: "Join local cache and token observations to provider-native billing records without inventing savings.",
     scope: ["Request-chain identity", "Cached tokens", "Billed tokens", "Unattributed exceptions"],
     acceptance: ["Every financial claim has provider-native evidence.", "Unpriced local observations remain non-financial diagnostics."],
     evidence: ["Billing import job", "Reconciliation and exception report"], nextSlice: "Collect licensed native multimodal execution.",
   },
   {
-    version: "v4.2.8", label: "Licensed Multimodal Execution Collector", status: "planned", track: "evaluation", targetWindow: "2027-Q1",
+    version: "v4.2.8", label: "Licensed Multimodal Execution Collector", status: "evidence-needed", track: "evaluation", targetWindow: "2027-Q1",
     objective: "Admit and collect native multimodal runs only when license, model, transport and evaluator contracts agree.",
     scope: ["License manifest", "Capability admission", "Native transport", "Official evaluator output"],
     acceptance: ["Unsupported targets skip without blocking the cohort.", "Every result binds media, model, transformation and evaluator revisions."],
     evidence: ["Multimodal collection ledger", "Reviewed evaluator receipt"], nextSlice: "Link model transfer to runtime load and drain collection.",
   },
   {
-    version: "v4.2.9", label: "Model Transfer and Runtime Collector", status: "planned", track: "models", targetWindow: "2027-Q1",
+    version: "v4.2.9", label: "Model Transfer and Runtime Collector", status: "evidence-needed", track: "models", targetWindow: "2027-Q1",
     objective: "Collect authenticated transfer, checksum, migration, activation, load, cancellation, drain and rollback lineage.",
     scope: ["Multi-file transfer", "Checksum read-back", "Runtime activation", "Load and drain lifecycle"],
     acceptance: ["Installed bytes bind one immutable source revision.", "Request-level runtime evidence links to the activated model."],
     evidence: ["Transfer collection job", "Runtime lifecycle receipt"], nextSlice: "Collect a managed RAG corpus lifecycle rehearsal.",
   },
   {
-    version: "v4.3.0", label: "Managed Corpus Lifecycle Collector", status: "planned", track: "rag", targetWindow: "2027-Q2",
+    version: "v4.3.0", label: "Managed Corpus Lifecycle Collector", status: "evidence-needed", track: "rag", targetWindow: "2027-Q2",
     objective: "Collect connector, parser, index, ACL, deletion, citation and rollback evidence for one managed corpus.",
     scope: ["Managed connector", "Hybrid indexes", "Identity ACL", "Deletion and rollback"],
     acceptance: ["Deleted content disappears from every retrieval and citation layer.", "Every query binds corpus and policy revisions."],
     evidence: ["Managed corpus collection job", "Deletion and leakage receipt"], nextSlice: "Collect paired RAG quality and blinded feedback.",
   },
   {
-    version: "v4.3.1", label: "RAG Feedback Review Collector", status: "planned", track: "rag", targetWindow: "2027-Q2",
+    version: "v4.3.1", label: "RAG Feedback Review Collector", status: "evidence-needed", track: "rag", targetWindow: "2027-Q2",
     objective: "Collect paired retrieval, answer, citation, leakage, freshness and distinct human review evidence.",
     scope: ["Pinned evaluation set", "Paired deltas", "Citation and leakage", "Blinded review queue"],
     acceptance: ["Answer gain cannot hide another RAG regression.", "Reviewer identity is distinct and attributable."],
     evidence: ["RAG feedback collection job", "Human review ledger"], nextSlice: "Dispatch one frozen recipe across eligible training workers.",
   },
   {
-    version: "v4.3.2", label: "Federated Training Dispatch Collector", status: "planned", track: "finetune", targetWindow: "2027-Q2",
+    version: "v4.3.2", label: "Federated Training Dispatch Collector", status: "evidence-needed", track: "finetune", targetWindow: "2027-Q2",
     objective: "Dispatch a frozen recipe through capability negotiation and collect comparable cross-backend artifacts.",
     scope: ["Backend negotiation", "Frozen recipe and dataset", "Checkpoint lineage", "Comparable exports"],
     acceptance: ["Unsupported parameters fail before queueing.", "At least one non-MLX receipt binds quality, chart and export checksums."],
     evidence: ["Federated dispatch job", "Comparable training report"], nextSlice: "Collect sandbox and team-asset lifecycle evidence.",
   },
   {
-    version: "v4.3.3", label: "Sandbox and Team Asset Collector", status: "planned", track: "governance", targetWindow: "2027-Q2",
+    version: "v4.3.3", label: "Sandbox and Team Asset Collector", status: "evidence-needed", track: "governance", targetWindow: "2027-Q2",
     objective: "Collect runtime isolation plus concurrent asset review, revocation and rollback under durable identities.",
     scope: ["Scope denial", "Teardown", "Concurrent writers", "Review, revocation and rollback"],
     acceptance: ["Denied scopes fail before launch and teardown is recorded.", "Stale or revoked assets cannot execute."],
@@ -2675,6 +2677,157 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     acceptance: ["All fourteen domain milestones have distinct current accepted jobs.", "External, distribution and production authority remain independent."],
     evidence: ["Evidence collection train receipt", "Promotion bundle digest"], nextSlice: "Execute authorized collectors and submit externally signed immutable receipts without weakening production gates.",
   },
+  {
+    version: "v4.4.0", label: "Reviewer Attestation Contract", status: "evidence-needed", track: "governance", targetWindow: "2027-Q2",
+    objective: "Bind every acceptance decision to a strict, time-bounded reviewer attestation without treating a local ID as an independent principal.",
+    scope: ["Attestation schema", "Identity and key fingerprints", "Freshness window", "Self-review denial"],
+    acceptance: ["Placeholder, stale, duplicate, or self-review identities fail closed.", "An attestation does not verify until an external issuer confirms it."],
+    evidence: ["Attestation conformance matrix", "External issuer verification receipt"], nextSlice: "Register pinned reviewer issuers and directory sources.",
+  },
+  {
+    version: "v4.4.1", label: "Trusted Reviewer Issuer Registry", status: "evidence-needed", track: "governance", targetWindow: "2027-Q2",
+    objective: "Make external reviewer issuers explicit, pinned, and auditable before they can influence evidence acceptance.",
+    scope: ["Issuer registry", "HTTPS/JWKS pinning", "Key fingerprint policy", "Issuer change audit"],
+    acceptance: ["Unpinned or non-HTTPS issuers cannot authorize a review.", "An issuer update preserves predecessor provenance."],
+    evidence: ["Issuer configuration digest", "Live IdP or organization-key read receipt"], nextSlice: "Apply verified separation policy to accepted collection jobs.",
+  },
+  {
+    version: "v4.4.2", label: "Reviewer Separation Policy", status: "evidence-needed", track: "governance", targetWindow: "2027-Q2",
+    objective: "Require worker, operator, and reviewer separation for every adjudicated evidence package.",
+    scope: ["Pairwise identity separation", "Organization binding", "Conflict detection", "Decision audit"],
+    acceptance: ["A recorded reviewer must differ from the operator and worker.", "Directory role conflicts block adjudication."],
+    evidence: ["Separation-policy receipt", "Directory role evidence"], nextSlice: "Require a distinct quorum for high-impact acceptance.",
+  },
+  {
+    version: "v4.4.3", label: "Independent Review Quorum", status: "evidence-needed", track: "governance", targetWindow: "2027-Q2",
+    objective: "Make quorum reviews ordered, digest-bound, and resistant to duplicate reviewers or assertions.",
+    scope: ["Quorum policy", "Distinct principal checks", "Ordered assertions", "Decision digest"],
+    acceptance: ["Duplicate reviewer subjects and repeated assertions fail.", "External principal independence is required for a passed quorum."],
+    evidence: ["Quorum conformance", "Independent reviewer attestations"], nextSlice: "Bind accepted jobs to a strict artifact read-back manifest.",
+  },
+  {
+    version: "v4.4.4", label: "Artifact Manifest and Readback Contract", status: "evidence-needed", track: "platform", targetWindow: "2027-Q2",
+    objective: "Bind evidence artifacts to bounded read-back metadata instead of filename or local-path assertions.",
+    scope: ["Artifact and locator digests", "Byte length", "Reader identity", "Fresh read-back window"],
+    acceptance: ["Malformed, stale, or digest-mismatched read-backs fail.", "A local artifact cannot claim immutable external storage."],
+    evidence: ["Read-back contract conformance", "Archive object read receipt"], nextSlice: "Require a real immutable archive read-back.",
+  },
+  {
+    version: "v4.4.5", label: "Immutable Archive Readback", status: "evidence-needed", track: "platform", targetWindow: "2027-Q2",
+    objective: "Verify that accepted evidence can be read from independently enforced immutable retention.",
+    scope: ["Object retention binding", "External read-back", "Digest reconciliation", "Read failure handling"],
+    acceptance: ["A missing or changed object blocks promotion.", "Local retention cannot substitute for immutable archive evidence."],
+    evidence: ["Object Lock or equivalent receipt", "Read-back reconciliation report"], nextSlice: "Attach legal-hold and retention policy to the archive manifest.",
+  },
+  {
+    version: "v4.4.6", label: "Evidence Retention and Legal Hold", status: "evidence-needed", track: "governance", targetWindow: "2027-Q2",
+    objective: "Express retention and legal-hold policies as bounded, digest-bound evidence metadata.",
+    scope: ["Retention duration", "Legal-hold reason", "Manifest digest", "Expiry review"],
+    acceptance: ["Missing duration or hold reason fails the policy contract.", "Enforcement remains a separately verified archive responsibility."],
+    evidence: ["Retention-policy conformance", "Archive enforcement receipt"], nextSlice: "Publish the required metric policy for every domain receipt.",
+  },
+  {
+    version: "v4.4.7", label: "Domain Metric Policy Registry", status: "evidence-needed", track: "evaluation", targetWindow: "2027-Q2",
+    objective: "Give every collected v4.0-v4.1 receipt a versioned required-metric policy.",
+    scope: ["Metric coverage", "Policy digests", "Required fields", "Unknown-metric denial"],
+    acceptance: ["Every domain milestone resolves to exactly one metric policy.", "Unknown or incomplete policies cannot adjudicate a receipt."],
+    evidence: ["Metric-policy registry digest", "Coverage conformance"], nextSlice: "Bind explicit thresholds and baseline provenance.",
+  },
+  {
+    version: "v4.4.8", label: "Metric Threshold and Baseline Binding", status: "evidence-needed", track: "evaluation", targetWindow: "2027-Q2",
+    objective: "Prevent non-finite or unknown metric thresholds from silently changing a promotion decision.",
+    scope: ["Minimum and maximum bounds", "Baseline digest", "Finite-value policy", "Owner review"],
+    acceptance: ["Bounds cannot name unknown metrics or use non-finite values.", "Real baseline provenance remains externally reviewed."],
+    evidence: ["Threshold validation matrix", "Baseline-owner attestation"], nextSlice: "Adjudicate accepted receipt metrics against the policy.",
+  },
+  {
+    version: "v4.4.9", label: "Receipt Metric Adjudication", status: "evidence-needed", track: "evaluation", targetWindow: "2027-Q2",
+    objective: "Apply complete metric policy to only current accepted collection receipts.",
+    scope: ["Receipt-policy join", "Metric completeness", "Threshold evaluation", "Decision trace"],
+    acceptance: ["Missing accepted receipts or metrics cannot be adjudicated.", "Observed values need authorized workloads and domain-owner review."],
+    evidence: ["Receipt metric decision", "Qualified workload and owner evidence"], nextSlice: "Correlate a distinct re-observation to the first receipt.",
+  },
+  {
+    version: "v4.5.0", label: "Independent Re-observation Correlation", status: "evidence-needed", track: "evaluation", targetWindow: "2027-Q3",
+    objective: "Join a second independent observation to matching workload, artifact, and metric-policy digests.",
+    scope: ["Observer separation", "Workload correlation", "Artifact reconciliation", "Policy parity"],
+    acceptance: ["A same-observer replay cannot satisfy independent confirmation.", "Cross-host or cross-organization execution remains external."],
+    evidence: ["Re-observation correlation record", "Independent-host receipt"], nextSlice: "Seal verified inputs into an acceptance package ledger.",
+  },
+  {
+    version: "v4.5.1", label: "Acceptance Package Ledger", status: "evidence-needed", track: "release", targetWindow: "2027-Q3",
+    objective: "Persist a digest-bound acceptance package spanning job, receipt, identity, artifact, policy, and re-observation.",
+    scope: ["Package identity", "Predecessor binding", "Decision ledger", "Package integrity"],
+    acceptance: ["Every package is complete and tamper-evident.", "External identity and archive verification remain mandatory for authority."],
+    evidence: ["Acceptance package manifest", "External verifier results"], nextSlice: "Export the package through a portable, digest-only manifest.",
+  },
+  {
+    version: "v4.5.2", label: "Portable Evidence Export", status: "evidence-needed", track: "release", targetWindow: "2027-Q3",
+    objective: "Produce portable evidence manifests without exporting raw workload payloads or secrets.",
+    scope: ["Digest-only export", "Bounded metadata", "Stable manifest digest", "Destination contract"],
+    acceptance: ["Exports are deterministic and omit raw artifacts and credentials.", "A local file is not independent destination acceptance."],
+    evidence: ["Portable export contract", "Independent destination read-back"], nextSlice: "Handle revocation and re-adjudication without erasing lineage.",
+  },
+  {
+    version: "v4.5.3", label: "Revocation and Re-adjudication", status: "evidence-needed", track: "governance", targetWindow: "2027-Q3",
+    objective: "Block revoked evidence while preserving immutable predecessor and remediation lineage.",
+    scope: ["Revocation event", "Promotion exclusion", "Re-adjudication link", "Retention preservation"],
+    acceptance: ["A revoked package cannot advance the aggregate gate.", "Issuer revocation and archive state need independent verification."],
+    evidence: ["Revocation conformance", "Issuer and archive status receipt"], nextSlice: "Aggregate all current adjudication packages under one non-authoritative promotion gate.",
+  },
+  {
+    version: "v4.5.4", label: "Evidence Adjudication Promotion Gate", status: "evidence-needed", track: "release", targetWindow: "2027-Q3",
+    objective: "Aggregate current, non-revoked adjudication packages for all fourteen domain milestones without locally granting authority.",
+    scope: ["Fourteen-package coverage", "Revocation checks", "External acceptance backlog", "Terminal promotion decision"],
+    acceptance: ["Missing, stale, revoked, or self-reviewed packages block the gate.", "Distribution and production authority remain independent external decisions."],
+    evidence: ["Adjudication train receipt", "Independent acceptance and archive bundle"], nextSlice: "Collect real external identity, archive, and independent-observer evidence before any readiness claim changes.",
+  },
+  ...EVIDENCE_ACCEPTANCE_LIFECYCLE_PLANS.map((plan, index): ReleaseTrainMilestone => ({
+    version: plan.version,
+    label: plan.label,
+    status: "evidence-needed",
+    track: plan.track === "authority" || plan.track === "decision"
+      ? "governance"
+      : plan.track === "intake"
+        ? "platform"
+        : plan.track === "verification"
+          ? "evaluation"
+          : "release",
+    targetWindow: index < 10 ? "2027-Q3" : "2027-Q4",
+    objective: `Turn ${plan.label.toLowerCase()} into a strict, durable evidence-acceptance boundary without granting local authority.`,
+    scope: [plan.localGate, plan.externalGate, "Digest-bound lineage", "Fail-closed status projection"],
+    acceptance: [
+      "Malformed, stale, conflicting, or revoked acceptance state fails closed.",
+      "A local port, digest, or stored package cannot authorize external distribution or production.",
+    ],
+    evidence: ["Acceptance lifecycle conformance", "Independent authority and archive receipt"],
+    nextSlice: index === EVIDENCE_ACCEPTANCE_LIFECYCLE_PLANS.length - 1
+      ? "Collect controlled external authority, immutable archive, and independent re-observation evidence before changing readiness."
+      : `Continue with ${EVIDENCE_ACCEPTANCE_LIFECYCLE_PLANS[index + 1]?.label || "the next acceptance boundary"}.`,
+  })),
+  ...EVIDENCE_AUTHORITY_CAMPAIGN_PLANS.map((plan, index): ReleaseTrainMilestone => ({
+    version: plan.version,
+    label: plan.label,
+    status: "evidence-needed",
+    track: plan.track === "profile"
+      ? "governance"
+      : plan.track === "campaign"
+        ? "platform"
+        : plan.track === "challenge" || plan.track === "receipt"
+          ? "evaluation"
+          : "release",
+    targetWindow: index < 10 ? "2027-Q4" : "2028-Q1",
+    objective: `Turn ${plan.label.toLowerCase()} into a strict external-evidence campaign boundary without granting local authority.`,
+    scope: [plan.localGate, plan.externalGate, "Digest-bound lineage", "Fail-closed status projection"],
+    acceptance: [
+      "Raw credential values, local endpoints, stale receipt envelopes, and mismatched challenges fail closed.",
+      "A local campaign, injected port, or receipt envelope cannot authorize distribution or production.",
+    ],
+    evidence: ["Authority campaign conformance", "Independent authority, archive, and observer receipt"],
+    nextSlice: index === EVIDENCE_AUTHORITY_CAMPAIGN_PLANS.length - 1
+      ? "Collect controlled authority, archive, observer, distribution, and production decisions before changing readiness."
+      : `Continue with ${EVIDENCE_AUTHORITY_CAMPAIGN_PLANS[index + 1]?.label || "the next authority campaign boundary"}.`,
+  })),
 ];
 
 export function readReleaseTrain(): ReleaseTrainResponse {

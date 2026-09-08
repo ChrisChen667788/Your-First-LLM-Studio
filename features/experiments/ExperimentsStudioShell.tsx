@@ -52,6 +52,9 @@ import { OperationalClosurePanel } from "@/features/experiments/OperationalClosu
 import { CompetitiveProductTrainPanel } from "@/features/experiments/CompetitiveProductTrainPanel";
 import { EvidenceOperationsTrainPanel } from "@/features/experiments/EvidenceOperationsTrainPanel";
 import { EvidenceCollectionTrainPanel } from "@/features/experiments/EvidenceCollectionTrainPanel";
+import { EvidenceAdjudicationTrainPanel } from "@/features/experiments/EvidenceAdjudicationTrainPanel";
+import { EvidenceAcceptanceTrainPanel } from "@/features/experiments/EvidenceAcceptanceTrainPanel";
+import { EvidenceAuthorityCampaignTrainPanel } from "@/features/experiments/EvidenceAuthorityCampaignTrainPanel";
 
 export function ExperimentsStudioShell() {
   const { locale } = useLocale();
@@ -98,6 +101,9 @@ export function ExperimentsStudioShell() {
       <CompetitiveProductTrainPanel locale={locale} />
       <EvidenceOperationsTrainPanel locale={locale} />
       <EvidenceCollectionTrainPanel locale={locale} />
+      <EvidenceAdjudicationTrainPanel locale={locale} />
+      <EvidenceAcceptanceTrainPanel locale={locale} />
+      <EvidenceAuthorityCampaignTrainPanel locale={locale} />
       <ArtifactFederationTrustPanel locale={locale} />
       <PostV1PromotionGatePanel locale={locale} />
       <PromotionGatePanel locale={locale} />

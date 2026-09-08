@@ -96,6 +96,9 @@ const checks = [
   { id: "competitive-product-train", path: "/api/experiments/competitive-product-train", kind: "json", contract: "ok" },
   { id: "evidence-operations-train", path: "/api/experiments/evidence-operations-train", kind: "json", contract: "ok" },
   { id: "evidence-collection-train", path: "/api/experiments/evidence-collection-train", kind: "json", contract: "ok" },
+  { id: "evidence-adjudication-train", path: "/api/experiments/evidence-adjudication-train", kind: "json", contract: "ok" },
+  { id: "evidence-acceptance-train", path: "/api/experiments/evidence-acceptance-train", kind: "json", contract: "ok" },
+  { id: "evidence-authority-campaign-train", path: "/api/experiments/evidence-authority-campaign-train", kind: "json", contract: "ok" },
 ];
 
 function validateJsonContract(body, contract) {

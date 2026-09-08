@@ -8,7 +8,10 @@ import { readProviderEvidenceCollectorPlans } from "@/features/providers/evidenc
 import { readRetrievalEvidenceCollectorPlans } from "@/features/retrieval/evidence-collector-plans";
 
 export function evidenceCollectorExecutionStatus(version: string) {
-  return ["v4.2.4", "v4.2.5"].includes(version) ? "implemented" as const : "planned" as const;
+  return [
+    "v4.2.4", "v4.2.5", "v4.2.6", "v4.2.7", "v4.2.8",
+    "v4.2.9", "v4.3.0", "v4.3.1", "v4.3.2", "v4.3.3",
+  ].includes(version) ? "implemented" as const : "planned" as const;
 }
 
 export const EVIDENCE_COLLECTION_SOURCE_MILESTONES = [

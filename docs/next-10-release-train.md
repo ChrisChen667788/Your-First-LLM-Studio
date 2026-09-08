@@ -1,23 +1,35 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-09-08 v4.8.0-v4.9.4 evidence authority campaign train
+
+The next 15 source versions operationalize the remaining external-evidence request without granting authority: opaque credential references, strict non-local HTTPS profiles, trust snapshots, retention-policy digests, complete fourteen-domain campaign manifests, independent assignments, short-lived challenges, receipt intake/quarantine, renewal, escrow coverage, and release/production separation. Nine deterministic controls pass locally; persisted external profile, campaign, receipt, and coverage counts remain zero. See the [`implementation plan`](./v4.8.0-v4.9.4-evidence-authority-campaign-plan-2026-09-08.md) and [`source-gate record`](./release-evidence/v4.8.0-v4.9.4-evidence-authority-campaign-source-gate-2026-09-08.md). External remains `HOLD`; production remains `BLOCKED`.
+
+## 2026-09-08 v4.6.0-v4.7.4 evidence acceptance lifecycle train
+
+The next 15 source versions operationalize the boundary after adjudication: strict authority configuration, durable package intake, state transitions, independent re-observation, external verification/read-back challenge contracts, decision and revocation ledgers, portable import, evidence aging, and distribution handoff. All source contracts are implemented. Eight deterministic lifecycle controls pass locally; externally verified package coverage is `0/14`, and no controlled authority, immutable archive, independent observer, or distribution approval is configured. See the [`implementation plan`](./v4.6.0-v4.7.4-evidence-acceptance-plan-2026-09-08.md) and [`source-gate record`](./release-evidence/v4.6.0-v4.7.4-evidence-acceptance-source-gate-2026-09-08.md). Distribution remains `HOLD`; production remains `BLOCKED`.
+
+## 2026-09-07 v4.4.0-v4.5.4 evidence adjudication and retention train
+
+The next 15 source versions add the decision boundary after collection: reviewer attestation/issuer/separation/quorum, immutable artifact read-back and retention, domain metric policy and threshold binding, re-observation, acceptance packages, portable exports, revocation, and a final adjudication gate. All source contracts are implemented. Seven deterministic policy controls pass locally; accepted workload-package coverage is `0/14`, and no external identity, immutable archive, or independent-observer receipt is configured. See the [`implementation plan`](./v4.4.0-v4.5.4-evidence-adjudication-plan-2026-09-07.md) and [`source-gate record`](./release-evidence/v4.4.0-v4.5.4-evidence-adjudication-source-gate-2026-09-07.md). Distribution remains `HOLD`; production remains `BLOCKED`.
+
 ## 2026-09-05 v4.2.0-v4.3.4 evidence collection control train
 
-The next 15 versions are in development (seven source milestones implemented).
+The next 15 versions are source-complete (all fifteen source milestones implemented).
 Four control
 milestones add strict collection jobs, an atomic idempotent queue, bounded
 lease/heartbeat/fencing, and a complete feature-owned collector registry. Ten
 domain plans cover all fourteen v4.0.0-v4.1.3 evidence operations exactly once:
 Provider catalogs and routing, Agent harness/workers/cache billing, licensed
 multimodal evaluation, model transfer/runtime, managed RAG, federated training,
-and sandbox/team assets. The Provider catalog and routing quality/shadow
-executors are wired; the other eight domain execution plans still need
-implementation, not just credentials.
+and sandbox/team assets. Provider catalog and routing quality/shadow execution
+are wired, and the other eight domain adapters are feature-owned dispatchers
+that reject reference, fixture, and derived read models before receipt submission.
 The final v4.3.4 bundle requires distinct-ID
 review and cannot bypass the upstream evidence-operations gate. See the
 [`implementation plan`](./v4.2.0-v4.3.4-evidence-collection-plan-2026-09-05.md)
-and [`source gate`](./release-evidence/v4.2.0-v4.3.4-evidence-collection-source-gate-2026-09-05.md).
+and [`source gate`](./release-evidence/v4.2.0-v4.3.4-evidence-collection-source-gate-2026-09-07.md).
 
-Validated state is `7/15` source, `4/15` local control passes, zero jobs, zero
+Validated state is `15/15` source, `4/15` local control passes, zero jobs, zero
 accepted receipts, and zero external verification. Distribution remains `HOLD`
 and production remains `BLOCKED`.
 
