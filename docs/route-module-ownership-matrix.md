@@ -1,11 +1,31 @@
 # Route and Module Ownership Matrix
 
-Last updated: 2026-09-05
+Last updated: 2026-09-09
 Refactor phase: Phase 5 evidence-collection checkpoint, tracked against the Phase 0 map
 
 This matrix captures the current route ownership, the intended product surface, and the module boundary that should own future implementation. It is the routing companion to [`architecture-refactor-plan.md`](./architecture-refactor-plan.md).
 
 ## Ownership Rules
+
+The v5.6-v5.7 signed evidence intake uses
+`/api/experiments/activation-intake` as a thin transport over
+`features/evidence/activation-intake/application.ts`. The feature's trust,
+verification, ledger, store, service and read-model modules own the behavior.
+`features/experiments/ActivationIntakeControls.tsx` composes into the existing
+activation panel and depends on its application response type; it imports no
+server implementation at runtime. CLI and browser calls share the same API.
+The legacy v5.4-v5.5 promotion projection now requires this cryptographic read
+model before reporting review eligibility. Its metadata-only ledger remains
+separately readable. This route neither issues trust keys nor grants production
+or distribution permission.
+
+The v5.8-v5.9 activation operations route follows the same boundary:
+`/api/experiments/activation-operations` is a thin adapter over
+`features/evidence/activation-operations/application.ts`. Policy loading,
+trust snapshots, rotation admission, conflict/quarantine projection, decision
+consumption, export and merge belong to the feature service. The operations
+panel is composed by the activation panel and never receives private key or
+operator token material.
 
 - Product routes are for daily user workflows.
 - Admin routes are for monitoring, configuration, management, audit, and worker operations.

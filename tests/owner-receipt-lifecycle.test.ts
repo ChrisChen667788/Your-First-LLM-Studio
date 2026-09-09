@@ -245,8 +245,8 @@ test("owner receipt lifecycle persists a fail-closed event chain", async (t) => 
         "v3.7.0", "v3.7.1", "v3.7.2", "v3.7.3", "v3.7.4",
       ],
     );
-    assert.equal(RELEASE_TRAIN_MILESTONES.length, 275);
-    assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v4.9.4 source");
+    assert.equal(RELEASE_TRAIN_MILESTONES.length, 350);
+    assert.equal(RELEASE_TRAIN_DEVELOPMENT_VERSION, "v1.7.0-v5.9.4 source");
     assert.ok(milestones.every((entry) => entry.status === "evidence-needed"));
   });
 });

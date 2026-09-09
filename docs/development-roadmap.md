@@ -1,5 +1,40 @@
 # Agent Lab Development Roadmap
 
+## v5.8-v5.9 activation operations continuation
+
+The next fifteen source boundaries move verified signed intake into a bounded
+operator read model: policy/trust snapshots, authority rotation, freshness and
+conflict projection, leased quarantine ownership, review quorum, one-shot
+decision admission, a non-authorizing firewall, and secret-free audit merge.
+See the [plan](./v5.8.0-v5.9.4-activation-operations-plan-2026-09-10.md),
+[operator guide](./activation-operations-operator-guide.md), and
+[validation record](./release-evidence/v5.8.0-v5.9.4-activation-operations-2026-09-10.md).
+Organization evidence, distribution, and production acceptance remain pending.
+
+## v5.6-v5.7 verified intake continuation
+
+The next fifteen source boundaries close the gap between the prior metadata
+validators and actual public-key signature verification. They add operator
+intake, atomic persistence, replay defense, renewal/revocation, independent
+domain pairing and reverified backup merge. See the [plan](./v5.6.0-v5.7.4-activation-intake-plan-2026-09-09.md)
+and [operator protocol](./activation-intake-operator-guide.md). External keys,
+organization evidence, distribution and production acceptance remain pending.
+The [validation record](./release-evidence/v5.6.0-v5.7.4-activation-intake-2026-09-09.md)
+captures 245 tests, all affected typecheck partitions, production build, route
+smoke and two browser viewports.
+
+## v5.4-v5.5 external evidence activation checkpoint
+
+The next fifteen milestones from `v5.4.0` through `v5.5.4` are source-complete. They turn the existing relay/handoff lineage into bounded activation manifests, strict signed stage intake, quarantine, fourteen-domain currentness, and a separately pinned independent-decision request/receipt contract. Nine deterministic controls pass locally; persisted manifests, observations, quarantines, decision requests, decision receipts, and covered milestones remain `0`. The default activation port is deliberately unavailable, so external remains `HOLD` and production remains `BLOCKED`. See the [`plan`](./v5.4.0-v5.5.4-external-evidence-activation-plan-2026-09-09.md) and [`source-gate record`](./release-evidence/v5.4.0-v5.5.4-external-evidence-activation-source-gate-2026-09-09.md).
+
+## v5.2-v5.3 external evidence relay checkpoint
+
+The next fifteen milestones from `v5.2.0` through `v5.3.4` are source-complete. They add a pinned HTTPS relay descriptor, opaque one-shot credential-resolution contract, bounded digest-only request and receipt transport, strict intake, quarantine, freshness and replay defense, fourteen-domain reconciliation, discrepancy handling, independent decision relay, and a non-authorizing production firewall. Nine deterministic controls pass locally; no relay configuration, request, receipt, quarantine, or covered milestone is persisted. The default relay transport is deliberately unavailable, so external remains `HOLD` and production remains `BLOCKED`. See the [`plan`](./v5.2.0-v5.3.4-external-evidence-relay-plan-2026-09-08.md) and [`source-gate record`](./release-evidence/v5.2.0-v5.3.4-external-evidence-relay-source-gate-2026-09-08.md).
+
+## v5.0-v5.1 external evidence handoff checkpoint
+
+The next fifteen milestones from `v5.0.0` through `v5.1.4` are source-complete. They turn authority campaigns into digest-only external handoffs with short-lived credential/trust/rotation/archive witnesses, per-domain observer delivery and signed receipt verification, discrepancy handling, coverage renewal, independent decision envelopes, and a production safety interlock. Nine deterministic controls pass locally; no handoff, authority witness, observer receipt, verified external receipt, decision request, or decision envelope is persisted. The default external port is deliberately unavailable, so external remains `HOLD` and production remains `BLOCKED`. See the [`plan`](./v5.0.0-v5.1.4-external-evidence-handoff-plan-2026-09-08.md) and [`source-gate record`](./release-evidence/v5.0.0-v5.1.4-external-evidence-handoff-source-gate-2026-09-08.md).
+
 ## v4.8-v4.9 evidence authority campaign checkpoint
 
 The next fifteen milestones from `v4.8.0` through `v4.9.4` are source-complete. They add authority profiles with opaque credential references, trust discovery/rotation/retention contracts, fourteen-domain campaigns, independent observer assignments, nonce-bound challenges, receipt quarantine, renewal, escrow coverage, and authority separation. Nine deterministic controls pass locally; no controlled profile, campaign, externally attested receipt, or covered milestone is persisted. The default external port is deliberately unavailable, so external remains `HOLD` and production remains `BLOCKED`. See the [`plan`](./v4.8.0-v4.9.4-evidence-authority-campaign-plan-2026-09-08.md) and [`source-gate record`](./release-evidence/v4.8.0-v4.9.4-evidence-authority-campaign-source-gate-2026-09-08.md).

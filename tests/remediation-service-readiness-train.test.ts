@@ -252,10 +252,10 @@ test("release train exposes all fifteen v3.0-v3.1 milestones", () => {
     "v3.0.5", "v3.0.6", "v3.0.7", "v3.0.8", "v3.0.9",
     "v3.1.0", "v3.1.1", "v3.1.2", "v3.1.3", "v3.1.4",
   ]);
-  assert.equal(RELEASE_TRAIN_MILESTONES.length, 275);
+    assert.equal(RELEASE_TRAIN_MILESTONES.length, 350);
   assert.equal(
     RELEASE_TRAIN_DEVELOPMENT_VERSION,
-    "v1.7.0-v4.9.4 source",
+    "v1.7.0-v5.9.4 source",
   );
   assert.ok(
     milestones.every(

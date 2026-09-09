@@ -1,5 +1,38 @@
 # Release Train and Post-v1 Product Roadmap
 
+## 2026-09-10 v5.8.0-v5.9.4 activation operations
+
+The preceding v5.6-v5.7.4 batch established actual Ed25519 verification and
+durable signed intake. This continuation numbers fifteen operator boundaries:
+policy registry, trust snapshot, authority rotation and admission, replay and
+freshness, discrepancy projection, quarantine claims and fencing, currentness
+quorum, decision admission and one-shot consumption, the non-authorizing
+firewall, portable audit export, and reverified merge. Local source evidence
+cannot grant distribution or production authority. See the [implementation
+plan](./v5.8.0-v5.9.4-activation-operations-plan-2026-09-10.md).
+
+## 2026-09-09 v5.6.0-v5.7.4 verified activation intake
+
+The preceding plan ended at v5.5.4. This continuation numbers fifteen concrete
+intake boundaries: strict envelopes, public-key trust, actual signatures,
+issuer/audience scope, key validity, atomic batches, replay protection,
+revision control, preview, independent pairing, renewal/revocation, signed
+resolution, decision verification, backup merge, and API/CLI/inbox operations.
+See the [implementation plan](./v5.6.0-v5.7.4-activation-intake-plan-2026-09-09.md).
+Source milestones are distinct from public releases and external acceptance.
+
+## 2026-09-09 v5.4.0-v5.5.4 external evidence activation train
+
+The next 15 source versions define what an independently reviewable activation package must contain after relay: one bounded relay/handoff manifest, current signed global stage evidence, paired observer and receipt evidence for all fourteen domains, quarantine, expiry/replay exclusion, and a decision request pinned to a separate authority. The default activation intake remains unavailable. A locally stored manifest or decision-shaped receipt cannot authorize distribution or production. See the [`implementation plan`](./v5.4.0-v5.5.4-external-evidence-activation-plan-2026-09-09.md) and [`source-gate record`](./release-evidence/v5.4.0-v5.5.4-external-evidence-activation-source-gate-2026-09-09.md). External remains `HOLD`; production remains `BLOCKED`.
+
+## 2026-09-08 v5.2.0-v5.3.4 external evidence relay train
+
+The next 15 source versions provide a controlled relay boundary after external handoff: pinned HTTPS authority descriptors, opaque one-shot credential resolution, bounded digest-only request/receipt envelopes, strict intake, quarantine, freshness/replay protection, fourteen-domain reconciliation, independent decision relay, and a non-authorizing production firewall. The default transport remains unavailable until a controlled resolver and authority endpoint are configured. See the [`implementation plan`](./v5.2.0-v5.3.4-external-evidence-relay-plan-2026-09-08.md) and [`source-gate record`](./release-evidence/v5.2.0-v5.3.4-external-evidence-relay-source-gate-2026-09-08.md). External remains `HOLD`; production remains `BLOCKED`.
+
+## 2026-09-08 v5.0.0-v5.1.4 external evidence handoff train
+
+The next 15 source versions provide the safe delivery boundary after an authority campaign: digest-only handoffs, short-lived credential/trust/rotation/archive witnesses, observer delivery, authority dispatch, signed receipt verification, discrepancy state, fourteen-domain coverage, renewal, decision requests, and production safety interlock. Nine deterministic controls pass locally; persisted handoffs, witnesses, observer receipts, verified receipts, and coverage remain zero. See the [`implementation plan`](./v5.0.0-v5.1.4-external-evidence-handoff-plan-2026-09-08.md) and [`source-gate record`](./release-evidence/v5.0.0-v5.1.4-external-evidence-handoff-source-gate-2026-09-08.md). External remains `HOLD`; production remains `BLOCKED`.
+
 ## 2026-09-08 v4.8.0-v4.9.4 evidence authority campaign train
 
 The next 15 source versions operationalize the remaining external-evidence request without granting authority: opaque credential references, strict non-local HTTPS profiles, trust snapshots, retention-policy digests, complete fourteen-domain campaign manifests, independent assignments, short-lived challenges, receipt intake/quarantine, renewal, escrow coverage, and release/production separation. Nine deterministic controls pass locally; persisted external profile, campaign, receipt, and coverage counts remain zero. See the [`implementation plan`](./v4.8.0-v4.9.4-evidence-authority-campaign-plan-2026-09-08.md) and [`source-gate record`](./release-evidence/v4.8.0-v4.9.4-evidence-authority-campaign-source-gate-2026-09-08.md). External remains `HOLD`; production remains `BLOCKED`.

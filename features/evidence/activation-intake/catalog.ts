@@ -1,0 +1,17 @@
+export const ACTIVATION_INTAKE_PLANS = [
+  ["v5.6.0", "Strict signed envelopes", "Reject malformed and unknown fields at the intake boundary."],
+  ["v5.6.1", "Pinned public-key trust", "Load a server-owned Ed25519 trust file with fingerprint and role validation."],
+  ["v5.6.2", "Cryptographic signature verification", "Verify detached signatures over domain-separated, fixed-order signing bytes."],
+  ["v5.6.3", "Issuer and audience binding", "Enforce manifest, audience, stage, role and milestone scope."],
+  ["v5.6.4", "Trust rotation and validity", "Reject revoked keys, future evidence, expiry and excessive validity windows."],
+  ["v5.6.5", "Atomic batch intake", "Commit a valid batch together or retain only rejection digests."],
+  ["v5.6.6", "Durable replay defense", "Deduplicate exact retries and deny nonce or record-id reuse."],
+  ["v5.6.7", "Revision-controlled persistence", "Reject stale writers and retain signed records across process restarts."],
+  ["v5.6.8", "Import preview", "Run the same verification and projection without durable writes."],
+  ["v5.6.9", "Independent domain pairing", "Require distinct observer/verifier issuers signing the same domain evidence digest."],
+  ["v5.7.0", "Renewal and revocation", "Apply explicit supersession and retain irreversible revocation tombstones."],
+  ["v5.7.1", "Signed quarantine resolution", "Accept only an authority-signed resolution of an existing rejection."],
+  ["v5.7.2", "Verified decision intake", "Verify a separate decision authority against the exact request and window."],
+  ["v5.7.3", "Reverified backup merge", "Reverify imported records and merge backups without deleting newer revocations."],
+  ["v5.7.4", "Operator intake workflow", "Provide bounded authenticated API, CLI, and bilingual import/preview/export controls."],
+].map(([version, label, acceptance]) => ({ version, label, acceptance }));

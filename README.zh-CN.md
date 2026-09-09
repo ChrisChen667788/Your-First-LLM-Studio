@@ -2,12 +2,22 @@
 
 [English + 简体中文 README](./README.md)
 
+最新开发批次：[v5.8.0-v5.9.4 激活运营](./docs/v5.8.0-v5.9.4-activation-operations-plan-2026-09-10.md)。在签名接收之上增加运营策略与信任快照、权威密钥轮换、时效与冲突投影、隔离租约、审阅门槛、决策一次性接收、不授权分发/生产防火墙，以及不含密钥的审计导出/合并。默认服务仍未配置，分发为 `HOLD`，生产为 `BLOCKED`。[操作说明](./docs/activation-operations-operator-guide.md)。
+
+最新开发批次：[v5.6.0-v5.7.4 签名证据接收](./docs/v5.6.0-v5.7.4-activation-intake-plan-2026-09-09.md)。已接入真实 Ed25519 验签、服务端公钥固定、角色与受众绑定、原子导入/预检、持久化重放防护、独立证据配对、续期/撤销、签名隔离处理和重新验签备份合并。Experiments 收件箱与 CLI 共用应用服务。以上为源码里程碑，组织证据仍待提供，分发/生产保持 HOLD/BLOCKED。[操作说明](./docs/activation-intake-operator-guide.md)。
+
 ![Release](https://img.shields.io/github/v/release/ChrisChen667788/local-agent-lab?label=release)
 ![License](https://img.shields.io/github/license/ChrisChen667788/local-agent-lab)
 ![Apple Silicon](https://img.shields.io/badge/platform-Apple%20Silicon-0f172a)
 ![MLX](https://img.shields.io/badge/local%20runtime-MLX-06b6d4)
 
-![First LLM Studio 封面](./docs/assets/github-hero.svg)
+<p align="center">
+  <a href="https://github.com/ChrisChen667788/Your-First-LLM-Studio">
+    <img src="./docs/assets/github-hero-data.png" alt="First LLM Studio 模型训练、评测与运行时性能概览" width="100%">
+  </a>
+</p>
+
+> 主视觉中的数据为产品宣传用示例遥测，用于表达训练、评测与性能检测的产品能力；真实工作流与发布证据仍以项目文档为准。
 
 First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。它把本地 MLX 运行时、远端 API 目标、Agent 会话、Compare 对比、Fine-tune 微调、Benchmark 评测、模型发现、runtime 恢复、发布证据和后台监控统一到一个产品界面里。
 
@@ -64,6 +74,9 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v4.4.0-v4.5.4` 证据审定与保留 | **源码完成 / 待真实证据：** 复核身份、issuer/分离/quorum 策略、产物读回/保留、领域指标审定、复观察、可携导出、撤销与 fail-closed 总门禁。 |
 | `v4.6.0-v4.7.4` 证据验收生命周期 | **源码完成 / 待真实证据：** 权威配置、持久包接收、围栏化生命周期、复观察/读回挑战绑定、撤销、可携导入、证据时效与 fail-closed 分发交接。 |
 | `v4.8.0-v4.9.4` 权威证据活动 | **源码完成 / 待真实证据：** 非明文凭据引用、严格权威 Profile、信任/轮换/保留合同、十四领域 campaign、观察者分配、nonce 绑定挑战、回执隔离、时效、escrow 覆盖与权威分离。 |
+| `v5.0.0-v5.1.4` 外部证据交接 | **源码完成 / 待真实证据：** 仅含摘要的 handoff、权威/归档见证、独立观察者交付、权威 dispatch、签名回执核验、异常 case、续期、决策请求/信封与生产安全互锁。 |
+| `v5.2.0-v5.3.4` 外部证据 Relay | **源码完成 / 待真实证据：** 固定 HTTPS Relay 描述符、非明文的一次性凭据解析、有界摘要请求/回执传输、隔离账本、时效/重放防护、14 域对账与不授予生产权限的防火墙。 |
+| `v5.4.0-v5.5.4` 外部证据激活 | **源码完成 / 待真实证据：** 绑定 Relay/handoff 的激活清单、严格签名阶段接收、隔离、14 域时效、独立决策请求/回执绑定和生产准入防火墙。 |
 
 当前已打标签版本见 [`VERSION`](./VERSION)。源码树可能包含下一轮 route-owned 重构 checkpoint，正式标签会在后续发布时推进。
 
@@ -96,6 +109,12 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 当前证据验收生命周期计划：[`v4.6.0-v4.7.4`](./docs/v4.6.0-v4.7.4-evidence-acceptance-plan-2026-09-08.md)。[`源码门禁记录`](./docs/release-evidence/v4.6.0-v4.7.4-evidence-acceptance-source-gate-2026-09-08.md) 固化了 15 个源码合同、8 个本地确定性生命周期控制与生产构建 route-smoke 回执；尚无受控外部权威、不可变归档读回、当前已核验 package、独立观察者或分发批准，因此外部与生产状态继续为 `HOLD` / `BLOCKED`。
 
 当前权威证据活动计划：[`v4.8.0-v4.9.4`](./docs/v4.8.0-v4.9.4-evidence-authority-campaign-plan-2026-09-08.md)。[`源码门禁记录`](./docs/release-evidence/v4.8.0-v4.9.4-evidence-authority-campaign-source-gate-2026-09-08.md) 固化了 15 个源码合同、9 个本地确定性控制与生产构建 route-smoke 证据；尚未配置受控凭据解析器、live authority profile、campaign、外部签收回执、不可变归档读回、独立观察者或分发批准，因此外部与生产状态继续为 `HOLD` / `BLOCKED`。
+
+当前外部证据交接计划：[`v5.0.0-v5.1.4`](./docs/v5.0.0-v5.1.4-external-evidence-handoff-plan-2026-09-08.md)。[`源码门禁记录`](./docs/release-evidence/v5.0.0-v5.1.4-external-evidence-handoff-source-gate-2026-09-08.md) 固化了 15 个源码合同、9 个本地确定性控制与生产构建 route-smoke 证据；尚未配置受控 resolver、权威见证、正式交接、签名核验、不可变归档读回、独立观察者或分发决策，因此外部与生产状态继续为 `HOLD` / `BLOCKED`。
+
+当前外部证据 Relay 计划：[`v5.2.0-v5.3.4`](./docs/v5.2.0-v5.3.4-external-evidence-relay-plan-2026-09-08.md)。[`源码门禁记录`](./docs/release-evidence/v5.2.0-v5.3.4-external-evidence-relay-source-gate-2026-09-08.md) 将端点策略、非明文的一次性凭据解析、严格回执接收、隔离、时效与 14 域对账同真实权威证据分开记录。默认 Relay transport 不可用；尚未配置受控凭据、权威 Relay、不可变归档读回、观察者回执、独立决策、分发批准或生产切换，因此外部继续为 `HOLD`，生产继续为 `BLOCKED`。
+
+当前外部证据激活计划：[`v5.4.0-v5.5.4`](./docs/v5.4.0-v5.5.4-external-evidence-activation-plan-2026-09-09.md)。对应的[`源码门禁记录`](./docs/release-evidence/v5.4.0-v5.5.4-external-evidence-activation-source-gate-2026-09-09.md)将源码、构建和路由证据同独立授权明确分开。它把 Relay/handoff 谱系收紧为激活清单、签名阶段观察、隔离、14 域时效与独立决策请求。默认 activation port 不可用；尚未配置受控 workload identity、权威观察、不可变归档读回、独立观察者、分发决策或生产切换，因此外部继续为 `HOLD`，生产继续为 `BLOCKED`。
 
 当前回执与异常生命周期计划见 [`v3.6.0-v3.7.4`](./docs/v3.6.0-v3.7.4-owner-receipt-exception-lifecycle-plan-2026-08-30.md)：仓库已实现带鉴权的 append-only 回执事件、隔离、补偿、升级确认、限时豁免到期和确定性决策包。源码投影为 6 个通过、7 个需关注、2 个仅外部可满足；本轮未提交真实 owner 回执，外部证据仍为 `0/15`，分发保持 `HOLD`，生产保持 `BLOCKED`。
 
@@ -330,3 +349,17 @@ ModelScope 打包脚本会导出已提交的 Git tree，因此每次同步都可
 - Release notes：[`docs/releases`](./docs/releases)
 - 发布流程：[`docs/release-process.md`](./docs/release-process.md)
 - 最新版本说明：[v1.1.0-rc.2](./docs/releases/v1.1.0-rc.2_2026-07-16.md)
+
+## Star 趋势
+
+<p align="center">
+  <a href="https://www.star-history.com/?repos=ChrisChen667788%2FYour-First-LLM-Studio&amp;type=Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ChrisChen667788%2FYour-First-LLM-Studio&amp;type=Date&amp;theme=dark">
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=ChrisChen667788%2FYour-First-LLM-Studio&amp;type=Date">
+      <img src="https://api.star-history.com/svg?repos=ChrisChen667788%2FYour-First-LLM-Studio&amp;type=Date" alt="First LLM Studio GitHub Star 趋势图" width="760">
+    </picture>
+  </a>
+</p>
+
+<p align="center"><sub>实时趋势图由 <a href="https://www.star-history.com/">Star History</a> 提供。</sub></p>

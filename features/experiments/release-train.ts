@@ -4,10 +4,15 @@ import type {
 } from "@/features/experiments/contracts";
 import { EVIDENCE_ACCEPTANCE_LIFECYCLE_PLANS } from "@/features/evidence/acceptance-lifecycle";
 import { EVIDENCE_AUTHORITY_CAMPAIGN_PLANS } from "@/features/evidence/authority-campaign";
+import { EXTERNAL_EVIDENCE_HANDOFF_PLANS } from "@/features/evidence/external-handoff";
+import { EXTERNAL_EVIDENCE_RELAY_PLANS } from "@/features/evidence/external-relay";
+import { EXTERNAL_EVIDENCE_ACTIVATION_PLANS } from "@/features/evidence/external-activation";
+import { ACTIVATION_INTAKE_PLANS } from "@/features/evidence/activation-intake/catalog";
+import { ACTIVATION_OPERATIONS_PLANS } from "@/features/evidence/activation-operations/catalog";
 
 export const RELEASE_TRAIN_ACTIVE_VERSION = "v1.5.1" as const;
 export const RELEASE_TRAIN_DEVELOPMENT_VERSION =
-  "v1.7.0-v4.9.4 source" as const;
+  "v1.7.0-v5.9.4 source" as const;
 
 export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
   {
@@ -2827,6 +2832,91 @@ export const RELEASE_TRAIN_MILESTONES: ReleaseTrainMilestone[] = [
     nextSlice: index === EVIDENCE_AUTHORITY_CAMPAIGN_PLANS.length - 1
       ? "Collect controlled authority, archive, observer, distribution, and production decisions before changing readiness."
       : `Continue with ${EVIDENCE_AUTHORITY_CAMPAIGN_PLANS[index + 1]?.label || "the next authority campaign boundary"}.`,
+  })),
+  ...EXTERNAL_EVIDENCE_HANDOFF_PLANS.map((plan, index): ReleaseTrainMilestone => ({
+    version: plan.version,
+    label: plan.label,
+    status: "evidence-needed",
+    track: plan.track === "handoff" || plan.track === "delivery"
+      ? "platform"
+      : plan.track === "witness" || plan.track === "verification"
+        ? "evaluation"
+        : "release",
+    targetWindow: index < 10 ? "2028-Q1" : "2028-Q2",
+    objective: `Turn ${plan.label.toLowerCase()} into a strict external-evidence handoff boundary without granting local authority.`,
+    scope: [plan.localGate, plan.externalGate, "Digest-only handoff lineage", "Fail-closed status projection"],
+    acceptance: [
+      "Raw credentials, mutable payloads, stale handoffs, mismatched witnesses, and unsigned decisions fail closed.",
+      "A local handoff, injected port, or decision envelope cannot authorize distribution or production.",
+    ],
+    evidence: ["External handoff conformance", "Controlled authority, archive, observer, and decision record"],
+    nextSlice: index === EXTERNAL_EVIDENCE_HANDOFF_PLANS.length - 1
+      ? "Configure controlled external authorities and collect independently issued evidence before changing readiness."
+      : `Continue with ${EXTERNAL_EVIDENCE_HANDOFF_PLANS[index + 1]?.label || "the next external handoff boundary"}.`,
+  })),
+  ...EXTERNAL_EVIDENCE_RELAY_PLANS.map((plan, index): ReleaseTrainMilestone => ({
+    version: plan.version,
+    label: plan.label,
+    status: "evidence-needed",
+    track: plan.track === "configuration"
+      ? "governance"
+      : plan.track === "transport" || plan.track === "intake"
+        ? "platform"
+        : plan.track === "reconciliation"
+          ? "evaluation"
+          : "release",
+    targetWindow: index < 10 ? "2028-Q2" : "2028-Q3",
+    objective: `Turn ${plan.label.toLowerCase()} into a strict external-evidence relay boundary without granting local authority.`,
+    scope: [plan.localGate, plan.externalGate, "Digest-only relay lineage", "Fail-closed status projection"],
+    acceptance: [
+      "Unsafe endpoints, raw credentials, stale requests, mismatched receipts, and quarantined imports fail closed.",
+      "A local relay descriptor, injected transport, or accepted receipt cannot authorize distribution or production.",
+    ],
+    evidence: ["External relay conformance", "Controlled authority relay, observer, archive, and decision receipt"],
+    nextSlice: index === EXTERNAL_EVIDENCE_RELAY_PLANS.length - 1
+      ? "Configure controlled relay authorities and collect independently issued receipts before changing readiness."
+      : `Continue with ${EXTERNAL_EVIDENCE_RELAY_PLANS[index + 1]?.label || "the next external relay boundary"}.`,
+  })),
+  ...EXTERNAL_EVIDENCE_ACTIVATION_PLANS.map((plan, index): ReleaseTrainMilestone => ({
+    version: plan.version,
+    label: plan.label,
+    status: "evidence-needed",
+    track: plan.track === "manifest"
+      ? "governance"
+      : plan.track === "intake"
+        ? "platform"
+        : plan.track === "reconciliation"
+          ? "evaluation"
+          : "release",
+    targetWindow: index < 10 ? "2028-Q3" : "2028-Q4",
+    objective: `Turn ${plan.label.toLowerCase()} into a strict external-evidence activation boundary without granting local authority.`,
+    scope: [plan.localGate, plan.externalGate, "Digest-only activation lineage", "Fail-closed status projection"],
+    acceptance: [
+      "Malformed, stale, duplicate, mismatched, policy-denied, or unsigned activation evidence fails closed.",
+      "A local activation manifest, imported observation, reconciliation, or decision-shaped receipt cannot authorize distribution or production.",
+    ],
+    evidence: ["External activation conformance", "Controlled authority, archive, observer, and decision record"],
+    nextSlice: index === EXTERNAL_EVIDENCE_ACTIVATION_PLANS.length - 1
+      ? "Configure controlled activation authorities and collect independently issued identity, archive, observer, and decision evidence before changing readiness."
+      : `Continue with ${EXTERNAL_EVIDENCE_ACTIVATION_PLANS[index + 1]?.label || "the next external activation boundary"}.`,
+  })),
+  ...ACTIVATION_INTAKE_PLANS.map((plan): ReleaseTrainMilestone => ({
+    version: plan.version, label: plan.label, status: "evidence-needed", track: "governance",
+    targetWindow: "Source validation; external acceptance pending",
+    objective: plan.acceptance,
+    scope: [plan.acceptance, "Cryptographically verified activation intake"],
+    acceptance: [plan.acceptance, "Local signed fixtures do not authorize distribution or production."],
+    evidence: ["tests/activation-intake.test.ts", "docs/release-evidence/v5.6.0-v5.7.4-activation-intake-2026-09-09.md"],
+    nextSlice: "Configure organization-owned public keys and import independently issued, current signed evidence.",
+  })),
+  ...ACTIVATION_OPERATIONS_PLANS.map((plan): ReleaseTrainMilestone => ({
+    version: plan.version, label: plan.label, status: "evidence-needed", track: "governance",
+    targetWindow: "Source validation; external acceptance pending",
+    objective: plan.acceptance,
+    scope: [plan.acceptance, "Verified activation operations", "Non-authorizing readiness projection"],
+    acceptance: [plan.acceptance, "Local operational evidence cannot authorize distribution or production."],
+    evidence: ["tests/activation-operations.test.ts", "docs/release-evidence/v5.8.0-v5.9.4-activation-operations-2026-09-10.md"],
+    nextSlice: "Provision organization-controlled policy/trust state and independently issued evidence before changing readiness.",
   })),
 ];
 

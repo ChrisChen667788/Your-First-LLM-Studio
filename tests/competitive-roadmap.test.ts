@@ -34,9 +34,9 @@ test("competitive and evidence operations trains remain source-complete and evid
   assert.ok(milestones.every((entry) => entry.status === "evidence-needed"));
   assert.ok(milestones.every((entry) => entry.acceptance.length >= 2));
   assert.ok(milestones.every((entry) => entry.evidence.length >= 2));
-  assert.equal(RELEASE_TRAIN_MILESTONES.length, 275);
+  assert.equal(RELEASE_TRAIN_MILESTONES.length, 350);
   assert.equal(
     RELEASE_TRAIN_DEVELOPMENT_VERSION,
-    "v1.7.0-v4.9.4 source",
+    "v1.7.0-v5.9.4 source",
   );
 });

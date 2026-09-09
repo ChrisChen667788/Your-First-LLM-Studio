@@ -2,9 +2,19 @@
 
 > English | [简体中文](#简体中文)
 
+Latest development batch: [v5.8.0-v5.9.4 Activation Operations](../docs/v5.8.0-v5.9.4-activation-operations-plan-2026-09-10.md). Signed intake now has pinned operational policy/trust snapshots, authority rotation, freshness/conflict projection, leased quarantine, review quorum, one-shot decisions, a non-authorizing firewall, and secret-free audit export/merge. Organization evidence remains required; distribution is `HOLD` and production is `BLOCKED`. [Operator guide](../docs/activation-operations-operator-guide.md).
+
+最新开发批次：[v5.8.0-v5.9.4 激活运营](../docs/v5.8.0-v5.9.4-activation-operations-plan-2026-09-10.md)。签名接收现已增加运营策略/信任快照、权威轮换、时效/冲突投影、隔离租约、审阅门槛、一次性决策、不授权防火墙和不含密钥的审计导出/合并。组织证据仍需提供，分发保持 `HOLD`，生产保持 `BLOCKED`。[操作说明](../docs/activation-operations-operator-guide.md)。
+
+Latest development batch: [v5.6.0-v5.7.4 Verified Activation Intake](../docs/v5.6.0-v5.7.4-activation-intake-plan-2026-09-09.md). Actual Ed25519 verification, server-owned trust pins, atomic import/preview, durable replay protection, independent domain pairing, renewal/revocation, signed quarantine resolution, and reverified backup merge are shared by the Experiments inbox and CLI. Source milestones retain distribution HOLD and production BLOCKED pending organization evidence. [Operator guide](../docs/activation-intake-operator-guide.md).
+
+最新开发批次：[v5.6.0-v5.7.4 签名证据接收](../docs/v5.6.0-v5.7.4-activation-intake-plan-2026-09-09.md)。真实 Ed25519 验签、服务端受信公钥、原子导入/预检、持久化重放防护、独立证据配对、续期/撤销、签名隔离处理和重新验签备份合并已接入 Experiments 与 CLI。以上为源码里程碑，组织证据仍待提供，分发保持 HOLD，生产保持 BLOCKED。[操作说明](../docs/activation-intake-operator-guide.md)。
+
 A local-first LLM studio for Apple Silicon that brings MLX local runtimes, remote API comparison, Agent sessions, Compare Lab, Fine-tune/LoRA, Benchmark, model discovery, Retrieval, Experiments, replay, trace review, runtime recovery, and telemetry into one workspace.
 
-![First LLM Studio hero](../docs/assets/github-hero.svg)
+![First LLM Studio model training, evaluation, and runtime performance overview](../docs/assets/github-hero-data.png)
+
+> The dashboard uses illustrative sample telemetry for product presentation; measured workflows and release evidence remain documented separately.
 
 ## Current Release
 
@@ -60,6 +70,9 @@ This desktop-onboarding release candidate packages the current Studio as an Appl
 | `v4.4.0-v4.5.4` | **Source-complete / evidence-needed:** reviewer attestation, issuer/separation/quorum policy, artifact read-back/retention, domain metric adjudication, re-observation, portable export, revocation, and a fail-closed aggregate gate. |
 | `v4.6.0-v4.7.4` | **Source-complete / evidence-needed:** authority configuration, durable package intake, fenced lifecycle, re-observation/read-back challenge binding, revocation, portable import, evidence aging, and a fail-closed distribution handoff. |
 | `v4.8.0-v4.9.4` | **Source-complete / evidence-needed:** opaque credential references, strict authority profiles, trust/rotation/retention contracts, fourteen-domain campaigns, observer assignments, nonce-bound challenges, receipt quarantine, freshness, escrow coverage, and authority separation. |
+| `v5.0.0-v5.1.4` | **Source-complete / evidence-needed:** digest-only handoffs, authority/archive witnesses, independent observer delivery, authority dispatch, signed receipt verification, discrepancy cases, renewal, decision requests/envelopes, and a production safety interlock. |
+| `v5.2.0-v5.3.4` | **Source-complete / evidence-needed:** pinned HTTPS relay descriptors, opaque one-shot credential resolution, bounded digest-only request/receipt transport, quarantine, freshness/replay defense, fourteen-domain reconciliation, and a non-authorizing production firewall. |
+| `v5.4.0-v5.5.4` | **Source-complete / evidence-needed:** relay/handoff-bound activation manifests, strict signed stage intake, quarantine, fourteen-domain currentness, separate decision request/receipt binding, and a production admission firewall. |
 
 Evidence: [`v2.4.0-v2.5.4 operational lifecycle source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) records 8 passing, 5 attention, and 2 external-only local signals; externally verified records remain `0/15`.
 
@@ -100,6 +113,12 @@ Current evidence-adjudication plan: [`v4.4.0-v4.5.4`](../docs/v4.4.0-v4.5.4-evid
 Current evidence-acceptance plan: [`v4.6.0-v4.7.4`](../docs/v4.6.0-v4.7.4-evidence-acceptance-plan-2026-09-08.md). The [`source-gate record`](../docs/release-evidence/v4.6.0-v4.7.4-evidence-acceptance-source-gate-2026-09-08.md) records all 15 source contracts, eight deterministic lifecycle controls, and the production-build route-smoke receipt. No controlled authority, immutable archive read-back, current externally verified package, independent observer, or distribution approval is present, so external and production states remain `HOLD` / `BLOCKED`.
 
 Current evidence-authority campaign plan: [`v4.8.0-v4.9.4`](../docs/v4.8.0-v4.9.4-evidence-authority-campaign-plan-2026-09-08.md). The [`source-gate record`](../docs/release-evidence/v4.8.0-v4.9.4-evidence-authority-campaign-source-gate-2026-09-08.md) records all 15 source contracts, nine deterministic controls, and production-build route-smoke evidence. No controlled credential resolver, live authority profile, campaign, externally attested receipt, immutable archive read-back, independent observer, or distribution approval is configured, so external and production states remain `HOLD` / `BLOCKED`.
+
+Current external evidence handoff plan: [`v5.0.0-v5.1.4`](../docs/v5.0.0-v5.1.4-external-evidence-handoff-plan-2026-09-08.md). The [`source-gate record`](../docs/release-evidence/v5.0.0-v5.1.4-external-evidence-handoff-source-gate-2026-09-08.md) records all 15 source contracts, nine deterministic controls, and production-build route-smoke evidence. No controlled resolver, witness, handoff, signed verification, immutable archive read-back, independent observer, or distribution decision is configured, so external and production states remain `HOLD` / `BLOCKED`.
+
+Current external evidence relay plan: [`v5.2.0-v5.3.4`](../docs/v5.2.0-v5.3.4-external-evidence-relay-plan-2026-09-08.md). The [`source-gate record`](../docs/release-evidence/v5.2.0-v5.3.4-external-evidence-relay-source-gate-2026-09-08.md) separates endpoint policy, opaque one-shot credential resolution, strict receipt intake, quarantine, freshness, and fourteen-domain reconciliation from real authority evidence. The default relay transport is unavailable; no controlled credential, authority relay, immutable archive read-back, observer receipt, independent decision, distribution approval, or production transition is configured, so external remains `HOLD` and production remains `BLOCKED`.
+
+Current external evidence activation plan: [`v5.4.0-v5.5.4`](../docs/v5.4.0-v5.5.4-external-evidence-activation-plan-2026-09-09.md). Its [`source-gate record`](../docs/release-evidence/v5.4.0-v5.5.4-external-evidence-activation-source-gate-2026-09-09.md) records source, build, and route evidence separately from independent authorization. It turns relay/handoff lineage into strict activation manifests, signed stage observations, quarantine, fourteen-domain currentness, and a separately pinned decision request. The default activation port is unavailable; no controlled workload identity, authority observation, immutable archive read-back, independent observer, distribution decision, or production transition is configured, so external remains `HOLD` and production remains `BLOCKED`.
 
 ## Competitive Position
 
@@ -182,7 +201,9 @@ README screenshots are captured from the running local app with a 1920x1200 view
 
 First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX 本地运行时、远端 API 对比、Agent 会话、Compare Lab、Fine-tune/LoRA、Benchmark、模型发现、Retrieval、Experiments、replay、trace review、runtime recovery 和模型遥测统一到一个界面里。
 
-![First LLM Studio hero](../docs/assets/github-hero.svg)
+![First LLM Studio 模型训练、评测与运行时性能概览](../docs/assets/github-hero-data.png)
+
+> 主视觉中的数据为产品宣传用示例遥测，用于表达训练、评测与性能检测的产品能力；真实工作流与发布证据仍以项目文档为准。
 
 ## 当前版本
 
@@ -238,6 +259,9 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 | `v4.4.0-v4.5.4` | **源码完成 / 待真实证据：** 复核身份、issuer/分离/quorum 策略、产物读回/保留、领域指标审定、复观察、可携导出、撤销与 fail-closed 总门禁。 |
 | `v4.6.0-v4.7.4` | **源码完成 / 待真实证据：** 权威配置、持久包接收、围栏化生命周期、复观察/读回挑战绑定、撤销、可携导入、证据时效与 fail-closed 分发交接。 |
 | `v4.8.0-v4.9.4` | **源码完成 / 待真实证据：** 非明文凭据引用、严格权威 Profile、信任/轮换/保留合同、十四领域 campaign、观察者分配、nonce 绑定挑战、回执隔离、时效、escrow 覆盖与权威分离。 |
+| `v5.0.0-v5.1.4` | **源码完成 / 待真实证据：** 仅含摘要的 handoff、权威/归档见证、独立观察者交付、权威 dispatch、签名回执核验、异常 case、续期、决策请求/信封与生产安全互锁。 |
+| `v5.2.0-v5.3.4` | **源码完成 / 待真实证据：** 固定 HTTPS Relay 描述符、非明文的一次性凭据解析、有界摘要请求/回执传输、隔离账本、时效/重放防护、14 域对账与不授予生产权限的防火墙。 |
+| `v5.4.0-v5.5.4` | **源码完成 / 待真实证据：** 绑定 Relay/handoff 的激活清单、严格签名阶段接收、隔离、14 域时效、独立决策请求/回执绑定和生产准入防火墙。 |
 
 证据：[`v2.4.0-v2.5.4 运行与部署生命周期 source gate`](../docs/release-evidence/v2.4.0-v2.5.4-operational-lifecycle-source-gate-2026-08-29.md) 记录了 8 个通过、5 个需关注和 2 个仅外部可满足的本地信号；独立外部签收仍为 `0/15`。
 
@@ -278,6 +302,12 @@ Source gate：[`v2.6.0-v2.7.4`](../docs/release-evidence/v2.6.0-v2.7.4-governed-
 当前证据验收生命周期计划：[`v4.6.0-v4.7.4`](../docs/v4.6.0-v4.7.4-evidence-acceptance-plan-2026-09-08.md)。[`源码门禁记录`](../docs/release-evidence/v4.6.0-v4.7.4-evidence-acceptance-source-gate-2026-09-08.md) 固化了 15 个源码合同、8 个本地确定性生命周期控制与生产构建 route-smoke 回执；尚无受控外部权威、不可变归档读回、当前已核验 package、独立观察者或分发批准，因此外部与生产状态继续为 `HOLD` / `BLOCKED`。
 
 当前权威证据活动计划：[`v4.8.0-v4.9.4`](../docs/v4.8.0-v4.9.4-evidence-authority-campaign-plan-2026-09-08.md)。[`源码门禁记录`](../docs/release-evidence/v4.8.0-v4.9.4-evidence-authority-campaign-source-gate-2026-09-08.md) 固化了 15 个源码合同、9 个本地确定性控制与生产构建 route-smoke 证据；尚未配置受控凭据解析器、live authority profile、campaign、外部签收回执、不可变归档读回、独立观察者或分发批准，因此外部与生产状态继续为 `HOLD` / `BLOCKED`。
+
+当前外部证据交接计划：[`v5.0.0-v5.1.4`](../docs/v5.0.0-v5.1.4-external-evidence-handoff-plan-2026-09-08.md)。[`源码门禁记录`](../docs/release-evidence/v5.0.0-v5.1.4-external-evidence-handoff-source-gate-2026-09-08.md) 固化了 15 个源码合同、9 个本地确定性控制与生产构建 route-smoke 证据；尚未配置受控 resolver、权威见证、正式交接、签名核验、不可变归档读回、独立观察者或分发决策，因此外部与生产状态继续为 `HOLD` / `BLOCKED`。
+
+当前外部证据 Relay 计划：[`v5.2.0-v5.3.4`](../docs/v5.2.0-v5.3.4-external-evidence-relay-plan-2026-09-08.md)。[`源码门禁记录`](../docs/release-evidence/v5.2.0-v5.3.4-external-evidence-relay-source-gate-2026-09-08.md) 将端点策略、非明文的一次性凭据解析、严格回执接收、隔离、时效与 14 域对账同真实权威证据分开记录。默认 Relay transport 不可用；尚未配置受控凭据、权威 Relay、不可变归档读回、观察者回执、独立决策、分发批准或生产切换，因此外部继续为 `HOLD`，生产继续为 `BLOCKED`。
+
+当前外部证据激活计划：[`v5.4.0-v5.5.4`](../docs/v5.4.0-v5.5.4-external-evidence-activation-plan-2026-09-09.md)。对应的[`源码门禁记录`](../docs/release-evidence/v5.4.0-v5.5.4-external-evidence-activation-source-gate-2026-09-09.md)将源码、构建和路由证据同独立授权明确分开。它把 Relay/handoff 谱系收紧为激活清单、签名阶段观察、隔离、14 域时效与独立决策请求。默认 activation port 不可用；尚未配置受控 workload identity、权威观察、不可变归档读回、独立观察者、分发决策或生产切换，因此外部继续为 `HOLD`，生产继续为 `BLOCKED`。
 
 ## 竞品定位对比
 
@@ -353,3 +383,15 @@ README 截图来自本地运行版本，使用 1920x1200 视口按 2x DPR 生成
 - ModelScope 主页: [https://www.modelscope.cn/profile/haozi667788](https://www.modelscope.cn/profile/haozi667788)
 - 默认 ModelScope repo id：`haozi667788/first-llm-studio`
 - 最新版本说明：[`v1.1.0-rc.2`](../docs/releases/v1.1.0-rc.2_2026-07-16.md)
+
+## Star History / Star 趋势
+
+<p align="center">
+  <a href="https://www.star-history.com/?repos=ChrisChen667788%2FYour-First-LLM-Studio&amp;type=Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ChrisChen667788%2FYour-First-LLM-Studio&amp;type=Date&amp;theme=dark">
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=ChrisChen667788%2FYour-First-LLM-Studio&amp;type=Date">
+      <img src="https://api.star-history.com/svg?repos=ChrisChen667788%2FYour-First-LLM-Studio&amp;type=Date" alt="First LLM Studio GitHub Star History Chart" width="760">
+    </picture>
+  </a>
+</p>

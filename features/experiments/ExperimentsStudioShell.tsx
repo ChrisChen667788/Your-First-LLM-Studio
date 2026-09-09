@@ -55,6 +55,9 @@ import { EvidenceCollectionTrainPanel } from "@/features/experiments/EvidenceCol
 import { EvidenceAdjudicationTrainPanel } from "@/features/experiments/EvidenceAdjudicationTrainPanel";
 import { EvidenceAcceptanceTrainPanel } from "@/features/experiments/EvidenceAcceptanceTrainPanel";
 import { EvidenceAuthorityCampaignTrainPanel } from "@/features/experiments/EvidenceAuthorityCampaignTrainPanel";
+import { ExternalEvidenceHandoffTrainPanel } from "@/features/experiments/ExternalEvidenceHandoffTrainPanel";
+import { ExternalEvidenceRelayTrainPanel } from "@/features/experiments/ExternalEvidenceRelayTrainPanel";
+import { ExternalEvidenceActivationTrainPanel } from "@/features/experiments/ExternalEvidenceActivationTrainPanel";
 
 export function ExperimentsStudioShell() {
   const { locale } = useLocale();
@@ -104,6 +107,9 @@ export function ExperimentsStudioShell() {
       <EvidenceAdjudicationTrainPanel locale={locale} />
       <EvidenceAcceptanceTrainPanel locale={locale} />
       <EvidenceAuthorityCampaignTrainPanel locale={locale} />
+      <ExternalEvidenceHandoffTrainPanel locale={locale} />
+      <ExternalEvidenceRelayTrainPanel locale={locale} />
+      <ExternalEvidenceActivationTrainPanel locale={locale} />
       <ArtifactFederationTrustPanel locale={locale} />
       <PostV1PromotionGatePanel locale={locale} />
       <PromotionGatePanel locale={locale} />

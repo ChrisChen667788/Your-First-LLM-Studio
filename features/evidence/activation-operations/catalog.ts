@@ -1,0 +1,17 @@
+export const ACTIVATION_OPERATIONS_PLANS = [
+  ["v5.8.0", "Activation policy registry", "Pin the operational policy, required stages, fourteen domains, and bounded clock/lease windows."],
+  ["v5.8.1", "Trust snapshot projection", "Derive a deterministic digest of public-key identities and scope without exporting key material."],
+  ["v5.8.2", "Authority rotation proposal", "Verify a signed predecessor-to-successor Ed25519 rotation against the active manifest."],
+  ["v5.8.3", "Rotation admission ledger", "Persist one revision-controlled rotation transition per activation manifest."],
+  ["v5.8.4", "Rotation replay protection", "Reject repeated transition envelopes and preserve the original rotation lineage."],
+  ["v5.8.5", "Scoped freshness clock", "Apply policy and trust windows to current read models with bounded operator clock skew."],
+  ["v5.8.6", "Cross-source discrepancy projection", "Surface conflicting evidence digests for one manifest, stage, and domain instead of picking a winner."],
+  ["v5.8.7", "Quarantine case lifecycle", "Create manifest-scoped cases with claim, lease expiry, and release semantics."],
+  ["v5.8.8", "Quarantine ownership fencing", "Use optimistic revisions and owner binding so stale operators cannot overwrite a live claim."],
+  ["v5.8.9", "Currentness and review quorum", "Require policy, trust, rotation, conflict, quarantine, global-stage, and fourteen-domain checks together."],
+  ["v5.9.0", "Decision admission lifecycle", "Admit a decision only for a currently eligible manifest and bind it to one request."],
+  ["v5.9.1", "One-shot decision consumption", "Reject a second decision for the same request and expose consumed state."],
+  ["v5.9.2", "Non-authorizing admission firewall", "Keep distribution HOLD and production BLOCKED regardless of local operational evidence."],
+  ["v5.9.3", "Portable operations audit export", "Export signed ledger references, trust snapshot, policy digest, projection, and checksum without secrets."],
+  ["v5.9.4", "Reconciled operator surface", "Expose API, audit export, UI status, and durable merge behavior with safe errors and route coverage."],
+].map(([version, label, acceptance]) => ({ version, label, acceptance }));

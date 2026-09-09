@@ -8,7 +8,13 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const baseUrl = (process.env.BASE_URL || "http://127.0.0.1:3011").replace(/\/+$/, "");
 const reportPath = path.join(root, "output", "ci-route-smoke.json");
+const configuredTimeoutMs = Number(process.env.CI_ROUTE_SMOKE_TIMEOUT_MS || "90000");
+const routeTimeoutMs = Number.isInteger(configuredTimeoutMs) && configuredTimeoutMs >= 1_000 && configuredTimeoutMs <= 300_000
+  ? configuredTimeoutMs
+  : 90_000;
 const checks = [
+  { id: "activation-intake", path: "/api/experiments/activation-intake", kind: "json", contract: "ok" },
+  { id: "activation-operations", path: "/api/experiments/activation-operations", kind: "json", contract: "ok" },
   { id: "home", path: "/", kind: "html" },
   { id: "agent", path: "/agent", kind: "html" },
   { id: "compare", path: "/compare", kind: "html" },
@@ -99,6 +105,9 @@ const checks = [
   { id: "evidence-adjudication-train", path: "/api/experiments/evidence-adjudication-train", kind: "json", contract: "ok" },
   { id: "evidence-acceptance-train", path: "/api/experiments/evidence-acceptance-train", kind: "json", contract: "ok" },
   { id: "evidence-authority-campaign-train", path: "/api/experiments/evidence-authority-campaign-train", kind: "json", contract: "ok" },
+  { id: "evidence-external-handoff-train", path: "/api/experiments/evidence-external-handoff-train", kind: "json", contract: "ok" },
+  { id: "evidence-external-relay-train", path: "/api/experiments/evidence-external-relay-train", kind: "json", contract: "ok" },
+  { id: "evidence-external-activation-train", path: "/api/experiments/evidence-external-activation-train", kind: "json", contract: "ok" },
 ];
 
 function validateJsonContract(body, contract) {
@@ -119,7 +128,7 @@ for (const check of checks) {
   try {
     const response = await fetch(`${baseUrl}${check.path}`, {
       headers: { accept: check.kind === "json" ? "application/json" : "text/html" },
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(routeTimeoutMs),
     });
     const body = await response.text();
     const contentOk = check.kind === "json"
