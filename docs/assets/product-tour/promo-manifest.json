@@ -1,35 +1,132 @@
 {
-  "schemaVersion": "first-llm-studio.product-promo.v1",
-  "renderedAt": "2026-10-06T10:42:25.887Z",
-  "durationSeconds": 21.867,
+  "schemaVersion": "first-llm-studio.product-promo.v2",
+  "renderedAt": "2026-10-06T12:36:20.574Z",
+  "durationSeconds": 30,
+  "creativeDirection": "Data in Motion: full-bleed Three.js model sculpture, kinetic typography, sourced checkpoint curve, 500-sample field, illustrative runtime traces; no UI screenshot collage.",
   "video": {
     "codec_name": "h264",
-    "width": 1600,
-    "height": 900,
+    "codec_type": "video",
+    "width": 1920,
+    "height": 1080,
     "avg_frame_rate": "30/1"
   },
-  "audio": "none; deliberately silent for README autoplay",
+  "audio": {
+    "codec_name": "aac",
+    "codec_type": "audio",
+    "sample_rate": "48000",
+    "channels": 2,
+    "avg_frame_rate": "0/0"
+  },
+  "audioProvenance": "Original deterministic procedural electronic score and transition sounds; generated from repository source, no vendor audio or third-party samples.",
   "currentCaptureManifest": "docs/assets/product-tour/2026-10-06/manifest.json",
-  "archivedEvidence": [
-    "docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png",
-    "docs/assets/screenshots/math500-reproducibility-performance.png"
+  "metrics": {
+    "modelBillions": 4,
+    "peakTrainingMemoryGb": 3.316,
+    "trainingSteps": 816,
+    "bestValidationLoss": 0.066,
+    "bestStep": 800,
+    "scoredSamples": 500,
+    "scorerReplayAgreementPercent": 100,
+    "modelAccuracyPercent": 32,
+    "verifiedRuntimes": 3,
+    "localSmokeTokensPerSecond": 234.02,
+    "smokeRuns": 3
+  },
+  "checkpointPoints": [
+    [
+      100,
+      0.25
+    ],
+    [
+      200,
+      0.132
+    ],
+    [
+      300,
+      0.079
+    ],
+    [
+      400,
+      0.08
+    ],
+    [
+      500,
+      0.071
+    ],
+    [
+      600,
+      0.072
+    ],
+    [
+      700,
+      0.077
+    ],
+    [
+      800,
+      0.066
+    ]
   ],
-  "evidenceBoundary": "The film is a motion-graphics montage of isolated current UI screenshots and labeled historical local evidence, not a live end-to-end recording, customer outcome, external acceptance, public release, or production approval.",
+  "visualQa": {
+    "desktopAndMobileChecks": 12,
+    "deterministic": true,
+    "moving": true,
+    "nonblankSculpture": true,
+    "overflow": false
+  },
+  "evidenceBoundary": "Historical local evidence only. The sculpture, sample reveal and runtime traces are artistic representations, not live telemetry. Loss is not task quality; scorer replay agreement is not model accuracy; one-prompt three-run throughput is not a general performance promise. No new benchmark, customer ROI, external acceptance or production approval.",
+  "sources": [
+    {
+      "file": "videos/first-llm-studio-promo/index.html",
+      "sha256": "93cd96a2b45a359e834d4c1466550efce3720ad858db7ef1c27f2ea99b4c9588"
+    },
+    {
+      "file": "videos/first-llm-studio-promo/scene.mjs",
+      "sha256": "1905285a87ca1b3ea3e618370fd9ac17122bffae136a548062bf2868819e1298"
+    },
+    {
+      "file": "videos/first-llm-studio-promo/package-lock.json",
+      "sha256": "8f638d9229a9278672cf267a78f2815430b9888c9695d38479b9cc4a8e8b6ef8"
+    },
+    {
+      "file": "scripts/render-product-promo.mjs",
+      "sha256": "dd398eb3a37cf848cc751955128cee6ce4b8edbe9d312b23c53a6ba148969504"
+    },
+    {
+      "file": "scripts/synthesize-product-score.mjs",
+      "sha256": "ba6b45fb21a4c94a8ee1dda4fe134546d3a8e748c089b2e64f58c938d282cb75"
+    },
+    {
+      "file": "docs/release-evidence/finetune-qwen4b-lora-2026-07-01/run-manifest.json",
+      "sha256": "d6b4a32a716ff2332b09f992dd30a97f2d55aa430ed2122bb65ac4ecf3aba3d8"
+    },
+    {
+      "file": "docs/release-evidence/v1.6.5-benchmark-reproducibility-latest.json",
+      "sha256": "f652928641c5d657cdfebdb26790b8733ddad8c536c71b5752b675261f7a50fd"
+    },
+    {
+      "file": "docs/release-evidence/v1.2.1-runtime-fabric-acceptance-2026-08-30.json",
+      "sha256": "cdfcce81d91cbbb917ed3a3a0816ced8c2c1f333fc4dc4dc18c9c0608cafec85"
+    },
+    {
+      "file": "docs/release-evidence/v1.6.3-benchmark-qualification-latest.json",
+      "sha256": "0ad261f70d6b8da6e7020f91ab355581d06899674d019f32dd3e3f223926ea58"
+    }
+  ],
   "artifacts": {
     "mp4": {
       "file": "docs/assets/product-tour/first-llm-studio-promo.mp4",
-      "bytes": 3767341,
-      "sha256": "21e449b28644e661b2b6ff3920ab64dda82381fa2d9199041119a204fd31ca95"
+      "bytes": 5048665,
+      "sha256": "dd1054954a67511b424960bf387fa99bce89f3b81f31a8b82790ccb4ea3f5d1b"
     },
     "gif": {
       "file": "docs/assets/product-tour/first-llm-studio-promo.gif",
-      "bytes": 6239453,
-      "sha256": "c4e096c3dcbe346faa24d02133bcf1677ec5030fbaddba66fb6a56f2ac861844"
+      "bytes": 3724366,
+      "sha256": "8a400b2cfe95505e1b5de4c80c8ae1c7844191f1740bfe3c55704e29d2dd65ca"
     },
     "poster": {
       "file": "docs/assets/product-tour/first-llm-studio-promo.jpg",
-      "bytes": 115624,
-      "sha256": "a62e7a99699c858f0dea6df4b5c912a81707dd7e6c50e4702384b1da31652ad6"
+      "bytes": 200242,
+      "sha256": "4601eb7e70e9e563bebad2f936a09b7e9d804285284f11443d0842d202a26444"
     }
   }
 }

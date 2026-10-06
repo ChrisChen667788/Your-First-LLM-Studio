@@ -36,7 +36,7 @@ async function verifyDigest(file, receipt) {
 
 function probe(file) {
   return JSON.parse(execFileSync(process.env.FFPROBE_PATH ?? "ffprobe", [
-    "-v", "error", "-show_entries", "format=duration:stream=codec_type,codec_name,width,height",
+    "-v", "error", "-show_entries", "format=duration:stream=codec_type,codec_name,width,height,avg_frame_rate,nb_frames,sample_rate,channels",
     "-of", "json", file,
   ], { encoding: "utf8" }));
 }
@@ -57,7 +57,7 @@ for (const image of capture.images) {
 }
 
 const promo = JSON.parse(await readFile(path.join(promoDir, "promo-manifest.json"), "utf8"));
-assert.equal(promo.schemaVersion, "first-llm-studio.product-promo.v1");
+assert.equal(promo.schemaVersion, "first-llm-studio.product-promo.v2");
 assert.equal(promo.currentCaptureManifest, "docs/assets/product-tour/2026-10-06/manifest.json");
 assert.deepEqual(Object.keys(promo.artifacts).sort(), ["gif", "mp4", "poster"]);
 for (const receipt of Object.values(promo.artifacts)) {
@@ -68,19 +68,67 @@ assert.ok(promo.artifacts.gif.bytes < 6 * 1024 * 1024);
 const video = probe(inside(root, promo.artifacts.mp4.file));
 const picture = video.streams.find((stream) => stream.codec_type === "video");
 assert.equal(picture?.codec_name, "h264");
-assert.equal(picture?.width, 1600);
-assert.equal(picture?.height, 900);
-assert.equal(video.streams.some((stream) => stream.codec_type === "audio"), false);
-assert.ok(Number(video.format.duration) >= 20 && Number(video.format.duration) <= 24);
+assert.equal(picture?.width, 1920);
+assert.equal(picture?.height, 1080);
+assert.equal(picture?.avg_frame_rate, "30/1");
+assert.equal(Number(picture?.nb_frames), 900);
+const audio = video.streams.find((stream) => stream.codec_type === "audio");
+assert.equal(audio?.codec_name, "aac");
+assert.equal(audio?.sample_rate, "48000");
+assert.equal(audio?.channels, 2);
+assert.equal(Number(video.format.duration), 30);
 assert.equal(Number(Number(video.format.duration).toFixed(3)), promo.durationSeconds);
-for (const [kind, minWidth] of [["gif", 680], ["poster", 1600]]) {
+for (const [kind, minWidth] of [["gif", 640], ["poster", 1920]]) {
   const media = probe(inside(root, promo.artifacts[kind].file));
   const stream = media.streams.find((item) => item.codec_type === "video");
   assert.ok(stream?.width >= minWidth, `${kind} is unexpectedly small`);
   assert.ok(stream?.height > 300, `${kind} height is unexpectedly small`);
 }
 
-const entryPoints = ["README.md", "README.zh-CN.md", "modelscope/README.md", "docs/product-tour-and-positioning-2026-10-06.md"];
+assert.ok(promo.audioProvenance.includes("Original deterministic"));
+assert.ok(promo.evidenceBoundary.includes("scorer replay agreement is not model accuracy"));
+assert.deepEqual(promo.visualQa, { desktopAndMobileChecks: 12, deterministic: true, moving: true, nonblankSculpture: true, overflow: false });
+for (const receipt of promo.sources) {
+  const bytes = await readFile(inside(root, receipt.file));
+  assert.equal(createHash("sha256").update(bytes).digest("hex"), receipt.sha256, `Film source drift: ${receipt.file}`);
+}
+const json = async file => JSON.parse(await readFile(path.join(root, file), "utf8"));
+const training = await json("docs/release-evidence/finetune-qwen4b-lora-2026-07-01/run-manifest.json");
+const math = await json("docs/release-evidence/v1.6.5-benchmark-reproducibility-latest.json");
+const fabric = await json("docs/release-evidence/v1.2.1-runtime-fabric-acceptance-2026-08-30.json");
+const smoke = await json("docs/release-evidence/v1.6.3-benchmark-qualification-latest.json");
+assert.equal(promo.metrics.peakTrainingMemoryGb, training.metricsSummary.peakMemoryGb);
+assert.equal(promo.metrics.trainingSteps, training.metricsSummary.latestStep);
+assert.equal(promo.metrics.bestValidationLoss, training.metricsSummary.valid.best);
+assert.equal(promo.metrics.bestStep, training.bestCheckpoint.step);
+assert.ok(training.baseModel.includes("Qwen3-4B"));
+assert.equal(promo.metrics.modelBillions, 4);
+assert.equal(promo.metrics.scoredSamples, math.analysis.totals.scored);
+assert.equal(promo.metrics.modelAccuracyPercent, math.analysis.accuracy);
+assert.equal(promo.metrics.scorerReplayAgreementPercent, math.replay.agreementRate);
+assert.equal(promo.metrics.verifiedRuntimes, fabric.acceptance.backends.filter(backend => backend.status === "pass" && backend.realProcess).length);
+assert.ok(smoke.runtimeSmoke.report.includes(`| ${promo.metrics.localSmokeTokensPerSecond} |`));
+assert.ok(smoke.runtimeSmoke.report.includes(`- Runs: ${promo.metrics.smokeRuns}`));
+const composition = await readFile(path.join(root, "videos/first-llm-studio-promo/index.html"), "utf8");
+assert.ok(!composition.includes("<img"), "Screenshot collage returned to the film");
+for (const label of ["3.316 GB", "816", "0.066", "500", "100% SCORER REPLAY AGREEMENT", "MODEL ACCURACY 32%", "234.02", "1 prompt × 3 runs"]) {
+  assert.ok(composition.includes(label), `Missing metric scope: ${label}`);
+}
+const scene = await readFile(path.join(root, "videos/first-llm-studio-promo/scene.mjs"), "utf8");
+assert.ok(scene.includes("const points = checkpointPoints"), "Checkpoint curve must use the parsed training archive");
+assert.deepEqual(promo.checkpointPoints, training.validationSeries.filter(point => point.step >= 100 && point.step <= 800).map(point => [point.step, point.loss]));
+assert.ok(scene.includes("ARTISTIC TRACES / 示意动态"));
+
+const storyboard = await json("videos/first-llm-studio-promo/storyboard.json");
+assert.equal(storyboard.fps, 30);
+assert.equal(storyboard.durationSeconds, 30);
+assert.equal(storyboard.scenes.length, 6);
+storyboard.scenes.forEach((beat, index) => {
+  assert.equal(beat.start, index * 5);
+  assert.equal(beat.end, (index + 1) * 5);
+});
+
+const entryPoints = ["README.md", "README.zh-CN.md", "modelscope/README.md", "docs/product-tour-and-positioning-2026-10-06.md", "docs/product-film-creative-review-2026-10-06.md"];
 for (const entry of entryPoints) {
   const documentPath = path.join(root, entry);
   const document = await readFile(documentPath, "utf8");

@@ -1,0 +1,16 @@
+{
+  "title": "First LLM Studio / Data in Motion",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "durationSeconds": 30,
+  "audio": "original procedural electronic score; no third-party samples",
+  "scenes": [
+    { "id": "brand", "start": 0, "end": 5, "visual": "Full-bleed layered model sculpture and large brand typography", "message": "Your models. Your machine." },
+    { "id": "training", "start": 5, "end": 10, "visual": "Sculpture separates slightly; large 4B with memory and step data", "message": "4B LoRA. Locally.", "scope": "2026-07-01 starter-dataset MLX run" },
+    { "id": "checkpoints", "start": 10, "end": 15, "visual": "Coral checkpoint curve and 0.066 type", "message": "Find your checkpoint.", "scope": "Steps 100-800; validation loss is not task quality" },
+    { "id": "scoring", "start": 15, "end": 20, "visual": "Frost-white frame, 500 type, 25-by-20 sample field", "message": "Every sample. Scored.", "scope": "100% scorer replay agreement; model accuracy 32%; same host" },
+    { "id": "runtime", "start": 20, "end": 25, "visual": "Three labeled artistic traces and scoped local throughput", "message": "Runtimes. One lab.", "scope": "Local Qwen3 0.6B, one prompt repeated three times; trace amplitudes are illustrative" },
+    { "id": "close", "start": 25, "end": 30, "visual": "Acid-green brand closing and sculpture", "message": "Train. Evaluate. Understand." }
+  ]
+}

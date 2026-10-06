@@ -56,21 +56,24 @@ Historical evidence remains linked, not silently replaced: [Qwen3 4B LoRA archiv
 
 ## Short Film / 宣传短片
 
-The [MP4](./assets/product-tour/first-llm-studio-promo.mp4), [README GIF](./assets/product-tour/first-llm-studio-promo.gif), [poster](./assets/product-tour/first-llm-studio-promo.jpg), and [render manifest](./assets/product-tour/promo-manifest.json) form one silent bilingual product tour. The source composition is [`videos/first-llm-studio-promo/index.html`](../videos/first-llm-studio-promo/index.html). It follows the value-first, screenshot-and-provenance pattern used by [Wind Comic](https://github.com/ChrisChen667788/wind-comic) and [Anti-FOMO](https://github.com/ChrisChen667788/antifomo), rendered with this repository's existing Playwright/FFmpeg stack.
+The remade [30-second MP4](./assets/product-tour/first-llm-studio-promo.mp4), [silent README GIF](./assets/product-tour/first-llm-studio-promo.gif), [poster](./assets/product-tour/first-llm-studio-promo.jpg), and [v2 render manifest](./assets/product-tour/promo-manifest.json) use a **Data in Motion** direction: full-bleed Three.js model art, oversized data typography, a checkpoint curve, a 500-sample field, and runtime traces. There are no UI screenshots in the film. The MP4 has an original procedural electronic score; the GIF is silent. See the [creative review, official references and numeric scope](./product-film-creative-review-2026-10-06.md). The source composition is [`index.html`](../videos/first-llm-studio-promo/index.html) plus [`scene.mjs`](../videos/first-llm-studio-promo/scene.mjs), rendered deterministically with Playwright/FFmpeg.
+
+重制版为 **30 秒 Data in Motion 数据视觉短片**：全幅立体模型、大字号数据、训练曲线、500 点评测阵列和运行时动态图形，不再使用界面截图拼贴。MP4 含原创程序化电子配乐，README GIF 保持静音；[设计复查](./product-film-creative-review-2026-10-06.md)记录官方参考、数据范围与未采纳方案。
 
 | Beat | On-screen idea | Source |
 | --- | --- | --- |
-| Open | Build locally. Decide with evidence. | Typography only. |
-| Agent + Compare | One workbench, inspect model behavior. | Fresh isolated UI captures. |
-| Fine-tune | Recipe controls plus labeled historical LoRA chart. | Fresh UI + archived 2026-07-01 local run. |
-| Benchmark | Pinned scoring and replay. | Labeled archived MATH-500 local run. |
-| Experiments + close | Keep the chain reviewable. | Fresh isolated UI and product name. |
+| 0-5 s | First LLM Studio; your models, your machine. | Original animated 3D model sculpture. |
+| 5-10 s | 4B LoRA, 3.316 GB peak training memory, 816 steps. | Archived Qwen3 4B starter-dataset MLX run, 2026-07-01. |
+| 10-15 s | Best validation loss 0.066 at step 800. | Eight archived checkpoints, steps 100-800; loss is not downstream task quality. |
+| 15-20 s | 500 items scored, 100% scorer replay agreement. | Archived MATH-500 local run; actual model accuracy is 32%, explicitly shown. |
+| 20-25 s | Three verified local runtimes; 234.02 tokens/s smoke result. | Archived 2026-08-30 local receipts; throughput is one prompt repeated three times. Waveforms are illustrative, not measured traces. |
+| 25-30 s | Train, evaluate, understand. | Original brand closing and repository link. |
 
-The film is a **montage**, not a continuous recorded session. It does not demonstrate live provider entitlement, new training, new benchmark results, customer outcomes, external acceptance, distribution approval, or production readiness. The MP4 is silent so the GIF/README preview has no audio expectation.
+The film is **art-directed motion graphics**, not a live recorded session. Numbers are historical local evidence; the 3D sculpture, sample-filling animation and runtime waveforms are artistic representations. Scorer replay agreement is not model accuracy; training loss is not task quality; a small local throughput sample is not a hardware-independent promise. No new run, customer ROI, external acceptance, distribution approval, or production readiness is claimed.
 
-本片是**镜头蒙太奇**，不是连续实机任务录像；不代表实时供应商账号权限、新训练或评测结果、客户成效、外部验收、分发批准或生产就绪。MP4 刻意无声，便于 README 动图预览。
+本片是**数据视觉动画**，不是连续实机任务录像。数字来自历史本地证据；立体结构、阵列填充和动态波形是艺术表达。评分回放一致率不等于答题准确率，训练损失不等于任务质量，本机小样本吞吐量也不是跨硬件承诺。没有新增实测、客户 ROI、外部验收、分发批准或生产就绪的主张。
 
-To refresh on a clean local build: start the app with isolated `LOCAL_AGENT_DATA_DIR` and `FIRST_LLM_WORKSPACE_ROOT`, then run `npm run screenshots:product-tour` and `npm run video:promo`. Recheck every frame and every source receipt before publishing. The manifests describe the build used here; a future build needs a new dated capture, not a silent overwrite.
+To render the film with Node 22: `npm ci --prefix videos/first-llm-studio-promo`, then `npm run video:promo` and `npm run validate:product-promo`. `node scripts/render-product-promo.mjs --preview` renders a contact sheet and desktop/mobile layout, canvas and seek checks first. The film needs no running application or remote media. UI recapture remains a separate isolated-build workflow with a new dated capture directory; do not overwrite its original provenance.
 
 ## Product Document Audit / 产品文档复查
 

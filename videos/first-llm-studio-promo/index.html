@@ -1,104 +1,96 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>First LLM Studio | Product Film</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>First LLM Studio | Data In Motion</title>
   <style>
-    :root { color-scheme: dark; font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    @font-face { font-family: Manrope; src: url('./node_modules/@fontsource/manrope/files/manrope-latin-800-normal.woff2'); font-weight: 800; }
+    @font-face { font-family: Manrope; src: url('./node_modules/@fontsource/manrope/files/manrope-latin-400-normal.woff2'); font-weight: 400; }
+    @font-face { font-family: Plex; src: url('./node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2'); }
     * { box-sizing: border-box; }
-    html, body { width: 1600px; height: 900px; margin: 0; overflow: hidden; }
-    body { background: #07121b; color: #f5fbff; }
-    body::before { content: ""; position: absolute; inset: 0; opacity: .34; background-image: linear-gradient(#244351 1px, transparent 1px), linear-gradient(90deg, #244351 1px, transparent 1px); background-size: 80px 80px; }
-    .frame { position: absolute; inset: 24px; border: 1px solid #275365; pointer-events: none; z-index: 10; }
-    .brand { position: absolute; top: 50px; left: 62px; z-index: 20; display: flex; align-items: center; gap: 18px; font-size: 18px; font-weight: 800; letter-spacing: 2px; }
-    .brand-mark { width: 31px; height: 31px; border: 5px solid #5de3e9; border-right-color: #f3b94e; transform: rotate(45deg); }
-    .topline { position: absolute; right: 62px; top: 57px; z-index: 20; color: #9ac5d2; font-size: 15px; letter-spacing: 2px; }
-    .bottomline { position: absolute; bottom: 48px; left: 62px; right: 62px; z-index: 20; display: flex; justify-content: space-between; border-top: 1px solid #275365; padding-top: 16px; color: #84a4b3; font-size: 14px; letter-spacing: 1.5px; }
-    .progress { position: absolute; bottom: 24px; left: 24px; width: calc(100% - 48px); height: 4px; background: #15313d; z-index: 22; }
-    .progress::after { content: ""; display: block; height: 100%; width: 100%; background: #5de3e9; transform-origin: left; transform: scaleX(0); animation: progress 20.8s linear both paused; }
-    body.playing .progress::after { animation-play-state: running; }
-    @keyframes progress { to { transform: scaleX(1); } }
-    .scene { position: absolute; inset: 0; opacity: 0; display: flex; align-items: center; padding: 135px 72px 115px; animation: scene-reveal var(--duration) ease-in-out var(--begin) both paused; }
-    .scene.close { animation-name: closing-reveal; }
-    body.playing .scene, body.playing .scene * { animation-play-state: running; }
-    @keyframes scene-reveal { 0% { opacity: 0; } 9% { opacity: 1; } 88% { opacity: 1; } 100% { opacity: 0; } }
-    @keyframes closing-reveal { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 1; } }
-    .copy { position: relative; z-index: 3; width: 580px; flex: 0 0 580px; padding-right: 42px; }
-    .index { margin-bottom: 26px; color: #f3b94e; font-size: 17px; font-weight: 800; letter-spacing: 3px; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #171917; }
+    body { font-family: Manrope, 'PingFang SC', sans-serif; color: #f2f4ed; letter-spacing: 0; }
+    #stage { position: absolute; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background: #171917; }
+    canvas { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+    #sculpture { z-index: 1; }
+    #data { z-index: 2; }
+    header { position: absolute; top: 58px; left: 90px; right: 90px; display: flex; align-items: center; justify-content: space-between; z-index: 5; font-size: 26px; }
+    .wordmark { font-weight: 800; }
+    .wordmark::before { content: ''; display: inline-block; width: 18px; height: 18px; margin-right: 18px; background: currentColor; transform: rotate(45deg); }
+    .meta, .eyebrow, .note, .units, footer, .source { font-family: Plex, 'PingFang SC', monospace; }
+    .meta { font-size: 22px; }
+    .beat { position: absolute; inset: 0; z-index: 3; visibility: hidden; }
+    .content { position: absolute; left: 90px; top: 220px; width: 920px; }
+    .eyebrow { font-size: 26px; margin-bottom: 26px; }
     h1, h2, p { margin: 0; }
-    h1 { font-size: 96px; line-height: 1.02; letter-spacing: 0; max-width: 1000px; }
-    h2 { font-size: 62px; line-height: 1.08; letter-spacing: 0; }
-    .lead { margin-top: 30px; color: #b6d1dc; font-size: 27px; line-height: 1.5; }
-    .zh { margin-top: 20px; color: #9ab9c5; font-size: 25px; line-height: 1.45; }
-    .accent { color: #60e5e9; }
-    .rule { margin-top: 42px; width: 132px; height: 5px; background: #60e5e9; }
-    .screen-wrap { position: relative; flex: 1; min-width: 0; height: 650px; border: 1px solid #3b7181; background: #05121d; box-shadow: 0 32px 90px #0009; transform: perspective(1400px) rotateY(-3deg); overflow: hidden; }
-    .screen-wrap::before { content: ""; position: absolute; inset: 0; border: 10px solid #0d202a; z-index: 2; pointer-events: none; }
-    .screen-wrap::after { content: ""; position: absolute; width: 210px; height: 5px; top: 10px; left: 10px; background: #60e5e9; z-index: 3; }
-    .screen { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center top; animation: drift var(--duration) ease-out var(--begin) both paused; }
-    @keyframes drift { from { transform: scale(1.025) translateY(8px); } to { transform: scale(1.08) translateY(-12px); } }
-    .caption { position: absolute; bottom: 10px; left: 10px; right: 10px; z-index: 4; padding: 13px 18px; background: #07121be0; border-top: 1px solid #276173; color: #a9cbd4; font-size: 15px; letter-spacing: 1px; }
-    .opening { align-items: center; }
-    .opening .copy { width: 1000px; flex-basis: 1000px; }
-    .opening .lead { font-size: 32px; }
-    .opening .visual-line { position: absolute; right: 95px; top: 180px; width: 170px; height: 500px; border-left: 3px solid #60e5e9; border-right: 3px solid #f3b94e; transform: skewX(-9deg); opacity: .8; }
-    .opening .visual-line::after { content: ""; position: absolute; top: 225px; left: -32px; width: 225px; height: 3px; background: #60e5e9; }
-    .two-up { display: flex; align-items: stretch; gap: 14px; width: 100%; height: 100%; }
-    .two-up img { min-width: 0; height: 100%; object-fit: cover; }
-    .two-up img:first-child { width: 68%; object-position: left top; }
-    .two-up img:last-child { width: 32%; object-position: center; border-left: 1px solid #2a6474; background: #fff; }
-    .close .copy { width: 1200px; flex-basis: 1200px; }
-    .close h2 { font-size: 79px; }
-    .close .lead { font-size: 31px; }
-    .close .cta { display: inline-block; margin-top: 46px; padding: 20px 28px; border: 1px solid #60e5e9; color: #60e5e9; font-size: 23px; font-weight: 700; }
+    h1 { font-size: 142px; line-height: 1.12; font-weight: 800; }
+    h1 strong { display: block; font-size: 212px; font-weight: 800; }
+    .intro-copy { margin-top: 38px; font-size: 34px; line-height: 1.55; }
+    .intro-copy span { display: block; color: #b4baaf; font-size: 29px; }
+    .metric { font-size: 304px; font-weight: 800; line-height: 1.06; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .metric .unit { font-size: 130px; }
+    .metric.loss { font-size: 235px; }
+    .metric.samples { font-size: 276px; }
+    h2 { font-size: 52px; font-weight: 800; margin-top: 12px; }
+    .caption { font-size: 32px; margin-top: 14px; color: #b4baaf; line-height: 1.5; }
+    .note { font-size: 27px; margin-top: 32px; }
+    .secondary { display: flex; gap: 65px; margin-top: 36px; font-family: Plex, 'PingFang SC', monospace; }
+    .secondary b { font-family: Manrope, sans-serif; font-size: 52px; font-weight: 800; display: block; }
+    .secondary span { display: block; margin-top: 8px; font-size: 24px; }
+    .source { position: absolute; left: 90px; bottom: 134px; font-size: 23px; }
+    .eval .content { width: 790px; }
+    .eval .note { font-size: 29px; }
+    .light .caption { color: #595f54; }
+    .runtime .content { width: 580px; }
+    .runtime h2 { font-size: 50px; }
+    .runtime-copy { position: absolute; left: 830px; top: 758px; }
+    .runtime-copy b { font-size: 98px; font-weight: 800; }
+    .runtime-copy .units { margin-left: 20px; font-size: 32px; }
+    .runtime-copy p { margin-top: 6px; font-size: 26px; }
+    .close .content { top: 236px; }
+    .close h1 { font-size: 133px; }
+    .close h1 strong { font-size: 201px; }
+    .close .intro-copy { margin-top: 34px; font-size: 38px; }
+    .close .intro-copy span { color: #425135; }
+    .link { position: absolute; bottom: 150px; left: 90px; font-family: Plex, monospace; font-size: 27px; }
+    footer { position: absolute; bottom: 58px; left: 90px; right: 90px; z-index: 5; display: flex; justify-content: space-between; align-items: center; font-size: 22px; }
+    #progress { position: absolute; left: 90px; right: 90px; bottom: 102px; height: 2px; background: currentColor; opacity: .23; z-index: 5; transform-origin: left; }
+    #wipe { position: absolute; inset: 0; background: #d6fa8b; z-index: 10; transform: translateX(100%); }
   </style>
+  <script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
 </head>
 <body>
-  <div class="frame"></div>
-  <div class="brand"><span class="brand-mark"></span> FIRST LLM STUDIO</div>
-  <div class="topline">LOCAL-FIRST / APPLE SILICON / MLX</div>
-  <div class="bottomline"><span>PRODUCT TOUR · 2026-10-06</span><span>UI CAPTURES + ARCHIVED LOCAL EVIDENCE</span></div>
-  <div class="progress"></div>
-
-  <section class="scene opening" style="--begin: 0s; --duration: 2.8s">
-    <div class="copy">
-      <div class="index">THE MODEL WORKBENCH</div>
-      <h1>Build locally.<br><span class="accent">Decide with evidence.</span></h1>
-      <p class="lead">Agent · Compare · Fine-tune · Benchmark · Runtime</p>
-      <p class="zh">本地模型工作，从选择到验证，留在同一条可复查的工作流里。</p>
-      <div class="rule"></div>
-    </div>
-    <div class="visual-line"></div>
+<main id="stage">
+  <canvas id="sculpture"></canvas><canvas id="data" width="1920" height="1080"></canvas>
+  <header><div class="wordmark">First LLM Studio</div><div class="meta">APPLE SILICON / LOCAL-FIRST</div></header>
+  <section class="beat intro" data-index="0">
+    <div class="content"><p class="eyebrow">YOUR MODELS. YOUR MACHINE.</p><h1>First LLM<strong>Studio.</strong></h1><p class="intro-copy">让模型，在你的机器上进化。<span>Train. Evaluate. Understand.</span></p></div>
+    <p class="source">MODEL WORKBENCH / 模型工作台</p>
   </section>
-
-  <section class="scene" style="--begin: 2.5s; --duration: 3.3s">
-    <div class="copy"><div class="index">01 / AGENT</div><h2>Start where<br><span class="accent">models run.</span></h2><p class="lead">Local MLX and remote targets in one workbench.</p><p class="zh">模型选择、会话与运行状态，随手可查。</p><div class="rule"></div></div>
-    <div class="screen-wrap"><img class="screen" src="../../docs/assets/product-tour/2026-10-06/agent.png" alt="Current isolated Agent UI"><div class="caption">CURRENT PRODUCT UI · ISOLATED LOCAL CAPTURE · NO MODEL RUN CLAIM</div></div>
+  <section class="beat training" data-index="1">
+    <div class="content"><p class="eyebrow">01 / TRAIN WITH INTENT</p><p class="metric">4<span class="unit">B</span></p><h2>LoRA. Locally.</h2><p class="caption">把模型训练，留在本地。</p><div class="secondary"><div><b>3.316 GB</b><span>PEAK TRAINING MEMORY</span></div><div><b>816</b><span>TRAINING STEPS</span></div></div></div>
+    <p class="source">QWEN3 4B · MLX · STARTER DATASET · LOCAL ARCHIVE / 2026-07-01</p>
   </section>
-
-  <section class="scene" style="--begin: 5.5s; --duration: 3.3s">
-    <div class="copy"><div class="index">02 / COMPARE</div><h2>Compare behavior.<br><span class="accent">Keep context.</span></h2><p class="lead">Aligned prompts, target lanes and review handoff.</p><p class="zh">同一任务下看差异，再交给评测流程。</p><div class="rule"></div></div>
-    <div class="screen-wrap"><img class="screen" src="../../docs/assets/product-tour/2026-10-06/compare.png" alt="Current isolated Compare UI"><div class="caption">CURRENT PRODUCT UI · ISOLATED LOCAL CAPTURE · CONFIGURATION VIEW</div></div>
+  <section class="beat curve" data-index="2">
+    <div class="content"><p class="eyebrow">02 / MAKE PROGRESS VISIBLE</p><p class="metric loss">0.066</p><h2>Find your checkpoint.</h2><p class="caption">每一次变化，都有迹可循。</p><p class="note">BEST VALIDATION LOSS / STEP 800</p></div>
+    <p class="source">STARTER-DATASET LOSS ≠ DOWNSTREAM QUALITY / 训练损失不等于任务质量</p>
   </section>
-
-  <section class="scene" style="--begin: 8.5s; --duration: 3.6s">
-    <div class="copy"><div class="index">03 / FINE-TUNE</div><h2>Train adapters.<br><span class="accent">Trace the result.</span></h2><p class="lead">Recipes, jobs, reports and checkpoint evidence.</p><p class="zh">从本地配方到产物，保留训练来路。</p><div class="rule"></div></div>
-    <div class="screen-wrap"><div class="two-up"><img src="../../docs/assets/product-tour/2026-10-06/fine-tune.png" alt="Current isolated Fine-tune UI"><img src="../../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png" alt="Archived local LoRA chart"></div><div class="caption">CURRENT UI + ARCHIVED LOCAL QWEN3 4B LORA RUN · 2026-07-01</div></div>
+  <section class="beat eval light" data-index="3">
+    <div class="content"><p class="eyebrow">03 / EVALUATE, THEN REPLAY</p><p class="metric samples">500</p><h2>Every sample. Scored.</h2><p class="caption">完整评测，评分可复查。</p><p class="note">100% SCORER REPLAY AGREEMENT</p><p class="caption">评分回放一致率，不是答题准确率。</p></div>
+    <p class="source">MATH-500 · QWEN3 0.6B · LOCAL ARCHIVE / 2026-08 · MODEL ACCURACY 32%</p>
   </section>
-
-  <section class="scene" style="--begin: 11.8s; --duration: 3.5s">
-    <div class="copy"><div class="index">04 / BENCHMARK</div><h2>Measure.<br><span class="accent">Then decide.</span></h2><p class="lead">Pinned protocol, scorer replay and result lineage.</p><p class="zh">把分数放回数据集、判分器和运行上下文。</p><div class="rule"></div></div>
-    <div class="screen-wrap"><img class="screen" src="../../docs/assets/screenshots/math500-reproducibility-performance.png" alt="Archived MATH-500 local run evidence"><div class="caption">ARCHIVED LOCAL MATH-500 RUN · 2026-08 · NOT A NEW OR EXTERNAL RESULT</div></div>
+  <section class="beat runtime" data-index="4">
+    <div class="content"><p class="eyebrow">04 / KNOW YOUR RUNTIME</p><p class="metric">3</p><h2>Runtimes. One lab.</h2><p class="caption">性能可见，选择有据。</p><p class="note">MLX / OLLAMA / LLAMA.CPP</p></div>
+    <div class="runtime-copy"><b>234.02</b><span class="units">tokens/s</span><p>Local Qwen3 0.6B smoke · 1 prompt × 3 runs</p></div>
+    <p class="source">2026-08-30 LOCAL ARCHIVE / 本机小样本，不是跨硬件性能承诺</p>
   </section>
-
-  <section class="scene" style="--begin: 15s; --duration: 3.3s">
-    <div class="copy"><div class="index">05 / EXPERIMENTS</div><h2>Keep the chain<br><span class="accent">reviewable.</span></h2><p class="lead">Runs, artifacts and release gates stay connected.</p><p class="zh">实验记录串起操作与证据，未满足的门槛照样可见。</p><div class="rule"></div></div>
-    <div class="screen-wrap"><img class="screen" src="../../docs/assets/product-tour/2026-10-06/experiments.png" alt="Current isolated Experiments UI"><div class="caption">CURRENT PRODUCT UI · ISOLATED LOCAL CAPTURE · PRODUCTION BLOCKED</div></div>
+  <section class="beat close light" data-index="5">
+    <div class="content"><p class="eyebrow">BUILD LOCALLY. DECIDE WITH EVIDENCE.</p><h1>First LLM<strong>Studio.</strong></h1><p class="intro-copy">训练 · 评测 · 性能洞察<span>Your next model starts here.</span></p></div>
+    <p class="link">github.com/ChrisChen667788/Your-First-LLM-Studio</p>
   </section>
-
-  <section class="scene close" style="--begin: 18s; --duration: 2.8s">
-    <div class="copy"><div class="index">FIRST LLM STUDIO</div><h2>One studio.<br><span class="accent">A clearer model decision.</span></h2><p class="lead">Open source · Local-first · Built for Apple Silicon</p><p class="zh">看得见过程，也看得清边界。</p><span class="cta">github.com/ChrisChen667788/Your-First-LLM-Studio</span></div>
-  </section>
+  <div id="progress"></div><footer><span id="chapter">LOCAL INTELLIGENCE, IN MOTION</span><span id="count">01 / 06</span></footer><div id="wipe"></div>
+</main>
+<script type="module" src="./scene.mjs"></script>
 </body>
 </html>

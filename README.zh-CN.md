@@ -19,13 +19,13 @@
 
 <p align="center">
   <a href="./docs/assets/product-tour/first-llm-studio-promo.mp4">
-    <img src="./docs/assets/product-tour/first-llm-studio-promo.gif" alt="播放 First LLM Studio 产品短片：Agent、对比、微调、评测与实验记录" width="760">
+    <img src="./docs/assets/product-tour/first-llm-studio-promo.gif" alt="First LLM Studio：立体模型、训练数据、评测阵列与运行时动态图形" width="760">
   </a>
 </p>
 
-[观看约 22 秒无声短片](./docs/assets/product-tour/first-llm-studio-promo.mp4) · [当前实机界面](./docs/product-tour-and-positioning-2026-10-06.md#current-product-media--当前产品素材) · [分镜与素材来源](./docs/product-tour-and-positioning-2026-10-06.md#short-film--宣传短片)
+[观看 30 秒原创配乐短片](./docs/assets/product-tour/first-llm-studio-promo.mp4) · [当前实机界面](./docs/product-tour-and-positioning-2026-10-06.md#current-product-media--当前产品素材) · [设计复查与数据来源](./docs/product-film-creative-review-2026-10-06.md)
 
-从模型选择到可复查证据：用一个本地优先工作台串起 Agent、对比、微调、评测与运行时操作。短片混合当前隔离环境界面与**明确标注的历史本地** LoRA、MATH-500 证据，不代表连续实机任务、客户成效或生产验收。
+从模型选择到可复查证据：用一个本地优先工作台串起 Agent、对比、微调、评测与运行时操作。新版以立体模型结构、训练曲线、500 点评测阵列和运行时动态图形呈现亮点，不再拼贴缩小截图。数字来自**标注日期的历史本地证据**，动态波形为艺术示意；评分回放一致率不等于答题准确率，小样本吞吐量不代表普遍性能承诺，也不代表客户成效或生产验收。
 
 ---
 

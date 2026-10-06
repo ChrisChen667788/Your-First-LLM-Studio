@@ -19,15 +19,15 @@
 
 <p align="center">
   <a href="./docs/assets/product-tour/first-llm-studio-promo.mp4">
-    <img src="./docs/assets/product-tour/first-llm-studio-promo.gif" alt="Play the First LLM Studio product film: Agent, Compare, Fine-tune, Benchmark, and Experiments" width="760">
+    <img src="./docs/assets/product-tour/first-llm-studio-promo.gif" alt="First LLM Studio: 3D model sculpture, training data, evaluation and runtime motion graphics" width="760">
   </a>
 </p>
 
-**[Watch the 22-second silent film / 观看无声短片](./docs/assets/product-tour/first-llm-studio-promo.mp4)** · [Current UI gallery / 当前实机截图](./docs/product-tour-and-positioning-2026-10-06.md#current-product-media--当前产品素材) · [Storyboard and provenance / 分镜与素材来源](./docs/product-tour-and-positioning-2026-10-06.md#short-film--宣传短片)
+**[Watch the 30-second film with original sound / 观看 30 秒原创配乐短片](./docs/assets/product-tour/first-llm-studio-promo.mp4)** · [Current UI gallery / 当前实机截图](./docs/product-tour-and-positioning-2026-10-06.md#current-product-media--当前产品素材) · [Creative review and data sources / 设计复查与数据来源](./docs/product-film-creative-review-2026-10-06.md)
 
 From model choice to reviewable evidence: one local-first workbench for Agent sessions, comparison, fine-tuning, evaluation, and runtime operations. / 从模型选择到可复查证据：用一个本地优先工作台串起 Agent、对比、微调、评测与运行时操作。
 
-The film mixes current isolated UI captures with **labeled historical local** LoRA and MATH-500 evidence. It is not a live end-to-end run, customer outcome, or production claim. / 短片混合当前隔离环境界面与**明确标注的历史本地** LoRA、MATH-500 证据，不代表连续实机任务、客户成效或生产验收。
+Data, not a screenshot collage: a sculptural model fabric, a checkpoint curve, a 500-sample field, and runtime motion graphics. Numeric highlights use **labeled historical local evidence**; animated traces are illustrative. Scorer replay agreement is not model accuracy, and small-sample throughput is not a general performance promise. / 用数据而非截图拼贴讲产品：立体模型结构、训练曲线、500 点评测阵列与运行时动态图形。数字来自**标注日期的历史本地证据**，动态波形为艺术示意；评分回放一致率不等于答题准确率，小样本吞吐量不代表普遍性能承诺。
 
 ---
 

@@ -32,7 +32,7 @@ Local-first LLM studio for Apple Silicon: Agent, comparison, fine-tuning, benchm
 
 ## Short launch summary
 
-First LLM Studio connects local model selection, Agent sessions, comparison, fine-tuning, benchmarks, retrieval, and runtime review for Apple Silicon builders. The [product film](./assets/product-tour/first-llm-studio-promo.mp4) shows current isolated UI alongside explicitly labeled historical local evidence; it is not a new benchmark or production acceptance. See [the scenario/value hypotheses](./product-tour-and-positioning-2026-10-06.md#use-cases-and-business-value--场景与商业价值) before adapting this copy for a new release.
+First LLM Studio connects local model selection, Agent sessions, comparison, fine-tuning, benchmarks, retrieval, and runtime review for Apple Silicon builders. The [30-second product film](./assets/product-tour/first-llm-studio-promo.mp4) uses 3D model art and data-led motion graphics with original sound, not tiny screenshots. Numeric highlights are scoped historical local evidence, not new benchmarks or production acceptance; animated runtime traces are illustrative. See [creative and data scope](./product-film-creative-review-2026-10-06.md) and [scenario/value hypotheses](./product-tour-and-positioning-2026-10-06.md#use-cases-and-business-value--场景与商业价值) before adapting this copy for a new release.
 
 ## Release callout for v0.2.3
 

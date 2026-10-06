@@ -10,9 +10,9 @@
   </a>
 </p>
 
-[Watch the 22-second silent film / 观看无声短片](../docs/assets/product-tour/first-llm-studio-promo.mp4) · [Current UI and provenance / 当前界面与素材来源](../docs/product-tour-and-positioning-2026-10-06.md)
+[Watch the 30-second film with original sound / 观看 30 秒原创配乐短片](../docs/assets/product-tour/first-llm-studio-promo.mp4) · [Creative review and data sources / 设计复查与数据来源](../docs/product-film-creative-review-2026-10-06.md) · [Current UI / 当前实机界面](../docs/product-tour-and-positioning-2026-10-06.md)
 
-The film combines isolated current UI with labeled historical local LoRA/MATH-500 evidence. It is not a new benchmark, customer result, external acceptance, or production claim. / 短片组合当前隔离界面和明确标注的历史本地证据，不代表新评测、客户成效、外部签收或生产验收。
+The new film uses full-bleed 3D model art, large data typography, checkpoint curves, a 500-sample field, and illustrative runtime traces, not tiny screenshots. Numeric highlights come from labeled historical local evidence; scorer replay agreement is not model accuracy. / 新版采用全幅立体模型、大字号数据、训练曲线、500 点评测阵列与示意运行时波形，不再拼贴缩小截图。数字来自标注日期的历史本地证据；评分回放一致率不等于模型准确率，小样本性能也不是普遍承诺。
 
 ---
 
