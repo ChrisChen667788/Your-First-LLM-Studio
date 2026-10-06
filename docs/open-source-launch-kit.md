@@ -1,5 +1,7 @@
 # Open Source Launch Kit
 
+> 2026-10-06 review: the `v0.2.3` posts below are an archive, not ready-to-publish copy. For current positioning, product media, and evidence limits, use [Product Tour and Positioning](./product-tour-and-positioning-2026-10-06.md). Source version, public release, and distribution state must be checked separately in [`release-state.json`](../release-state.json).
+
 For pinned repo copy, profile wording, homepage descriptions, and bilingual launch-post variants, also see:
 
 - `docs/open-source-growth-copy.md`
@@ -10,13 +12,13 @@ For pinned repo copy, profile wording, homepage descriptions, and bilingual laun
 
 ## One-line pitch
 
-First LLM Studio is a local-first coding agent workbench for Apple Silicon that combines MLX local runtimes, remote model comparisons, benchmark ops, replay, trace review, and runtime recovery in one interface.
+First LLM Studio is a local-first model workbench for Apple Silicon that connects Agent sessions, model comparison, fine-tuning, benchmarks, retrieval, runtime operations, and reviewable evidence.
 
 ## GitHub About
 
 ### Description
 
-Local-first coding agent workbench with MLX local runtimes, benchmark ops, and remote model comparisons.
+Local-first LLM studio for Apple Silicon: Agent, comparison, fine-tuning, benchmarks, and evidence. / 面向 Apple Silicon 的本地优先 LLM 工作台。
 
 ### Topics
 
@@ -30,7 +32,7 @@ Local-first coding agent workbench with MLX local runtimes, benchmark ops, and r
 
 ## Short launch summary
 
-First LLM Studio is now open source. The project packages together an agent workbench, local MLX runtimes, benchmark operations, replay and trace review, and local gateway recovery tooling so we can compare local and remote coding agents under the same workflow.
+First LLM Studio connects local model selection, Agent sessions, comparison, fine-tuning, benchmarks, retrieval, and runtime review for Apple Silicon builders. The [product film](./assets/product-tour/first-llm-studio-promo.mp4) shows current isolated UI alongside explicitly labeled historical local evidence; it is not a new benchmark or production acceptance. See [the scenario/value hypotheses](./product-tour-and-positioning-2026-10-06.md#use-cases-and-business-value--场景与商业价值) before adapting this copy for a new release.
 
 ## Release callout for v0.2.3
 
@@ -90,9 +92,13 @@ Repository: https://github.com/ChrisChen667788/local-agent-lab
 
 ## Screenshot order for README and social posts
 
-1. `docs/assets/landing-page.png`
-2. `docs/assets/agent-workbench.png`
-3. `docs/assets/admin-dashboard.png`
+1. `docs/assets/product-tour/first-llm-studio-promo.jpg` (poster; link to MP4)
+2. `docs/assets/product-tour/2026-10-06/agent.png`
+3. `docs/assets/product-tour/2026-10-06/compare.png`
+4. `docs/assets/product-tour/2026-10-06/fine-tune.png`
+5. `docs/assets/product-tour/2026-10-06/benchmarks.png`
+
+Use historical LoRA/MATH-500 captures only with their dates and local-evidence labels. The dated images above show an isolated UI state, not new completed runs.
 
 ## Social assets
 

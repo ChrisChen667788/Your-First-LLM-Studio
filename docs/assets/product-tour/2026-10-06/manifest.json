@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "first-llm-studio.product-tour-capture.v1",
+  "capturedAt": "2026-10-06T10:29:05.870Z",
+  "sourceHead": "a01e217206c22b165c84ee589ba7302f9f67faaf",
+  "workingTreeDirty": true,
+  "appVersion": "v1.5.1",
+  "captureContext": "Local standalone build with a fresh, isolated temporary data directory; no customer or production workload.",
+  "redactionPolicy": "Absolute /Users/... paths in UI text are replaced with /local/demo-dataset.jsonl before capture; no model outputs or metrics are changed.",
+  "images": [
+    {
+      "file": "agent.png",
+      "route": "/agent",
+      "width": 1920,
+      "height": 1200,
+      "bytes": 475312,
+      "sha256": "43ee4f9cef6f7a965b737f785cd0eb0c57a1010a34187f275524470e6faa65a1",
+      "redactedTextNodes": 0
+    },
+    {
+      "file": "compare.png",
+      "route": "/compare",
+      "width": 1920,
+      "height": 1200,
+      "bytes": 360876,
+      "sha256": "addcbd22ee7829b3e3c41f187b3caab5088008e6eda10979ea038c6b411e54f2",
+      "redactedTextNodes": 0
+    },
+    {
+      "file": "fine-tune.png",
+      "route": "/fine-tune",
+      "width": 1920,
+      "height": 1200,
+      "bytes": 814146,
+      "sha256": "074ef4ab3b4f1bfc8d5f0d9b4f19ce997f01f42c3bd54b12fb75e8e07ebae418",
+      "redactedTextNodes": 2
+    },
+    {
+      "file": "benchmarks.png",
+      "route": "/benchmarks",
+      "width": 1920,
+      "height": 1200,
+      "bytes": 387163,
+      "sha256": "ca7fe2c8873f2c845cec2d217bfec2a4410bfd163de6c5e6ea73c5ce8c4facde",
+      "redactedTextNodes": 0
+    },
+    {
+      "file": "models.png",
+      "route": "/models",
+      "width": 1920,
+      "height": 1200,
+      "bytes": 458274,
+      "sha256": "a4a5b2948052f1c2b7ad0190e828cfaf8815ed21d458495daa00a694a1926832",
+      "redactedTextNodes": 29
+    },
+    {
+      "file": "retrieval.png",
+      "route": "/retrieval",
+      "width": 1920,
+      "height": 1200,
+      "bytes": 278665,
+      "sha256": "98c55ac40e6fbed49534d77d6ae0d99d283bed21f490ea4f46f12625629d2641",
+      "redactedTextNodes": 3
+    },
+    {
+      "file": "experiments.png",
+      "route": "/experiments",
+      "width": 1920,
+      "height": 1200,
+      "bytes": 254702,
+      "sha256": "545da1c471efeeab7127636ef5bac3ba82f484aaf9bf3384db25285e6f265163",
+      "redactedTextNodes": 0
+    },
+    {
+      "file": "admin.png",
+      "route": "/admin",
+      "width": 1920,
+      "height": 1200,
+      "bytes": 329215,
+      "sha256": "9b2322ecea5a20bb4a6601044a287796ab950f283eaf360254033a935daac138",
+      "redactedTextNodes": 0
+    }
+  ]
+}

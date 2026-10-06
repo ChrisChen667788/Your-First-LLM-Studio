@@ -15,6 +15,20 @@
 
 > The dashboard uses illustrative sample telemetry for product presentation; measured workflows and release evidence remain documented separately.
 
+## Product Film / 产品短片
+
+<p align="center">
+  <a href="./docs/assets/product-tour/first-llm-studio-promo.mp4">
+    <img src="./docs/assets/product-tour/first-llm-studio-promo.gif" alt="Play the First LLM Studio product film: Agent, Compare, Fine-tune, Benchmark, and Experiments" width="760">
+  </a>
+</p>
+
+**[Watch the 22-second silent film / 观看无声短片](./docs/assets/product-tour/first-llm-studio-promo.mp4)** · [Current UI gallery / 当前实机截图](./docs/product-tour-and-positioning-2026-10-06.md#current-product-media--当前产品素材) · [Storyboard and provenance / 分镜与素材来源](./docs/product-tour-and-positioning-2026-10-06.md#short-film--宣传短片)
+
+From model choice to reviewable evidence: one local-first workbench for Agent sessions, comparison, fine-tuning, evaluation, and runtime operations. / 从模型选择到可复查证据：用一个本地优先工作台串起 Agent、对比、微调、评测与运行时操作。
+
+The film mixes current isolated UI captures with **labeled historical local** LoRA and MATH-500 evidence. It is not a live end-to-end run, customer outcome, or production claim. / 短片混合当前隔离环境界面与**明确标注的历史本地** LoRA、MATH-500 证据，不代表连续实机任务、客户成效或生产验收。
+
 ---
 
 # English
@@ -176,38 +190,26 @@ First LLM Studio's advantage is the connected evidence chain across Agent, Compa
 
 ## Who It Helps
 
-### Local AI builders on Apple Silicon
+| Team | Work to finish | Potential value to validate |
+| --- | --- | --- |
+| Apple Silicon local-AI builders | Select a feasible local model, inspect runtime pressure, and compare a configured remote target. | Fewer manual handoffs between model manager, shell, and comparison notes. |
+| Agent and tooling teams | Inspect sessions, target/tool state and replay, then hand a comparison question into evaluation. | Faster separation of model, provider, tool, and runtime failure causes. |
+| Fine-tune practitioners | Keep dataset, recipe, job, checkpoint, report, and adapter relationships traceable. | Less manual reconciliation before choosing or exporting an adapter. |
+| Evaluation and platform engineers | Review pinned protocols, scorer replay, baselines, run lineage, and release gates. | More reviewable model decisions and fewer score claims without context. |
 
-- Compare MLX local models against hosted APIs under aligned context budgets.
-- Inspect runtime cost, prewarm, release, recovery, and hardware pressure without leaving the app.
-- Decide which local model is actually usable for daily coding and analysis workflows.
-
-### Agent and tooling teams
-
-- Validate tool-calling, repo-grounded behavior, replay, and patch flows in one workbench.
-- Turn Compare runs into benchmark handoff without switching products.
-- Separate model-quality failures from provider quirks and local runtime instability.
-
-### Evaluation and platform engineers
-
-- Run formal and focused benchmark suites with repeatable profiles.
-- Review baselines, deltas, run notes, failure classifications, and release evidence.
-- Keep local and remote targets inside one comparable target catalog.
+These are workflow hypotheses, not measured customer ROI or saved-hours claims. Suggested pilot measures and evidence boundaries are in the [product positioning review](./docs/product-tour-and-positioning-2026-10-06.md).
 
 ## Core Value
 
-- Unified local + remote target catalog.
-- Compare Lab for model-vs-model output review.
-- Fine-tune workflows for datasets, recipes, training, evaluation, adapter proof loops, export, best-checkpoint selection, and LoRA release evidence.
-- Visual Workflow Studio for typed Agent/RAG/eval graphs, immutable recipes, guarded tool execution, replay, and OpenAI-compatible deployment.
-- Benchmark operations with history, progress, baselines, reports, and release evidence.
-- Foreground Retrieval for document import, chunk inspection, and grounded evidence probes.
-- Experiments timeline for session/run lineage, artifact navigation, and retention policy.
-- Replay, trace review, patch inspection, and exportable review notes.
-- Runtime operations for prewarm, release, restart, log inspection, telemetry, and recovery.
-- Dynamic local/community model discovery plus remote provider health scanning.
+- **One operating loop:** local MLX and configured API targets connect Agent, Compare, Models, Benchmark, and runtime diagnostics.
+- **Training with provenance:** datasets and recipes lead to jobs, reports, checkpoints, adapter proof loops, and export; the real archived LoRA run is linked below.
+- **Scores with context:** pinned benchmark datasets/evaluators, run history, scorer replay, baselines, and failure review keep a result inspectable.
+- **Grounded work and lineage:** Retrieval, Workflow Studio, and Experiments connect citations, typed flows, session/run artifacts, and review notes.
+- **Visible limits:** source/local evidence is shown separately from external acceptance, distribution approval, and production authority.
 
 ## Current Targets
+
+These are catalog/selection targets, not proof that a model is installed, a remote account is entitled, or a live run has passed acceptance. Check the target status and your own runtime/provider configuration before relying on one.
 
 ### Local
 
@@ -230,9 +232,9 @@ Selection and stability guidance: [`docs/benchmark-lane-comparison.md`](./docs/b
 
 Contributor onboarding: [English](./CONTRIBUTING.md) · [中文快速上手](./docs/chinese-contributor-quickstart.md) · [GitHub setup checklist](./docs/github-repository-setup-checklist.md).
 
-## Latest Live-machine Evidence
+## Archived Local-run Evidence (2026-08-30)
 
-The 2026-08-30 refresh adds fresh, high-resolution evidence from the running application:
+The 2026-08-30 archive preserves high-resolution evidence from the application running at that time:
 
 - Runtime Fabric: real MLX, Ollama, and llama.cpp passed 3/3 backends, 6/6 adapter contracts, and 42/42 normalized operations.
 - Local Server: real Ollama 0.31.1 + Qwen3 0.6B passed 15/15 slices, 6 requests, 95 tokens, and 169 ms average latency.
@@ -244,69 +246,39 @@ Full metrics, digests, capture dimensions, and evidence boundaries: [`v3.1.4-hig
 
 ## Screenshots
 
-Captured from the running local app after type, test, build, route, and screenshot validation. The 1920x1200 capture viewport uses 2x DPR for 3840x2400 route images; evidence panels retain their native high-resolution crop, and the LoRA chart is exported from SVG at 2x DPR.
+The current gallery was captured on 2026-10-06 from the local `v1.5.1` standalone build with fresh isolated data at `1920 x 1200`. Absolute machine paths in UI text were redacted before capture. These images show **interfaces and empty/starter states**, not new training, benchmark, remote-provider, or production results. [Route-by-route manifest and hashes](./docs/assets/product-tour/2026-10-06/manifest.json).
 
-Agent workbench with target catalog, runtime rail, and tool-enabled composer:
+**Agent:** local/remote target catalog, session shell, and runtime rail.
 
-![Agent workbench](./docs/assets/screenshots/agent-workbench.png)
+![Current isolated Agent workbench](./docs/assets/product-tour/2026-10-06/agent.png)
 
-Workflow Graph Studio with draggable typed nodes, version/revision controls, execution recovery, and promotion evidence:
+**Compare:** aligned prompt, target-lane, and review controls.
 
-![Workflow Graph Studio](./docs/assets/screenshots/workflow-graph-studio.png)
+![Current isolated Compare Studio](./docs/assets/product-tour/2026-10-06/compare.png)
 
-Reproducible motion capture workflow: [`docs/demo-video-workflow.md`](./docs/demo-video-workflow.md).
+**Fine-tune:** starter recipe and training controls; the isolated profile has no completed job.
 
-[Watch the Agent workbench MP4 demo](./docs/assets/demo/agent-workbench.mp4) · [SHA-256 metadata](./docs/assets/demo/agent-workbench.mp4.metadata.json)
+![Current isolated Fine-tune Studio](./docs/assets/product-tour/2026-10-06/fine-tune.png)
 
-Fine-tune Studio with workflow tabs, training controls, and report/evidence panels:
+**Benchmark:** protocol catalog and run controls.
 
-![Fine-tune Studio](./docs/assets/screenshots/fine-tune-studio.png)
+![Current isolated Benchmark Studio](./docs/assets/product-tour/2026-10-06/benchmarks.png)
 
-Fine-tune completed run with live loss curves, train/validation traces, and handoff actions:
+**Models, Retrieval, Experiments, Admin:** [model lifecycle](./docs/assets/product-tour/2026-10-06/models.png) · [knowledge workspace](./docs/assets/product-tour/2026-10-06/retrieval.png) · [evidence timeline](./docs/assets/product-tour/2026-10-06/experiments.png) · [operations desk](./docs/assets/product-tour/2026-10-06/admin.png).
 
-![Fine-tune live training curve](./docs/assets/screenshots/fine-tune-live-training-curve.png)
+### Archived Local Evidence
 
-Real Qwen3 4B LoRA release evidence with save/eval markers and selected best checkpoint:
+The images below are historical local run/capture records, **not** newly measured 2026-10-06 results. The [2026-08-30 capture report](./docs/release-evidence/v3.1.4-high-resolution-live-machine-capture-2026-08-30.md) records dimensions, validation, and limitations.
 
-![Qwen3 4B LoRA release evidence](./docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png)
+**Qwen3 4B LoRA, 2026-07-01:** save/eval markers and selected best checkpoint. [Full archive](./docs/release-evidence/finetune-qwen4b-lora-2026-07-01/README.md).
 
-Vector version: [`fine-tune-qwen4b-lora-chart.svg`](./docs/assets/screenshots/fine-tune-qwen4b-lora-chart.svg). Full run archive and manifest: [`docs/release-evidence/finetune-qwen4b-lora-2026-07-01`](./docs/release-evidence/finetune-qwen4b-lora-2026-07-01).
+![Archived Qwen3 4B LoRA chart](./docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png)
 
-Benchmark Studio with run controls and historical evidence cards:
+**MATH-500 local run, 2026-08:** subject/difficulty breakdown, scorer replay, and latency/token view. [Evaluator record](./docs/release-evidence/v1.6.4-official-evaluators-2026-08-10.md).
 
-![Benchmark Studio](./docs/assets/screenshots/benchmarks-studio.png)
+![Archived MATH-500 reproducibility and performance](./docs/assets/screenshots/math500-reproducibility-performance.png)
 
-Benchmark run evidence from the fresh real local smoke run:
-
-![Latest live benchmark run](./docs/assets/screenshots/latest-live-benchmark-run.png)
-
-Complete MATH-500 result with subject/difficulty breakdown, Wilson confidence interval, evaluator replay, and latency/token performance:
-
-![MATH-500 reproducibility and performance](./docs/assets/screenshots/math500-reproducibility-performance.png)
-
-Models Studio with immutable Hub/storage receipts, real Ollama Local Server acceptance, and the real MLX/Ollama/llama.cpp Runtime Fabric matrix:
-
-![Models Studio](./docs/assets/screenshots/models-studio.png)
-
-Fresh local Runtime Fabric and Local Server acceptance panels:
-
-![Runtime Fabric live performance](./docs/assets/screenshots/runtime-fabric-live-performance.png)
-![Local Server live acceptance](./docs/assets/screenshots/local-server-live-acceptance.png)
-
-MCP and secure extension acceptance with signed lifecycle, real tool discovery, quarantine defenses, and explicit production gates:
-
-![MCP and secure extension acceptance](./docs/assets/screenshots/extension-ecosystem-acceptance.png)
-
-Compare, Retrieval, and Admin surfaces:
-
-![Compare Studio](./docs/assets/screenshots/compare-studio.png)
-![Retrieval Studio](./docs/assets/screenshots/retrieval-studio.png)
-![Admin dashboard](./docs/assets/screenshots/admin-dashboard.png)
-![Admin benchmark heatmap](./docs/assets/screenshots/admin-benchmark-heatmap.png)
-
-Operational remediation and service-readiness controls, with unresolved external gates kept visible:
-
-![Operational remediation readiness](./docs/assets/screenshots/operational-remediation-readiness.png)
+**Runtime Fabric / Local Server, 2026-08-30:** [runtime performance](./docs/assets/screenshots/runtime-fabric-live-performance.png) · [Ollama acceptance](./docs/assets/screenshots/local-server-live-acceptance.png). [Workflow Graph](./docs/assets/screenshots/workflow-graph-studio.png) and [MCP acceptance](./docs/assets/screenshots/extension-ecosystem-acceptance.png) remain historical UI captures. The separate [Agent demo](./docs/assets/demo/agent-workbench.mp4) also predates this product film.
 
 ## Quick Start
 
@@ -569,38 +541,26 @@ First LLM Studio 的优势是统一证据链。`v3.8.0-v3.9.4` 的 15 个源码�
 
 ## 对哪些用户有价值
 
-### Apple Silicon 本地 AI 开发者
+| 面向谁 | 要完成的工作 | 待试点验证的潜在价值 |
+| --- | --- | --- |
+| Apple Silicon 本地 AI 开发者 | 选择可运行的本地模型，查看运行时压力，并对比已配置的远端目标。 | 减少模型管理器、命令行和对比笔记之间的手工切换。 |
+| Agent / 工具链团队 | 检查会话、target/工具状态与回放，再把对比问题交给评测。 | 更快区分模型、Provider、工具与运行时问题。 |
+| 微调实践者 | 追踪数据集、配方、作业、checkpoint、报告和 adapter 的关系。 | 决策或导出 adapter 前，减少手工核对产物。 |
+| 评测 / 平台工程师 | 检查固定协议、判分器重放、baseline、运行来路与发布门槛。 | 减少脱离上下文的分数宣称，使模型决策更易复核。 |
 
-- 在统一上下文预算下，对比 MLX 本地模型和托管 API。
-- 不离开应用就能查看 runtime 成本、prewarm、release、恢复动作和硬件压力。
-- 判断哪个本地模型真的适合日常 coding / analysis 工作流。
-
-### Agent / 工具链团队
-
-- 在一个工作台里验证 tool calling、repo-grounded behavior、replay 和 patch 流程。
-- 直接把 Compare 结果送入 Benchmark，不必切换产品。
-- 区分失败来源：模型质量、provider 行为，还是本地 runtime 不稳。
-
-### 评测 / 平台工程团队
-
-- 用可复现 profile 跑 formal 和 focused benchmark suites。
-- 查看 baseline、delta、run note、失败分类和发布证据。
-- 让本地与远端 target 落在同一个可比较的 target catalog 里。
+这些是工作流价值假设，不是已测得的客户 ROI 或节省工时。试点度量方式和证据边界见[产品定位复查](./docs/product-tour-and-positioning-2026-10-06.md)。
 
 ## 核心价值
 
-- 本地 + 远端统一 target catalog。
-- Compare Lab 支持模型对模型审阅。
-- Fine-tune 工作流覆盖 dataset、recipe、training、evaluation、adapter proof loop、export、best-checkpoint 选择和 LoRA 发布证据。
-- 可视化 Workflow Studio 覆盖 Agent/RAG/eval 类型图、不可变 recipe、受保护工具执行、回放与 OpenAI-compatible 部署。
-- Benchmark 运维覆盖 history、progress、baseline、report 和 release evidence。
-- Retrieval 前台覆盖文档导入、chunk 检查和 grounded evidence probe。
-- Experiments 时间线覆盖 Session/Run lineage、artifact 导航和 retention policy。
-- Replay、trace review、patch inspection 与可导出的审阅记录。
-- Runtime 运维覆盖 prewarm、release、restart、日志检查、telemetry 和 recovery。
-- 支持本地/社区模型发现和远端 provider health 扫描。
+- **一条操作链：** 本地 MLX 与已配置的 API 目标连接 Agent、Compare、Models、Benchmark 和运行时诊断。
+- **训练可追溯：** 数据集、配方、作业、报告、checkpoint、adapter 验证与导出相连；历史真实 LoRA 运行证据见下方。
+- **分数有上下文：** 固定的评测数据/判分器、运行历史、重放、baseline 与失败审阅共同解释结果。
+- **知识与产物有来路：** Retrieval、Workflow Studio 与 Experiments 串起引用、类型化流程、运行产物和审阅记录。
+- **限制看得见：** 源码/本地证据与外部签收、分发批准、生产授权分开呈现。
 
 ## 当前支持的 Target
+
+以下是目录/选择目标，不代表模型已安装、远端账号已有权限或实机运行通过验收。实际可用性以目标状态及本机运行时/供应商配置为准。
 
 ### 本地
 
@@ -623,9 +583,9 @@ Target 选择、稳定性与适用任务对照：[`docs/benchmark-lane-compariso
 
 贡献者入口：[English](./CONTRIBUTING.md) · [中文快速上手](./docs/chinese-contributor-quickstart.md) · [GitHub 仓库设置清单](./docs/github-repository-setup-checklist.md)。
 
-## 最新真机证据
+## 历史本地运行证据（2026-08-30）
 
-2026-08-30 的证据刷新从当前运行中的应用生成了新一批高清实机材料：
+2026-08-30 的归档保留了当时运行应用生成的高清本地材料：
 
 - Runtime Fabric：真实 MLX、Ollama、llama.cpp 3/3 后端通过，adapter contract 6/6，标准化操作 42/42。
 - Local Server：真实 Ollama 0.31.1 + Qwen3 0.6B 通过 15/15 项，完成 6 个请求、95 tokens，平均延迟 169 ms。
@@ -637,69 +597,39 @@ Target 选择、稳定性与适用任务对照：[`docs/benchmark-lane-compariso
 
 ## 截图
 
-以下截图来自本地运行版本，并经过类型、测试、构建、路由与截图完整性验证。1920x1200 截图视口使用 2x DPR，路由图达到 3840x2400；证据面板保留原生高清裁切，LoRA 图从 SVG 以 2x DPR 导出。
+当前图库于 2026-10-06 从 `v1.5.1` 本地独立构建抓取，使用全新隔离数据目录，尺寸为 `1920 x 1200`。导出前仅替换了 UI 文本中的本机绝对路径。这些图展示的是**界面与空白/入门状态**，不是新训练、新评测、远端 Provider 实测或生产结果。[逐路由清单与摘要](./docs/assets/product-tour/2026-10-06/manifest.json)。
 
-Agent 工作台：target catalog、runtime rail 与工具化输入区：
+**Agent：** 本地/远端目标目录、会话工作区与运行时侧栏。
 
-![Agent 工作台](./docs/assets/screenshots/agent-workbench.png)
+![当前隔离环境的 Agent 工作台](./docs/assets/product-tour/2026-10-06/agent.png)
 
-Workflow Graph Studio：可拖拽类型节点、版本/修订控制、执行恢复与 promotion evidence：
+**Compare：** 对齐提示词、目标 lane 与审阅控制项。
 
-![Workflow Graph Studio](./docs/assets/screenshots/workflow-graph-studio.png)
+![当前隔离环境的 Compare Studio](./docs/assets/product-tour/2026-10-06/compare.png)
 
-可复现动态演示流程：[`docs/demo-video-workflow.md`](./docs/demo-video-workflow.md)。
+**Fine-tune：** 入门配方与训练控制；隔离环境没有已完成新作业。
 
-[查看 Agent 工作台 MP4 演示](./docs/assets/demo/agent-workbench.mp4) · [SHA-256 元数据](./docs/assets/demo/agent-workbench.mp4.metadata.json)
+![当前隔离环境的 Fine-tune Studio](./docs/assets/product-tour/2026-10-06/fine-tune.png)
 
-Fine-tune Studio：工作流 tab、训练控制与 report/evidence 面板：
+**Benchmark：** 协议目录与运行控制。
 
-![Fine-tune Studio](./docs/assets/screenshots/fine-tune-studio.png)
+![当前隔离环境的 Benchmark Studio](./docs/assets/product-tour/2026-10-06/benchmarks.png)
 
-Fine-tune 完成作业：真实 loss 曲线、训练/验证轨迹与 handoff 操作：
+**其他当前界面：** [模型生命周期](./docs/assets/product-tour/2026-10-06/models.png) · [知识工作区](./docs/assets/product-tour/2026-10-06/retrieval.png) · [实验证据](./docs/assets/product-tour/2026-10-06/experiments.png) · [后台监控](./docs/assets/product-tour/2026-10-06/admin.png)。
 
-![Fine-tune 实时训练曲线](./docs/assets/screenshots/fine-tune-live-training-curve.png)
+### 历史本地运行证据
 
-真实 Qwen3 4B LoRA 发布证据：包含 save/eval 事件标记和自动选择的最佳 checkpoint：
+以下图片属于归档运行/抓图记录，**不是** 2026-10-06 新跑出的指标。[2026-08-30 抓图报告](./docs/release-evidence/v3.1.4-high-resolution-live-machine-capture-2026-08-30.md)记录尺寸、验证和限制。
 
-![Qwen3 4B LoRA 发布证据](./docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png)
+**2026-07-01 Qwen3 4B LoRA：** save/eval 标记与最佳 checkpoint。[完整归档](./docs/release-evidence/finetune-qwen4b-lora-2026-07-01/README.md)。
 
-矢量版本：[`fine-tune-qwen4b-lora-chart.svg`](./docs/assets/screenshots/fine-tune-qwen4b-lora-chart.svg)。完整 run archive 与 manifest：[`docs/release-evidence/finetune-qwen4b-lora-2026-07-01`](./docs/release-evidence/finetune-qwen4b-lora-2026-07-01)。
+![历史 Qwen3 4B LoRA 曲线](./docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png)
 
-Benchmark Studio：运行控制与历史证据卡片：
+**2026-08 MATH-500 本地运行：** 学科/难度分层、判分器重放和延迟/token 视图。[评测记录](./docs/release-evidence/v1.6.4-official-evaluators-2026-08-10.md)。
 
-![Benchmark Studio](./docs/assets/screenshots/benchmarks-studio.png)
+![历史 MATH-500 可复现性与性能](./docs/assets/screenshots/math500-reproducibility-performance.png)
 
-Benchmark：本轮本地实机 smoke run 生成的评测证据：
-
-![最新实机 Benchmark 运行](./docs/assets/screenshots/latest-live-benchmark-run.png)
-
-完整 MATH-500 结果：学科/难度分层、Wilson 置信区间、判分器重放、延迟与 token 性能：
-
-![MATH-500 可复现性与性能](./docs/assets/screenshots/math500-reproducibility-performance.png)
-
-Models Studio：不可变 Hub/外置盘证据、真实 Ollama Local Server 验收，以及真实 MLX/Ollama/llama.cpp Runtime Fabric 矩阵：
-
-![Models Studio](./docs/assets/screenshots/models-studio.png)
-
-本轮真实 Runtime Fabric 与 Local Server 验收面板：
-
-![Runtime Fabric 实机性能](./docs/assets/screenshots/runtime-fabric-live-performance.png)
-![Local Server 实机验收](./docs/assets/screenshots/local-server-live-acceptance.png)
-
-MCP 与安全扩展验收：签名生命周期、真实工具发现、隔离/检疫防御和显式生产门禁：
-
-![MCP 与安全扩展验收](./docs/assets/screenshots/extension-ecosystem-acceptance.png)
-
-Compare、Retrieval 与 Admin：
-
-![Compare Studio](./docs/assets/screenshots/compare-studio.png)
-![Retrieval Studio](./docs/assets/screenshots/retrieval-studio.png)
-![Admin dashboard](./docs/assets/screenshots/admin-dashboard.png)
-![Admin benchmark 热力图](./docs/assets/screenshots/admin-benchmark-heatmap.png)
-
-运行整改与服务就绪控制面板，尚未完成的外部门禁保持可见：
-
-![运行整改与服务就绪](./docs/assets/screenshots/operational-remediation-readiness.png)
+**2026-08-30 Runtime Fabric / Local Server：** [运行时性能](./docs/assets/screenshots/runtime-fabric-live-performance.png) · [Ollama 验收](./docs/assets/screenshots/local-server-live-acceptance.png)。[Workflow Graph](./docs/assets/screenshots/workflow-graph-studio.png)和[MCP 验收](./docs/assets/screenshots/extension-ecosystem-acceptance.png)也保留为历史界面截图。另有早于本宣传片的 [Agent 动态演示](./docs/assets/demo/agent-workbench.mp4)。
 
 ## 快速开始
 

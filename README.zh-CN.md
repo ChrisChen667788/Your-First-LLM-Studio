@@ -2,12 +2,8 @@
 
 [English + 简体中文 README](./README.md)
 
-最新开发批次：[v5.8.0-v5.9.4 激活运营](./docs/v5.8.0-v5.9.4-activation-operations-plan-2026-09-10.md)。在签名接收之上增加运营策略与信任快照、权威密钥轮换、时效与冲突投影、隔离租约、审阅门槛、决策一次性接收、不授权分发/生产防火墙，以及不含密钥的审计导出/合并。默认服务仍未配置，分发为 `HOLD`，生产为 `BLOCKED`。[操作说明](./docs/activation-operations-operator-guide.md)。
-
-最新开发批次：[v5.6.0-v5.7.4 签名证据接收](./docs/v5.6.0-v5.7.4-activation-intake-plan-2026-09-09.md)。已接入真实 Ed25519 验签、服务端公钥固定、角色与受众绑定、原子导入/预检、持久化重放防护、独立证据配对、续期/撤销、签名隔离处理和重新验签备份合并。Experiments 收件箱与 CLI 共用应用服务。以上为源码里程碑，组织证据仍待提供，分发/生产保持 HOLD/BLOCKED。[操作说明](./docs/activation-intake-operator-guide.md)。
-
-![Release](https://img.shields.io/github/v/release/ChrisChen667788/local-agent-lab?label=release)
-![License](https://img.shields.io/github/license/ChrisChen667788/local-agent-lab)
+![Release](https://img.shields.io/github/v/release/ChrisChen667788/Your-First-LLM-Studio?label=release)
+![License](https://img.shields.io/github/license/ChrisChen667788/Your-First-LLM-Studio)
 ![Apple Silicon](https://img.shields.io/badge/platform-Apple%20Silicon-0f172a)
 ![MLX](https://img.shields.io/badge/local%20runtime-MLX-06b6d4)
 
@@ -17,7 +13,25 @@
   </a>
 </p>
 
-> 主视觉中的数据为产品宣传用示例遥测，用于表达训练、评测与性能检测的产品能力；真实工作流与发布证据仍以项目文档为准。
+> 主视觉中的数据为产品宣传用示例遥测；真实工作流与发布证据以项目文档为准。
+
+## 产品短片
+
+<p align="center">
+  <a href="./docs/assets/product-tour/first-llm-studio-promo.mp4">
+    <img src="./docs/assets/product-tour/first-llm-studio-promo.gif" alt="播放 First LLM Studio 产品短片：Agent、对比、微调、评测与实验记录" width="760">
+  </a>
+</p>
+
+[观看约 22 秒无声短片](./docs/assets/product-tour/first-llm-studio-promo.mp4) · [当前实机界面](./docs/product-tour-and-positioning-2026-10-06.md#current-product-media--当前产品素材) · [分镜与素材来源](./docs/product-tour-and-positioning-2026-10-06.md#short-film--宣传短片)
+
+从模型选择到可复查证据：用一个本地优先工作台串起 Agent、对比、微调、评测与运行时操作。短片混合当前隔离环境界面与**明确标注的历史本地** LoRA、MATH-500 证据，不代表连续实机任务、客户成效或生产验收。
+
+---
+
+最新开发批次：[v5.8.0-v5.9.4 激活运营](./docs/v5.8.0-v5.9.4-activation-operations-plan-2026-09-10.md)。在签名接收之上增加运营策略与信任快照、权威密钥轮换、时效与冲突投影、隔离租约、审阅门槛、决策一次性接收、不授权分发/生产防火墙，以及不含密钥的审计导出/合并。默认服务仍未配置，分发为 `HOLD`，生产为 `BLOCKED`。[操作说明](./docs/activation-operations-operator-guide.md)。
+
+最新开发批次：[v5.6.0-v5.7.4 签名证据接收](./docs/v5.6.0-v5.7.4-activation-intake-plan-2026-09-09.md)。已接入真实 Ed25519 验签、服务端公钥固定、角色与受众绑定、原子导入/预检、持久化重放防护、独立证据配对、续期/撤销、签名隔离处理和重新验签备份合并。Experiments 收件箱与 CLI 共用应用服务。以上为源码里程碑，组织证据仍待提供，分发/生产保持 HOLD/BLOCKED。[操作说明](./docs/activation-intake-operator-guide.md)。
 
 First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。它把本地 MLX 运行时、远端 API 目标、Agent 会话、Compare 对比、Fine-tune 微调、Benchmark 评测、模型发现、runtime 恢复、发布证据和后台监控统一到一个产品界面里。
 
@@ -32,6 +46,8 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `/fine-tune` | 前台 Fine-tune Studio，覆盖数据集、配方、训练、评估、adapter proof loop、导出、报告和 artifacts。 |
 | `/models` | 本地/社区模型发现、安装验证、硬件适配和风险提示。 |
 | `/benchmarks` | Benchmark run controls、进度、报告、发布证据、baseline 和回归审阅。 |
+| `/retrieval` | 本地知识导入、chunk 检查、权限过滤、引用与 grounded query 验证。 |
+| `/experiments` | 统一查看 session/run 时间线、产物来路、跨模块跳转与证据门禁。 |
 | `/admin` | Runtime、队列、benchmark 历史、provider health、guardrails 和 audit timeline 的监控/配置镜像。 |
 
 ## 大版本核心功能
@@ -41,7 +57,7 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v0.1` 基础版 | 建立本地优先 Web Studio、Apple Silicon/MLX 网关工作流、本地 + 远端 target catalog、runtime telemetry，以及 Agent/Admin 的第一版操作分层。 |
 | `v0.2` Agent + Benchmark 运维 | 增强 Agent 工作台、Compare 式 target review、replay/trace 检查、runtime recovery controls、正式 benchmark 运维、baseline 和回归证据。 |
 | `v0.3` Fine-tune + 发布证据 | 加入 evaluation、adapter chat、adapter export、distillation starter 等 fine-tune 操作循环；扩展 operation history、分区 typecheck、截图 smoke、route smoke 和公开发布素材。 |
-| `v0.4` 当前源码 checkpoint | 把 `/fine-tune`、`/compare`、`/models`、`/benchmarks` 推进为前台产品路由；迁移 feature-owned state/actions；统一 dark-glass studio/workbench 视觉；API route 变薄 application wrapper；GitHub/ModelScope 同步包；Admin 收口为监控/配置。 |
+| `v0.4` 产品信息架构里程碑 | 把 `/fine-tune`、`/compare`、`/models`、`/benchmarks` 推进为前台产品路由；迁移 feature-owned state/actions；统一 studio/workbench 视觉；API route 变薄 application wrapper；Admin 收口为监控/配置。 |
 | `v0.4.1` 稳定基线 | 修复 dataless 工作区导致的启动/编译卡死，保持 route smoke 和 typecheck 通过，刷新 OpenAI-compatible `/v1` 接口、provider 状态回报和当前实机 UI 证据。 |
 | `v0.4.2` 证据补丁 | 正式固化 GitHub/ModelScope 高清截图同步、README 截图 LFS 阈值修复，并保留 v0.4.1 真实 LoRA 发布证据作为稳定公开基线。 |
 | `v0.5` Starter 轨道 | 企业 RAG、部署 registry、OpenAI-compatible API、telemetry、release-readiness gates、生产签收和 control-plane rehearsal 持续放在显式 preview gate 后推进，满足证据门槛后再 promotion。 |
@@ -78,7 +94,7 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。�
 | `v5.2.0-v5.3.4` 外部证据 Relay | **源码完成 / 待真实证据：** 固定 HTTPS Relay 描述符、非明文的一次性凭据解析、有界摘要请求/回执传输、隔离账本、时效/重放防护、14 域对账与不授予生产权限的防火墙。 |
 | `v5.4.0-v5.5.4` 外部证据激活 | **源码完成 / 待真实证据：** 绑定 Relay/handoff 的激活清单、严格签名阶段接收、隔离、14 域时效、独立决策请求/回执绑定和生产准入防火墙。 |
 
-当前已打标签版本见 [`VERSION`](./VERSION)。源码树可能包含下一轮 route-owned 重构 checkpoint，正式标签会在后续发布时推进。
+当前源码版本为 [`v1.5.1`](./VERSION)；[`release-state.json`](./release-state.json)分别记录源码、本地验收、公开 GitHub 发布、桌面候选和分发/生产状态。后续源码批次不等于新的公开版本。
 
 上一阶段运行整改计划见 [`v2.8.0-v2.9.4`](./docs/v2.8.0-v2.9.4-operational-sustainability-plan-2026-08-30.md)。首轮 owner-controlled 投影记录 6 个通过、7 个需关注、0 个不可用和 2 个仅外部可满足的信号；独立外部签收仍为 `0/15`，分发保持 `HOLD`，生产保持 `BLOCKED`。
 
@@ -143,36 +159,26 @@ First LLM Studio 的优势是统一证据链。`v3.8.0-v3.9.4` 的 15 个源码�
 
 ## 对哪些用户有价值
 
-### Apple Silicon 本地 AI 开发者
+| 面向谁 | 要完成的工作 | 待试点验证的潜在价值 |
+| --- | --- | --- |
+| Apple Silicon 本地 AI 开发者 | 选择可运行的本地模型，查看运行时压力，并对比已配置的远端目标。 | 减少模型管理器、命令行和对比笔记之间的手工切换。 |
+| Agent / 工具链团队 | 检查会话、target/工具状态与回放，再把对比问题交给评测。 | 更快区分模型、Provider、工具与运行时问题。 |
+| 微调实践者 | 追踪数据集、配方、作业、checkpoint、报告和 adapter 的关系。 | 决策或导出 adapter 前，减少手工核对产物。 |
+| 评测 / 平台工程师 | 检查固定协议、判分器重放、baseline、运行来路与发布门槛。 | 减少脱离上下文的分数宣称，使模型决策更易复核。 |
 
-- 在统一上下文预算下，对比 MLX 本地模型和托管 API。
-- 不离开应用就能查看 runtime 成本、prewarm、release、恢复动作和硬件压力。
-- 判断哪个本地模型真的适合日常 coding / analysis 工作流。
-
-### Agent / 工具链团队
-
-- 在一个工作台里验证 tool calling、repo-grounded behavior、replay 和 patch 流程。
-- 直接把 Compare 结果送入 Benchmark，不必切换产品。
-- 区分失败来源：模型质量、provider 行为，还是本地 runtime 不稳。
-
-### 评测 / 平台工程团队
-
-- 用可复现 profile 跑 formal 和 focused benchmark suites。
-- 查看 baseline、delta、run note、失败分类和发布证据。
-- 让本地与远端 target 落在同一个可比较的 target catalog 里。
+这些是工作流价值假设，不是已测得的客户 ROI 或节省工时。试点度量方式和证据边界见[产品定位复查](./docs/product-tour-and-positioning-2026-10-06.md)。
 
 ## 核心价值
 
-- 本地 + 远端统一 target catalog。
-- Compare Lab 支持模型对模型审阅。
-- Fine-tune 工作流覆盖 dataset、recipe、training、evaluation、adapter proof loop 和 export。
-- 可视化 Workflow Studio 覆盖 Agent/RAG/eval 类型图、不可变 recipe、受保护工具执行、回放与 OpenAI-compatible 部署。
-- Benchmark 运维覆盖 history、progress、baseline、report 和 release evidence。
-- Replay、trace review、patch inspection 与可导出的审阅记录。
-- Runtime 运维覆盖 prewarm、release、restart、日志检查、telemetry 和 recovery。
-- 支持本地/社区模型发现和远端 provider health 扫描。
+- **一条操作链：** 本地 MLX 与已配置的 API 目标连接 Agent、Compare、Models、Benchmark 和运行时诊断。
+- **训练可追溯：** 数据集、配方、作业、报告、checkpoint、adapter 验证与导出相连；历史真实 LoRA 运行证据见下方。
+- **分数有上下文：** 固定的评测数据/判分器、运行历史、重放、baseline 与失败审阅共同解释结果。
+- **知识与产物有来路：** Retrieval、Workflow Studio 与 Experiments 串起引用、类型化流程、运行产物和审阅记录。
+- **限制看得见：** 源码/本地证据与外部签收、分发批准、生产授权分开呈现。
 
 ## 当前支持的 Target
+
+以下是目录/选择目标，不代表模型已安装、远端账号已有权限或实机运行通过验收。实际可用性以目标状态及本机运行时/供应商配置为准。
 
 ### 本地
 
@@ -195,9 +201,9 @@ Target 选择、稳定性与适用任务对照：[`docs/benchmark-lane-compariso
 
 贡献者入口：[English](./CONTRIBUTING.md) · [中文快速上手](./docs/chinese-contributor-quickstart.md) · [GitHub 仓库设置清单](./docs/github-repository-setup-checklist.md)。
 
-## 最新真机证据
+## 历史本地运行证据（2026-08-30）
 
-2026-08-30 的证据刷新从当前运行中的应用生成了新一批高清实机材料：
+2026-08-30 的归档保留了当时运行应用生成的高清本地材料：
 
 - Runtime Fabric：真实 MLX、Ollama、llama.cpp 3/3 后端通过，adapter contract 6/6，标准化操作 42/42。
 - Local Server：真实 Ollama 0.31.1 + Qwen3 0.6B 通过 15/15 项，完成 6 个请求、95 tokens，平均延迟 169 ms。
@@ -209,69 +215,39 @@ Target 选择、稳定性与适用任务对照：[`docs/benchmark-lane-compariso
 
 ## 截图
 
-以下截图来自本地运行版本，并经过类型、测试、构建、路由与截图完整性验证。1920x1200 截图视口使用 2x DPR，路由图达到 3840x2400；证据面板保留原生高清裁切，LoRA 图从 SVG 以 2x DPR 导出。
+当前图库于 2026-10-06 从 `v1.5.1` 本地独立构建抓取，使用全新隔离数据目录，尺寸为 `1920 x 1200`。导出前仅替换了 UI 文本中的本机绝对路径。这些图展示的是**界面与空白/入门状态**，不是新训练、新评测、远端 Provider 实测或生产结果。[逐路由清单与摘要](./docs/assets/product-tour/2026-10-06/manifest.json)。
 
-Agent 工作台：target catalog、runtime rail 与工具化输入区：
+**Agent：** 本地/远端目标目录、会话工作区与运行时侧栏。
 
-![Agent 工作台](./docs/assets/screenshots/agent-workbench.png)
+![当前隔离环境的 Agent 工作台](./docs/assets/product-tour/2026-10-06/agent.png)
 
-Workflow Graph Studio：可拖拽类型节点、版本/修订控制、执行恢复与 promotion evidence：
+**Compare：** 对齐提示词、目标 lane 与审阅控制项。
 
-![Workflow Graph Studio](./docs/assets/screenshots/workflow-graph-studio.png)
+![当前隔离环境的 Compare Studio](./docs/assets/product-tour/2026-10-06/compare.png)
 
-可复现动态演示流程：[`docs/demo-video-workflow.md`](./docs/demo-video-workflow.md)。
+**Fine-tune：** 入门配方与训练控制；隔离环境没有已完成新作业。
 
-[查看 Agent 工作台 MP4 演示](./docs/assets/demo/agent-workbench.mp4) · [SHA-256 元数据](./docs/assets/demo/agent-workbench.mp4.metadata.json)
+![当前隔离环境的 Fine-tune Studio](./docs/assets/product-tour/2026-10-06/fine-tune.png)
 
-Fine-tune Studio：工作流 tab、训练控制与 report/evidence 面板：
+**Benchmark：** 协议目录与运行控制。
 
-![Fine-tune Studio](./docs/assets/screenshots/fine-tune-studio.png)
+![当前隔离环境的 Benchmark Studio](./docs/assets/product-tour/2026-10-06/benchmarks.png)
 
-Fine-tune 完成作业：真实 loss 曲线、训练/验证轨迹与 handoff 操作：
+**其他当前界面：** [模型生命周期](./docs/assets/product-tour/2026-10-06/models.png) · [知识工作区](./docs/assets/product-tour/2026-10-06/retrieval.png) · [实验证据](./docs/assets/product-tour/2026-10-06/experiments.png) · [后台监控](./docs/assets/product-tour/2026-10-06/admin.png)。
 
-![Fine-tune 实时训练曲线](./docs/assets/screenshots/fine-tune-live-training-curve.png)
+### 历史本地运行证据
 
-真实 Qwen3 4B LoRA 发布证据：包含 save/eval 事件标记和自动选择的最佳 checkpoint：
+以下图片属于归档运行/抓图记录，**不是** 2026-10-06 新跑出的指标。[2026-08-30 抓图报告](./docs/release-evidence/v3.1.4-high-resolution-live-machine-capture-2026-08-30.md)记录尺寸、验证和限制。
 
-![Qwen3 4B LoRA 发布证据](./docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png)
+**2026-07-01 Qwen3 4B LoRA：** save/eval 标记与最佳 checkpoint。[完整归档](./docs/release-evidence/finetune-qwen4b-lora-2026-07-01/README.md)。
 
-矢量版本：[`fine-tune-qwen4b-lora-chart.svg`](./docs/assets/screenshots/fine-tune-qwen4b-lora-chart.svg)。完整 run archive 与 manifest：[`docs/release-evidence/finetune-qwen4b-lora-2026-07-01`](./docs/release-evidence/finetune-qwen4b-lora-2026-07-01)。
+![历史 Qwen3 4B LoRA 曲线](./docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png)
 
-Benchmark Studio：运行控制与历史证据卡片：
+**2026-08 MATH-500 本地运行：** 学科/难度分层、判分器重放和延迟/token 视图。[评测记录](./docs/release-evidence/v1.6.4-official-evaluators-2026-08-10.md)。
 
-![Benchmark Studio](./docs/assets/screenshots/benchmarks-studio.png)
+![历史 MATH-500 可复现性与性能](./docs/assets/screenshots/math500-reproducibility-performance.png)
 
-Benchmark：本轮本地实机 smoke run 生成的评测证据：
-
-![最新实机 Benchmark 运行](./docs/assets/screenshots/latest-live-benchmark-run.png)
-
-完整 MATH-500 结果：学科/难度分层、Wilson 置信区间、判分器重放、延迟与 token 性能：
-
-![MATH-500 可复现性与性能](./docs/assets/screenshots/math500-reproducibility-performance.png)
-
-Models Studio：不可变 Hub/外置盘证据、真实 Ollama Local Server 验收，以及真实 MLX/Ollama/llama.cpp Runtime Fabric 矩阵：
-
-![Models Studio](./docs/assets/screenshots/models-studio.png)
-
-本轮真实 Runtime Fabric 与 Local Server 验收面板：
-
-![Runtime Fabric 实机性能](./docs/assets/screenshots/runtime-fabric-live-performance.png)
-![Local Server 实机验收](./docs/assets/screenshots/local-server-live-acceptance.png)
-
-MCP 与安全扩展验收：签名生命周期、真实工具发现、隔离/检疫防御和显式生产门禁：
-
-![MCP 与安全扩展验收](./docs/assets/screenshots/extension-ecosystem-acceptance.png)
-
-Compare、Retrieval 与 Admin：
-
-![Compare Studio](./docs/assets/screenshots/compare-studio.png)
-![Retrieval Studio](./docs/assets/screenshots/retrieval-studio.png)
-![Admin dashboard](./docs/assets/screenshots/admin-dashboard.png)
-![Admin benchmark 热力图](./docs/assets/screenshots/admin-benchmark-heatmap.png)
-
-运行整改与服务就绪控制面板，尚未完成的外部门禁保持可见：
-
-![运行整改与服务就绪](./docs/assets/screenshots/operational-remediation-readiness.png)
+**2026-08-30 Runtime Fabric / Local Server：** [运行时性能](./docs/assets/screenshots/runtime-fabric-live-performance.png) · [Ollama 验收](./docs/assets/screenshots/local-server-live-acceptance.png)。[Workflow Graph](./docs/assets/screenshots/workflow-graph-studio.png)和[MCP 验收](./docs/assets/screenshots/extension-ecosystem-acceptance.png)也保留为历史界面截图。另有早于本宣传片的 [Agent 动态演示](./docs/assets/demo/agent-workbench.mp4)。
 
 ## 快速开始
 

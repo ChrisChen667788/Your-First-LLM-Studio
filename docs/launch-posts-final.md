@@ -1,6 +1,6 @@
 # First LLM Studio Final Launch Posts
 
-This file is the ready-to-paste final post set for GitHub, ModelScope, and Chinese communities.
+> Archived 2026-10-06: these are the original `v0.3.0` posts, not a ready-to-paste current launch. Some historical links use the former `local-agent-lab` path. Current repository: [Your-First-LLM-Studio](https://github.com/ChrisChen667788/Your-First-LLM-Studio). Check [current positioning and media](./product-tour-and-positioning-2026-10-06.md) and [`release-state.json`](../release-state.json) before a new post; distribution is `HOLD` and production is `BLOCKED`.
 
 ## 1. GitHub release / discussion
 

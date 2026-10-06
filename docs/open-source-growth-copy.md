@@ -1,6 +1,8 @@
 # First LLM Studio Launch Copy Kit
 
-This file is the final launch copy pack for GitHub, ModelScope, and Chinese communities.
+> Archived 2026-10-06: this pack contains `v0.3.0` launch copy and historical URLs. It is not the current final post set. Use [Product Tour and Positioning](./product-tour-and-positioning-2026-10-06.md), the current [README](../README.md), and [`release-state.json`](../release-state.json) before drafting a new announcement. Do not imply that a source milestone is a new public release or that production gates have passed.
+
+This file preserves the original `v0.3.0` launch copy for historical context.
 
 The messaging strategy follows the same patterns that usually让开源项目更容易被记住:
 
@@ -14,11 +16,11 @@ The messaging strategy follows the same patterns that usually让开源项目更�
 
 ### English
 
-First LLM Studio is a local-first LLM studio for Apple Silicon that keeps local MLX runtimes, remote API comparison, benchmark ops, Compare Lab, replay, and runtime telemetry inside one workbench.
+First LLM Studio is a local-first model workbench for Apple Silicon connecting Agent sessions, model comparison, fine-tuning, benchmarks, retrieval, runtime operations, and reviewable evidence.
 
 ### 中文
 
-First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM Studio，把本地 MLX、远端 API 对比、benchmark 运维、Compare Lab、replay 和 runtime 实时监控收进同一个工作台。
+First LLM Studio 是面向 Apple Silicon 的本地优先模型工作台，把 Agent、模型对比、微调、评测、检索、运行时操作与可复查证据连成一条工作流。
 
 ## Who should care
 
@@ -38,29 +40,35 @@ First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM Studio，把�
 
 ### English
 
-- local and remote models live in the same target catalog
-- Compare Lab stays inside the main workbench instead of becoming a separate toy page
-- benchmark review, replay, trace, patch inspection, and runtime recovery stay connected
-- local runtime cost is visible with CPU, memory, GPU, shared GPU memory, energy signal, and storage pressure
-- new local models and configured remote APIs can be scanned in one click
+- local and configured remote targets can be selected in Agent and Compare; catalog presence is not live provider acceptance
+- Compare configuration can be reviewed and handed into evaluation without pretending the isolated screenshot is a paired result
+- Fine-tune connects dataset, recipe, job, checkpoint, report, and adapter surfaces; the Qwen3 4B LoRA run is separately dated historical evidence
+- Benchmarks tie runs to protocol, scorer, baseline, and failure review; the MATH-500 result is an archived local run
+- Experiments and Admin keep source, local, external, distribution, and production states visible
 
 ### 中文
 
-- 本地模型和远端 API 在同一套 target catalog 里统一管理
-- Compare Lab 直接长在主工作台里，不是另一个“演示页面”
-- benchmark 审阅、replay、trace、patch inspection、runtime recovery 是连着的
-- 本地运行代价可见：CPU、内存、GPU、共享显存、能耗信号、存储压力都能看
-- 新本地模型和已配置远端 API 可以一键扫描纳入工作台
+- Agent 与 Compare 可选择本地和已配置远端目标；目录存在不等于远端实测通过
+- Compare 配置可审阅并移交评测；隔离截图不冒充双模型完成结果
+- 微调串起数据集、配方、任务、checkpoint、报告和 adapter；Qwen3 4B LoRA 运行是独立标注的历史证据
+- 评测把结果连回协议、判分器、baseline 和失败审阅；MATH-500 是历史本地运行
+- Experiments 与 Admin 明示源码、本地、外部、分发和生产状态
 
 ## Recommended screenshot order
 
-Use this order in launch posts or repo discussions:
+For new launch posts or repo discussions, use this order and the [capture manifest](./assets/product-tour/2026-10-06/manifest.json):
 
-1. `docs/assets/landing-page.png`
-2. `docs/assets/agent-workbench.png`
-3. `docs/assets/runtime-telemetry-cards.png`
-4. `docs/assets/benchmark-percentiles.png`
-5. `docs/assets/formal-regression-summary.png`
+1. `docs/assets/product-tour/first-llm-studio-promo.jpg` (link to MP4)
+2. `docs/assets/product-tour/2026-10-06/agent.png`
+3. `docs/assets/product-tour/2026-10-06/compare.png`
+4. `docs/assets/product-tour/2026-10-06/fine-tune.png`
+5. `docs/assets/product-tour/2026-10-06/benchmarks.png`
+
+The screenshots show current isolated UI; dated LoRA and MATH-500 evidence may follow with explicit historical labels.
+
+## Archived v0.3.0 launch posts / 历史发布帖
+
+Do not reuse the following posts as current release announcements without checking the [release state](../release-state.json), official links, and fresh evidence. / 以下帖子不能直接当作当前版本公告；需先核对发布状态、官方链接和新证据。
 
 ## GitHub launch
 

@@ -1,5 +1,7 @@
 # ModelScope Launch Kit · First LLM Studio
 
+Reviewed 2026-10-06. This is positioning guidance, not a publication approval. The current source is `v1.5.1`, latest public GitHub release is `v0.4.0`, distribution is `HOLD`, and production is `BLOCKED`; verify [`release-state.json`](../release-state.json) before posting. See [Product Tour and Positioning](./product-tour-and-positioning-2026-10-06.md) for the current bilingual copy and media provenance.
+
 ## Recommended repository name
 
 - English: `First LLM Studio`
@@ -9,11 +11,11 @@
 
 ### English
 
-A local-first LLM studio for Apple Silicon with MLX local runtimes, remote API comparison, benchmark ops, Compare Lab, replay, trace review, and runtime telemetry.
+A local-first model workbench for Apple Silicon connecting Agent sessions, model comparison, fine-tuning, benchmarks, retrieval, runtime operations, and reviewable evidence.
 
 ### 中文
 
-面向 Apple Silicon 的本地优先 LLM 工作台，集成 MLX 本地运行时、远端 API 对比、benchmark 运维、Compare Lab、replay、trace review 和 runtime 实时监控。
+面向 Apple Silicon 的本地优先模型工作台，把 Agent、模型对比、微调、评测、检索、运行时操作和可复查证据连成一条工作流。
 
 ## Target users
 
@@ -33,17 +35,17 @@ A local-first LLM studio for Apple Silicon with MLX local runtimes, remote API c
 
 ### English
 
-- compare local and remote models under fair constraints
-- keep experiments, benchmark, and runtime operations in one workspace
-- inspect replay, trace, tool calls, and recovery actions with evidence
-- monitor local gateway hardware cost while iterating
+- select local and configured remote targets, then hand comparison questions into evaluation
+- connect dataset, recipe, job, checkpoint, and adapter review without losing lineage
+- inspect scorer, baseline, replay, and runtime context when making model decisions
+- keep external approval, distribution, and production gates visible rather than implied
 
 ### 中文
 
-- 在统一约束下对比本地与远端模型
-- 把实验、benchmark 与 runtime 运维收在同一个工作台里
-- 用 replay、trace、tool call 和恢复动作做证据链审阅
-- 在迭代时同步观察本地网关硬件开销
+- 选择本地与已配置远端目标，并把对比问题交给评测
+- 串联数据集、配方、任务、checkpoint 与 adapter 的产物来路
+- 做模型决策时查看判分器、baseline、回放与运行时上下文
+- 明示外部验收、分发和生产门槛，不把源码完成等同于上线
 
 ## Suggested launch headline
 
@@ -59,26 +61,28 @@ First LLM Studio：面向 Apple Silicon 的开源本地优先 LLM 工作台
 
 ### English
 
-First LLM Studio is built for teams that need more than a chat UI. It combines local MLX runtimes, remote API comparison, Compare Lab, benchmark review, replay, trace review, and runtime telemetry in one workbench.
+First LLM Studio is built for teams that need more than a chat UI. It connects local MLX and configured remote targets with Agent, Compare, Fine-tune, Benchmark, Retrieval, Experiments, and runtime review. The value proposition is a more reviewable model decision with fewer manual handoffs; these are pilot hypotheses, not measured customer ROI.
 
 ### 中文
 
-First LLM Studio 面向的不是“只需要聊天界面”的用户，而是那些需要把本地 MLX、远端 API 对比、Compare Lab、benchmark 审阅、replay、trace review 和 runtime 遥测统一到一个工作台里的团队。
+First LLM Studio 面向需要审阅模型决策过程的团队：把本地 MLX 与已配置远端目标接到 Agent、Compare、微调、评测、检索、实验记录和运行时审阅。减少手工切换、提高可复查性是待试点验证的价值假设，不是已测得的客户 ROI。
 
 ## Recommended screenshot stack
 
-1. `docs/assets/landing-page.png`
-2. `docs/assets/agent-workbench.png`
-3. `docs/assets/runtime-telemetry-cards.png`
-4. `docs/assets/benchmark-percentiles.png`
-5. `docs/assets/formal-regression-summary.png`
+1. `docs/assets/product-tour/first-llm-studio-promo.jpg` (link to MP4)
+2. `docs/assets/product-tour/2026-10-06/agent.png`
+3. `docs/assets/product-tour/2026-10-06/compare.png`
+4. `docs/assets/product-tour/2026-10-06/fine-tune.png`
+5. `docs/assets/product-tour/2026-10-06/benchmarks.png`
+
+These are isolated UI captures. The dated LoRA/MATH-500 local runs are separate archived evidence, not results from this capture.
 
 ## Messaging angle for ModelScope
 
 ### English
 
-Emphasize that this project is not only about inference. It is about making the whole local-first LLM workflow visible: compare, benchmark, replay, trace, recovery, and telemetry.
+Lead with the [product film](./assets/product-tour/first-llm-studio-promo.mp4), then show the dated Agent, Compare, Fine-tune, and Benchmark UI captures. Describe training and scoring with their distinct historical receipts; do not present illustrative hero telemetry or isolated UI as a new run.
 
 ### 中文
 
-重点强调这个项目不只是“推理工具”，而是把本地优先 LLM 工作流里的 compare、benchmark、replay、trace、恢复和硬件遥测一起做可见。
+先展示[产品短片](./assets/product-tour/first-llm-studio-promo.mp4)和带日期的 Agent、Compare、微调、评测界面；训练与评分分别引用历史证据，不把主视觉示例遥测或隔离界面写成新的运行结果。

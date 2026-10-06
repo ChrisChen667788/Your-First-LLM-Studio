@@ -4,11 +4,11 @@ Use this checklist after a release or when repository settings drift. It separat
 
 ## Repository Identity
 
-- [ ] About description matches the first paragraph of `README.md`.
+- [ ] About description supports English and Chinese, fits GitHub's field limit, and matches the current positioning in `README.md` and `README.zh-CN.md`.
 - [ ] Homepage points to the current project or documentation URL.
 - [ ] Topics include `llm`, `mlx`, `apple-silicon`, `coding-agent`, `benchmark`, and `nextjs`.
 - [ ] Social preview uses `public/oss-cover.png` and remains legible at GitHub crop sizes.
-- [ ] Pinned repository/profile copy matches `docs/open-source-growth-copy.md`.
+- [ ] Pinned repository/profile copy uses `docs/product-tour-and-positioning-2026-10-06.md`; the `v0.3.0` growth-copy pack is archived.
 
 ## Community Files
 
@@ -29,6 +29,7 @@ Use this checklist after a release or when repository settings drift. It separat
 
 - [ ] Release tag, GitHub release, package version, and release-train entry agree.
 - [ ] README screenshots pass `npm run validate:screenshots`.
+- [ ] Product-tour GIF, MP4, poster, manifests, and current UI screenshots pass `npm run validate:product-promo`; README and ModelScope links resolve to the same dated captures.
 - [ ] Dynamic demos have an MP4 plus SHA-256 metadata receipt.
 - [ ] Model, benchmark, training, and artifact claims link to durable evidence.
 - [ ] Cloud, notarization, organization, and clean-machine claims stay blocked until external receipts exist.

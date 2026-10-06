@@ -2,6 +2,20 @@
 
 > English | [简体中文](#简体中文)
 
+**Local-first model work, from target selection to reviewable evidence. / 本地优先模型工作，从目标选择到可复查证据。**
+
+<p align="center">
+  <a href="../docs/assets/product-tour/first-llm-studio-promo.mp4">
+    <img src="../docs/assets/product-tour/first-llm-studio-promo.gif" alt="First LLM Studio bilingual product film" width="760">
+  </a>
+</p>
+
+[Watch the 22-second silent film / 观看无声短片](../docs/assets/product-tour/first-llm-studio-promo.mp4) · [Current UI and provenance / 当前界面与素材来源](../docs/product-tour-and-positioning-2026-10-06.md)
+
+The film combines isolated current UI with labeled historical local LoRA/MATH-500 evidence. It is not a new benchmark, customer result, external acceptance, or production claim. / 短片组合当前隔离界面和明确标注的历史本地证据，不代表新评测、客户成效、外部签收或生产验收。
+
+---
+
 Latest development batch: [v5.8.0-v5.9.4 Activation Operations](../docs/v5.8.0-v5.9.4-activation-operations-plan-2026-09-10.md). Signed intake now has pinned operational policy/trust snapshots, authority rotation, freshness/conflict projection, leased quarantine, review quorum, one-shot decisions, a non-authorizing firewall, and secret-free audit export/merge. Organization evidence remains required; distribution is `HOLD` and production is `BLOCKED`. [Operator guide](../docs/activation-operations-operator-guide.md).
 
 最新开发批次：[v5.8.0-v5.9.4 激活运营](../docs/v5.8.0-v5.9.4-activation-operations-plan-2026-09-10.md)。签名接收现已增加运营策略/信任快照、权威轮换、时效/冲突投影、隔离租约、审阅门槛、一次性决策、不授权防火墙和不含密钥的审计导出/合并。组织证据仍需提供，分发保持 `HOLD`，生产保持 `BLOCKED`。[操作说明](../docs/activation-operations-operator-guide.md)。
@@ -18,9 +32,9 @@ A local-first LLM studio for Apple Silicon that brings MLX local runtimes, remot
 
 ## Current Release
 
-Current version: `v1.1.0-rc.2`.
+Current source version: `v1.5.1`; latest public GitHub release: `v0.4.0`; latest desktop candidate: `v1.1.0-rc.2`. Distribution is `HOLD` and production is `BLOCKED`; these are separate fields in [`release-state.json`](../release-state.json).
 
-This desktop-onboarding release candidate packages the current Studio as an Apple Silicon app with an official bundled Node runtime, ZIP/DMG artifacts, first-run diagnosis, permission and service recovery, data/update rollback rehearsals, a real Ollama local-chat proof, and clean-profile DMG boot evidence. Ad-hoc local codesign is reported separately from the still-open Developer ID/notarization GA gate.
+The desktop candidate includes an Apple Silicon app package, first-run and recovery flows, and local Ollama proof. Developer ID/notarization and independent organization acceptance remain open gates; later source batches are not new public releases.
 
 ## Product Surfaces
 
@@ -34,6 +48,17 @@ This desktop-onboarding release candidate packages the current Studio as an Appl
 | Retrieval | Local knowledge import, chunk inspection, permission-aware retrieval, citations, and grounded query validation. |
 | Experiments | Unified session/run timeline, artifact lineage, cross-links, navigation, filters, and retention. |
 | Admin | Monitoring/configuration mirror for runtime, queues, provider health, compatibility usage, guardrails, and audit timelines. |
+
+## Use Cases and Value
+
+| For | Work to finish | Value hypothesis to test |
+| --- | --- | --- |
+| Apple Silicon local-AI builders | Choose a feasible local model and compare configured remote targets with runtime context. | Fewer manual handoffs between model manager, shell, and comparison notes. |
+| Agent and tooling teams | Inspect sessions, target/tool state, replay, and comparison handoff. | Faster isolation of model, provider, tool, and runtime causes. |
+| Fine-tune practitioners | Trace dataset, recipe, job, checkpoint, report, and adapter relationships. | Less manual artifact reconciliation. |
+| Evaluation/platform engineers | Review pinned protocols, scorer replay, baselines, lineage, and release gates. | More reviewable model decisions. |
+
+No measured customer ROI, saved hours, or production outcome is claimed. [Full bilingual positioning and pilot measures](../docs/product-tour-and-positioning-2026-10-06.md).
 
 ## Major Versions
 
@@ -139,6 +164,7 @@ First-party product and model review dated 2026-08-31. **Core** means a primary 
 
 The current official model/Agent radar includes OpenAI `gpt-5.6-sol`, Anthropic `claude-fable-5` / `claude-opus-5` and Managed Agents, Google `gemini-3.7-flash` and Antigravity, DeepSeek V4, MiniMax M2.7, Kimi K2.6, Zhipu `glm-5.2`, and Qwen3-Coder/Qwen Code Agent Teams. It is a watchlist, not a claim that every model is locally configured or paid for.
 
+
 First LLM Studio is strongest where these workflows need one reproducible evidence chain. The 15 `v3.8.0-v3.9.4` source contracts now cover provider discovery, model routing, Agent conformance/cache, isolated teams, sandboxing, multimodal admission, Model Hub/Local Server v3, governed RAG, training federation, Team Studio policy, and a <=14-day freshness gate. Missing real workload and external receipts remain `HOLD`. See the full bilingual [competitive landscape and product direction](../docs/competitive-landscape.md).
 
 ## Real Fine-tune / LoRA Evidence
@@ -157,9 +183,9 @@ The v0.4.2 public baseline preserves the real local Qwen3 4B LoRA run introduced
 
 Vector chart: [`fine-tune-qwen4b-lora-chart.svg`](../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.svg). Full evidence directory: [`docs/release-evidence/finetune-qwen4b-lora-2026-07-01`](../docs/release-evidence/finetune-qwen4b-lora-2026-07-01).
 
-## Latest Live-machine Evidence
+## Archived Local-run Evidence (2026-08-30)
 
-The 2026-08-30 refresh adds fresh evidence from the running local application:
+The 2026-08-30 archive preserves evidence from the local application running at that time:
 
 - Runtime Fabric: real MLX, Ollama, and llama.cpp passed 3/3 backends, 6/6 contracts, and 42/42 normalized operations.
 - Local Server: Ollama 0.31.1 + Qwen3 0.6B passed 15/15 slices with 169 ms average latency.
@@ -171,29 +197,23 @@ Metrics, digests, dimensions, and evidence boundaries: [`v3.1.4-high-resolution-
 
 ## Screenshots
 
-README screenshots are captured from the running local app with a 1920x1200 viewport at 2x DPR. Route screenshots reach 3840x2400; evidence panels retain high-resolution crops, and the 3360x1960 LoRA chart is exported from SVG.
+The 2026-10-06 gallery is a `1920 x 1200` capture of the current standalone UI with isolated data and machine paths redacted. It shows controls and empty/starter states, not new completed runs. [Manifest and boundaries](../docs/assets/product-tour/2026-10-06/manifest.json).
 
-![Agent workbench](../docs/assets/screenshots/agent-workbench.png)
-![Fine-tune Studio](../docs/assets/screenshots/fine-tune-studio.png)
-![Fine-tune live training curve](../docs/assets/screenshots/fine-tune-live-training-curve.png)
-![Qwen3 4B LoRA release evidence](../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png)
-![Benchmark Studio](../docs/assets/screenshots/benchmarks-studio.png)
-![Latest live benchmark run](../docs/assets/screenshots/latest-live-benchmark-run.png)
-![MATH-500 reproducibility and performance](../docs/assets/screenshots/math500-reproducibility-performance.png)
-![Models Studio](../docs/assets/screenshots/models-studio.png)
-![Runtime Fabric live performance](../docs/assets/screenshots/runtime-fabric-live-performance.png)
-![Local Server live acceptance](../docs/assets/screenshots/local-server-live-acceptance.png)
-![Compare Studio](../docs/assets/screenshots/compare-studio.png)
-![Retrieval Studio](../docs/assets/screenshots/retrieval-studio.png)
-![Admin dashboard](../docs/assets/screenshots/admin-dashboard.png)
-![Operational remediation readiness](../docs/assets/screenshots/operational-remediation-readiness.png)
+![Current isolated Agent workbench](../docs/assets/product-tour/2026-10-06/agent.png)
+![Current isolated Compare Studio](../docs/assets/product-tour/2026-10-06/compare.png)
+![Current isolated Fine-tune Studio](../docs/assets/product-tour/2026-10-06/fine-tune.png)
+![Current isolated Benchmark Studio](../docs/assets/product-tour/2026-10-06/benchmarks.png)
+
+[Models](../docs/assets/product-tour/2026-10-06/models.png) · [Retrieval](../docs/assets/product-tour/2026-10-06/retrieval.png) · [Experiments](../docs/assets/product-tour/2026-10-06/experiments.png) · [Admin](../docs/assets/product-tour/2026-10-06/admin.png).
+
+**Archived local evidence, not new 2026-10-06 results:** [Qwen3 4B LoRA chart](../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png) · [MATH-500 run](../docs/assets/screenshots/math500-reproducibility-performance.png) · [Runtime Fabric](../docs/assets/screenshots/runtime-fabric-live-performance.png) · [Local Server](../docs/assets/screenshots/local-server-live-acceptance.png). [2026-08-30 capture record](../docs/release-evidence/v3.1.4-high-resolution-live-machine-capture-2026-08-30.md).
 
 ## Repository
 
 - GitHub: [https://github.com/ChrisChen667788/Your-First-LLM-Studio](https://github.com/ChrisChen667788/Your-First-LLM-Studio)
 - ModelScope profile: [https://www.modelscope.cn/profile/haozi667788](https://www.modelscope.cn/profile/haozi667788)
 - Default ModelScope repo id: `haozi667788/first-llm-studio`
-- Latest release note: [`v1.1.0-rc.2`](../docs/releases/v1.1.0-rc.2_2026-07-16.md)
+- Desktop candidate note: [`v1.1.0-rc.2`](../docs/releases/v1.1.0-rc.2_2026-07-16.md)
 
 ---
 
@@ -207,9 +227,9 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 
 ## 当前版本
 
-当前版本：`v1.1.0-rc.2`。
+当前源码版本为 `v1.5.1`；最近公开 GitHub 发布为 `v0.4.0`；最近桌面候选为 `v1.1.0-rc.2`。分发为 `HOLD`，生产为 `BLOCKED`，详见 [`release-state.json`](../release-state.json)。
 
-该桌面首次启动发布候选把当前 Studio 打包为 Apple Silicon app，内置官方 Node runtime，并生成 ZIP/DMG、首次诊断、权限与服务恢复、数据/更新回滚演练、真实 Ollama 本地对话证明和 clean-profile DMG 启动证据。ad-hoc 本地 codesign 与仍待完成的 Developer ID/notarization GA 门禁会分开报告。
+桌面候选包含 Apple Silicon 应用包、首次启动与恢复流程及本地 Ollama 证明；Developer ID/公证和独立组织验收仍是待完成门槛，后续源码批次不等于新的公开发布。
 
 ## 产品入口
 
@@ -223,6 +243,17 @@ First LLM Studio 是面向 Apple Silicon 的本地优先 LLM 工作台，把 MLX
 | Retrieval | 本地知识导入、chunk 检查、权限过滤、引用和 grounded query 验证。 |
 | Experiments | 统一 Session/Run 时间线、artifact lineage、跨功能链接、导航、筛选和 retention。 |
 | Admin | Runtime、队列、provider health、compatibility usage、guardrails 和 audit timeline 的监控/配置镜像。 |
+
+## 应用场景与价值
+
+| 面向谁 | 要完成的工作 | 待试点验证的潜在价值 |
+| --- | --- | --- |
+| Apple Silicon 本地 AI 开发者 | 选择可运行的本地模型，结合运行时上下文对比已配置的远端目标。 | 减少模型管理器、命令行和笔记之间的手工切换。 |
+| Agent / 工具链团队 | 检查会话、目标/工具状态、回放与对比交接。 | 更快区分模型、Provider、工具和运行时原因。 |
+| 微调实践者 | 追踪数据集、配方、作业、checkpoint、报告与 adapter。 | 减少手工核对产物。 |
+| 评测 / 平台工程师 | 审阅固定协议、判分器重放、baseline、来路和发布门槛。 | 让模型决策更可复查。 |
+
+不宣称已测得的客户 ROI、节省工时或生产成果。[完整中英定位与试点度量](../docs/product-tour-and-positioning-2026-10-06.md)。
 
 ## 大版本核心功能
 
@@ -346,9 +377,9 @@ v0.4.2 公开基线继续保留 v0.4.1 引入的真实本地 Qwen3 4B LoRA 训�
 
 矢量图：[`fine-tune-qwen4b-lora-chart.svg`](../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.svg)。完整证据目录：[`docs/release-evidence/finetune-qwen4b-lora-2026-07-01`](../docs/release-evidence/finetune-qwen4b-lora-2026-07-01)。
 
-## 最新真机证据
+## 历史本地运行证据（2026-08-30）
 
-2026-08-30 的证据刷新从当前运行中的应用生成了新一批高清实机材料：
+2026-08-30 的归档保留了当时运行应用生成的高清本地材料：
 
 - Runtime Fabric：真实 MLX、Ollama、llama.cpp 3/3 后端通过，contract 6/6，标准化操作 42/42。
 - Local Server：Ollama 0.31.1 + Qwen3 0.6B 通过 15/15 项，平均延迟 169 ms。
@@ -360,26 +391,20 @@ v0.4.2 公开基线继续保留 v0.4.1 引入的真实本地 Qwen3 4B LoRA 训�
 
 ## 截图
 
-README 截图来自本地运行版本，使用 1920x1200 视口按 2x DPR 生成。路由图达到 3840x2400；证据面板保留高清裁切，3360x1960 LoRA 图从 SVG 导出。
+2026-10-06 当前图库从使用隔离数据的独立构建抓取，尺寸为 `1920 x 1200`，UI 文本中的本机路径已脱敏。画面展示控制项与空白/入门状态，不代表新完成的运行。[清单与边界](../docs/assets/product-tour/2026-10-06/manifest.json)。
 
-![Agent 工作台](../docs/assets/screenshots/agent-workbench.png)
-![Fine-tune Studio](../docs/assets/screenshots/fine-tune-studio.png)
-![Fine-tune 实时训练曲线](../docs/assets/screenshots/fine-tune-live-training-curve.png)
-![Qwen3 4B LoRA 发布证据](../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png)
-![Benchmark Studio](../docs/assets/screenshots/benchmarks-studio.png)
-![最新实机 Benchmark 运行](../docs/assets/screenshots/latest-live-benchmark-run.png)
-![MATH-500 可复现性与性能](../docs/assets/screenshots/math500-reproducibility-performance.png)
-![Models Studio](../docs/assets/screenshots/models-studio.png)
-![Runtime Fabric 实机性能](../docs/assets/screenshots/runtime-fabric-live-performance.png)
-![Local Server 实机验收](../docs/assets/screenshots/local-server-live-acceptance.png)
-![Compare Studio](../docs/assets/screenshots/compare-studio.png)
-![Retrieval Studio](../docs/assets/screenshots/retrieval-studio.png)
-![Admin dashboard](../docs/assets/screenshots/admin-dashboard.png)
-![运行整改与服务就绪](../docs/assets/screenshots/operational-remediation-readiness.png)
+![当前隔离环境的 Agent 工作台](../docs/assets/product-tour/2026-10-06/agent.png)
+![当前隔离环境的 Compare Studio](../docs/assets/product-tour/2026-10-06/compare.png)
+![当前隔离环境的 Fine-tune Studio](../docs/assets/product-tour/2026-10-06/fine-tune.png)
+![当前隔离环境的 Benchmark Studio](../docs/assets/product-tour/2026-10-06/benchmarks.png)
+
+[模型](../docs/assets/product-tour/2026-10-06/models.png) · [检索](../docs/assets/product-tour/2026-10-06/retrieval.png) · [实验](../docs/assets/product-tour/2026-10-06/experiments.png) · [后台](../docs/assets/product-tour/2026-10-06/admin.png)。
+
+**历史本地证据，不是 2026-10-06 新结果：** [Qwen3 4B LoRA 曲线](../docs/assets/screenshots/fine-tune-qwen4b-lora-chart.png) · [MATH-500 运行](../docs/assets/screenshots/math500-reproducibility-performance.png) · [Runtime Fabric](../docs/assets/screenshots/runtime-fabric-live-performance.png) · [Local Server](../docs/assets/screenshots/local-server-live-acceptance.png)。[2026-08-30 抓图记录](../docs/release-evidence/v3.1.4-high-resolution-live-machine-capture-2026-08-30.md)。
 
 ## 仓库地址
 
 - GitHub: [https://github.com/ChrisChen667788/Your-First-LLM-Studio](https://github.com/ChrisChen667788/Your-First-LLM-Studio)
 - ModelScope 主页: [https://www.modelscope.cn/profile/haozi667788](https://www.modelscope.cn/profile/haozi667788)
 - 默认 ModelScope repo id：`haozi667788/first-llm-studio`
-- 最新版本说明：[`v1.1.0-rc.2`](../docs/releases/v1.1.0-rc.2_2026-07-16.md)
+- 桌面候选版说明：[`v1.1.0-rc.2`](../docs/releases/v1.1.0-rc.2_2026-07-16.md)

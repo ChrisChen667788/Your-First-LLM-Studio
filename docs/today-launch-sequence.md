@@ -1,6 +1,8 @@
 # First LLM Studio · Today Launch Sequence
 
-This is the recommended same-day release order for **GitHub + ModelScope + Chinese communities**.
+> Archived 2026-10-06: this sequence was written for the `v0.3.0` launch and must not be executed as a current release checklist. The current source is not itself a public release, distribution is `HOLD`, and production is `BLOCKED`. For current media and copy use [Product Tour and Positioning](./product-tour-and-positioning-2026-10-06.md); for state use [`release-state.json`](../release-state.json).
+
+This is the historical same-day release order for **GitHub + ModelScope + Chinese communities**.
 
 The goal is simple:
 
