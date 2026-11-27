@@ -2,6 +2,10 @@
 
 [English](#english) | [简体中文](#简体中文)
 
+**Is the new model a better fit for your Mac? Compare it with the one you use every day.**
+
+**新出的模型，值得换掉你 Mac 上现在用的那个吗？拿你常做的事比一轮。**
+
 ![Release](https://img.shields.io/github/v/release/ChrisChen667788/Your-First-LLM-Studio?label=release)
 ![License](https://img.shields.io/github/license/ChrisChen667788/Your-First-LLM-Studio)
 ![Apple Silicon](https://img.shields.io/badge/platform-Apple%20Silicon-0f172a)
@@ -32,6 +36,20 @@ Data, not a screenshot collage: a sculptural model fabric, a checkpoint curve, a
 ---
 
 # English
+
+## Try a model on your own tasks
+
+A smaller model might be the one you keep for quick conversations. For meeting notes, you might gladly wait longer for a model that gets every amount and date right. Try a new model size, quantization, or LoRA adapter against a baseline you know. Decide what would earn it a place on *your* machine before you see the answers.
+
+| What matters to you? | What you can try today |
+| --- | --- |
+| Will it fit my Mac and my usual workload? | In **Models** (`/models`), check hardware-fit hints for a candidate. Then try a document of the length you actually use. A fit estimate is a starting point. |
+| Will I prefer its answers? | In **Compare** (`/compare`), give your baseline and a configured candidate the same prompt and settings. For daily chat, judge tone, brevity, and how long you are willing to wait. For extraction, check the values against the source. If “30,000 yuan” comes back as “3 yuan”, that error alone may decide it. |
+| Does the result hold across tasks? | In **Benchmarks** (`/benchmarks`), choose built-in evaluation tasks or reuse a prompt set of your own. Repeat runs and review task scores where a scorer exists, completion failures, latency, and throughput. For style, give each answer your own rating for clarity or brevity. |
+
+Start with five prompts from the past week. Include one your current model got wrong. Keep the runtime, prompt, and output limit fixed when testing one change, and note anything else that differs. You may end up keeping different models for chat and document work. [Benchmark task coverage](./docs/benchmark-dimension-coverage.md)
+
+**Planned for personal benchmarks.** Choose scoring dimensions, weights, and must-pass cases for each scenario, explain a switch / keep / insufficient-evidence recommendation with the examples that drove it, and automatically retest past failures the next time you try a model or adapter.
 
 Latest development batch: [v5.8.0-v5.9.4 Activation Operations](./docs/v5.8.0-v5.9.4-activation-operations-plan-2026-09-10.md). Extends verified intake with pinned operational policy and trust snapshots, signed authority rotation, scoped freshness and conflict projection, leased quarantine handling, review quorum, one-shot decision admission, non-authorizing distribution/production firewall, and secret-free audit export/merge. The live default remains unconfigured, distribution `HOLD`, production `BLOCKED`. See the [operator guide](./docs/activation-operations-operator-guide.md).
 
@@ -398,6 +416,20 @@ Issues and PRs are welcome.
 ---
 
 # 简体中文
+
+## 用自己的任务试模型
+
+日常聊天，你可能愿意常驻一个回答简短、起答快的小模型。整理会议纪要时，慢几秒也没关系，金额和日期必须抄对。尝试不同尺寸、量化版本或 LoRA 适配器时，先选一个熟悉的配置作为基线，再定好愿意替换它的条件。
+
+| 你关心什么 | 现在可以怎么测 |
+| --- | --- |
+| 我的 Mac 带得动日常任务吗？ | 在 **Models**（`/models`）查看候选模型的硬件适配提示，再用一份平时会处理的长文实际跑一遍。适配估算只是起点。 |
+| 它的回答合我的习惯吗？ | 在 **Compare**（`/compare`）让基线和已配置的候选用相同设置回答同一道题。聊天时看多久开始回答、语气和篇幅是否合意；抽取任务则对照原文核对字段。如果把「3 万元」写成「3 元」，仅这一条就足以影响选择。 |
+| 多跑几题，优势还在吗？ | 在 **Benchmarks**（`/benchmarks`）选择内置评测题，或复用自己的提示词集，设置重复次数。有判分器的任务看得分，运行表现看失败、延迟与吞吐；文风、简洁程度可以读完原回答后自己打分。 |
+
+可以从上周真问过的五道题开始，其中放一道旧模型答错过的。想单独看量化的影响，就固定运行时、提示词和输出上限，记下其他有变化的条件。测完以后，聊天和读文档各留一个模型，也是有用的结论。[评测维度与题集](./docs/benchmark-dimension-coverage.md)
+
+**规划中的个人评测**会让你按场景设置评分维度、权重和必须答对的用例，用具体样本解释「建议替换、保留当前配置、证据不足」，并在下次尝鲜模型或适配器时自动复测以前踩过的坑。
 
 First LLM Studio 是一个面向 Apple Silicon 的本地优先 LLM 工作台。它把本地 MLX 运行时、远端 API 目标、Agent 会话、Compare 对比、Fine-tune 微调、Benchmark 评测、模型发现、runtime 恢复、发布证据和后台监控统一到一个产品界面里。
 
